@@ -1,0 +1,26 @@
+# CAD and drawing binaries should be stored through Git LFS.
+*.[sS][lL][dD][pP][rR][tT] filter=lfs diff=lfs merge=lfs -text
+*.[sS][lL][dD][aA][sS][mM] filter=lfs diff=lfs merge=lfs -text
+*.[sS][lL][dD][dD][rR][wW] filter=lfs diff=lfs merge=lfs -text
+*.[dD][wW][gG] filter=lfs diff=lfs merge=lfs -text
+*.[dD][xX][fF] filter=lfs diff=lfs merge=lfs -text
+*.[dD][wW][tT] filter=lfs diff=lfs merge=lfs -text
+*.[sS][tT][eE][pP] filter=lfs diff=lfs merge=lfs -text
+*.[sS][tT][pP] filter=lfs diff=lfs merge=lfs -text
+*.[iI][gG][sS] filter=lfs diff=lfs merge=lfs -text
+*.[iI][gG][eE][sS] filter=lfs diff=lfs merge=lfs -text
+*.[xX]_[tT] filter=lfs diff=lfs merge=lfs -text
+*.[xX]_[bB] filter=lfs diff=lfs merge=lfs -text
+*.[pP][dD][fF] filter=lfs diff=lfs merge=lfs -text
+*.[pP][nN][gG] filter=lfs diff=lfs merge=lfs -text
+*.[jJ][pP][gG] filter=lfs diff=lfs merge=lfs -text
+*.[jJ][pP][eE][gG] filter=lfs diff=lfs merge=lfs -text
+*.[zZ][iI][pP] filter=lfs diff=lfs merge=lfs -text
+*.[7][zZ] filter=lfs diff=lfs merge=lfs -text
+
+# Text files stay normal git content.
+*.md text eol=lf
+*.txt text eol=lf
+*.csv text eol=lf
+*.lsp text eol=lf
+*.scr text eol=lf

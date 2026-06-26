@@ -1,0 +1,25 @@
+# Windows and editor metadata
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.tmp
+*.log
+*.bak
+*.old
+*.orig
+~$*
+
+# CAD lock, autosave, and transient files
+*.dwl
+*.dwl2
+*.sv$
+*.ac$
+*.err
+*.autosave
+Backup of *
+
+# Local scratch exports
+scratch/
+tmp/
+temp/
+_local/
