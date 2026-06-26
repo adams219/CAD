@@ -1,28 +1,24 @@
-# CAD Repository Guide
+# Repository Guide
 
-This repository separates CAD evidence from automation code.
+이 저장소는 CAD 자동화 LSP, 진단 문서, 재현용 CAD 샘플을 함께 관리합니다.
 
 ## What Belongs Here
 
-- SolidWorks source files: `.SLDPRT`, `.SLDASM`, `.SLDDRW`
-- Raw SolidWorks exports: `.DWG`, `.DXF`, `.PDF`, `.STEP`, `.IGES`
-- GstarCAD/GstarCAD Mechanical XRef and bound drawing files
-- Release-ready GstarCAD/GstarCAD Mechanical LSP utility copies and usage notes
-- Minimal sample drawings that reproduce scale, dimension style, tolerance, or title-block issues
-- Diagnostic outputs from read-only scan tools
-- Screenshots and notes that explain a CAD behavior
+- GstarCAD / GstarCAD Mechanical AutoLISP source files
+- SolidWorks DWG 변환 및 치수스타일 보정 관련 사용법 문서
+- GMTITLE / FTAP / DIMLFAC 진단 설계와 결과
+- 재현용 SolidWorks, DWG, XRef, Bind 샘플
+- 진단 로그, 덤프, 스크린샷
 
-## What Should Stay In The Automation Repository
+## Working Rules
 
-- Experimental LSP drafts that are not ready to share from the CAD repository
-- Batch scripts and command runners
-- Automated test harnesses
-- Tool usage documents for commands such as `SWAUTO`
-- General analysis logs not tied to a CAD sample file
+1. `swcad_load.lsp` 하나를 APPLOAD 진입점으로 유지합니다.
+2. 검증된 기존 LSP는 `legacy/`에 원본 보관합니다.
+3. 새 기능은 먼저 `lsp/` 모듈에 작게 추가합니다.
+4. GMTITLE / FTAP 스케일 기능은 읽기 전용 진단부터 시작합니다.
+5. 자동 수정 기능은 진단 로그로 충분히 검증한 뒤 추가합니다.
 
 ## Case Folder Pattern
-
-Use one folder per reproducible CAD issue:
 
 ```text
 samples/cases/<case-id>/
@@ -46,11 +42,10 @@ Example:
 
 ## Commit Pattern
 
-Prefer small, traceable commits:
+작업 이력을 나중에 추적하기 쉽도록 아래 단위로 커밋합니다.
 
-- Add original source drawing
-- Add exported or bound result
-- Add scan output and notes
-- Update sample drawing register
-
-Avoid replacing source and result files in one large unexplained commit when diagnosing a scale issue.
+- 로더/모듈 구조 추가
+- 기존 LSP 원본 이관
+- 진단 명령 추가
+- 샘플 DWG 추가
+- 진단 결과 문서화

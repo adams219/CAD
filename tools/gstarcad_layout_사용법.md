@@ -24,7 +24,7 @@ APPLOAD
 아래 파일을 로드합니다.
 
 ```text
-C:\Users\DR-DESIGN\Documents\솔리드웍스 자동화\tools\gstarcad_layout_from_model.lsp
+C:\Users\DR-DESIGN\Documents\CAD tool\tools\gstarcad_layout_from_model.lsp
 ```
 
 로드가 성공하면 명령창에 아래 5개 명령만 표시됩니다.
@@ -116,6 +116,8 @@ Additional frame object with another name/layer <Enter to continue>:
 추가 선택한 프레임은 기준 가로줄이 아니라, 다른 이름/레이어의 프레임까지 포함하기 위한 샘플입니다. 기준 가로줄은 항상 첫 번째로 선택한 프레임의 Y 범위입니다.
 
 A2, A3, A4처럼 서로 크기가 다른 프레임이 같은 가로줄에 섞여 있으면 A2, A3, A4 프레임을 각각 한 번씩 추가 선택하세요. 하단 Y값이 완전히 같지 않아도 첫 번째 프레임의 Y 범위와 충분히 겹치면 같은 줄로 인식합니다. 직접 샘플로 선택한 프레임 타입은 일반 A계열 비율이 아니어도, 같은 줄에서 비슷한 크기이면 포함합니다.
+
+최근 A2/A3/A4 혼합 도면 기준으로는 추가 샘플을 모두 선택했을 때 명령창에 `Detected sheet frame count: 10`이 표시되는 것이 기대 결과입니다.
 
 ## 스케일 기준
 
