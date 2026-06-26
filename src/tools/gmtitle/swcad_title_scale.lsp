@@ -2,16 +2,18 @@
 ;;;
 ;;; Standalone test workflow:
 ;;;   APPLOAD this file directly, then run SWTITLEDEBUG, SWTITLESCAN,
-;;;   or SWSCALESCAN.
+;;;   SWTITLETEXTSCAN, or SWSCALESCAN.
 ;;;
 ;;; SWTITLEDEBUG prints raw information from a selected GM TITLE / FTAP
 ;;; candidate object. It does not modify the drawing.
+;;; SWTITLETEXTSCAN lists title-block attributes and loose TEXT/MTEXT
+;;; found in title-block bounds. It does not modify the drawing.
 ;;; SWSCALESCAN compares title-block scale candidates with dimension
 ;;; DIMLFAC values. It does not modify the drawing.
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260626-1605")
+(setq *swcad-title-scale-version* "260626-1638")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -59,6 +61,10 @@
 
 (defun swcad-title-open-scale-log ()
   (swcad-title-open-log "swcad_scale_scan_last.txt" "SWSCALESCAN log")
+)
+
+(defun swcad-title-open-text-log ()
+  (swcad-title-open-log "swcad_title_text_scan_last.txt" "SWTITLETEXTSCAN log")
 )
 
 (defun swcad-title-close-log ()
@@ -210,6 +216,91 @@
   )
 )
 
+(defun swcad-title-point-string (point)
+  (if (and (listp point) (>= (length point) 2))
+    (strcat
+      "("
+      (swcad-title-number-string (car point))
+      ", "
+      (swcad-title-number-string (cadr point))
+      (if (caddr point)
+        (strcat ", " (swcad-title-number-string (caddr point)))
+        ""
+      )
+      ")"
+    )
+    (swcad-title-string point)
+  )
+)
+
+(defun swcad-title-bbox-string (bbox)
+  (if (and (listp bbox) (= (length bbox) 4))
+    (strcat
+      "("
+      (swcad-title-number-string (car bbox))
+      ", "
+      (swcad-title-number-string (cadr bbox))
+      ") - ("
+      (swcad-title-number-string (caddr bbox))
+      ", "
+      (swcad-title-number-string (cadddr bbox))
+      ")"
+    )
+    "<none>"
+  )
+)
+
+(defun swcad-title-safe-bbox (ename / object result minpt maxpt minlist maxlist)
+  (setq object (swcad-title-safe-vla-object ename))
+  (if object
+    (progn
+      (setq result (vl-catch-all-apply 'vla-GetBoundingBox (list object 'minpt 'maxpt)))
+      (if (vl-catch-all-error-p result)
+        nil
+        (progn
+          (setq minlist (vlax-safearray->list minpt))
+          (setq maxlist (vlax-safearray->list maxpt))
+          (list (car minlist) (cadr minlist) (car maxlist) (cadr maxlist))
+        )
+      )
+    )
+    nil
+  )
+)
+
+(defun swcad-title-expand-bbox (bbox margin)
+  (if bbox
+    (list
+      (- (car bbox) margin)
+      (- (cadr bbox) margin)
+      (+ (caddr bbox) margin)
+      (+ (cadddr bbox) margin)
+    )
+    nil
+  )
+)
+
+(defun swcad-title-point-in-bbox-p (point bbox)
+  (and
+    point
+    bbox
+    (>= (car point) (car bbox))
+    (<= (car point) (caddr bbox))
+    (>= (cadr point) (cadr bbox))
+    (<= (cadr point) (cadddr bbox))
+  )
+)
+
+(defun swcad-title-point-in-bboxes-p (point bboxes / found bbox)
+  (setq found nil)
+  (foreach bbox bboxes
+    (if (swcad-title-point-in-bbox-p point bbox)
+      (setq found T)
+    )
+  )
+  found
+)
+
 (defun swcad-title-char-code (text)
   (if (and text (> (strlen text) 0))
     (ascii text)
@@ -301,22 +392,30 @@
   )
 )
 
-(defun swcad-title-insert-attributes (ename / next edata etype result)
+(defun swcad-title-insert-attributes (ename / data next edata etype result)
   (setq result nil)
-  (setq next (entnext ename))
-  (while next
-    (setq edata (entget next '("*")))
-    (setq etype (swcad-title-dxf-value edata 0))
-    (cond
-      ((= etype "ATTRIB")
-        (setq result (append result (list edata)))
+  (setq data (entget ename))
+  (if (= (swcad-title-dxf-value data 66) 1)
+    (progn
+      (setq next (entnext ename))
+      (while next
+        (setq edata (entget next '("*")))
+        (setq etype (swcad-title-dxf-value edata 0))
+        (cond
+          ((= etype "ATTRIB")
+            (setq result (append result (list edata)))
+          )
+          ((= etype "SEQEND")
+            (setq next nil)
+          )
+          ((not (= etype "ATTRIB"))
+            (setq next nil)
+          )
+        )
+        (if next
+          (setq next (entnext next))
+        )
       )
-      ((= etype "SEQEND")
-        (setq next nil)
-      )
-    )
-    (if next
-      (setq next (entnext next))
     )
   )
   result
@@ -593,6 +692,175 @@
   *swcad-title-scan-loose-scale-count*
 )
 
+(defun swcad-title-text-record-less-p (a b)
+  (if (equal (car a) (car b) 1e-8)
+    (< (cadr a) (cadr b))
+    (> (car a) (car b))
+  )
+)
+
+(defun swcad-title-text-record (edata raw-text / point scale-value)
+  (setq point (swcad-title-dxf-value edata 10))
+  (setq scale-value (swcad-title-scale-text-candidate raw-text))
+  (list
+    (if (and point (cadr point)) (cadr point) 0.0)
+    (if (and point (car point)) (car point) 0.0)
+    (swcad-title-dxf-value edata 0)
+    (swcad-title-dxf-value edata 5)
+    (swcad-title-dxf-value edata 8)
+    point
+    raw-text
+    scale-value
+  )
+)
+
+(defun swcad-title-print-text-record (record)
+  (swcad-title-princ-line
+    (strcat
+      "  - handle="
+      (swcad-title-string (nth 3 record))
+      ", type="
+      (swcad-title-string (nth 2 record))
+      ", layer="
+      (swcad-title-string (nth 4 record))
+      ", point="
+      (swcad-title-point-string (nth 5 record))
+      (if (nth 7 record)
+        (strcat ", scale-candidate=" (swcad-title-string (nth 7 record)))
+        ""
+      )
+      ", text=\""
+      (swcad-title-string (nth 6 record))
+      "\""
+    )
+  )
+)
+
+(defun swcad-title-print-attribute-record (insert-data attr-data / tag value point)
+  (setq tag (swcad-title-dxf-value attr-data 2))
+  (setq value (swcad-title-dxf-value attr-data 1))
+  (setq point (swcad-title-dxf-value attr-data 10))
+  (swcad-title-princ-line
+    (strcat
+      "    - attr-handle="
+      (swcad-title-string (swcad-title-dxf-value attr-data 5))
+      ", tag="
+      (swcad-title-string tag)
+      ", value=\""
+      (swcad-title-string value)
+      "\""
+      ", layer="
+      (swcad-title-string (swcad-title-dxf-value attr-data 8))
+      ", point="
+      (swcad-title-point-string point)
+    )
+  )
+)
+
+(defun swcad-title-scan-title-texts (/ insert-ss insert-index insert-total text-ss text-index text-total ename data block attrs attr-data attr-count title-like bbox bboxes title-insert-count attribute-count text-records raw-text point records-in-bounds record)
+  (swcad-title-open-text-log)
+  (setq title-insert-count 0)
+  (setq attribute-count 0)
+  (setq bboxes nil)
+  (setq text-records nil)
+  (swcad-title-princ-line "----- SWTITLETEXTSCAN read-only title text scan -----")
+  (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+
+  (setq insert-ss (ssget "_X" '((0 . "INSERT"))))
+  (setq insert-total (if insert-ss (sslength insert-ss) 0))
+  (swcad-title-princ-line (strcat "INSERT count: " (itoa insert-total)))
+  (swcad-title-princ-line "Title-like inserts and attributes:")
+  (setq insert-index 0)
+  (while (< insert-index insert-total)
+    (setq ename (ssname insert-ss insert-index))
+    (setq data (entget ename '("*")))
+    (setq block (swcad-title-dxf-value data 2))
+    (setq attrs (swcad-title-insert-attributes ename))
+    (setq attr-count (length attrs))
+    (setq title-like (swcad-title-title-block-name-p block))
+    (if (or title-like (> attr-count 0))
+      (progn
+        (setq title-insert-count (+ title-insert-count 1))
+        (setq bbox (swcad-title-safe-bbox ename))
+        (if title-like
+          (setq bboxes (append bboxes (list (swcad-title-expand-bbox bbox 2.0))))
+        )
+        (swcad-title-princ-line
+          (strcat
+            "  - insert-handle="
+            (swcad-title-string (swcad-title-dxf-value data 5))
+            ", block="
+            (swcad-title-string block)
+            ", layer="
+            (swcad-title-string (swcad-title-dxf-value data 8))
+            ", insert="
+            (swcad-title-point-string (swcad-title-dxf-value data 10))
+            ", bbox="
+            (swcad-title-bbox-string bbox)
+            ", attributes="
+            (itoa attr-count)
+          )
+        )
+        (foreach attr-data attrs
+          (setq attribute-count (+ attribute-count 1))
+          (swcad-title-print-attribute-record data attr-data)
+        )
+        (if (= attr-count 0)
+          (swcad-title-princ-line "    <no attributes>")
+        )
+      )
+    )
+    (setq insert-index (+ insert-index 1))
+  )
+  (if (= title-insert-count 0)
+    (swcad-title-princ-line "  <none>")
+  )
+
+  (setq text-ss (ssget "_X" '((0 . "TEXT,MTEXT"))))
+  (setq text-total (if text-ss (sslength text-ss) 0))
+  (setq text-index 0)
+  (while (< text-index text-total)
+    (setq ename (ssname text-ss text-index))
+    (setq data (entget ename '("*")))
+    (setq raw-text (swcad-title-text-entity-value data))
+    (setq point (swcad-title-dxf-value data 10))
+    (if (and raw-text (> (strlen raw-text) 0))
+      (setq text-records
+        (append text-records (list (swcad-title-text-record data raw-text)))
+      )
+    )
+    (setq text-index (+ text-index 1))
+  )
+  (setq text-records (vl-sort text-records 'swcad-title-text-record-less-p))
+  (setq records-in-bounds nil)
+  (foreach record text-records
+    (if (or (not bboxes) (swcad-title-point-in-bboxes-p (nth 5 record) bboxes))
+      (setq records-in-bounds (append records-in-bounds (list record)))
+    )
+  )
+
+  (swcad-title-princ-line (strcat "TEXT/MTEXT count: " (itoa text-total)))
+  (if bboxes
+    (swcad-title-princ-line "Loose TEXT/MTEXT inside title-block bounds:")
+    (swcad-title-princ-line "Loose TEXT/MTEXT records:")
+  )
+  (if records-in-bounds
+    (foreach record records-in-bounds
+      (swcad-title-print-text-record record)
+    )
+    (swcad-title-princ-line "  <none>")
+  )
+
+  (swcad-title-princ-line "Summary:")
+  (swcad-title-princ-line (strcat "  title-like inserts: " (itoa title-insert-count)))
+  (swcad-title-princ-line (strcat "  attributes listed: " (itoa attribute-count)))
+  (swcad-title-princ-line (strcat "  loose text records listed: " (itoa (length records-in-bounds))))
+  (swcad-title-princ-line "No drawing data was changed.")
+  (swcad-title-close-log)
+  (princ)
+)
+
 (defun swcad-title-scale-text-to-dimlfac (text / cleaned ratio pos left right numerator denominator value)
   (setq cleaned (vl-string-trim " \t\r\n" (swcad-title-string text)))
   (setq ratio (swcad-title-extract-ratio-text cleaned))
@@ -794,6 +1062,10 @@
   (princ)
 )
 
+(defun c:SWTITLETEXTSCAN ()
+  (swcad-title-scan-title-texts)
+)
+
 (defun c:SWSCALESCAN (/ insert-ss insert-index insert-total dim-ss dim-index dim-total ename data overrides style styledata override-value style-value effective-value expected-values effective-counts override-counts style-counts match-count mismatch-count mismatch-example-count match result)
   (swcad-title-open-scale-log)
   (setq *swcad-title-scan-title-insert-count* 0)
@@ -932,5 +1204,5 @@
 )
 
 (princ (strcat "\nswcad_title_scale.lsp ready " *swcad-title-scale-version*))
-(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWSCALESCAN")
+(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWSCALESCAN")
 (princ)
