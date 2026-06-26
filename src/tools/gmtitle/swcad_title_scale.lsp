@@ -11,7 +11,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260626-1530")
+(setq *swcad-title-scale-version* "260626-1605")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -207,6 +207,97 @@
       )
     )
     (swcad-title-princ-line "  <none>")
+  )
+)
+
+(defun swcad-title-char-code (text)
+  (if (and text (> (strlen text) 0))
+    (ascii text)
+    0
+  )
+)
+
+(defun swcad-title-digit-or-dot-p (text / code)
+  (setq code (swcad-title-char-code text))
+  (or
+    (and (>= code 48) (<= code 57))
+    (= text ".")
+  )
+)
+
+(defun swcad-title-space-p (text / code)
+  (setq code (swcad-title-char-code text))
+  (or (= code 9) (= code 10) (= code 13) (= code 32))
+)
+
+(defun swcad-title-scale-only-text-p (text / index len ch ok)
+  (setq index 1)
+  (setq len (strlen text))
+  (setq ok (> len 0))
+  (while (and ok (<= index len))
+    (setq ch (substr text index 1))
+    (if (not (or (swcad-title-digit-or-dot-p ch) (swcad-title-space-p ch) (= ch ":")))
+      (setq ok nil)
+    )
+    (setq index (+ index 1))
+  )
+  ok
+)
+
+(defun swcad-title-extract-ratio-text (text / raw len colon left-end left-start right-start right-end left right)
+  (setq raw (vl-string-trim " \t\r\n" (swcad-title-string text)))
+  (setq len (strlen raw))
+  (setq colon (vl-string-search ":" raw))
+  (setq left nil)
+  (setq right nil)
+  (if colon
+    (progn
+      (setq left-end colon)
+      (while (and (> left-end 0) (swcad-title-space-p (substr raw left-end 1)))
+        (setq left-end (- left-end 1))
+      )
+      (setq left-start left-end)
+      (while (and (> left-start 0) (swcad-title-digit-or-dot-p (substr raw left-start 1)))
+        (setq left-start (- left-start 1))
+      )
+      (if (> left-end left-start)
+        (setq left (substr raw (+ left-start 1) (- left-end left-start)))
+      )
+
+      (setq right-start (+ colon 2))
+      (while (and (<= right-start len) (swcad-title-space-p (substr raw right-start 1)))
+        (setq right-start (+ right-start 1))
+      )
+      (setq right-end right-start)
+      (while (and (<= right-end len) (swcad-title-digit-or-dot-p (substr raw right-end 1)))
+        (setq right-end (+ right-end 1))
+      )
+      (if (> right-end right-start)
+        (setq right (substr raw right-start (- right-end right-start)))
+      )
+    )
+  )
+  (if (and left right (> (atof left) 0.0) (> (atof right) 0.0))
+    (strcat left ":" right)
+    nil
+  )
+)
+
+(defun swcad-title-scale-text-candidate (text / cleaned upper ratio)
+  (setq cleaned (vl-string-trim " \t\r\n" (swcad-title-string text)))
+  (setq upper (strcase cleaned))
+  (setq ratio (swcad-title-extract-ratio-text cleaned))
+  (if (and
+        ratio
+        (or
+          (swcad-title-scale-only-text-p cleaned)
+          (vl-string-search "SCALE" upper)
+          (vl-string-search "SCA" upper)
+          (<= (strlen cleaned) 16)
+        )
+      )
+    ratio
+    nil
   )
 )
 
@@ -429,8 +520,85 @@
   scale-count
 )
 
-(defun swcad-title-scale-text-to-dimlfac (text / cleaned pos left right numerator denominator value)
+(defun swcad-title-text-entity-value (data / result pair code value)
+  (setq result "")
+  (foreach pair data
+    (setq code (car pair))
+    (setq value (cdr pair))
+    (if (and (or (= code 1) (= code 3)) (swcad-title-string-p value))
+      (setq result (strcat result value))
+    )
+  )
+  result
+)
+
+(defun swcad-title-print-text-candidate (edata scale-value raw-text)
+  (swcad-title-princ-line
+    (strcat
+      "  - handle="
+      (swcad-title-string (swcad-title-dxf-value edata 5))
+      ", layout="
+      (swcad-title-string (swcad-title-dxf-value edata 410))
+      ", type="
+      (swcad-title-string (swcad-title-dxf-value edata 0))
+      ", layer="
+      (swcad-title-string (swcad-title-dxf-value edata 8))
+      ", value="
+      (swcad-title-string scale-value)
+      ", insert="
+      (swcad-title-string (swcad-title-dxf-value edata 10))
+      ", text=\""
+      (swcad-title-string raw-text)
+      "\""
+    )
+  )
+)
+
+(defun swcad-title-scan-text-entity (ename / edata raw-text scale-value)
+  (setq edata (entget ename '("*")))
+  (setq raw-text (swcad-title-text-entity-value edata))
+  (setq scale-value (swcad-title-scale-text-candidate raw-text))
+  (if scale-value
+    (progn
+      (setq *swcad-title-scan-loose-scale-count* (+ *swcad-title-scan-loose-scale-count* 1))
+      (setq
+        *swcad-title-scan-scale-values*
+        (swcad-title-list-add-unique
+          scale-value
+          *swcad-title-scan-scale-values*
+        )
+      )
+      (swcad-title-print-text-candidate edata scale-value raw-text)
+      1
+    )
+    0
+  )
+)
+
+(defun swcad-title-scan-loose-texts (/ ss index total ename)
+  (setq ss (ssget "_X" '((0 . "TEXT,MTEXT"))))
+  (setq total (if ss (sslength ss) 0))
+  (setq *swcad-title-scan-loose-text-count* total)
+  (swcad-title-princ-line (strcat "TEXT/MTEXT count: " (itoa total)))
+  (swcad-title-princ-line "Loose text scale candidates:")
+  (setq index 0)
+  (while (< index total)
+    (setq ename (ssname ss index))
+    (swcad-title-scan-text-entity ename)
+    (setq index (+ index 1))
+  )
+  (if (= *swcad-title-scan-loose-scale-count* 0)
+    (swcad-title-princ-line "  <none>")
+  )
+  *swcad-title-scan-loose-scale-count*
+)
+
+(defun swcad-title-scale-text-to-dimlfac (text / cleaned ratio pos left right numerator denominator value)
   (setq cleaned (vl-string-trim " \t\r\n" (swcad-title-string text)))
+  (setq ratio (swcad-title-extract-ratio-text cleaned))
+  (if ratio
+    (setq cleaned ratio)
+  )
   (setq pos (vl-string-search ":" cleaned))
   (cond
     (pos
@@ -557,6 +725,8 @@
   (swcad-title-open-scan-log)
   (setq *swcad-title-scan-title-insert-count* 0)
   (setq *swcad-title-scan-scale-count* 0)
+  (setq *swcad-title-scan-loose-text-count* 0)
+  (setq *swcad-title-scan-loose-scale-count* 0)
   (setq *swcad-title-scan-scale-values* nil)
   (swcad-title-princ-line "----- SWTITLESCAN read-only title scale scan -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
@@ -564,7 +734,7 @@
   (setq ss (ssget "_X" '((0 . "INSERT"))))
   (setq total (if ss (sslength ss) 0))
   (swcad-title-princ-line (strcat "INSERT count: " (itoa total)))
-  (swcad-title-princ-line "Title scale candidates:")
+  (swcad-title-princ-line "Attribute title scale candidates:")
   (setq index 0)
   (while (< index total)
     (setq ename (ssname ss index))
@@ -574,6 +744,7 @@
   (if (= *swcad-title-scan-scale-count* 0)
     (swcad-title-princ-line "  <none>")
   )
+  (swcad-title-scan-loose-texts)
   (swcad-title-princ-line "Summary:")
   (swcad-title-princ-line
     (strcat "  title inserts with scale: " (itoa *swcad-title-scan-title-insert-count*))
@@ -582,12 +753,15 @@
     (strcat "  scale attributes: " (itoa *swcad-title-scan-scale-count*))
   )
   (swcad-title-princ-line
-    (strcat "  scale values: " (swcad-title-string *swcad-title-scan-scale-values*))
+    (strcat "  loose text scale candidates: " (itoa *swcad-title-scan-loose-scale-count*))
+  )
+  (swcad-title-princ-line
+    (strcat "  scale values: " (swcad-title-list-string *swcad-title-scan-scale-values*))
   )
   (swcad-title-princ-line
     (strcat
       "Result: "
-      (if (> *swcad-title-scan-scale-count* 0)
+      (if (> (+ *swcad-title-scan-scale-count* *swcad-title-scan-loose-scale-count*) 0)
         "OK_TITLE_SCALE_FOUND"
         "MISSING_TITLE_SCALE"
       )
@@ -624,6 +798,8 @@
   (swcad-title-open-scale-log)
   (setq *swcad-title-scan-title-insert-count* 0)
   (setq *swcad-title-scan-scale-count* 0)
+  (setq *swcad-title-scan-loose-text-count* 0)
+  (setq *swcad-title-scan-loose-scale-count* 0)
   (setq *swcad-title-scan-scale-values* nil)
   (setq effective-counts nil)
   (setq override-counts nil)
@@ -638,7 +814,7 @@
   (setq insert-ss (ssget "_X" '((0 . "INSERT"))))
   (setq insert-total (if insert-ss (sslength insert-ss) 0))
   (swcad-title-princ-line (strcat "INSERT count: " (itoa insert-total)))
-  (swcad-title-princ-line "Title scale candidates:")
+  (swcad-title-princ-line "Attribute title scale candidates:")
   (setq insert-index 0)
   (while (< insert-index insert-total)
     (setq ename (ssname insert-ss insert-index))
@@ -648,6 +824,7 @@
   (if (= *swcad-title-scan-scale-count* 0)
     (swcad-title-princ-line "  <none>")
   )
+  (swcad-title-scan-loose-texts)
 
   (setq expected-values (swcad-title-expected-dimlfac-values *swcad-title-scan-scale-values*))
   (swcad-title-princ-line "Title scale summary:")
@@ -656,6 +833,9 @@
   )
   (swcad-title-princ-line
     (strcat "  scale attributes: " (itoa *swcad-title-scan-scale-count*))
+  )
+  (swcad-title-princ-line
+    (strcat "  loose text scale candidates: " (itoa *swcad-title-scan-loose-scale-count*))
   )
   (swcad-title-princ-line
     (strcat "  title scale values: " (swcad-title-list-string *swcad-title-scan-scale-values*))
