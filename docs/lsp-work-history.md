@@ -1,16 +1,16 @@
 # LSP Work History
 
-This document records the first CAD repository import of the GstarCAD LSP utilities.
+이 문서는 GstarCAD LSP 유틸리티를 CAD 저장소에 처음 이관한 기록입니다.
 
 ## 2026-06-26 Initial CAD Repository Import
 
-Imported from the local SolidWorks automation workspace:
+이전 로컬 작업공간에서 가져왔습니다.
 
 ```text
 C:\Users\DR-DESIGN\Documents\솔리드웍스 자동화\tools
 ```
 
-Imported files:
+가져온 파일:
 
 - `tools/gstarcad_dimstyle_keep_tolerance.lsp`
 - `tools/gstarcad_dimstyle_keep_tolerance_사용법.md`
@@ -18,7 +18,7 @@ Imported files:
 - `tools/gstarcad_layout_사용법.md`
 - `tools/gstarcad_sdk_fit_tolerance_analysis.md`
 
-Source repository at import time:
+이관 시점의 이전 저장소:
 
 ```text
 https://github.com/adams219/Solidworks-automation.git
@@ -26,62 +26,62 @@ branch: main
 HEAD: 5592212 Add Codex cloud handoff and reducer trial results
 ```
 
-Important note:
+중요 참고:
 
-The source `tools/` folder was untracked in the SolidWorks automation repository at import time, so these LSP files did not have prior per-file git commit history to preserve. This CAD repository commit becomes the first git-tracked baseline for these tool copies.
+이전 SolidWorks 자동화 저장소에서 `tools/` 폴더는 아직 git에 커밋되지 않은 상태였습니다. 따라서 이 CAD 저장소의 최초 LSP 커밋이 해당 도구들의 첫 git 추적 기준점입니다.
 
 ## Tool Summary
 
 ### `gstarcad_dimstyle_keep_tolerance.lsp`
 
-Main workflow:
+일상 사용 흐름:
 
 ```text
-APPLOAD -> SWAUTO -> GMPOWEREDIT check -> QSAVE
+APPLOAD -> SWAUTO -> GMPOWEREDIT 확인 -> QSAVE
 ```
 
-Key commands:
+주요 명령:
 
-- `SWAUTO`: run AM_ISO style mapping, regenerate, convert Mechanical fit data where possible, regenerate again, audit, and clean unused SolidWorks dimension styles.
-- `SWHELP`: print the daily workflow and troubleshooting command list.
-- `SWDIMKEEPAMISO`: normalize current-tab dimensions to AM_ISO family styles while preserving meaningful tolerance overrides.
-- `SWDEBUG`: inspect one dimension's target style, tolerance values, fit code, `DIMLFAC`, and related size variables.
-- `SWFINDSTYLE`: find dimensions and deeper references using old SolidWorks dimension style patterns such as `*SLDDIMSTYLE*`.
-- `SWMECHFITSEL` / `SWMECHFITALL`: convert selected or all eligible fit-code dimensions for GstarCAD Mechanical workflows.
+- `SWAUTO`: AM_ISO 스타일 매핑, REGENALL, Mechanical 맞춤공차 변환, 최종 감사, 미사용 SolidWorks 치수스타일 정리를 실행합니다.
+- `SWHELP`: 일상 사용 순서와 문제 발생 시 명령을 출력합니다.
+- `SWDIMKEEPAMISO`: 현재 탭 치수를 AM_ISO 계열 스타일로 정리하고 의미 있는 공차 override를 보존합니다.
+- `SWDEBUG`: 선택 치수의 대상 스타일, 공차값, fit code, `DIMLFAC`, 관련 크기 변수를 진단합니다.
+- `SWFINDSTYLE`: `*SLDDIMSTYLE*` 같은 기존 SolidWorks 치수스타일 참조를 찾습니다.
+- `SWMECHFITSEL` / `SWMECHFITALL`: 선택 또는 전체 대상 치수를 GstarCAD Mechanical 맞춤공차 데이터로 변환합니다.
 
-Primary reason for the tool:
+도구를 만든 이유:
 
-SolidWorks DWG exports often encode tolerances in generated dimension styles. A direct style change can remove the visible tolerance or alter scale behavior. This LSP bakes useful per-dimension tolerance information into overrides before moving dimensions onto target AM_ISO styles.
+SolidWorks DWG export는 공차 표시를 `SLDDIMSTYLE*` 같은 생성 치수스타일에 넣는 경우가 많습니다. 단순히 AM_ISO 스타일로 바꾸면 공차 표시나 스케일 관련 동작이 깨질 수 있으므로, 필요한 per-dimension 정보를 먼저 override로 보존한 뒤 스타일을 바꿉니다.
 
 ### `gstarcad_layout_from_model.lsp`
 
-Main workflow:
+일상 사용 흐름:
 
 ```text
 APPLOAD -> GSA4CHECK -> GSA4GO -> GSA4VERIFY -> GSA4PDF
 ```
 
-Key commands:
+주요 명령:
 
-- `GSA4CHECK`: check PDF plotter, A4 media, plot style, rotation, and generated layout prefix.
-- `GSA4GO`: pick a model-space drawing frame, detect matching frames on the same output row, and create `SHEET-*` layouts.
-- `GSA4VERIFY`: report generated layout paper size, viewport window, view center, and scale.
-- `GSA4CLEAN`: delete generated `SHEET-*` layouts.
-- `GSA4PDF`: plot generated layouts to individual PDF files.
+- `GSA4CHECK`: PDF plotter, A4 media, plot style, rotation, layout prefix를 확인합니다.
+- `GSA4GO`: model space의 도면 프레임을 선택해 같은 출력 줄의 프레임을 감지하고 `SHEET-*` layout을 만듭니다.
+- `GSA4VERIFY`: 생성된 layout의 paper size, viewport window, view center, scale을 보고합니다.
+- `GSA4CLEAN`: 생성된 `SHEET-*` layout을 삭제합니다.
+- `GSA4PDF`: 생성된 layout을 개별 PDF로 출력합니다.
 
-Primary reason for the tool:
+도구를 만든 이유:
 
-Some DWG files contain multiple drawing frames arranged in model space instead of separate paper-space layouts. This LSP creates repeatable A4 layout tabs and PDF outputs from those frames.
+일부 DWG는 여러 도면 프레임이 paper space layout이 아니라 model space에 나란히 배치되어 있습니다. 이 LSP는 해당 프레임에서 반복 가능한 A4 layout과 PDF 출력을 만듭니다.
 
 ## Next Planned CAD Diagnostics
 
-For the current GstarCAD/GstarCAD Mechanical scale issue, keep the first scanner read-only and separate from the long `SWAUTO` file.
+현재 GstarCAD / GstarCAD Mechanical 스케일 문제는 긴 `SWAUTO` 파일에 바로 넣지 않고, 먼저 읽기 전용 scanner로 분리합니다.
 
-Candidate commands:
+후보 명령:
 
 - `SWTITLEDEBUG`
 - `SWTITLESCAN`
 - `SWSCALESCAN`
 - `SWSCALEDUMP`
 
-The scanner should collect title-block clues such as `GMTITLE` / `FTAP`, `DIMLFAC`, dimension style scale, drawing units, viewport scale, and visible scale text before any automatic repair is attempted.
+scanner는 자동 수정 전에 `GMTITLE` / `FTAP`, `DIMLFAC`, 치수스타일 스케일, 도면 단위, viewport scale, 보이는 scale text를 수집해야 합니다.

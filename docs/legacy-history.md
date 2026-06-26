@@ -1,6 +1,6 @@
 # Legacy History
 
-이 저장소에 보관한 legacy 파일은 아래 기존 작업공간에서 이관했습니다.
+이 저장소에 보관한 LSP 파일은 아래 기존 작업공간에서 이관했습니다.
 
 ```text
 C:\Users\DR-DESIGN\Documents\솔리드웍스 자동화\tools
