@@ -2,18 +2,20 @@
 ;;;
 ;;; Standalone test workflow:
 ;;;   APPLOAD this file directly, then run SWTITLEDEBUG, SWTITLESCAN,
-;;;   SWTITLETEXTSCAN, or SWSCALESCAN.
+;;;   SWTITLETEXTSCAN, SWTITLETRANSFERPREVIEW, or SWSCALESCAN.
 ;;;
 ;;; SWTITLEDEBUG prints raw information from a selected GM TITLE / FTAP
 ;;; candidate object. It does not modify the drawing.
 ;;; SWTITLETEXTSCAN lists title-block attributes and loose TEXT/MTEXT
 ;;; found in title-block bounds. It does not modify the drawing.
+;;; SWTITLETRANSFERPREVIEW maps loose title-block text to GM TITLE
+;;; attribute tags. It does not modify the drawing.
 ;;; SWSCALESCAN compares title-block scale candidates with dimension
 ;;; DIMLFAC values. It does not modify the drawing.
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260626-1638")
+(setq *swcad-title-scale-version* "260626-1708")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -65,6 +67,10 @@
 
 (defun swcad-title-open-text-log ()
   (swcad-title-open-log "swcad_title_text_scan_last.txt" "SWTITLETEXTSCAN log")
+)
+
+(defun swcad-title-open-transfer-log ()
+  (swcad-title-open-log "swcad_title_transfer_preview_last.txt" "SWTITLETRANSFERPREVIEW log")
 )
 
 (defun swcad-title-close-log ()
@@ -299,6 +305,71 @@
     )
   )
   found
+)
+
+(setq *swcad-title-transfer-template*
+  '(
+    ("GEN-TITLE-QTY{10}" 25.75 37.50 "quantity")
+    ("GEN-TITLE-MAT1{10}" 32.81333128 37.60265511 "material")
+    ("GEN-TITLE-NAME{10}" 6.00361982 21.70382822 "name")
+    ("GEN-TITLE-CHKM{10}" 35.81333128 21.60265511 "checked")
+    ("GEN-TITLE-APPM{21.7}" 64.86238219 21.70382822 "approved")
+    ("GEN-TITLE-DATE{11.7}" 93.48807325 21.53210663 "date")
+    ("GEN-TITLE-SCA{6.7}" 163.48807325 21.53210663 "scale")
+    ("GEN-TITLE-DWG{23}" 56.00 12.50 "drawing")
+    ("GEN-TITLE-NR{23}" 56.00 2.70 "drawing-number")
+    ("GEN-TITLE-REV{5}" 148.48807325 1.53210663 "revision")
+    ("GEN-TITLE-SIZ{6.7}" 163.48807325 1.53210663 "sheet-size")
+  )
+)
+
+(defun swcad-title-distance2 (x1 y1 x2 y2 / dx dy)
+  (setq dx (- x1 x2))
+  (setq dy (- y1 y2))
+  (+ (* dx dx) (* dy dy))
+)
+
+(defun swcad-title-transfer-best-slot (point bbox / relx rely best bestdist dist slot)
+  (setq best nil)
+  (setq bestdist nil)
+  (if (and point bbox)
+    (progn
+      (setq relx (- (car point) (car bbox)))
+      (setq rely (- (cadr point) (cadr bbox)))
+      (foreach slot *swcad-title-transfer-template*
+        (setq dist (swcad-title-distance2 relx rely (cadr slot) (caddr slot)))
+        (if (or (not bestdist) (< dist bestdist))
+          (progn
+            (setq best slot)
+            (setq bestdist dist)
+          )
+        )
+      )
+      (if best
+        (list best (sqrt bestdist) relx rely)
+        nil
+      )
+    )
+    nil
+  )
+)
+
+(defun swcad-title-assoc-put (key value alist / result found pair)
+  (setq result nil)
+  (setq found nil)
+  (foreach pair alist
+    (if (equal key (car pair))
+      (progn
+        (setq result (append result (list (cons key value))))
+        (setq found T)
+      )
+      (setq result (append result (list pair)))
+    )
+  )
+  (if found
+    result
+    (append result (list (cons key value)))
+  )
 )
 
 (defun swcad-title-char-code (text)
@@ -861,6 +932,239 @@
   (princ)
 )
 
+(defun swcad-title-transfer-source-bbox (/ insert-ss insert-index insert-total ename data block bbox area best bestarea)
+  (setq insert-ss (ssget "_X" '((0 . "INSERT"))))
+  (setq insert-total (if insert-ss (sslength insert-ss) 0))
+  (setq best nil)
+  (setq bestarea nil)
+  (setq insert-index 0)
+  (while (< insert-index insert-total)
+    (setq ename (ssname insert-ss insert-index))
+    (setq data (entget ename '("*")))
+    (setq block (swcad-title-dxf-value data 2))
+    (if (swcad-title-title-block-name-p block)
+      (progn
+        (setq bbox (swcad-title-safe-bbox ename))
+        (if bbox
+          (progn
+            (setq area (* (- (caddr bbox) (car bbox)) (- (cadddr bbox) (cadr bbox))))
+            (if (or (not bestarea) (< area bestarea))
+              (progn
+                (setq best (list ename data bbox))
+                (setq bestarea area)
+              )
+            )
+          )
+        )
+      )
+    )
+    (setq insert-index (+ insert-index 1))
+  )
+  best
+)
+
+(defun swcad-title-transfer-text-records (bbox / ss index total ename data raw-text point records record)
+  (setq records nil)
+  (setq ss (ssget "_X" '((0 . "TEXT,MTEXT"))))
+  (setq total (if ss (sslength ss) 0))
+  (setq index 0)
+  (while (< index total)
+    (setq ename (ssname ss index))
+    (setq data (entget ename '("*")))
+    (setq raw-text (swcad-title-text-entity-value data))
+    (setq point (swcad-title-dxf-value data 10))
+    (if (and
+          raw-text
+          (> (strlen raw-text) 0)
+          (or (not bbox) (swcad-title-point-in-bbox-p point (swcad-title-expand-bbox bbox 2.0)))
+        )
+      (progn
+        (setq record (swcad-title-text-record data raw-text))
+        (setq records (append records (list record)))
+      )
+    )
+    (setq index (+ index 1))
+  )
+  (vl-sort records 'swcad-title-text-record-less-p)
+)
+
+(defun swcad-title-transfer-preview-record (record bbox / point best slot dist tag label relx rely)
+  (setq point (nth 5 record))
+  (setq best (swcad-title-transfer-best-slot point bbox))
+  (if best
+    (progn
+      (setq slot (car best))
+      (setq dist (cadr best))
+      (setq relx (caddr best))
+      (setq rely (cadddr best))
+      (setq tag (car slot))
+      (setq label (cadddr slot))
+      (list tag label (nth 6 record) (nth 3 record) point dist relx rely record)
+    )
+    nil
+  )
+)
+
+(defun swcad-title-transfer-print-mapping (mapping)
+  (swcad-title-princ-line
+    (strcat
+      "  "
+      (car mapping)
+      " ["
+      (cadr mapping)
+      "] <= \""
+      (swcad-title-string (caddr mapping))
+      "\""
+      ", source-handle="
+      (swcad-title-string (cadddr mapping))
+      ", source-point="
+      (swcad-title-point-string (nth 4 mapping))
+      ", distance="
+      (swcad-title-number-string (nth 5 mapping))
+    )
+  )
+)
+
+(defun swcad-title-transfer-print-unmapped (record bbox / best slot)
+  (setq best (swcad-title-transfer-best-slot (nth 5 record) bbox))
+  (swcad-title-princ-line
+    (strcat
+      "  - handle="
+      (swcad-title-string (nth 3 record))
+      ", point="
+      (swcad-title-point-string (nth 5 record))
+      ", text=\""
+      (swcad-title-string (nth 6 record))
+      "\""
+      (if best
+        (progn
+          (setq slot (car best))
+          (strcat
+            ", nearest="
+            (car slot)
+            ", distance="
+            (swcad-title-number-string (cadr best))
+          )
+        )
+        ""
+      )
+    )
+  )
+)
+
+(defun swcad-title-transfer-preview (/ source source-data source-bbox source-block records mappings unmapped duplicates record preview tag existing slot maxdist missing-count mapped-count duplicate-count unmapped-count)
+  (swcad-title-open-transfer-log)
+  (setq maxdist 7.0)
+  (setq source (swcad-title-transfer-source-bbox))
+  (setq source-data (if source (cadr source) nil))
+  (setq source-bbox (if source (caddr source) nil))
+  (setq source-block (if source-data (swcad-title-dxf-value source-data 2) nil))
+  (setq mappings nil)
+  (setq unmapped nil)
+  (setq duplicates nil)
+  (setq mapped-count 0)
+  (setq duplicate-count 0)
+  (setq unmapped-count 0)
+  (swcad-title-princ-line "----- SWTITLETRANSFERPREVIEW read-only GM TITLE transfer preview -----")
+  (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-princ-line
+    (strcat
+      "Source title insert: "
+      (if source-data
+        (strcat
+          "handle="
+          (swcad-title-string (swcad-title-dxf-value source-data 5))
+          ", block="
+          (swcad-title-string source-block)
+          ", bbox="
+          (swcad-title-bbox-string source-bbox)
+        )
+        "<none>"
+      )
+    )
+  )
+  (if source-bbox
+    (progn
+      (setq records (swcad-title-transfer-text-records source-bbox))
+      (foreach record records
+        (setq preview (swcad-title-transfer-preview-record record source-bbox))
+        (if (and preview (<= (nth 5 preview) maxdist))
+          (progn
+            (setq tag (car preview))
+            (setq existing (assoc tag mappings))
+            (if existing
+              (progn
+                (setq duplicates (append duplicates (list record)))
+                (setq duplicate-count (+ duplicate-count 1))
+              )
+              (progn
+                (setq mappings (swcad-title-assoc-put tag preview mappings))
+                (setq mapped-count (+ mapped-count 1))
+              )
+            )
+          )
+          (progn
+            (setq unmapped (append unmapped (list record)))
+            (setq unmapped-count (+ unmapped-count 1))
+          )
+        )
+      )
+
+      (swcad-title-princ-line "GM TITLE attribute transfer preview:")
+      (setq missing-count 0)
+      (foreach slot *swcad-title-transfer-template*
+        (setq tag (car slot))
+        (setq existing (assoc tag mappings))
+        (if existing
+          (swcad-title-transfer-print-mapping (cdr existing))
+          (progn
+            (setq missing-count (+ missing-count 1))
+            (swcad-title-princ-line
+              (strcat
+                "  "
+                tag
+                " ["
+                (cadddr slot)
+                "] <= <missing>"
+              )
+            )
+          )
+        )
+      )
+
+      (swcad-title-princ-line "Unmapped source title texts:")
+      (if unmapped
+        (foreach record unmapped
+          (swcad-title-transfer-print-unmapped record source-bbox)
+        )
+        (swcad-title-princ-line "  <none>")
+      )
+      (swcad-title-princ-line "Duplicate source title texts:")
+      (if duplicates
+        (foreach record duplicates
+          (swcad-title-transfer-print-unmapped record source-bbox)
+        )
+        (swcad-title-princ-line "  <none>")
+      )
+      (swcad-title-princ-line "Summary:")
+      (swcad-title-princ-line (strcat "  source title texts: " (itoa (length records))))
+      (swcad-title-princ-line (strcat "  mapped fields: " (itoa mapped-count)))
+      (swcad-title-princ-line (strcat "  missing target fields: " (itoa missing-count)))
+      (swcad-title-princ-line (strcat "  unmapped source texts: " (itoa unmapped-count)))
+      (swcad-title-princ-line (strcat "  duplicate source texts: " (itoa duplicate-count)))
+    )
+    (progn
+      (swcad-title-princ-line "No title-like insert was found. Run SWTITLETEXTSCAN for raw text details.")
+      (swcad-title-princ-line "Summary:")
+      (swcad-title-princ-line "  mapped fields: 0")
+    )
+  )
+  (swcad-title-princ-line "No drawing data was changed.")
+  (swcad-title-close-log)
+  (princ)
+)
+
 (defun swcad-title-scale-text-to-dimlfac (text / cleaned ratio pos left right numerator denominator value)
   (setq cleaned (vl-string-trim " \t\r\n" (swcad-title-string text)))
   (setq ratio (swcad-title-extract-ratio-text cleaned))
@@ -1066,6 +1370,10 @@
   (swcad-title-scan-title-texts)
 )
 
+(defun c:SWTITLETRANSFERPREVIEW ()
+  (swcad-title-transfer-preview)
+)
+
 (defun c:SWSCALESCAN (/ insert-ss insert-index insert-total dim-ss dim-index dim-total ename data overrides style styledata override-value style-value effective-value expected-values effective-counts override-counts style-counts match-count mismatch-count mismatch-example-count match result)
   (swcad-title-open-scale-log)
   (setq *swcad-title-scan-title-insert-count* 0)
@@ -1204,5 +1512,5 @@
 )
 
 (princ (strcat "\nswcad_title_scale.lsp ready " *swcad-title-scale-version*))
-(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWSCALESCAN")
+(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWTITLETRANSFERPREVIEW, SWSCALESCAN")
 (princ)
