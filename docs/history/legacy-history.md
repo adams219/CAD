@@ -16,6 +16,16 @@ tools/gstarcad_layout_사용법.md
 gstarcad_dimstyle/gstarcad_sdk_fit_tolerance_analysis.md
 ```
 
+현재 저장소에서는 위 파일을 아래 위치에서 관리합니다.
+
+```text
+src/tools/gstarcad-dimstyle/gstarcad_dimstyle_keep_tolerance.lsp
+src/tools/gstarcad-dimstyle/gstarcad_dimstyle_keep_tolerance_사용법.md
+src/tools/gstarcad-layout/gstarcad_layout_from_model.lsp
+src/tools/gstarcad-layout/gstarcad_layout_사용법.md
+src/tools/gstarcad-dimstyle/gstarcad_sdk_fit_tolerance_analysis.md
+```
+
 ## Previous Repository Commits
 
 이전 작업공간의 `tools/` 폴더는 아직 git에 커밋되지 않은 상태였습니다. 참고용으로 이전 저장소의 전체 커밋 로그를 남깁니다.

@@ -7,7 +7,7 @@
 ## Boundaries
 
 - 기존 긴 `SWAUTO` LSP는 먼저 원본 그대로 보존합니다.
-- GMTITLE / FTAP 기능은 `SWAUTO`에 바로 넣지 않습니다.
+- GMTITLE / FTAP 기능은 `SWAUTO`에 바로 넣지 않고 `src/tools/gmtitle/`에서 분리해 검증합니다.
 - 첫 구현은 읽기 전용 진단 명령으로 제한합니다.
 - 표제란 스케일만 단독으로 신뢰하지 않습니다.
 

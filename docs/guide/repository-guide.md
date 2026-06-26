@@ -13,10 +13,11 @@
 ## Working Rules
 
 1. `swcad_load.lsp` 하나를 APPLOAD 진입점으로 유지합니다.
-2. 검증된 기존 LSP는 `legacy/`에 원본 보관합니다.
-3. 새 기능은 먼저 `lsp/` 모듈에 작게 추가합니다.
-4. GMTITLE / FTAP 스케일 기능은 읽기 전용 진단부터 시작합니다.
+2. 검증된 기존 LSP 원본과 사용 문서는 `src/tools/<tool-name>/`에 기능별로 보관합니다.
+3. 새 모듈 기능은 먼저 `src/lsp/`에 작게 추가합니다.
+4. GMTITLE / FTAP 스케일 기능은 `src/tools/gmtitle/`에서 읽기 전용 진단부터 시작합니다.
 5. 자동 수정 기능은 진단 로그로 충분히 검증한 뒤 추가합니다.
+6. 채팅에서 나온 임시 작업물은 `work/chat-1`, `work/chat-2`, `work/chat-3` 중 해당 채팅 폴더에 먼저 둡니다.
 
 ## Case Folder Pattern
 
@@ -39,6 +40,18 @@ Example:
 ```text
 2026-06-dimlfac-titleblock-scale/
 ```
+
+## Chat Work Folder Pattern
+
+```text
+work/chat-<number>/<case-id>/
+  README.md
+  input/
+  output/
+  notes/
+```
+
+채팅 작업물이 실제 도구나 공식 문서로 확정되면 `src/tools/`, `docs/`, `samples/`, `diagnostics/` 중 알맞은 위치로 옮깁니다.
 
 ## Commit Pattern
 

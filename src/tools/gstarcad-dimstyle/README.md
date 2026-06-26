@@ -23,5 +23,5 @@ SWAUTO
 For direct testing, load this file:
 
 ```text
-gstarcad_dimstyle/gstarcad_dimstyle_keep_tolerance.lsp
+src/tools/gstarcad-dimstyle/gstarcad_dimstyle_keep_tolerance.lsp
 ```

@@ -24,7 +24,7 @@ APPLOAD
 아래 파일을 로드합니다.
 
 ```text
-C:\Users\DR-DESIGN\Documents\CAD tool\tools\gstarcad_layout_from_model.lsp
+C:\Users\DR-DESIGN\Documents\CAD tool\src\tools\gstarcad-layout\gstarcad_layout_from_model.lsp
 ```
 
 로드가 성공하면 명령창에 아래 5개 명령만 표시됩니다.

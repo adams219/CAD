@@ -18,6 +18,14 @@ C:\Users\DR-DESIGN\Documents\솔리드웍스 자동화\tools
 - `tools/gstarcad_layout_사용법.md`
 - `gstarcad_dimstyle/gstarcad_sdk_fit_tolerance_analysis.md`
 
+현재 정리된 위치:
+
+- `src/tools/gstarcad-dimstyle/gstarcad_dimstyle_keep_tolerance.lsp`
+- `src/tools/gstarcad-dimstyle/gstarcad_dimstyle_keep_tolerance_사용법.md`
+- `src/tools/gstarcad-layout/gstarcad_layout_from_model.lsp`
+- `src/tools/gstarcad-layout/gstarcad_layout_사용법.md`
+- `src/tools/gstarcad-dimstyle/gstarcad_sdk_fit_tolerance_analysis.md`
+
 이관 시점의 이전 저장소:
 
 ```text
@@ -29,6 +37,17 @@ HEAD: 5592212 Add Codex cloud handoff and reducer trial results
 중요 참고:
 
 이전 SolidWorks 자동화 저장소에서 `tools/` 폴더는 아직 git에 커밋되지 않은 상태였습니다. 따라서 이 CAD 저장소의 최초 LSP 커밋이 해당 도구들의 첫 git 추적 기준점입니다.
+
+## 2026-06-26 Repository Folder Reorganization
+
+채팅별 산출물과 실제 도구 파일이 최상위에서 섞이지 않도록 아래처럼 정리했습니다.
+
+- 생산용/검증용 LSP는 `src/tools/`와 `src/lsp/`로 이동했습니다.
+- 레이아웃 도구 중복본은 `src/tools/gstarcad-layout/` 하나로 통합했습니다.
+- 사용 가이드와 운영 문서는 `docs/guide/`로 이동했습니다.
+- 이관 기록과 migration 계획은 `docs/history/`로 이동했습니다.
+- 스케일 원인 조사는 `docs/investigations/`로 이동했습니다.
+- 채팅별 임시 작업물은 `work/chat-1`, `work/chat-2`, `work/chat-3`에 보관하도록 분리했습니다.
 
 ## Tool Summary
 

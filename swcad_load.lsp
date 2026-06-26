@@ -56,16 +56,16 @@
 
 (princ (strcat "\nLoading SWCAD tool set " *swcad-version* "..."))
 
-(swcad-load-file "lsp/swcad_common.lsp")
-(swcad-load-file "lsp/swcad_config.lsp")
-(swcad-load-file "lsp/swcad_dimstyle.lsp")
-(swcad-load-file "lsp/swcad_mechfit.lsp")
-(swcad-load-file "GMTITLE/swcad_title_scale.lsp")
-(swcad-load-file "lsp/swcad_cleanup.lsp")
-(swcad-load-file "lsp/swcad_debug.lsp")
+(swcad-load-file "src/lsp/swcad_common.lsp")
+(swcad-load-file "src/lsp/swcad_config.lsp")
+(swcad-load-file "src/lsp/swcad_dimstyle.lsp")
+(swcad-load-file "src/lsp/swcad_mechfit.lsp")
+(swcad-load-file "src/tools/gmtitle/swcad_title_scale.lsp")
+(swcad-load-file "src/lsp/swcad_cleanup.lsp")
+(swcad-load-file "src/lsp/swcad_debug.lsp")
 
 ;;; The current production command set is kept intact until modular migration.
-(swcad-load-file "gstarcad_dimstyle/gstarcad_dimstyle_keep_tolerance.lsp")
+(swcad-load-file "src/tools/gstarcad-dimstyle/gstarcad_dimstyle_keep_tolerance.lsp")
 
 (princ "\nSWCAD ready.")
 (princ "\nMain command: SWAUTO")

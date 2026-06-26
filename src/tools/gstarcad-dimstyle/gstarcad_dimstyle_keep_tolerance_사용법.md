@@ -3,7 +3,7 @@
 대상 파일:
 
 ```text
-gstarcad_dimstyle\gstarcad_dimstyle_keep_tolerance.lsp
+src\tools\gstarcad-dimstyle\gstarcad_dimstyle_keep_tolerance.lsp
 ```
 
 ## 평소 사용 순서

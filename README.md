@@ -39,21 +39,36 @@ SWTITLEDEBUG
 | Path | Purpose |
 | --- | --- |
 | `swcad_load.lsp` | APPLOAD에서 직접 불러올 메인 로더입니다. |
-| `lsp/` | 새 모듈형 LSP 구조입니다. 현재는 이식 전 골격입니다. |
-| `gstarcad_dimstyle/` | SolidWorks DWG 치수스타일, 공차, Mechanical 맞춤공차 변환 LSP와 문서입니다. |
-| `GMTITLE/` | GMTITLE / FTAP 스케일 진단용 LSP와 문서입니다. |
-| `tools/` | 아직 별도 폴더로 분리하지 않은 보조 도구 자리입니다. |
-| `docs/` | 이식 계획, 명령 목록, 진단 설계, 작업 이력입니다. |
+| `src/lsp/` | 새 모듈형 LSP 구조입니다. 현재는 이식 전 골격입니다. |
+| `src/tools/gstarcad-dimstyle/` | SolidWorks DWG 치수스타일, 공차, Mechanical 맞춤공차 변환 LSP와 문서입니다. |
+| `src/tools/gstarcad-layout/` | 모델 공간 도면 프레임을 A4 배치와 PDF 출력용 layout으로 만드는 도구입니다. |
+| `src/tools/gmtitle/` | GMTITLE / FTAP 스케일 진단용 LSP와 문서입니다. |
+| `work/` | 채팅별 작업물, 임시 실험, 아직 확정되지 않은 산출물을 보관하는 공간입니다. |
+| `docs/guide/` | 사용 흐름, 명령 목록, 저장소 운영 가이드입니다. |
+| `docs/history/` | 이관 기록, legacy 기록, migration 계획입니다. |
+| `docs/investigations/` | 원인 조사, 진단 설계, 검증 기록입니다. |
 | `samples/` | 재현용 CAD 샘플 케이스 자리입니다. |
 | `diagnostics/` | 진단 로그, 덤프, 스크린샷 자리입니다. |
 | `cad/` | SolidWorks / DWG 원본 및 XRef / Bind 실험 파일 자리입니다. |
+
+## Chat Workspaces
+
+채팅에서 만든 파일은 먼저 아래 위치에 날짜와 주제별로 저장합니다.
+
+```text
+work/chat-1/YYYY-MM-DD-topic/
+work/chat-2/YYYY-MM-DD-topic/
+work/chat-3/YYYY-MM-DD-topic/
+```
+
+검증이 끝난 LSP와 사용 문서는 `src/tools/` 또는 `docs/`로 승격합니다. 이렇게 하면 채팅별 작업 기록은 남기면서도 GitHub 최상위 폴더는 깨끗하게 유지할 수 있습니다.
 
 ## Current Production LSP
 
 현재 `SWAUTO`는 아래 원본 파일에서 제공됩니다.
 
 ```text
-gstarcad_dimstyle/gstarcad_dimstyle_keep_tolerance.lsp
+src/tools/gstarcad-dimstyle/gstarcad_dimstyle_keep_tolerance.lsp
 ```
 
 이 파일은 SolidWorks DWG에서 깨지는 치수스타일, 공차, Mechanical 맞춤공차 변환 문제를 처리합니다. 모듈 분리는 아직 진행하지 않았고, 실무 안정성을 위해 원본을 먼저 보존했습니다.

@@ -4,13 +4,13 @@
 
 ## Phase 1. Preserve
 
-- 이전 작업공간의 치수스타일/공차 LSP 파일은 `gstarcad_dimstyle/`에 원본 보관합니다.
+- 이전 작업공간의 치수스타일/공차 LSP 파일은 `src/tools/gstarcad-dimstyle/`에 원본 보관합니다.
 - `swcad_load.lsp`는 새 모듈 골격을 로드한 뒤 기존 생산 LSP를 로드합니다.
 - 실무 사용자는 기존처럼 `SWAUTO`를 사용할 수 있습니다.
 
 ## Phase 2. Diagnose
 
-- GMTITLE / FTAP / `DIMLFAC` 스케일 조사는 `GMTITLE/swcad_title_scale.lsp`에서 읽기 전용으로 시작합니다.
+- GMTITLE / FTAP / `DIMLFAC` 스케일 조사는 `src/tools/gmtitle/swcad_title_scale.lsp`에서 읽기 전용으로 시작합니다.
 - 후보 명령은 `SWTITLESCAN`, `SWSCALESCAN`, `SWTITLEDEBUG`입니다.
 - 자동 수정은 이 단계에서 하지 않습니다.
 
@@ -26,7 +26,7 @@
 | `swcad_mechfit.lsp` | H7/h6 등 Mechanical 맞춤공차 xdata 변환 |
 | `swcad_cleanup.lsp` | 미사용 SolidWorks 치수스타일 정리 |
 | `swcad_debug.lsp` | SWDEBUG, SWFINDSTYLE, 상세 덤프 |
-| `GMTITLE/swcad_title_scale.lsp` | GMTITLE / FTAP 스케일 진단 |
+| `src/tools/gmtitle/swcad_title_scale.lsp` | GMTITLE / FTAP 스케일 진단 |
 
 ## Phase 4. Replace
 
