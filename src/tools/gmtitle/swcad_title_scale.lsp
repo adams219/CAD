@@ -314,6 +314,24 @@
   found
 )
 
+(defun swcad-title-bbox-area (bbox)
+  (if bbox
+    (* (- (caddr bbox) (car bbox)) (- (cadddr bbox) (cadr bbox)))
+    0.0
+  )
+)
+
+(defun swcad-title-bbox-contains-bbox-p (outer inner margin)
+  (and
+    outer
+    inner
+    (<= (- (car outer) margin) (car inner))
+    (<= (- (cadr outer) margin) (cadr inner))
+    (>= (+ (caddr outer) margin) (caddr inner))
+    (>= (+ (cadddr outer) margin) (cadddr inner))
+  )
+)
+
 (setq *swcad-title-transfer-template*
   '(
     ("GEN-TITLE-QTY{10}" 25.75 37.50 "quantity")
@@ -390,17 +408,174 @@
 (defun swcad-title-document-read-only-p (/ doc value)
   (setq doc (swcad-title-doc))
   (setq value (swcad-title-safe-vla-get doc 'ReadOnly))
-  (if value T nil)
+  (cond
+    ((not value) nil)
+    ((equal value :vlax-false) nil)
+    ((equal value 0) nil)
+    (T T)
+  )
 )
 
 (defun swcad-title-block-exists-p (block-name)
   (if (tblsearch "BLOCK" block-name) T nil)
 )
 
+(defun swcad-title-entmake-line (p1 p2)
+  (entmake
+    (list
+      '(0 . "LINE")
+      '(8 . "0")
+      (cons 10 (list (car p1) (cadr p1) 0.0))
+      (cons 11 (list (car p2) (cadr p2) 0.0))
+    )
+  )
+)
+
+(defun swcad-title-entmake-rect (x1 y1 x2 y2)
+  (swcad-title-entmake-line (list x1 y1) (list x2 y1))
+  (swcad-title-entmake-line (list x2 y1) (list x2 y2))
+  (swcad-title-entmake-line (list x2 y2) (list x1 y2))
+  (swcad-title-entmake-line (list x1 y2) (list x1 y1))
+)
+
+(defun swcad-title-entmake-attdef (tag x y prompt / textstyle)
+  (setq textstyle (getvar "TEXTSTYLE"))
+  (entmake
+    (list
+      '(0 . "ATTDEF")
+      '(8 . "0")
+      (cons 10 (list x y 0.0))
+      (cons 40 2.5)
+      (cons 1 "")
+      (cons 2 tag)
+      (cons 3 prompt)
+      (cons 7 textstyle)
+      (cons 50 0.0)
+      (cons 70 0)
+    )
+  )
+)
+
+(defun swcad-title-create-fallback-frame-block (/ created)
+  (setq created nil)
+  (if (not (swcad-title-block-exists-p "DR_A3_Outline"))
+    (progn
+      (entmake
+        (list
+          '(0 . "BLOCK")
+          '(8 . "0")
+          (cons 2 "DR_A3_Outline")
+          (cons 70 0)
+          (cons 10 (list 0.0 0.0 0.0))
+        )
+      )
+      (swcad-title-entmake-rect 0.0 0.0 420.0 297.0)
+      (swcad-title-entmake-rect 10.0 10.0 410.0 287.0)
+      (entmake '((0 . "ENDBLK")))
+      (setq created "DR_A3_Outline")
+    )
+  )
+  created
+)
+
+(defun swcad-title-create-fallback-title-block (/ slot created x y)
+  (setq created nil)
+  (if (not (swcad-title-block-exists-p "DR_titlea_3rd"))
+    (progn
+      (entmake
+        (list
+          '(0 . "BLOCK")
+          '(8 . "0")
+          (cons 2 "DR_titlea_3rd")
+          (cons 70 0)
+          (cons 10 (list 0.0 0.0 0.0))
+        )
+      )
+      (swcad-title-entmake-rect 0.0 0.0 180.0 42.0)
+      (foreach y '(10.0 20.0 30.0)
+        (swcad-title-entmake-line (list 0.0 y) (list 180.0 y))
+      )
+      (foreach x '(25.0 55.0 85.0 113.0 148.0 163.0)
+        (swcad-title-entmake-line (list x 0.0) (list x 42.0))
+      )
+      (foreach slot *swcad-title-transfer-template*
+        (swcad-title-entmake-attdef (car slot) (cadr slot) (caddr slot) (cadddr slot))
+      )
+      (entmake '((0 . "ENDBLK")))
+      (setq created "DR_titlea_3rd")
+    )
+  )
+  created
+)
+
+(defun swcad-title-ensure-target-block-definitions (/ created frame-created title-created)
+  (setq created nil)
+  (if (and
+        (not (swcad-title-block-exists-p "DR_A3_Outline"))
+        (not (swcad-title-block-exists-p "DR_A3"))
+      )
+    (progn
+      (setq frame-created (swcad-title-create-fallback-frame-block))
+      (if frame-created
+        (setq created (append created (list frame-created)))
+      )
+    )
+  )
+  (if (not (swcad-title-block-exists-p "DR_titlea_3rd"))
+    (progn
+      (setq title-created (swcad-title-create-fallback-title-block))
+      (if title-created
+        (setq created (append created (list title-created)))
+      )
+    )
+  )
+  created
+)
+
+(defun swcad-title-find-block-by-pattern (pattern / item name upper result)
+  (setq result nil)
+  (setq item (tblnext "BLOCK" T))
+  (while (and item (not result))
+    (setq name (cdr (assoc 2 item)))
+    (setq upper (strcase (swcad-title-string name)))
+    (if (and
+          name
+          (/= (substr name 1 1) "*")
+          (wcmatch upper pattern)
+        )
+      (setq result name)
+    )
+    (setq item (tblnext "BLOCK"))
+  )
+  result
+)
+
+(defun swcad-title-target-frame-block-name ()
+  (cond
+    ((swcad-title-block-exists-p "DR_A3_Outline") "DR_A3_Outline")
+    ((swcad-title-block-exists-p "DR_A3") "DR_A3")
+    (T "DR_A3_Outline")
+  )
+)
+
 (defun swcad-title-target-title-block-name ()
   (cond
     ((swcad-title-block-exists-p "DR_titlea_3rd") "DR_titlea_3rd")
-    (T nil)
+    (T "DR_titlea_3rd")
+  )
+)
+
+(defun swcad-title-transfer-title-point (source-bbox)
+  (if source-bbox
+    (list (car source-bbox) (cadr source-bbox) 0.0)
+    nil
+  )
+)
+
+(defun swcad-title-transfer-frame-point (source-bbox)
+  (if source-bbox
+    (list (- (car source-bbox) 20.0) (- (cadr source-bbox) 10.0) 0.0)
+    nil
   )
 )
 
@@ -468,6 +643,12 @@
 (defun swcad-title-delete-ename (ename)
   (if ename
     (entdel ename)
+  )
+)
+
+(defun swcad-title-delete-vla-object (object)
+  (if object
+    (vl-catch-all-apply 'vla-Delete (list object))
   )
 )
 
@@ -1116,6 +1297,39 @@
   best
 )
 
+(defun swcad-title-transfer-source-frame (source-bbox source-title-ename / insert-ss insert-index insert-total ename data bbox area source-area best bestarea)
+  (setq insert-ss (ssget "_X" '((0 . "INSERT"))))
+  (setq insert-total (if insert-ss (sslength insert-ss) 0))
+  (setq source-area (swcad-title-bbox-area source-bbox))
+  (setq best nil)
+  (setq bestarea nil)
+  (setq insert-index 0)
+  (while (< insert-index insert-total)
+    (setq ename (ssname insert-ss insert-index))
+    (if (not (eq ename source-title-ename))
+      (progn
+        (setq data (entget ename '("*")))
+        (setq bbox (swcad-title-safe-bbox ename))
+        (setq area (swcad-title-bbox-area bbox))
+        (if (and
+              bbox
+              (> area (* source-area 2.0))
+              (swcad-title-bbox-contains-bbox-p bbox source-bbox 2.0)
+            )
+          (if (or (not bestarea) (> area bestarea))
+            (progn
+              (setq best (list ename data bbox))
+              (setq bestarea area)
+            )
+          )
+        )
+      )
+    )
+    (setq insert-index (+ insert-index 1))
+  )
+  best
+)
+
 (defun swcad-title-transfer-text-records (bbox / ss index total ename data raw-text point records record)
   (setq records nil)
   (setq ss (ssget "_X" '((0 . "TEXT,MTEXT"))))
@@ -1318,13 +1532,19 @@
   (princ)
 )
 
-(defun swcad-title-transfer-apply (/ source source-data source-bbox source-ename source-block title-block blockref build mappings records unmapped duplicates values insert-point answer attr-count deleted-text-count record doc pair)
+(defun swcad-title-transfer-apply (/ source source-data source-bbox source-ename source-block source-frame source-frame-ename source-frame-data source-frame-block source-frame-bbox frame-block title-block created-blocks frame-ref title-ref build mappings records unmapped duplicates values frame-point title-point answer attr-count deleted-text-count old-frame-deleted record doc pair block-name)
   (swcad-title-open-apply-log)
   (setq source (swcad-title-transfer-source-bbox))
   (setq source-ename (if source (car source) nil))
   (setq source-data (if source (cadr source) nil))
   (setq source-bbox (if source (caddr source) nil))
   (setq source-block (if source-data (swcad-title-dxf-value source-data 2) nil))
+  (setq source-frame (if source-bbox (swcad-title-transfer-source-frame source-bbox source-ename) nil))
+  (setq source-frame-ename (if source-frame (car source-frame) nil))
+  (setq source-frame-data (if source-frame (cadr source-frame) nil))
+  (setq source-frame-bbox (if source-frame (caddr source-frame) nil))
+  (setq source-frame-block (if source-frame-data (swcad-title-dxf-value source-frame-data 2) nil))
+  (setq frame-block (swcad-title-target-frame-block-name))
   (setq title-block (swcad-title-target-title-block-name))
   (swcad-title-princ-line "----- SWTITLETRANSFERAPPLY GM TITLE transfer apply -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
@@ -1347,8 +1567,30 @@
   )
   (swcad-title-princ-line
     (strcat
-      "Target GM TITLE block: "
-      (if title-block title-block "<missing DR_titlea_3rd>")
+      "Source frame insert: "
+      (if source-frame-data
+        (strcat
+          "handle="
+          (swcad-title-string (swcad-title-dxf-value source-frame-data 5))
+          ", block="
+          (swcad-title-string source-frame-block)
+          ", bbox="
+          (swcad-title-bbox-string source-frame-bbox)
+        )
+        "<none>"
+      )
+    )
+  )
+  (swcad-title-princ-line
+    (strcat
+      "Target GM TITLE frame block: "
+      (if frame-block frame-block "<missing DR_A3*>")
+    )
+  )
+  (swcad-title-princ-line
+    (strcat
+      "Target GM TITLE title block: "
+      (if title-block title-block "<missing DR*TITLE*>")
     )
   )
   (cond
@@ -1359,9 +1601,13 @@
       (swcad-title-princ-line "Result: ABORT_READ_ONLY_DOCUMENT")
       (swcad-title-princ-line "Open a writable copy of the DWG before applying.")
     )
+    ((not frame-block)
+      (swcad-title-princ-line "Result: ABORT_MISSING_TARGET_FRAME_BLOCK")
+      (swcad-title-princ-line "Load or insert a GM TITLE drawing once so a DR_A3 frame block exists in this DWG.")
+    )
     ((not title-block)
       (swcad-title-princ-line "Result: ABORT_MISSING_TARGET_BLOCK")
-      (swcad-title-princ-line "Load or insert a GM TITLE drawing once so block DR_titlea_3rd exists in this DWG.")
+      (swcad-title-princ-line "Load or insert a GM TITLE drawing once so a DR title block exists in this DWG.")
     )
     (T
       (setq build (swcad-title-transfer-build-mappings source-bbox 7.0))
@@ -1405,27 +1651,46 @@
         (progn
           (setq doc (swcad-title-doc))
           (vl-catch-all-apply 'vla-StartUndoMark (list doc))
-          (setq insert-point (list (car source-bbox) (cadr source-bbox) 0.0))
-          (setq blockref (swcad-title-insert-block-ref title-block insert-point))
-          (if blockref
+          (setq created-blocks (swcad-title-ensure-target-block-definitions))
+          (foreach block-name created-blocks
+            (swcad-title-princ-line (strcat "Created fallback target block: " block-name))
+          )
+          (setq frame-point (swcad-title-transfer-frame-point source-bbox))
+          (setq title-point (swcad-title-transfer-title-point source-bbox))
+          (setq frame-ref (swcad-title-insert-block-ref frame-block frame-point))
+          (setq title-ref (swcad-title-insert-block-ref title-block title-point))
+          (if (and frame-ref title-ref)
             (progn
-              (setq attr-count (swcad-title-set-insert-attributes blockref values))
+              (setq attr-count (swcad-title-set-insert-attributes title-ref values))
               (swcad-title-delete-ename source-ename)
               (setq deleted-text-count 0)
               (foreach record records
                 (swcad-title-delete-handle (nth 3 record))
                 (setq deleted-text-count (+ deleted-text-count 1))
               )
+              (setq old-frame-deleted "no")
+              (if source-frame-ename
+                (progn
+                  (swcad-title-delete-ename source-frame-ename)
+                  (setq old-frame-deleted "yes")
+                )
+              )
               (vl-catch-all-apply 'vla-EndUndoMark (list doc))
               (swcad-title-princ-line
-                (strcat "Inserted block: " title-block " at " (swcad-title-point-string insert-point))
+                (strcat "Inserted frame block: " frame-block " at " (swcad-title-point-string frame-point))
+              )
+              (swcad-title-princ-line
+                (strcat "Inserted title block: " title-block " at " (swcad-title-point-string title-point))
               )
               (swcad-title-princ-line (strcat "Attributes set: " (itoa attr-count)))
               (swcad-title-princ-line (strcat "Old loose title texts deleted: " (itoa deleted-text-count)))
               (swcad-title-princ-line "Old title insert deleted: yes")
+              (swcad-title-princ-line (strcat "Old frame insert deleted: " old-frame-deleted))
               (swcad-title-princ-line "Result: APPLIED_TITLE_TRANSFER")
             )
             (progn
+              (swcad-title-delete-vla-object frame-ref)
+              (swcad-title-delete-vla-object title-ref)
               (vl-catch-all-apply 'vla-EndUndoMark (list doc))
               (swcad-title-princ-line "Result: ABORT_INSERT_FAILED")
             )
@@ -1434,7 +1699,7 @@
       )
     )
   )
-  (swcad-title-princ-line "Note: existing drawing border/frame line cleanup is not performed by this command yet.")
+  (swcad-title-princ-line "Note: old frame cleanup deletes the detected frame INSERT only; exploded frame line cleanup is not handled yet.")
   (swcad-title-close-log)
   (princ)
 )
