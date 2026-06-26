@@ -2,7 +2,8 @@
 ;;;
 ;;; Standalone test workflow:
 ;;;   APPLOAD this file directly, then run SWTITLEDEBUG, SWTITLESCAN,
-;;;   SWTITLETEXTSCAN, SWTITLETRANSFERPREVIEW, or SWSCALESCAN.
+;;;   SWTITLETEXTSCAN, SWTITLETRANSFERPREVIEW, SWTITLETRANSFERAPPLY,
+;;;   or SWSCALESCAN.
 ;;;
 ;;; SWTITLEDEBUG prints raw information from a selected GM TITLE / FTAP
 ;;; candidate object. It does not modify the drawing.
@@ -10,12 +11,14 @@
 ;;; found in title-block bounds. It does not modify the drawing.
 ;;; SWTITLETRANSFERPREVIEW maps loose title-block text to GM TITLE
 ;;; attribute tags. It does not modify the drawing.
+;;; SWTITLETRANSFERAPPLY inserts the GM TITLE block and copies mapped
+;;; values after an explicit YES confirmation.
 ;;; SWSCALESCAN compares title-block scale candidates with dimension
 ;;; DIMLFAC values. It does not modify the drawing.
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260626-1708")
+(setq *swcad-title-scale-version* "260626-1732")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -71,6 +74,10 @@
 
 (defun swcad-title-open-transfer-log ()
   (swcad-title-open-log "swcad_title_transfer_preview_last.txt" "SWTITLETRANSFERPREVIEW log")
+)
+
+(defun swcad-title-open-apply-log ()
+  (swcad-title-open-log "swcad_title_transfer_apply_last.txt" "SWTITLETRANSFERAPPLY log")
 )
 
 (defun swcad-title-close-log ()
@@ -370,6 +377,152 @@
     result
     (append result (list (cons key value)))
   )
+)
+
+(defun swcad-title-doc ()
+  (vla-get-ActiveDocument (vlax-get-acad-object))
+)
+
+(defun swcad-title-modelspace ()
+  (vla-get-ModelSpace (swcad-title-doc))
+)
+
+(defun swcad-title-document-read-only-p (/ doc value)
+  (setq doc (swcad-title-doc))
+  (setq value (swcad-title-safe-vla-get doc 'ReadOnly))
+  (if value T nil)
+)
+
+(defun swcad-title-block-exists-p (block-name)
+  (if (tblsearch "BLOCK" block-name) T nil)
+)
+
+(defun swcad-title-target-title-block-name ()
+  (cond
+    ((swcad-title-block-exists-p "DR_titlea_3rd") "DR_titlea_3rd")
+    (T nil)
+  )
+)
+
+(defun swcad-title-insert-block-ref (block-name point / result)
+  (setq result
+    (vl-catch-all-apply
+      'vla-InsertBlock
+      (list
+        (swcad-title-modelspace)
+        (vlax-3d-point
+          (list
+            (car point)
+            (cadr point)
+            (if (caddr point) (caddr point) 0.0)
+          )
+        )
+        block-name
+        1.0
+        1.0
+        1.0
+        0.0
+      )
+    )
+  )
+  (if (vl-catch-all-error-p result)
+    nil
+    result
+  )
+)
+
+(defun swcad-title-attribute-tag (attribute / value)
+  (setq value (vl-catch-all-apply 'vla-get-TagString (list attribute)))
+  (if (vl-catch-all-error-p value) "" value)
+)
+
+(defun swcad-title-attribute-set-value (attribute value)
+  (vl-catch-all-apply 'vla-put-TextString (list attribute (swcad-title-string value)))
+)
+
+(defun swcad-title-get-insert-attributes (insert-object / result)
+  (setq result (vl-catch-all-apply 'vlax-invoke (list insert-object 'GetAttributes)))
+  (if (vl-catch-all-error-p result)
+    nil
+    result
+  )
+)
+
+(defun swcad-title-set-insert-attributes (insert-object values / attrs attr tag pair count)
+  (setq attrs (swcad-title-get-insert-attributes insert-object))
+  (setq count 0)
+  (foreach attr attrs
+    (setq tag (swcad-title-attribute-tag attr))
+    (setq pair (assoc tag values))
+    (if pair
+      (progn
+        (swcad-title-attribute-set-value attr (cdr pair))
+        (setq count (+ count 1))
+      )
+    )
+  )
+  (vl-catch-all-apply 'vla-Update (list insert-object))
+  count
+)
+
+(defun swcad-title-delete-ename (ename)
+  (if ename
+    (entdel ename)
+  )
+)
+
+(defun swcad-title-delete-handle (handle / ename)
+  (setq ename (handent (swcad-title-string handle)))
+  (swcad-title-delete-ename ename)
+)
+
+(defun swcad-title-transfer-values (mappings / result pair preview)
+  (setq result nil)
+  (foreach pair mappings
+    (setq preview (cdr pair))
+    (setq result
+      (swcad-title-assoc-put
+        (car pair)
+        (nth 2 preview)
+        result
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-transfer-build-mappings (source-bbox maxdist / records mappings unmapped duplicates record preview tag existing duplicate-count unmapped-count mapped-count)
+  (setq records (swcad-title-transfer-text-records source-bbox))
+  (setq mappings nil)
+  (setq unmapped nil)
+  (setq duplicates nil)
+  (setq mapped-count 0)
+  (setq duplicate-count 0)
+  (setq unmapped-count 0)
+  (foreach record records
+    (setq preview (swcad-title-transfer-preview-record record source-bbox))
+    (if (and preview (<= (nth 5 preview) maxdist))
+      (progn
+        (setq tag (car preview))
+        (setq existing (assoc tag mappings))
+        (if existing
+          (progn
+            (setq duplicates (append duplicates (list record)))
+            (setq duplicate-count (+ duplicate-count 1))
+          )
+          (progn
+            (setq mappings (swcad-title-assoc-put tag preview mappings))
+            (setq mapped-count (+ mapped-count 1))
+          )
+        )
+      )
+      (progn
+        (setq unmapped (append unmapped (list record)))
+        (setq unmapped-count (+ unmapped-count 1))
+      )
+    )
+  )
+  (list mappings records unmapped duplicates mapped-count unmapped-count duplicate-count)
 )
 
 (defun swcad-title-char-code (text)
@@ -1165,6 +1318,127 @@
   (princ)
 )
 
+(defun swcad-title-transfer-apply (/ source source-data source-bbox source-ename source-block title-block blockref build mappings records unmapped duplicates values insert-point answer attr-count deleted-text-count record doc pair)
+  (swcad-title-open-apply-log)
+  (setq source (swcad-title-transfer-source-bbox))
+  (setq source-ename (if source (car source) nil))
+  (setq source-data (if source (cadr source) nil))
+  (setq source-bbox (if source (caddr source) nil))
+  (setq source-block (if source-data (swcad-title-dxf-value source-data 2) nil))
+  (setq title-block (swcad-title-target-title-block-name))
+  (swcad-title-princ-line "----- SWTITLETRANSFERAPPLY GM TITLE transfer apply -----")
+  (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-princ-line
+    (strcat
+      "Source title insert: "
+      (if source-data
+        (strcat
+          "handle="
+          (swcad-title-string (swcad-title-dxf-value source-data 5))
+          ", block="
+          (swcad-title-string source-block)
+          ", bbox="
+          (swcad-title-bbox-string source-bbox)
+        )
+        "<none>"
+      )
+    )
+  )
+  (swcad-title-princ-line
+    (strcat
+      "Target GM TITLE block: "
+      (if title-block title-block "<missing DR_titlea_3rd>")
+    )
+  )
+  (cond
+    ((not source-bbox)
+      (swcad-title-princ-line "Result: ABORT_NO_SOURCE_TITLE")
+    )
+    ((swcad-title-document-read-only-p)
+      (swcad-title-princ-line "Result: ABORT_READ_ONLY_DOCUMENT")
+      (swcad-title-princ-line "Open a writable copy of the DWG before applying.")
+    )
+    ((not title-block)
+      (swcad-title-princ-line "Result: ABORT_MISSING_TARGET_BLOCK")
+      (swcad-title-princ-line "Load or insert a GM TITLE drawing once so block DR_titlea_3rd exists in this DWG.")
+    )
+    (T
+      (setq build (swcad-title-transfer-build-mappings source-bbox 7.0))
+      (setq mappings (car build))
+      (setq records (cadr build))
+      (setq unmapped (caddr build))
+      (setq duplicates (cadddr build))
+      (setq values (swcad-title-transfer-values mappings))
+      (swcad-title-princ-line "Values to apply:")
+      (foreach pair values
+        (swcad-title-princ-line
+          (strcat
+            "  "
+            (car pair)
+            " = \""
+            (swcad-title-string (cdr pair))
+            "\""
+          )
+        )
+      )
+      (swcad-title-princ-line
+        (strcat
+          "Unmapped source texts to delete with old title text: "
+          (itoa (length unmapped))
+        )
+      )
+      (swcad-title-princ-line
+        (strcat
+          "Duplicate source texts not mapped: "
+          (itoa (length duplicates))
+        )
+      )
+      (setq answer
+        (getstring
+          T
+          "\nType YES to insert GM TITLE block, fill attributes, and remove old loose title text: "
+        )
+      )
+      (if (/= (strcase answer) "YES")
+        (swcad-title-princ-line "Result: ABORT_USER_CANCEL")
+        (progn
+          (setq doc (swcad-title-doc))
+          (vl-catch-all-apply 'vla-StartUndoMark (list doc))
+          (setq insert-point (list (car source-bbox) (cadr source-bbox) 0.0))
+          (setq blockref (swcad-title-insert-block-ref title-block insert-point))
+          (if blockref
+            (progn
+              (setq attr-count (swcad-title-set-insert-attributes blockref values))
+              (swcad-title-delete-ename source-ename)
+              (setq deleted-text-count 0)
+              (foreach record records
+                (swcad-title-delete-handle (nth 3 record))
+                (setq deleted-text-count (+ deleted-text-count 1))
+              )
+              (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+              (swcad-title-princ-line
+                (strcat "Inserted block: " title-block " at " (swcad-title-point-string insert-point))
+              )
+              (swcad-title-princ-line (strcat "Attributes set: " (itoa attr-count)))
+              (swcad-title-princ-line (strcat "Old loose title texts deleted: " (itoa deleted-text-count)))
+              (swcad-title-princ-line "Old title insert deleted: yes")
+              (swcad-title-princ-line "Result: APPLIED_TITLE_TRANSFER")
+            )
+            (progn
+              (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+              (swcad-title-princ-line "Result: ABORT_INSERT_FAILED")
+            )
+          )
+        )
+      )
+    )
+  )
+  (swcad-title-princ-line "Note: existing drawing border/frame line cleanup is not performed by this command yet.")
+  (swcad-title-close-log)
+  (princ)
+)
+
 (defun swcad-title-scale-text-to-dimlfac (text / cleaned ratio pos left right numerator denominator value)
   (setq cleaned (vl-string-trim " \t\r\n" (swcad-title-string text)))
   (setq ratio (swcad-title-extract-ratio-text cleaned))
@@ -1374,6 +1648,10 @@
   (swcad-title-transfer-preview)
 )
 
+(defun c:SWTITLETRANSFERAPPLY ()
+  (swcad-title-transfer-apply)
+)
+
 (defun c:SWSCALESCAN (/ insert-ss insert-index insert-total dim-ss dim-index dim-total ename data overrides style styledata override-value style-value effective-value expected-values effective-counts override-counts style-counts match-count mismatch-count mismatch-example-count match result)
   (swcad-title-open-scale-log)
   (setq *swcad-title-scan-title-insert-count* 0)
@@ -1512,5 +1790,5 @@
 )
 
 (princ (strcat "\nswcad_title_scale.lsp ready " *swcad-title-scale-version*))
-(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWTITLETRANSFERPREVIEW, SWSCALESCAN")
+(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWTITLETRANSFERPREVIEW, SWTITLETRANSFERAPPLY, SWSCALESCAN")
 (princ)
