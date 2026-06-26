@@ -4,7 +4,7 @@
 
 ## Phase 1. Preserve
 
-- 이전 작업공간의 `tools/` 파일을 이 저장소의 `tools/`에 원본 보관합니다.
+- 이전 작업공간의 치수스타일/공차 LSP 파일은 `gstarcad_dimstyle/`에 원본 보관합니다.
 - `swcad_load.lsp`는 새 모듈 골격을 로드한 뒤 기존 생산 LSP를 로드합니다.
 - 실무 사용자는 기존처럼 `SWAUTO`를 사용할 수 있습니다.
 

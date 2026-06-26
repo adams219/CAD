@@ -40,8 +40,9 @@ SWTITLEDEBUG
 | --- | --- |
 | `swcad_load.lsp` | APPLOAD에서 직접 불러올 메인 로더입니다. |
 | `lsp/` | 새 모듈형 LSP 구조입니다. 현재는 이식 전 골격입니다. |
+| `gstarcad_dimstyle/` | SolidWorks DWG 치수스타일, 공차, Mechanical 맞춤공차 변환 LSP와 문서입니다. |
 | `GMTITLE/` | GMTITLE / FTAP 스케일 진단용 LSP와 문서입니다. |
-| `tools/` | 이전 작업공간에서 가져온 검증된 LSP와 관련 문서 원본입니다. |
+| `tools/` | 아직 별도 폴더로 분리하지 않은 보조 도구 자리입니다. |
 | `docs/` | 이식 계획, 명령 목록, 진단 설계, 작업 이력입니다. |
 | `samples/` | 재현용 CAD 샘플 케이스 자리입니다. |
 | `diagnostics/` | 진단 로그, 덤프, 스크린샷 자리입니다. |
@@ -52,7 +53,7 @@ SWTITLEDEBUG
 현재 `SWAUTO`는 아래 원본 파일에서 제공됩니다.
 
 ```text
-tools/gstarcad_dimstyle_keep_tolerance.lsp
+gstarcad_dimstyle/gstarcad_dimstyle_keep_tolerance.lsp
 ```
 
 이 파일은 SolidWorks DWG에서 깨지는 치수스타일, 공차, Mechanical 맞춤공차 변환 문제를 처리합니다. 모듈 분리는 아직 진행하지 않았고, 실무 안정성을 위해 원본을 먼저 보존했습니다.

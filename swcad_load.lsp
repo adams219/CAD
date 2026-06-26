@@ -65,7 +65,7 @@
 (swcad-load-file "lsp/swcad_debug.lsp")
 
 ;;; The current production command set is kept intact until modular migration.
-(swcad-load-file "tools/gstarcad_dimstyle_keep_tolerance.lsp")
+(swcad-load-file "gstarcad_dimstyle/gstarcad_dimstyle_keep_tolerance.lsp")
 
 (princ "\nSWCAD ready.")
 (princ "\nMain command: SWAUTO")

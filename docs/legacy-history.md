@@ -9,11 +9,11 @@ C:\Users\DR-DESIGN\Documents\솔리드웍스 자동화\tools
 ## Imported Files
 
 ```text
-tools/gstarcad_dimstyle_keep_tolerance.lsp
-tools/gstarcad_dimstyle_keep_tolerance_사용법.md
+gstarcad_dimstyle/gstarcad_dimstyle_keep_tolerance.lsp
+gstarcad_dimstyle/gstarcad_dimstyle_keep_tolerance_사용법.md
 tools/gstarcad_layout_from_model.lsp
 tools/gstarcad_layout_사용법.md
-tools/gstarcad_sdk_fit_tolerance_analysis.md
+gstarcad_dimstyle/gstarcad_sdk_fit_tolerance_analysis.md
 ```
 
 ## Previous Repository Commits
