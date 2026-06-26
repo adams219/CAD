@@ -10,7 +10,7 @@
 
 ## Phase 2. Diagnose
 
-- GMTITLE / FTAP / `DIMLFAC` 스케일 조사는 `swcad_title_scale.lsp`에서 읽기 전용으로 시작합니다.
+- GMTITLE / FTAP / `DIMLFAC` 스케일 조사는 `GMTITLE/swcad_title_scale.lsp`에서 읽기 전용으로 시작합니다.
 - 후보 명령은 `SWTITLESCAN`, `SWSCALESCAN`, `SWTITLEDEBUG`입니다.
 - 자동 수정은 이 단계에서 하지 않습니다.
 
@@ -26,7 +26,7 @@
 | `swcad_mechfit.lsp` | H7/h6 등 Mechanical 맞춤공차 xdata 변환 |
 | `swcad_cleanup.lsp` | 미사용 SolidWorks 치수스타일 정리 |
 | `swcad_debug.lsp` | SWDEBUG, SWFINDSTYLE, 상세 덤프 |
-| `swcad_title_scale.lsp` | GMTITLE / FTAP 스케일 진단 |
+| `GMTITLE/swcad_title_scale.lsp` | GMTITLE / FTAP 스케일 진단 |
 
 ## Phase 4. Replace
 

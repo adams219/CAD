@@ -40,6 +40,7 @@ SWTITLEDEBUG
 | --- | --- |
 | `swcad_load.lsp` | APPLOAD에서 직접 불러올 메인 로더입니다. |
 | `lsp/` | 새 모듈형 LSP 구조입니다. 현재는 이식 전 골격입니다. |
+| `GMTITLE/` | GMTITLE / FTAP 스케일 진단용 LSP와 문서입니다. |
 | `tools/` | 이전 작업공간에서 가져온 검증된 LSP와 관련 문서 원본입니다. |
 | `docs/` | 이식 계획, 명령 목록, 진단 설계, 작업 이력입니다. |
 | `samples/` | 재현용 CAD 샘플 케이스 자리입니다. |

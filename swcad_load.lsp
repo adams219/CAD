@@ -60,7 +60,7 @@
 (swcad-load-file "lsp/swcad_config.lsp")
 (swcad-load-file "lsp/swcad_dimstyle.lsp")
 (swcad-load-file "lsp/swcad_mechfit.lsp")
-(swcad-load-file "lsp/swcad_title_scale.lsp")
+(swcad-load-file "GMTITLE/swcad_title_scale.lsp")
 (swcad-load-file "lsp/swcad_cleanup.lsp")
 (swcad-load-file "lsp/swcad_debug.lsp")
 
