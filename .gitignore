@@ -27,3 +27,4 @@ _local/
 # Generated local diagnostic output
 work/swcad_title_debug_last.txt
 work/swcad_title_scan_last.txt
+work/swcad_scale_scan_last.txt
