@@ -12,6 +12,8 @@ work/chat-3/YYYY-MM-DD-topic/
 
 검증이 끝난 LSP 도구는 `src/tools/` 또는 `src/lsp/`로 옮기고, 공식 문서나 이력은 `docs/guide/`, `docs/history/`, `docs/investigations/` 중 알맞은 곳으로 옮깁니다.
 
+GstarCAD layout 배치 자동화의 완성본은 `src/tools/gstarcad-layout/`에 저장합니다.
+
 세 번째 채팅에서 만든 임시 작업물과 실험 결과를 보관합니다.
 
 권장 폴더 이름:
