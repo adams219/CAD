@@ -51,6 +51,66 @@
   )
 )
 
+(defun swcad-title-work-root-path (/ home)
+  (setq home (getenv "USERPROFILE"))
+  (if home
+    (strcat
+      (vl-string-translate "\\" "/" home)
+      "/Documents/CAD tool/work/"
+    )
+    ""
+  )
+)
+
+(defun swcad-title-current-dwg-full-path ()
+  (vl-string-translate "\\" "/" (strcat (getvar "DWGPREFIX") (getvar "DWGNAME")))
+)
+
+(defun swcad-title-string-prefix-p (prefix value)
+  (and
+    prefix
+    value
+    (<= (strlen prefix) (strlen value))
+    (equal
+      (strcase prefix)
+      (strcase (substr value 1 (strlen prefix)))
+    )
+  )
+)
+
+(defun swcad-title-current-dwg-in-work-p ()
+  (swcad-title-string-prefix-p
+    (swcad-title-work-root-path)
+    (swcad-title-current-dwg-full-path)
+  )
+)
+
+(defun swcad-title-print-work-copy-status ()
+  (swcad-title-princ-line
+    (strcat
+      "Work-folder test copy: "
+      (if (swcad-title-current-dwg-in-work-p) "yes" "no")
+    )
+  )
+)
+
+(defun swcad-title-apply-work-copy-confirmed-p (/ answer)
+  (if (swcad-title-current-dwg-in-work-p)
+    T
+    (progn
+      (swcad-title-princ-line "WARNING: current DWG is outside the work test folder.")
+      (swcad-title-princ-line "No SOLIDWORKS title/frame content will be removed unless you explicitly confirm this non-work file.")
+      (setq answer
+        (getstring
+          T
+          "\nCurrent DWG is outside work. Type EDIT to continue, or press Enter to abort: "
+        )
+      )
+      (equal (strcase answer) "EDIT")
+    )
+  )
+)
+
 (defun swcad-title-open-log (filename header / handle path)
   (setq path (swcad-title-work-log-path filename))
   (setq handle (open path "w"))
@@ -1271,6 +1331,7 @@
   (swcad-title-princ-line "----- SWTITLEGMTITLEVERIFY read-only GMTITLE transfer verification -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-print-work-copy-status)
   (swcad-title-princ-line (strcat "FILEDIA: " (swcad-title-string filedia) " (not changed)"))
   (swcad-title-princ-line (strcat "CMDDIA: " (swcad-title-string cmddia) " (not changed)"))
   (swcad-title-princ-line (strcat "Target frame block: " frame-name ", inserts=" (itoa frame-count)))
@@ -2187,6 +2248,7 @@
   (swcad-title-princ-line "----- SWTITLETRANSFERPREVIEW read-only GM TITLE transfer preview -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-print-work-copy-status)
   (swcad-title-princ-line
     (strcat
       "Source title insert: "
@@ -2341,6 +2403,7 @@
   (swcad-title-princ-line "----- SWTITLETRANSFERAPPLY native GMTITLE transfer apply -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-print-work-copy-status)
   (swcad-title-princ-line (strcat "FILEDIA before: " (swcad-title-string (getvar "FILEDIA")) " (not changed)"))
   (swcad-title-princ-line (strcat "CMDDIA before: " (swcad-title-string (getvar "CMDDIA")) " (not changed)"))
   (swcad-title-princ-line
@@ -2394,6 +2457,10 @@
     ((swcad-title-document-read-only-p)
       (swcad-title-apply-result "ABORT_READ_ONLY_DOCUMENT")
       (swcad-title-princ-line "Open a writable copy of the DWG before applying.")
+    )
+    ((not (swcad-title-apply-work-copy-confirmed-p))
+      (swcad-title-apply-result "ABORT_NOT_WORK_COPY")
+      (swcad-title-princ-line "Open or create a copy under Documents/CAD tool/work before applying.")
     )
     (T
       (setq build (swcad-title-transfer-build-mappings source-bbox source-ename 7.0))
