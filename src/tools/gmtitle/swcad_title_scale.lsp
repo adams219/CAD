@@ -19,7 +19,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260629-native-batch")
+(setq *swcad-title-scale-version* "260629-native-command-direct")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -1515,21 +1515,15 @@
   best
 )
 
-(defun swcad-title-run-native-gmtitle (/ before-handles result new-enames title-ename frame-ename guard)
+(defun swcad-title-run-native-gmtitle (/ before-handles new-enames title-ename frame-ename guard)
   (setq before-handles (swcad-title-insert-handle-list))
   (swcad-title-princ-line "Starting native GMTITLE. In the GMTITLE dialog, choose DR_A3_Outline and DR_titlea_3rd, then place/confirm it.")
   (swcad-title-princ-line "FILEDIA and CMDDIA are not changed by this command.")
   (initdia)
-  (setq result (vl-catch-all-apply 'command (list "GMTITLE")))
-  (if (vl-catch-all-error-p result)
-    (swcad-title-princ-line (strcat "GMTITLE command error: " (vl-catch-all-error-message result)))
-  )
+  (command "GMTITLE")
   (setq guard 0)
   (while (and (> (getvar "CMDACTIVE") 0) (< guard 200))
-    (setq result (vl-catch-all-apply 'command (list pause)))
-    (if (vl-catch-all-error-p result)
-      (swcad-title-princ-line (strcat "GMTITLE pause error: " (vl-catch-all-error-message result)))
-    )
+    (command pause)
     (setq guard (+ guard 1))
   )
   (setq new-enames (swcad-title-new-insert-enames before-handles))

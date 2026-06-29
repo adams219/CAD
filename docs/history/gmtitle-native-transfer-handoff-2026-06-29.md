@@ -172,19 +172,76 @@ GEN-TITLE-MAT1{10} [material] <= <missing>
 
 ## 아직 끝나지 않은 것
 
-실제 목표는 아직 완료가 아니다.
+2026-06-29 오후 추가 테스트 전까지는 실제 apply 테스트가 남아 있었다.
+
+이후 `work\Motor Mount_Test_260626_native_apply_test_260629_02.dwg`에서 실제 적용 검증을 완료했다.
+
+완료된 검증:
+
+```text
+SWTITLETRANSFERPREVIEW
+SWTITLETRANSFERAPPLY
+SWTITLEGMTITLEVERIFY
+제목블록 더블클릭 표 편집창 확인
+```
+
+적용 성공 로그 요약:
+
+```text
+DWG: C:/Users/DR-DESIGN/Documents/CAD tool/work/Motor Mount_Test_260626_native_apply_test_260629_02.dwg
+FILEDIA before: 1 (not changed)
+CMDDIA before: 1 (not changed)
+Native GMTITLE title insert: block=DR_titlea_3rd
+Native GMTITLE frame insert: block=DR_A3_Outline
+Attributes set: 10
+Old loose title texts deleted: 11
+Old loose title graphics deleted: 66
+Old title insert deleted: yes
+Old frame insert deleted: yes
+Result: APPLIED_TITLE_TRANSFER
+```
+
+검증 성공 로그 요약:
+
+```text
+Target frame block: DR_A3_Outline, inserts=1
+Target title block: DR_titlea_3rd, inserts=1
+Title attributes: 11
+Non-empty title attributes: 11
+Missing expected title tags: <none>
+Native GMTITLE GENIUS_GENOREF_13 handle links: 9FF
+Other title-like inserts that are not the target GMTITLE block: <none>
+Result: OK_VERIFY_GMTITLE_READY_FOR_MANUAL_DOUBLE_CLICK_CHECK
+```
+
+수동/화면 확인:
+
+- 새 `DR_titlea_3rd` 제목블록을 더블클릭했을 때 `속성 블록 편집` 표 형식 창이 열렸다.
+- 표에는 `Checked by`, `Designed by`, `Approved by`, `Date`, `Scale`, `Edition`, `Sheet`, `FILE NO`, `File Name`, `Q'ty`, `Material` 행이 보였다.
+- 이관된 값은 `KS LEE`, `HS KANG`, `2026-06-26`, `1:1`, `A4`, `Motor Mount`, `1`, `-` 등으로 채워졌다.
+
+구현상 중요한 수정:
+
+- GstarCAD에서 `(vl-catch-all-apply 'command ...)`로 `GMTITLE`을 호출하면 `COMMAND` 관련 오류가 나며 삽입 흐름이 깨졌다.
+- `swcad-title-run-native-gmtitle`에서 native 명령 호출을 직접 `(command "GMTITLE")`, `(command pause)` 방식으로 바꾸자 실제 대화상자, 삽입, 후처리까지 진행됐다.
+- 현재 버전 문자열은 `260629-native-command-direct`이다.
+
+GMTITLE 대화상자에서 성공한 선택 방법:
+
+- 용지 형식: `DR_A3_Outline`
+- 제목 블록: `DR_titlea_3rd`
+- `객체 이동(M)`은 해제했다. 켜져 있으면 `객체의 새 위치` 프롬프트가 추가로 뜬다.
+- 용지 콤보는 `A3 (297x420mm)`에서 드롭다운을 연 뒤 아래로 16번 이동하면 `DR_A3_Outline`에 도달했다.
+
+남은 작업은 전체 자동화 품질을 올리는 것이다.
 
 남은 핵심 작업:
 
-1. 원본 도면이 아닌 `work` 폴더 안의 새 복사본을 만든다.
-2. 그 복사본을 GstarCAD에서 열고 `SWTITLETRANSFERPREVIEW`를 다시 실행한다.
-3. `SWTITLETRANSFERAPPLY`를 실행한다.
-4. 뜨는 `GMTITLE` 대화상자에서 반드시 DR 계열 A3 용지와 DR 제목블록을 고른다.
-   - 용지: `DR_A3_Outline`
-   - 제목블록: 우선 `DR_titlea_3rd`
-5. 적용 후 `SWTITLEGMTITLEVERIFY`를 실행한다.
-6. 새 제목블록을 더블클릭해서 GMTITLE 표 편집창이 뜨는지 확인한다.
-7. 기존 SOLIDWORKS 도면틀/표제란/분리 텍스트가 실제로 제거됐는지 화면에서 확인한다.
+1. 여러 장 도면에서 `SWTITLETRANSFERBATCH`가 같은 흐름으로 반복 가능한지 확인한다.
+2. `GMTITLE` 대화상자 선택을 좌표 의존이 아닌 키보드 단계 또는 문서화된 내부 설정 방식으로 더 안정화한다.
+3. `객체 이동(M)` 해제를 자동화하거나 사용자 안내에 명확히 포함한다.
+4. Material처럼 원본에 없는 값 또는 탐지되지 않은 값의 기본값 정책을 정리한다.
+5. 변환된 테스트 도면을 저장할지, 로그만 남길지 운영 흐름을 정한다.
 
 주의:
 
