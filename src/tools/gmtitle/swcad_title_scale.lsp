@@ -16,12 +16,22 @@
 ;;; SWTITLETRANSFERAPPLY extracts old loose/block title text, runs native
 ;;; GMTITLE for the user to place a real DR frame/title, fills its
 ;;; attributes, then removes the selected old SOLIDWORKS title content.
+;;; SWTITLETRANSFERCLONEBATCH reuses one verified native GMTITLE pair in
+;;; the current work-copy drawing to finish remaining sheets without
+;;; reopening the fragile GMTITLE picker for every sheet.
+;;; SWTITLEFRAMEONLYFINALIZE moves one already-created native GMTITLE
+;;; frame/title onto a detected frame-only sheet such as A4, then removes
+;;; the old source frame/residue. SWTITLEFRAMEONLYCLONEBATCH is the faster
+;;; cloned variant for repeated frame-only sheets.
+;;; SWTITLEFRAMEDEFCHECK diagnoses polluted target DR_A*_Outline block
+;;; definitions. SWTITLEFRAMEDEFCLEANSAFE repairs only unused polluted
+;;; definitions by backing them up and importing a clean install copy.
 ;;; SWSCALESCAN compares title-block scale candidates with dimension
 ;;; DIMLFAC values. It does not modify the drawing.
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260629-native-command-direct-residue-cleanup-sheet-auto-multi-finalize")
+(setq *swcad-title-scale-version* "260630-frame-def-clean-safe")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -32,6 +42,12 @@
 
 (defun swcad-title-princ-line (text)
   (princ (strcat "\n" text))
+  (if *swcad-title-debug-log-handle*
+    (write-line text *swcad-title-debug-log-handle*)
+  )
+)
+
+(defun swcad-title-log-line (text)
   (if *swcad-title-debug-log-handle*
     (write-line text *swcad-title-debug-log-handle*)
   )
@@ -147,6 +163,14 @@
   (swcad-title-open-log "swcad_title_multi_preview_last.txt" "SWTITLEMULTIPREVIEW log")
 )
 
+(defun swcad-title-open-multi-detail-log ()
+  (swcad-title-open-log "swcad_title_multi_detail_last.txt" "SWTITLEMULTIDETAIL log")
+)
+
+(defun swcad-title-open-frame-scan-log ()
+  (swcad-title-open-log "swcad_title_frame_scan_last.txt" "SWTITLEFRAMESCAN log")
+)
+
 (defun swcad-title-open-apply-log ()
   (swcad-title-open-log "swcad_title_transfer_apply_last.txt" "SWTITLETRANSFERAPPLY log")
 )
@@ -158,6 +182,22 @@
 
 (defun swcad-title-open-gmtitle-verify-log ()
   (swcad-title-open-log "swcad_title_gmtitle_verify_last.txt" "SWTITLEGMTITLEVERIFY log")
+)
+
+(defun swcad-title-open-gmtitle-verify-all-log ()
+  (swcad-title-open-log "swcad_title_gmtitle_verify_all_last.txt" "SWTITLEGMTITLEVERIFYALL log")
+)
+
+(defun swcad-title-open-gmtitle-link-scan-log ()
+  (swcad-title-open-log "swcad_title_gmtitle_link_scan_last.txt" "SWTITLEGMTITLELINKSCAN log")
+)
+
+(defun swcad-title-open-frame-def-check-log ()
+  (swcad-title-open-log "swcad_title_frame_def_check_last.txt" "SWTITLEFRAMEDEFCHECK log")
+)
+
+(defun swcad-title-open-frame-def-clean-log ()
+  (swcad-title-open-log "swcad_title_frame_def_clean_last.txt" "SWTITLEFRAMEDEFCLEANSAFE log")
 )
 
 (defun swcad-title-close-log ()
@@ -772,6 +812,35 @@
   )
 )
 
+(defun swcad-title-sheet-size-from-block-name (block-name / value)
+  (setq value (strcase (swcad-title-string block-name)))
+  (cond
+    ((swcad-title-native-target-title-name-p value) nil)
+    ((wcmatch value "*A0*,*A-0*,*A_0*,*A 0*") "A0")
+    ((wcmatch value "*A1*,*A-1*,*A_1*,*A 1*") "A1")
+    ((wcmatch value "*A2*,*A-2*,*A_2*,*A 2*") "A2")
+    ((wcmatch value "*A3*,*A-3*,*A_3*,*A 3*") "A3")
+    ((wcmatch value "*A4*,*A-4*,*A_4*,*A 4*") "A4")
+    (T nil)
+  )
+)
+
+(defun swcad-title-values-with-sheet-size-override (values override-size / normalized)
+  (setq normalized (swcad-title-normalized-sheet-size override-size))
+  (if normalized
+    (swcad-title-assoc-put "GEN-TITLE-SIZ{6.7}" normalized values)
+    values
+  )
+)
+
+(defun swcad-title-frame-block-size-priority (block-name / block-size)
+  (setq block-size (swcad-title-sheet-size-from-block-name block-name))
+  (if block-size
+    0
+    1
+  )
+)
+
 (defun swcad-title-sheet-size-from-frame-bbox (frame-bbox / width height long short candidates best best-score candidate dims dim-long dim-short score)
   (setq best nil)
   (setq best-score nil)
@@ -822,6 +891,20 @@
   )
 )
 
+(defun swcad-title-detected-sheet-size-for-source (source-block frame-block values frame-bbox / block-size source-size)
+  (setq block-size (swcad-title-sheet-size-from-block-name frame-block))
+  (if block-size
+    block-size
+    (progn
+      (setq source-size (swcad-title-sheet-size-from-block-name source-block))
+      (if source-size
+        source-size
+        (swcad-title-detected-sheet-size values frame-bbox)
+      )
+    )
+  )
+)
+
 (defun swcad-title-target-frame-block-name-for-sheet (sheet-size / normalized)
   (setq normalized (swcad-title-normalized-sheet-size sheet-size))
   (if (and normalized (wcmatch normalized "A1,A2,A3,A4"))
@@ -832,6 +915,11 @@
 
 (defun swcad-title-target-frame-block-name-for-transfer (values frame-bbox / detected)
   (setq detected (swcad-title-detected-sheet-size values frame-bbox))
+  (swcad-title-target-frame-block-name-for-sheet detected)
+)
+
+(defun swcad-title-target-frame-block-name-for-source (source-block frame-block values frame-bbox / detected)
+  (setq detected (swcad-title-detected-sheet-size-for-source source-block frame-block values frame-bbox))
   (swcad-title-target-frame-block-name-for-sheet detected)
 )
 
@@ -851,6 +939,31 @@
       )
     )
     nil
+  )
+)
+
+(defun swcad-title-effective-source-frame-bbox (source-bbox source-frame-bbox values override-size / overridden-values inferred)
+  (if source-frame-bbox
+    source-frame-bbox
+    (if override-size
+      (progn
+        (setq overridden-values (swcad-title-values-with-sheet-size-override values override-size))
+        (setq inferred (swcad-title-inferred-source-frame-bbox source-bbox overridden-values))
+        (if inferred inferred source-frame-bbox)
+      )
+      (swcad-title-inferred-source-frame-bbox source-bbox values)
+    )
+  )
+)
+
+(defun swcad-title-source-block-sheet-size (source-block frame-block / frame-size source-size)
+  (setq frame-size (swcad-title-sheet-size-from-block-name frame-block))
+  (if frame-size
+    frame-size
+    (progn
+      (setq source-size (swcad-title-sheet-size-from-block-name source-block))
+      source-size
+    )
   )
 )
 
@@ -1187,11 +1300,198 @@
   )
 )
 
-(defun swcad-title-multi-preview (/ sources total index source ename data bbox block frame frame-data frame-bbox frame-block build mappings records unmapped duplicates values text-sheet frame-sheet detected-sheet frame-target residue-records sheet-key sheet-counts mapped-total residue-total)
+(defun swcad-title-print-counts-log-only (label counts / pair)
+  (swcad-title-log-line label)
+  (if counts
+    (foreach pair counts
+      (swcad-title-log-line
+        (strcat
+          "  "
+          (swcad-title-string (car pair))
+          ": "
+          (itoa (cdr pair))
+        )
+      )
+    )
+    (swcad-title-log-line "  <none>")
+  )
+)
+
+(defun swcad-title-source-frame-from-candidates (source-bbox sheet-frames / found frame frame-bbox frame-area best-area)
+  (setq found nil)
+  (setq best-area nil)
+  (foreach frame sheet-frames
+    (setq frame-bbox (caddr frame))
+    (setq frame-area (nth 4 frame))
+    (if
+      (and
+        frame-bbox
+        source-bbox
+        (swcad-title-bbox-contains-bbox-p frame-bbox source-bbox 2.0)
+        (or (not best-area) (< frame-area best-area))
+      )
+      (progn
+        (setq found frame)
+        (setq best-area frame-area)
+      )
+    )
+  )
+  found
+)
+
+(defun swcad-title-timer-seconds (/ value)
+  (setq value (getvar "DATE"))
+  (if value
+    (* 86400.0 value)
+    0.0
+  )
+)
+
+(defun swcad-title-elapsed-ms (start-ms / finish-ms elapsed)
+  (setq finish-ms (swcad-title-timer-seconds))
+  (setq elapsed (- finish-ms start-ms))
+  (fix (* 1000.0 elapsed))
+)
+
+(defun swcad-title-multi-preview (/ *error* start-ms elapsed sources sheet-frames total frame-total index source data bbox block title-frame title-frame-block title-frame-sheet title-target sheet-frame sheet-frame-key frame-sheet-counts title-sheet-counts frame-only-count title-with-frame-count title-without-frame-count)
+  (defun *error* (msg)
+    (if msg
+      (progn
+        (swcad-title-log-line (strcat "Error: " (swcad-title-string msg)))
+        (swcad-title-princ-line (strcat "SWTITLEMULTIPREVIEW error: " (swcad-title-string msg)))
+      )
+    )
+    (swcad-title-close-log)
+    (princ)
+  )
+  (setq start-ms (swcad-title-timer-seconds))
   (swcad-title-open-multi-preview-log)
   (setq sources (swcad-title-source-title-candidates))
+  (setq sheet-frames (swcad-title-source-frame-candidates))
   (setq total (length sources))
+  (setq frame-total (length sheet-frames))
+  (setq frame-sheet-counts nil)
+  (setq title-sheet-counts nil)
+  (setq frame-only-count 0)
+  (setq title-with-frame-count 0)
+  (setq title-without-frame-count 0)
+
+  (swcad-title-log-line "----- SWTITLEMULTIPREVIEW fast read-only multi-sheet summary -----")
+  (swcad-title-log-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-log-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-log-line "Residue cleanup candidate scan: skipped in fast preview.")
+  (swcad-title-log-line "Run SWTITLEMULTIDETAIL for old detailed mapping/residue diagnostics.")
+
+  (foreach sheet-frame sheet-frames
+    (setq sheet-frame-key (nth 5 sheet-frame))
+    (setq frame-sheet-counts (swcad-title-count-put sheet-frame-key frame-sheet-counts))
+    (if (not (swcad-title-frame-has-source-title-p (caddr sheet-frame) sources))
+      (setq frame-only-count (+ frame-only-count 1))
+    )
+  )
+
+  (swcad-title-log-line "")
+  (swcad-title-log-line "Source sheet frame candidates:")
+  (setq index 1)
+  (foreach sheet-frame sheet-frames
+    (swcad-title-log-line
+      (strcat
+        "  #"
+        (itoa index)
+        " handle="
+        (swcad-title-string (swcad-title-dxf-value (cadr sheet-frame) 5))
+        ", block="
+        (swcad-title-string (cadddr sheet-frame))
+        ", sheet="
+        (swcad-title-string (nth 5 sheet-frame))
+        ", title-present="
+        (if (swcad-title-frame-has-source-title-p (caddr sheet-frame) sources) "yes" "no")
+        ", target-frame="
+        (swcad-title-target-frame-block-name-for-sheet (nth 5 sheet-frame))
+        ", bbox="
+        (swcad-title-bbox-string (caddr sheet-frame))
+      )
+    )
+    (setq index (+ index 1))
+  )
+
+  (swcad-title-log-line "")
+  (swcad-title-log-line "Source title candidates:")
+  (setq index 1)
+  (foreach source sources
+    (setq data (cadr source))
+    (setq bbox (caddr source))
+    (setq block (cadddr source))
+    (setq title-frame (swcad-title-source-frame-from-candidates bbox sheet-frames))
+    (setq title-frame-block (if title-frame (cadddr title-frame) ""))
+    (setq title-frame-sheet (if title-frame (nth 5 title-frame) nil))
+    (if title-frame-sheet
+      (progn
+        (setq title-sheet-counts (swcad-title-count-put title-frame-sheet title-sheet-counts))
+        (setq title-with-frame-count (+ title-with-frame-count 1))
+      )
+      (progn
+        (setq title-sheet-counts (swcad-title-count-put "<missing-frame>" title-sheet-counts))
+        (setq title-without-frame-count (+ title-without-frame-count 1))
+      )
+    )
+    (setq title-target (swcad-title-target-frame-block-name-for-sheet title-frame-sheet))
+    (swcad-title-log-line
+      (strcat
+        "  #"
+        (itoa index)
+        " handle="
+        (swcad-title-string (swcad-title-dxf-value data 5))
+        ", block="
+        (swcad-title-string block)
+        ", frame-block="
+        (if title-frame (swcad-title-string title-frame-block) "<missing>")
+        ", sheet="
+        (if title-frame-sheet title-frame-sheet "<missing>")
+        ", target-frame="
+        title-target
+        ", bbox="
+        (swcad-title-bbox-string bbox)
+      )
+    )
+    (setq index (+ index 1))
+  )
+
+  (setq elapsed (swcad-title-elapsed-ms start-ms))
+  (swcad-title-log-line "")
+  (swcad-title-log-line "Summary:")
+  (swcad-title-log-line (strcat "  source title candidates: " (itoa total)))
+  (swcad-title-log-line (strcat "  source sheet frame candidates: " (itoa frame-total)))
+  (swcad-title-log-line (strcat "  title candidates with frame: " (itoa title-with-frame-count)))
+  (swcad-title-log-line (strcat "  title candidates without frame: " (itoa title-without-frame-count)))
+  (swcad-title-log-line (strcat "  frame-only sheet candidates: " (itoa frame-only-count)))
+  (swcad-title-print-counts-log-only "  source sheet frame counts:" frame-sheet-counts)
+  (swcad-title-print-counts-log-only "  title sheet counts:" title-sheet-counts)
+  (swcad-title-log-line (strcat "Elapsed ms: " (itoa elapsed)))
+  (swcad-title-log-line "No drawing data was changed.")
+
+  (swcad-title-princ-line "----- SWTITLEMULTIPREVIEW fast summary -----")
+  (swcad-title-princ-line (strcat "Source titles: " (itoa total)))
+  (swcad-title-princ-line (strcat "Source sheet frames: " (itoa frame-total)))
+  (swcad-title-princ-line (strcat "Frame-only sheets: " (itoa frame-only-count)))
+  (swcad-title-print-counts "Source sheet frame counts:" frame-sheet-counts)
+  (swcad-title-print-counts "Title sheet counts:" title-sheet-counts)
+  (swcad-title-princ-line "Residue cleanup scan: skipped")
+  (swcad-title-princ-line (strcat "Elapsed ms: " (itoa elapsed)))
+  (swcad-title-princ-line "No drawing data was changed.")
+  (swcad-title-close-log)
+  (princ)
+)
+
+(defun swcad-title-multi-detail (/ start-ms elapsed sources sheet-frames total frame-total index source ename data bbox block frame frame-data frame-bbox frame-block build mappings records unmapped duplicates values block-sheet effective-frame-bbox text-sheet frame-sheet detected-sheet frame-target residue-records sheet-key sheet-counts mapped-total residue-total sheet-frame sheet-frame-key frame-sheet-counts frame-only-count)
+  (setq start-ms (swcad-title-timer-seconds))
+  (swcad-title-open-multi-detail-log)
+  (setq sources (swcad-title-source-title-candidates))
+  (setq sheet-frames (swcad-title-source-frame-candidates))
+  (setq total (length sources))
+  (setq frame-total (length sheet-frames))
   (setq sheet-counts nil)
+  (setq frame-sheet-counts nil)
   (setq mapped-total 0)
   (setq residue-total 0)
   (swcad-title-princ-line "----- SWTITLEMULTIPREVIEW read-only multi-sheet title transfer preview -----")
@@ -1199,6 +1499,37 @@
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
   (swcad-title-princ-line (strcat "Source title candidates: " (itoa total)))
+  (swcad-title-princ-line (strcat "Source sheet frame candidates: " (itoa frame-total)))
+  (foreach sheet-frame sheet-frames
+    (setq sheet-frame-key (nth 5 sheet-frame))
+    (setq frame-sheet-counts (swcad-title-count-put sheet-frame-key frame-sheet-counts))
+  )
+  (setq frame-only-count 0)
+  (foreach sheet-frame sheet-frames
+    (if (not (swcad-title-frame-has-source-title-p (caddr sheet-frame) sources))
+      (progn
+        (if (= frame-only-count 0)
+          (swcad-title-princ-line "Frame-only sheet candidates:")
+        )
+        (setq frame-only-count (+ frame-only-count 1))
+        (swcad-title-princ-line
+          (strcat
+            "  handle="
+            (swcad-title-string (swcad-title-dxf-value (cadr sheet-frame) 5))
+            ", block="
+            (swcad-title-string (cadddr sheet-frame))
+            ", sheet="
+            (swcad-title-string (nth 5 sheet-frame))
+            ", bbox="
+            (swcad-title-bbox-string (caddr sheet-frame))
+          )
+        )
+      )
+    )
+  )
+  (if (= frame-only-count 0)
+    (swcad-title-princ-line "Frame-only sheet candidates: <none>")
+  )
   (setq index 1)
   (foreach source sources
     (setq ename (car source))
@@ -1215,11 +1546,14 @@
     (setq unmapped (caddr build))
     (setq duplicates (cadddr build))
     (setq values (swcad-title-transfer-values mappings))
+    (setq block-sheet (swcad-title-source-block-sheet-size block frame-block))
+    (setq values (swcad-title-values-with-sheet-size-override values block-sheet))
+    (setq effective-frame-bbox (swcad-title-effective-source-frame-bbox bbox frame-bbox values block-sheet))
     (setq text-sheet (swcad-title-normalized-sheet-size (swcad-title-sheet-size-value values)))
-    (setq frame-sheet (swcad-title-sheet-size-from-frame-bbox frame-bbox))
-    (setq detected-sheet (swcad-title-detected-sheet-size values frame-bbox))
-    (setq frame-target (swcad-title-target-frame-block-name-for-transfer values frame-bbox))
-    (setq residue-records (swcad-title-source-sheet-residue-records frame-bbox ename (if frame (car frame) nil)))
+    (setq frame-sheet (swcad-title-sheet-size-from-frame-bbox effective-frame-bbox))
+    (setq detected-sheet (swcad-title-detected-sheet-size-for-source block frame-block values effective-frame-bbox))
+    (setq frame-target (swcad-title-target-frame-block-name-for-source block frame-block values effective-frame-bbox))
+    (setq residue-records (swcad-title-source-sheet-residue-records effective-frame-bbox ename (if frame (car frame) nil)))
     (setq sheet-key (if detected-sheet detected-sheet "<fallback>"))
     (setq sheet-counts (swcad-title-count-put sheet-key sheet-counts))
     (setq mapped-total (+ mapped-total (length mappings)))
@@ -1258,6 +1592,8 @@
         (if text-sheet text-sheet "<none>")
         ", frame-bbox="
         (if frame-sheet frame-sheet "<none>")
+        ", block-name="
+        (if block-sheet block-sheet "<none>")
         ", selected="
         sheet-key
         ", target-frame="
@@ -1299,6 +1635,113 @@
   (swcad-title-princ-line (strcat "  mapped fields total: " (itoa mapped-total)))
   (swcad-title-princ-line (strcat "  sheet residue candidates total: " (itoa residue-total)))
   (swcad-title-print-counts "  detected sheet counts:" sheet-counts)
+  (swcad-title-print-counts "  source sheet frame counts:" frame-sheet-counts)
+  (setq elapsed (swcad-title-elapsed-ms start-ms))
+  (swcad-title-princ-line (strcat "Elapsed ms: " (itoa elapsed)))
+  (swcad-title-princ-line "No drawing data was changed.")
+  (swcad-title-close-log)
+  (princ)
+)
+
+(defun swcad-title-frame-scan-interest-name-p (raw-name effective-name / raw effective pattern)
+  (setq raw (strcase (swcad-title-string raw-name)))
+  (setq effective (strcase (swcad-title-string effective-name)))
+  (setq pattern "*DR*A*,*DR-A*,*A4*,*A-4*,*A_4*,*A 4*,*0400*,*0500*")
+  (or
+    (wcmatch raw pattern)
+    (wcmatch effective pattern)
+  )
+)
+
+(defun swcad-title-frame-scan (/ sources index source ename data bbox block frame frame-data frame-bbox frame-block raw-frame-block block-sheet insert-ss insert-index insert-total insert-ename insert-data raw-name effective-name insert-bbox insert-sheet bbox-sheet interesting-count a4-count)
+  (swcad-title-open-frame-scan-log)
+  (swcad-title-princ-line "----- SWTITLEFRAMESCAN read-only source frame diagnostics -----")
+  (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-princ-line "Selected source frames:")
+  (setq sources (swcad-title-source-title-candidates))
+  (setq index 1)
+  (foreach source sources
+    (setq ename (car source))
+    (setq data (cadr source))
+    (setq bbox (caddr source))
+    (setq block (cadddr source))
+    (setq frame (swcad-title-transfer-source-frame bbox ename))
+    (setq frame-data (if frame (cadr frame) nil))
+    (setq frame-bbox (if frame (caddr frame) nil))
+    (setq frame-block (if frame (swcad-title-effective-insert-name (car frame)) ""))
+    (setq raw-frame-block (if frame-data (swcad-title-dxf-value frame-data 2) ""))
+    (setq block-sheet (swcad-title-source-block-sheet-size block frame-block))
+    (swcad-title-princ-line
+      (strcat
+        "  #"
+        (itoa index)
+        " source="
+        (swcad-title-string block)
+        ", frame-raw="
+        (swcad-title-string raw-frame-block)
+        ", frame-effective="
+        (swcad-title-string frame-block)
+        ", block-sheet="
+        (if block-sheet block-sheet "<none>")
+        ", frame-bbox-sheet="
+        (if (swcad-title-sheet-size-from-frame-bbox frame-bbox) (swcad-title-sheet-size-from-frame-bbox frame-bbox) "<none>")
+        ", frame-bbox="
+        (swcad-title-bbox-string frame-bbox)
+      )
+    )
+    (setq index (+ index 1))
+  )
+
+  (swcad-title-princ-line "")
+  (swcad-title-princ-line "Interesting INSERT names (DR-A*, A4, 0400, 0500):")
+  (setq interesting-count 0)
+  (setq a4-count 0)
+  (setq insert-ss (ssget "_X" '((0 . "INSERT"))))
+  (setq insert-total (if insert-ss (sslength insert-ss) 0))
+  (setq insert-index 0)
+  (while (< insert-index insert-total)
+    (setq insert-ename (ssname insert-ss insert-index))
+    (setq insert-data (entget insert-ename '("*")))
+    (setq raw-name (swcad-title-dxf-value insert-data 2))
+    (setq effective-name (swcad-title-effective-insert-name insert-ename))
+    (if (swcad-title-frame-scan-interest-name-p raw-name effective-name)
+      (progn
+        (setq insert-bbox (swcad-title-safe-bbox insert-ename))
+        (setq insert-sheet (swcad-title-sheet-size-from-block-name effective-name))
+        (if (not insert-sheet)
+          (setq insert-sheet (swcad-title-sheet-size-from-block-name raw-name))
+        )
+        (setq bbox-sheet (swcad-title-sheet-size-from-frame-bbox insert-bbox))
+        (setq interesting-count (+ interesting-count 1))
+        (if (= insert-sheet "A4")
+          (setq a4-count (+ a4-count 1))
+        )
+        (swcad-title-princ-line
+          (strcat
+            "  handle="
+            (swcad-title-string (swcad-title-dxf-value insert-data 5))
+            ", raw="
+            (swcad-title-string raw-name)
+            ", effective="
+            (swcad-title-string effective-name)
+            ", name-sheet="
+            (if insert-sheet insert-sheet "<none>")
+            ", bbox-sheet="
+            (if bbox-sheet bbox-sheet "<none>")
+            ", bbox="
+            (swcad-title-bbox-string insert-bbox)
+          )
+        )
+      )
+    )
+    (setq insert-index (+ insert-index 1))
+  )
+  (swcad-title-princ-line "")
+  (swcad-title-princ-line "Summary:")
+  (swcad-title-princ-line (strcat "  source title candidates: " (itoa (length sources))))
+  (swcad-title-princ-line (strcat "  interesting inserts: " (itoa interesting-count)))
+  (swcad-title-princ-line (strcat "  A4-named inserts: " (itoa a4-count)))
   (swcad-title-princ-line "No drawing data was changed.")
   (swcad-title-close-log)
   (princ)
@@ -1458,6 +1901,29 @@
     )
   )
   result
+)
+
+(defun swcad-title-source-like-frame-child-name-p (name / upper)
+  (setq upper (strcase (swcad-title-string name)))
+  (or
+    (wcmatch upper "*FROM_HYUN*,*FROM HYUN*,*SW_NOTE*,*FROM*,*DR-A*")
+    (wcmatch upper "*도면*,*표제란*")
+  )
+)
+
+(defun swcad-title-target-frame-block-source-like-children (frame-block / children result child)
+  (setq children (swcad-title-block-child-insert-names frame-block))
+  (setq result nil)
+  (foreach child children
+    (if (swcad-title-source-like-frame-child-name-p child)
+      (setq result (swcad-title-list-add-unique child result))
+    )
+  )
+  result
+)
+
+(defun swcad-title-target-frame-block-contaminated-p (frame-block)
+  (if (swcad-title-target-frame-block-source-like-children frame-block) T nil)
 )
 
 (defun swcad-title-safe-vla-object (ename / result)
@@ -1823,6 +2289,34 @@
   best
 )
 
+(defun swcad-title-default-location-gmtitle-frame-for-block (frame-block / frames frame title score best best-score)
+  (setq frames (swcad-title-inserts-by-effective-name frame-block))
+  (setq best nil)
+  (setq best-score nil)
+  (foreach frame frames
+    (if (swcad-title-default-gmtitle-frame-location-p frame)
+      (progn
+        (setq title (swcad-title-title-for-native-frame frame frame-block))
+        (if (not title)
+          (setq title (swcad-title-default-location-title-for-frame frame frame-block))
+        )
+        (if title
+          (progn
+            (setq score (swcad-title-unfinalized-gmtitle-frame-score frame))
+            (if (or (not best-score) (< score best-score))
+              (progn
+                (setq best frame)
+                (setq best-score score)
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  best
+)
+
 (defun swcad-title-move-ename (ename dx dy / object result)
   (setq object (swcad-title-safe-vla-object ename))
   (if object
@@ -1863,6 +2357,337 @@
       (list moved dx dy frame-bbox)
     )
     (list moved 0.0 0.0 frame-bbox)
+  )
+)
+
+(defun swcad-title-frame-dwg-path (frame-block)
+  (strcat
+    "C:/Program Files/Gstarsoft/GstarCAD Mechanical 2024 Korean/Dwg/Format/"
+    (swcad-title-string frame-block)
+    ".dwg"
+  )
+)
+
+(defun swcad-title-vla-object->ename (object / result)
+  (if object
+    (progn
+      (setq result (vl-catch-all-apply 'vlax-vla-object->ename (list object)))
+      (if (vl-catch-all-error-p result) nil result)
+    )
+    nil
+  )
+)
+
+(defun swcad-title-insert-block-reference (block-name x y / result)
+  (setq result
+    (vl-catch-all-apply
+      'vla-InsertBlock
+      (list
+        (swcad-title-modelspace)
+        (vlax-3d-point (list (float x) (float y) 0.0))
+        block-name
+        1.0
+        1.0
+        1.0
+        0.0
+      )
+    )
+  )
+  (if (vl-catch-all-error-p result)
+    nil
+    (swcad-title-vla-object->ename result)
+  )
+)
+
+(defun swcad-title-insert-frame-reference (frame-block / frame-path ename)
+  (cond
+    ((and
+       (swcad-title-block-exists-p frame-block)
+       (not (swcad-title-target-frame-block-contaminated-p frame-block))
+     )
+      (setq ename (swcad-title-insert-block-reference frame-block 0.0 0.0))
+    )
+    ((swcad-title-block-exists-p frame-block)
+      (setq ename nil)
+    )
+    (T
+      (setq frame-path (swcad-title-frame-dwg-path frame-block))
+      (if (findfile frame-path)
+        (setq ename (swcad-title-insert-block-reference frame-path 0.0 0.0))
+      )
+    )
+  )
+  ename
+)
+
+(defun swcad-title-copy-ename (ename / object result)
+  (setq object (swcad-title-safe-vla-object ename))
+  (if object
+    (progn
+      (setq result (vl-catch-all-apply 'vla-Copy (list object)))
+      (if (vl-catch-all-error-p result)
+        nil
+        (swcad-title-vla-object->ename result)
+      )
+    )
+    nil
+  )
+)
+
+(defun swcad-title-move-ename-bbox-min-to (ename x y / bbox dx dy)
+  (setq bbox (swcad-title-safe-bbox ename))
+  (if bbox
+    (progn
+      (setq dx (- (float x) (car bbox)))
+      (setq dy (- (float y) (cadr bbox)))
+      (swcad-title-move-ename ename dx dy)
+    )
+    nil
+  )
+)
+
+(defun swcad-title-native-frame-from-title (title-ename / handles handle ename result)
+  (setq handles (swcad-title-gmtitle-native-xdata-info title-ename))
+  (setq result nil)
+  (foreach handle handles
+    (if (not result)
+      (progn
+        (setq ename (handent handle))
+        (if
+          (and
+            ename
+            (swcad-title-native-target-frame-name-p (swcad-title-effective-insert-name ename))
+          )
+          (setq result ename)
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-native-example-title (/ titles title result)
+  (setq titles (swcad-title-inserts-by-effective-name (swcad-title-target-title-block-name)))
+  (setq result nil)
+  (foreach title titles
+    (if
+      (and
+        (not result)
+        (swcad-title-gmtitle-native-xdata-info title)
+      )
+      (setq result title)
+    )
+  )
+  result
+)
+
+(defun swcad-title-relink-gmtitle-xdata-pair (pair new-handle / code value)
+  (if (and (listp pair) (= (type (car pair)) 'INT))
+    (progn
+      (setq code (car pair))
+      (setq value (swcad-title-string (cdr pair)))
+      (if (and (member code '(1000 1005)) (> (strlen value) 0) (handent value))
+        (cons code new-handle)
+        pair
+      )
+    )
+    pair
+  )
+)
+
+(defun swcad-title-relink-gmtitle-xdata-app (app new-handle / result pair)
+  (setq result nil)
+  (if
+    (and
+      (listp app)
+      (swcad-title-string-p (car app))
+      (equal (strcase (car app)) "GENIUS_GENOREF_13")
+    )
+    (progn
+      (setq result (list (car app)))
+      (foreach pair (cdr app)
+        (setq result
+          (append
+            result
+            (list (swcad-title-relink-gmtitle-xdata-pair pair new-handle))
+          )
+        )
+      )
+      result
+    )
+    app
+  )
+)
+
+(defun swcad-title-relink-title-to-frame (title-ename frame-ename / data frame-handle new-data pair apps new-apps changed)
+  (setq data (entget title-ename '("*")))
+  (setq frame-handle (swcad-title-ename-handle frame-ename))
+  (setq new-data nil)
+  (setq changed nil)
+  (foreach pair data
+    (if (and (listp pair) (= (car pair) -3))
+      (progn
+        (setq apps (cdr pair))
+        (setq new-apps nil)
+        (foreach app apps
+          (if
+            (and
+              (listp app)
+              (swcad-title-string-p (car app))
+              (equal (strcase (car app)) "GENIUS_GENOREF_13")
+            )
+            (progn
+              (setq changed T)
+              (setq new-apps
+                (append
+                  new-apps
+                  (list (swcad-title-relink-gmtitle-xdata-app app frame-handle))
+                )
+              )
+            )
+            (setq new-apps (append new-apps (list app)))
+          )
+        )
+        (setq new-data (append new-data (list (cons -3 new-apps))))
+      )
+      (setq new-data (append new-data (list pair)))
+    )
+  )
+  (if changed
+    (progn
+      (entmod new-data)
+      (entupd title-ename)
+      T
+    )
+    nil
+  )
+)
+
+(defun swcad-title-create-cloned-gmtitle-for-next-source (/ source source-ename source-data source-bbox source-block source-frame source-frame-ename source-frame-bbox source-frame-block build mappings values block-sheet inferred-frame-bbox frame-block example-title frame-ename title-ename frame-bbox offset-x offset-y target-x target-y doc ok)
+  (setq source (swcad-title-transfer-source-bbox))
+  (setq source-ename (if source (car source) nil))
+  (setq source-data (if source (cadr source) nil))
+  (setq source-bbox (if source (caddr source) nil))
+  (setq source-block (if source-ename (swcad-title-effective-insert-name source-ename) nil))
+  (setq source-frame (if source-bbox (swcad-title-transfer-source-frame source-bbox source-ename) nil))
+  (setq source-frame-ename (if source-frame (car source-frame) nil))
+  (setq source-frame-bbox (if source-frame (caddr source-frame) nil))
+  (setq source-frame-block (if source-frame-ename (swcad-title-effective-insert-name source-frame-ename) nil))
+  (if
+    (and
+      source-bbox
+      (not (swcad-title-document-read-only-p))
+      (swcad-title-apply-work-copy-confirmed-p)
+    )
+    (progn
+      (setq build (swcad-title-transfer-build-mappings source-bbox source-ename 7.0))
+      (setq mappings (car build))
+      (setq values (swcad-title-transfer-values mappings))
+      (setq block-sheet (swcad-title-source-block-sheet-size source-block source-frame-block))
+      (setq values (swcad-title-values-with-sheet-size-override values block-sheet))
+      (setq inferred-frame-bbox (swcad-title-effective-source-frame-bbox source-bbox source-frame-bbox values block-sheet))
+      (setq frame-block (swcad-title-target-frame-block-name-for-source source-block source-frame-block values inferred-frame-bbox))
+      (setq example-title (swcad-title-native-example-title))
+      (if (and frame-block example-title inferred-frame-bbox)
+        (progn
+          (setq doc (swcad-title-doc))
+          (vl-catch-all-apply 'vla-StartUndoMark (list doc))
+          (setq frame-ename (swcad-title-insert-frame-reference frame-block))
+          (setq title-ename (if frame-ename (swcad-title-copy-ename example-title) nil))
+          (setq frame-bbox (if frame-ename (swcad-title-safe-bbox frame-ename) nil))
+          (setq ok nil)
+          (if (and frame-bbox title-ename)
+            (progn
+              (setq offset-x (- (car source-bbox) (car inferred-frame-bbox)))
+              (setq offset-y (- (cadr source-bbox) (cadr inferred-frame-bbox)))
+              (setq target-x (+ (car frame-bbox) offset-x))
+              (setq target-y (+ (cadr frame-bbox) offset-y))
+              (swcad-title-move-ename-bbox-min-to title-ename target-x target-y)
+              (setq ok (swcad-title-relink-title-to-frame title-ename frame-ename))
+              (if ok
+                (swcad-title-set-insert-attributes
+                  (swcad-title-safe-vla-object title-ename)
+                  (list
+                    (cons "GEN-TITLE-SIZ{6.7}" frame-block)
+                    (cons "GEN-TITLE-DWG{23}" (swcad-title-current-dwg-full-path))
+                    (cons "GEN-TITLE-NR{23}" "XXX")
+                  )
+                )
+              )
+            )
+          )
+          (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+          (if ok
+            (list title-ename frame-ename frame-block)
+            (progn
+              (swcad-title-delete-ename title-ename)
+              (swcad-title-delete-ename frame-ename)
+              nil
+            )
+          )
+        )
+        nil
+      )
+    )
+    nil
+  )
+)
+
+(defun swcad-title-create-cloned-gmtitle-for-frame-only-source (source-frame / frame-ename frame-data frame-bbox source-block sheet frame-block values example-title new-frame-ename title-ename new-frame-bbox offset target-x target-y doc ok)
+  (setq frame-ename (if source-frame (car source-frame) nil))
+  (setq frame-data (if source-frame (cadr source-frame) nil))
+  (setq frame-bbox (if source-frame (caddr source-frame) nil))
+  (setq source-block (if source-frame (cadddr source-frame) nil))
+  (setq sheet (if source-frame (nth 5 source-frame) nil))
+  (setq frame-block (swcad-title-target-frame-block-name-for-sheet sheet))
+  (if
+    (and
+      frame-ename
+      frame-bbox
+      frame-block
+      (not (swcad-title-document-read-only-p))
+      (swcad-title-apply-work-copy-confirmed-p)
+    )
+    (progn
+      (setq values (swcad-title-frame-only-default-values source-frame))
+      (setq example-title (swcad-title-native-example-title))
+      (if example-title
+        (progn
+          (setq doc (swcad-title-doc))
+          (vl-catch-all-apply 'vla-StartUndoMark (list doc))
+          (setq new-frame-ename (swcad-title-insert-frame-reference frame-block))
+          (setq title-ename (if new-frame-ename (swcad-title-copy-ename example-title) nil))
+          (setq new-frame-bbox (if new-frame-ename (swcad-title-safe-bbox new-frame-ename) nil))
+          (setq ok nil)
+          (if (and new-frame-bbox title-ename)
+            (progn
+              (setq offset (swcad-title-frame-only-title-offset sheet))
+              (setq target-x (+ (car new-frame-bbox) (car offset)))
+              (setq target-y (+ (cadr new-frame-bbox) (cadr offset)))
+              (swcad-title-move-ename-bbox-min-to title-ename target-x target-y)
+              (setq ok (swcad-title-relink-title-to-frame title-ename new-frame-ename))
+              (if ok
+                (swcad-title-set-insert-attributes
+                  (swcad-title-safe-vla-object title-ename)
+                  values
+                )
+              )
+            )
+          )
+          (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+          (if ok
+            (list title-ename new-frame-ename frame-block values)
+            (progn
+              (swcad-title-delete-ename title-ename)
+              (swcad-title-delete-ename new-frame-ename)
+              nil
+            )
+          )
+        )
+        nil
+      )
+    )
+    nil
   )
 )
 
@@ -1923,6 +2748,534 @@
     )
     (swcad-title-princ-line "  <none>")
   )
+)
+
+(defun swcad-title-xdata-app-names (ename / records result record name)
+  (setq records (swcad-title-xdata-records ename))
+  (setq result nil)
+  (foreach record records
+    (setq name (swcad-title-xdata-record-app-name record))
+    (if (> (strlen name) 0)
+      (setq result (swcad-title-list-add-unique name result))
+    )
+  )
+  result
+)
+
+(defun swcad-title-dxf-code-count (data code / count pair)
+  (setq count 0)
+  (foreach pair data
+    (if (and (listp pair) (= (car pair) code))
+      (setq count (+ count 1))
+    )
+  )
+  count
+)
+
+(defun swcad-title-bbox-center (bbox)
+  (if bbox
+    (list
+      (/ (+ (car bbox) (caddr bbox)) 2.0)
+      (/ (+ (cadr bbox) (cadddr bbox)) 2.0)
+    )
+    nil
+  )
+)
+
+(defun swcad-title-bbox-min-x (ename / bbox)
+  (setq bbox (swcad-title-safe-bbox ename))
+  (if bbox (car bbox) 0.0)
+)
+
+(defun swcad-title-frame-records (/ result candidate frames frame frame-data frame-bbox)
+  (setq result nil)
+  (foreach candidate (swcad-title-target-frame-block-candidates)
+    (setq frames (swcad-title-inserts-by-effective-name candidate))
+    (foreach frame frames
+      (setq frame-data (entget frame '("*")))
+      (setq frame-bbox (swcad-title-safe-bbox frame))
+      (setq result
+        (append
+          result
+          (list
+            (list
+              frame
+              candidate
+              (swcad-title-string (swcad-title-dxf-value frame-data 5))
+              frame-bbox
+            )
+          )
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-nearest-frame-record (title-bbox frame-records / center result record bbox)
+  (setq center (swcad-title-bbox-center title-bbox))
+  (setq result nil)
+  (foreach record frame-records
+    (if (not result)
+      (progn
+        (setq bbox (swcad-title-expand-bbox (cadddr record) 2.0))
+        (if (swcad-title-point-in-bbox-p center bbox)
+          (setq result record)
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-attr-value-by-tag (attr-pairs tag / pair result)
+  (setq result "")
+  (foreach pair attr-pairs
+    (if (equal (strcase (car pair)) (strcase tag))
+      (setq result (swcad-title-string (cdr pair)))
+    )
+  )
+  result
+)
+
+(defun swcad-title-count-frame-link (handle counts / pair result found key)
+  (setq key (strcase (swcad-title-string handle)))
+  (setq result nil)
+  (setq found nil)
+  (foreach pair counts
+    (if (equal key (car pair))
+      (progn
+        (setq result (append result (list (cons (car pair) (+ (cdr pair) 1)))))
+        (setq found T)
+      )
+      (setq result (append result (list pair)))
+    )
+  )
+  (if found
+    result
+    (append result (list (cons key 1)))
+  )
+)
+
+(defun swcad-title-block-child-insert-names (block-name / block result item item-ename item-name)
+  (setq block (swcad-title-block-definition-object block-name))
+  (setq result nil)
+  (if block
+    (vlax-for item block
+      (setq item-ename (swcad-title-vla-object->ename item))
+      (if item-ename
+        (progn
+          (setq item-name (swcad-title-effective-insert-name item-ename))
+          (if (> (strlen item-name) 0)
+            (setq result (swcad-title-list-add-unique item-name result))
+          )
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-print-frame-def-check-lines (/ frame-name exists children old-child-names contaminated)
+  (setq contaminated nil)
+  (foreach frame-name (swcad-title-target-frame-block-candidates)
+    (setq exists (swcad-title-block-exists-p frame-name))
+    (setq children (if exists (swcad-title-block-child-insert-names frame-name) nil))
+    (setq old-child-names (if exists (swcad-title-target-frame-block-source-like-children frame-name) nil))
+    (if old-child-names
+      (setq contaminated T)
+    )
+    (swcad-title-princ-line
+      (strcat
+        "  "
+        frame-name
+        ": exists="
+        (if exists "yes" "no")
+        ", children="
+        (swcad-title-list-string children)
+        ", old-source-like="
+        (swcad-title-list-string old-child-names)
+        ", status="
+        (if old-child-names "CONTAMINATED" "OK")
+      )
+    )
+  )
+  contaminated
+)
+
+(defun swcad-title-frame-def-check (/ contaminated)
+  (swcad-title-open-frame-def-check-log)
+  (swcad-title-princ-line "----- SWTITLEFRAMEDEFCHECK read-only target frame definition check -----")
+  (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-print-work-copy-status)
+  (swcad-title-princ-line "Target frame block definitions:")
+  (setq contaminated (swcad-title-print-frame-def-check-lines))
+  (swcad-title-princ-line
+    (strcat
+      "Result: "
+      (if contaminated
+        "WARN_TARGET_FRAME_BLOCK_DEFINITION_CONTAMINATED"
+        "OK_TARGET_FRAME_BLOCK_DEFINITIONS"
+      )
+    )
+  )
+  (swcad-title-princ-line "No drawing data was changed.")
+  (swcad-title-close-log)
+  (princ)
+)
+
+(defun swcad-title-unique-block-name (base / index candidate)
+  (setq index 1)
+  (setq candidate (strcat base "_SWOLD_" (itoa index)))
+  (while (swcad-title-block-exists-p candidate)
+    (setq index (+ index 1))
+    (setq candidate (strcat base "_SWOLD_" (itoa index)))
+  )
+  candidate
+)
+
+(defun swcad-title-rename-block-definition (old-name new-name / block result)
+  (setq block (swcad-title-block-definition-object old-name))
+  (if block
+    (progn
+      (setq result (vl-catch-all-apply 'vla-put-Name (list block new-name)))
+      (not (vl-catch-all-error-p result))
+    )
+    nil
+  )
+)
+
+(defun swcad-title-import-clean-frame-definition (frame-name / frame-path ename)
+  (setq frame-path (swcad-title-frame-dwg-path frame-name))
+  (if (findfile frame-path)
+    (progn
+      (setq ename (swcad-title-insert-block-reference frame-path 0.0 0.0))
+      (if ename
+        (progn
+          (swcad-title-delete-ename ename)
+          (if (swcad-title-target-frame-block-contaminated-p frame-name)
+            nil
+            (swcad-title-block-exists-p frame-name)
+          )
+        )
+        nil
+      )
+    )
+    nil
+  )
+)
+
+(defun swcad-title-frame-def-clean-safe (/ doc answer frame-name exists old-child-names insert-count backup-name renamed imported rollback any-contaminated cleaned skipped failed skipped-referenced skipped-missing)
+  (swcad-title-open-frame-def-clean-log)
+  (swcad-title-princ-line "----- SWTITLEFRAMEDEFCLEANSAFE guarded target frame definition cleanup -----")
+  (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-print-work-copy-status)
+  (setq cleaned 0)
+  (setq skipped 0)
+  (setq failed 0)
+  (setq skipped-referenced 0)
+  (setq skipped-missing 0)
+  (setq any-contaminated nil)
+  (cond
+    ((swcad-title-document-read-only-p)
+      (swcad-title-princ-line "Result: ABORT_READ_ONLY_DOCUMENT")
+      (swcad-title-princ-line "Open a writable work copy before cleaning frame definitions.")
+    )
+    ((not (swcad-title-apply-work-copy-confirmed-p))
+      (swcad-title-princ-line "Result: ABORT_NOT_WORK_COPY")
+      (swcad-title-princ-line "Open or create a copy under Documents/CAD tool/work before cleaning.")
+    )
+    (T
+      (swcad-title-princ-line "Target frame block definitions before cleanup:")
+      (swcad-title-print-frame-def-check-lines)
+      (setq answer
+        (getstring
+          T
+          "\nType YES to repair only UNUSED contaminated DR_A*_Outline definitions: "
+        )
+      )
+      (if (not (equal (strcase answer) "YES"))
+        (progn
+          (swcad-title-princ-line "Result: ABORT_USER_CANCEL")
+          (swcad-title-princ-line "No drawing data was changed.")
+        )
+        (progn
+          (setq doc (swcad-title-doc))
+          (vl-catch-all-apply 'vla-StartUndoMark (list doc))
+          (foreach frame-name (swcad-title-target-frame-block-candidates)
+            (setq exists (swcad-title-block-exists-p frame-name))
+            (setq old-child-names (if exists (swcad-title-target-frame-block-source-like-children frame-name) nil))
+            (setq insert-count (if exists (swcad-title-count-inserts-by-effective-name frame-name) 0))
+            (cond
+              ((not exists)
+                (setq skipped-missing (+ skipped-missing 1))
+                (swcad-title-princ-line
+                  (strcat
+                    "  "
+                    frame-name
+                    ": skip, definition does not exist."
+                  )
+                )
+              )
+              ((not old-child-names)
+                (setq skipped (+ skipped 1))
+                (swcad-title-princ-line
+                  (strcat
+                    "  "
+                    frame-name
+                    ": skip, definition is already clean."
+                  )
+                )
+              )
+              ((> insert-count 0)
+                (setq any-contaminated T)
+                (setq skipped-referenced (+ skipped-referenced 1))
+                (swcad-title-princ-line
+                  (strcat
+                    "  "
+                    frame-name
+                    ": skip, contaminated but referenced by "
+                    (itoa insert-count)
+                    " insert(s). Children="
+                    (swcad-title-list-string old-child-names)
+                  )
+                )
+              )
+              (T
+                (setq any-contaminated T)
+                (setq backup-name (swcad-title-unique-block-name frame-name))
+                (setq renamed (swcad-title-rename-block-definition frame-name backup-name))
+                (setq imported (if renamed (swcad-title-import-clean-frame-definition frame-name) nil))
+                (if (and renamed imported)
+                  (progn
+                    (setq cleaned (+ cleaned 1))
+                    (swcad-title-princ-line
+                      (strcat
+                        "  "
+                        frame-name
+                        ": cleaned, old definition renamed to "
+                        backup-name
+                        " and clean install definition imported."
+                      )
+                    )
+                  )
+                  (progn
+                    (setq rollback nil)
+                    (if (and renamed (not (swcad-title-block-exists-p frame-name)))
+                      (setq rollback (swcad-title-rename-block-definition backup-name frame-name))
+                    )
+                    (setq failed (+ failed 1))
+                    (swcad-title-princ-line
+                      (strcat
+                        "  "
+                        frame-name
+                        ": FAILED, renamed="
+                        (if renamed "yes" "no")
+                        ", imported="
+                        (if imported "yes" "no")
+                        ", rollback="
+                        (if rollback "yes" "no")
+                        "."
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+          (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+          (swcad-title-princ-line "Target frame block definitions after cleanup:")
+          (swcad-title-print-frame-def-check-lines)
+          (swcad-title-princ-line
+            (strcat
+              "Summary: cleaned="
+              (itoa cleaned)
+              ", skipped-clean="
+              (itoa skipped)
+              ", skipped-missing="
+              (itoa skipped-missing)
+              ", skipped-referenced="
+              (itoa skipped-referenced)
+              ", failed="
+              (itoa failed)
+            )
+          )
+          (swcad-title-princ-line
+            (strcat
+              "Result: "
+              (cond
+                ((> failed 0) "WARN_FRAME_DEF_CLEAN_PARTIAL_FAILURE")
+                ((> skipped-referenced 0) "SKIP_REFERENCED_CONTAMINATED_FRAME_DEFS")
+                ((> cleaned 0) "CLEANED_UNUSED_CONTAMINATED_FRAME_DEFS")
+                (any-contaminated "WARN_CONTAMINATED_FRAME_DEFS_NOT_CLEANED")
+                (T "OK_FRAME_DEFS_ALREADY_CLEAN")
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  (swcad-title-close-log)
+  (princ)
+)
+
+(defun swcad-title-handle-entity-summary (handle / ename data etype name bbox)
+  (setq ename (if (> (strlen (swcad-title-string handle)) 0) (handent handle) nil))
+  (if ename
+    (progn
+      (setq data (entget ename '("*")))
+      (setq etype (swcad-title-string (swcad-title-dxf-value data 0)))
+      (setq name "")
+      (if (equal etype "INSERT")
+        (setq name (swcad-title-effective-insert-name ename))
+      )
+      (setq bbox (swcad-title-safe-bbox ename))
+      (strcat
+        etype
+        (if (> (strlen name) 0) (strcat "/" name) "")
+        " bbox="
+        (swcad-title-bbox-string bbox)
+      )
+    )
+    "<missing>"
+  )
+)
+
+(defun swcad-title-gmtitle-link-scan (/ title-name titles title-index title title-data title-object title-bbox attr-pairs missing-tags native-handles apps frame-records nearest nearest-handle linked-handle frame-link-counts duplicate-link-found contaminated-frame-found title-handle handle-matches-nearest old-child-names frame-name children item)
+  (swcad-title-open-gmtitle-link-scan-log)
+  (setq title-name (swcad-title-target-title-block-name))
+  (setq titles
+    (vl-sort
+      (swcad-title-inserts-by-effective-name title-name)
+      '(lambda (a b)
+        (< (swcad-title-bbox-min-x a) (swcad-title-bbox-min-x b))
+      )
+    )
+  )
+  (setq frame-records (swcad-title-frame-records))
+  (setq frame-link-counts nil)
+  (setq duplicate-link-found nil)
+  (setq contaminated-frame-found nil)
+  (swcad-title-princ-line "----- SWTITLEGMTITLELINKSCAN read-only GMTITLE link scan -----")
+  (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-print-work-copy-status)
+  (swcad-title-princ-line (strcat "Target title inserts: " (itoa (length titles))))
+  (swcad-title-princ-line (strcat "Target frame inserts: " (itoa (length frame-records))))
+  (setq title-index 1)
+  (foreach title titles
+    (setq title-data (entget title '("*")))
+    (setq title-object (swcad-title-safe-vla-object title))
+    (setq title-bbox (swcad-title-safe-bbox title))
+    (setq attr-pairs (if title-object (swcad-title-title-attribute-pairs title-object) nil))
+    (setq missing-tags (swcad-title-missing-template-tags attr-pairs))
+    (setq native-handles (swcad-title-gmtitle-native-xdata-info title))
+    (setq apps (swcad-title-xdata-app-names title))
+    (setq nearest (swcad-title-nearest-frame-record title-bbox frame-records))
+    (setq nearest-handle (if nearest (caddr nearest) ""))
+    (setq linked-handle (if native-handles (car native-handles) ""))
+    (setq handle-matches-nearest (and (> (strlen linked-handle) 0) (equal (strcase linked-handle) (strcase nearest-handle))))
+    (if (> (strlen linked-handle) 0)
+      (setq frame-link-counts (swcad-title-count-frame-link linked-handle frame-link-counts))
+    )
+    (setq title-handle (swcad-title-string (swcad-title-dxf-value title-data 5)))
+    (swcad-title-princ-line
+      (strcat
+        "Title #"
+        (itoa title-index)
+        ": handle="
+        title-handle
+        ", sheet="
+        (swcad-title-attr-value-by-tag attr-pairs "GEN-TITLE-SIZ{6.7}")
+        ", DWG=\""
+        (swcad-title-attr-value-by-tag attr-pairs "GEN-TITLE-DWG{23}")
+        "\", NR=\""
+        (swcad-title-attr-value-by-tag attr-pairs "GEN-TITLE-NR{23}")
+        "\", attrs="
+        (itoa (length attr-pairs))
+        ", missing-tags="
+        (itoa (length missing-tags))
+      )
+    )
+    (swcad-title-princ-line
+      (strcat
+        "  bbox="
+        (swcad-title-bbox-string title-bbox)
+        ", xdata-apps="
+        (swcad-title-list-string apps)
+      )
+    )
+    (swcad-title-princ-line
+      (strcat
+        "  native-handles="
+        (swcad-title-list-string native-handles)
+        ", linked-entity="
+        (swcad-title-handle-entity-summary linked-handle)
+        ", nearest-frame="
+        (if nearest (cadr nearest) "<none>")
+        "/"
+        nearest-handle
+        ", link-matches-nearest="
+        (if handle-matches-nearest "yes" "no")
+      )
+    )
+    (swcad-title-princ-line
+      (strcat
+        "  persistent-reactors="
+        (itoa (swcad-title-dxf-code-count title-data -5))
+        ", extension-dictionaries="
+        (itoa (swcad-title-dxf-code-count title-data 360))
+      )
+    )
+    (setq title-index (+ title-index 1))
+  )
+  (swcad-title-princ-line "Frame link handle usage:")
+  (if frame-link-counts
+    (foreach pair frame-link-counts
+      (if (> (cdr pair) 1)
+        (setq duplicate-link-found T)
+      )
+      (swcad-title-princ-line (strcat "  " (car pair) " x " (itoa (cdr pair))))
+    )
+    (swcad-title-princ-line "  <none>")
+  )
+  (swcad-title-princ-line "Target frame block definition child INSERT names:")
+  (foreach frame-name (swcad-title-target-frame-block-candidates)
+    (setq children (swcad-title-block-child-insert-names frame-name))
+    (setq old-child-names (swcad-title-target-frame-block-source-like-children frame-name))
+    (if old-child-names
+      (setq contaminated-frame-found T)
+    )
+    (swcad-title-princ-line
+      (strcat
+        "  "
+        frame-name
+        ": children="
+        (swcad-title-list-string children)
+        ", old-source-like="
+        (swcad-title-list-string old-child-names)
+        ", status="
+        (if old-child-names "CONTAMINATED" "OK")
+      )
+    )
+  )
+  (swcad-title-princ-line
+    (strcat
+      "Result: "
+      (cond
+        (duplicate-link-found "WARN_DUPLICATE_NATIVE_FRAME_LINKS")
+        (contaminated-frame-found "WARN_TARGET_FRAME_BLOCK_DEFINITION_CONTAMINATED")
+        ((not frame-link-counts) "WARN_NO_NATIVE_FRAME_LINKS")
+        (T "OK_LINK_SCAN_NO_DUPLICATE_FRAME_LINKS")
+      )
+    )
+  )
+  (swcad-title-princ-line "No drawing data was changed.")
+  (swcad-title-close-log)
+  (princ)
 )
 
 (defun swcad-title-gmtitle-verify (/ frame-name title-name frame-count title-enames title-count title-index title-ename title-data title-object title-bbox attr-pairs missing-tags nonempty-attrs native-handles other-title-inserts filedia cmddia status record any-missing-tags any-empty-attrs any-missing-native-xdata)
@@ -2022,6 +3375,102 @@
   )
   (swcad-title-princ-line (strcat "Result: " status))
   (swcad-title-princ-line "Manual final check still required: double-click the title block and confirm the GMTITLE table editor opens.")
+  (swcad-title-princ-line "No drawing data was changed.")
+  (swcad-title-close-log)
+  (princ)
+)
+
+(defun swcad-title-gmtitle-verify-all (/ title-name title-enames title-count title-index title-ename title-data title-object title-bbox attr-pairs missing-tags nonempty-attrs native-handles source-titles source-frames other-title-inserts filedia cmddia status frame-name frame-count total-frame-count any-missing-tags any-empty-attrs any-missing-native-xdata)
+  (swcad-title-open-gmtitle-verify-all-log)
+  (setq title-name (swcad-title-target-title-block-name))
+  (setq title-enames (swcad-title-inserts-by-effective-name title-name))
+  (setq title-count (length title-enames))
+  (setq source-titles (swcad-title-source-title-candidates))
+  (setq source-frames (swcad-title-source-frame-candidates))
+  (setq other-title-inserts (swcad-title-other-title-like-inserts title-name))
+  (setq filedia (getvar "FILEDIA"))
+  (setq cmddia (getvar "CMDDIA"))
+  (setq any-missing-tags nil)
+  (setq any-empty-attrs nil)
+  (setq any-missing-native-xdata nil)
+  (setq total-frame-count 0)
+
+  (swcad-title-princ-line "----- SWTITLEGMTITLEVERIFYALL read-only full GMTITLE verification -----")
+  (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-print-work-copy-status)
+  (swcad-title-princ-line (strcat "FILEDIA: " (swcad-title-string filedia) " (not changed)"))
+  (swcad-title-princ-line (strcat "CMDDIA: " (swcad-title-string cmddia) " (not changed)"))
+  (swcad-title-princ-line "Target frame inserts:")
+  (foreach frame-name (swcad-title-target-frame-block-candidates)
+    (setq frame-count (swcad-title-count-inserts-by-effective-name frame-name))
+    (setq total-frame-count (+ total-frame-count frame-count))
+    (swcad-title-princ-line (strcat "  " frame-name ": " (itoa frame-count)))
+  )
+  (swcad-title-princ-line (strcat "Target frame inserts total: " (itoa total-frame-count)))
+  (swcad-title-princ-line (strcat "Target title block: " title-name ", inserts=" (itoa title-count)))
+  (swcad-title-princ-line (strcat "Remaining source title candidates: " (itoa (length source-titles))))
+  (swcad-title-princ-line (strcat "Remaining source sheet frame candidates: " (itoa (length source-frames))))
+  (swcad-title-princ-line (strcat "Other non-target title-like inserts: " (itoa (length other-title-inserts))))
+
+  (if title-enames
+    (progn
+      (setq title-index 1)
+      (foreach title-ename title-enames
+        (setq title-data (entget title-ename '("*")))
+        (setq title-object (swcad-title-safe-vla-object title-ename))
+        (setq title-bbox (swcad-title-safe-bbox title-ename))
+        (setq attr-pairs (if title-object (swcad-title-title-attribute-pairs title-object) nil))
+        (setq missing-tags (swcad-title-missing-template-tags attr-pairs))
+        (setq nonempty-attrs (swcad-title-nonempty-attribute-count attr-pairs))
+        (setq native-handles (swcad-title-gmtitle-native-xdata-info title-ename))
+        (if missing-tags
+          (setq any-missing-tags T)
+        )
+        (if (= nonempty-attrs 0)
+          (setq any-empty-attrs T)
+        )
+        (if (not native-handles)
+          (setq any-missing-native-xdata T)
+        )
+        (swcad-title-princ-line
+          (strcat
+            "Title #"
+            (itoa title-index)
+            ": handle="
+            (swcad-title-string (swcad-title-dxf-value title-data 5))
+            ", attrs="
+            (itoa (length attr-pairs))
+            ", nonempty="
+            (itoa nonempty-attrs)
+            ", missing-tags="
+            (itoa (length missing-tags))
+            ", native-links="
+            (itoa (length native-handles))
+            ", bbox="
+            (swcad-title-bbox-string title-bbox)
+          )
+        )
+        (setq title-index (+ title-index 1))
+      )
+    )
+    (swcad-title-princ-line "Title inserts: <missing>")
+  )
+
+  (setq status
+    (cond
+      ((or (/= filedia 1) (/= cmddia 1)) "WARN_FILEDIA_OR_CMDDIA_NOT_1")
+      ((= total-frame-count 0) "FAIL_MISSING_TARGET_FRAMES")
+      ((= title-count 0) "FAIL_MISSING_TARGET_TITLES")
+      (any-missing-tags "FAIL_MISSING_EXPECTED_ATTRIBUTES")
+      (any-empty-attrs "WARN_TITLE_ATTRIBUTES_EMPTY")
+      (any-missing-native-xdata "WARN_NATIVE_GMTITLE_XDATA_NOT_FOUND")
+      ((> (length source-titles) 0) "WARN_SOURCE_TITLE_INSERTS_REMAIN")
+      ((> (length other-title-inserts) 0) "WARN_OTHER_TITLE_LIKE_INSERTS_REMAIN")
+      (T "OK_VERIFY_ALL_GMTITLE_READY")
+    )
+  )
+  (swcad-title-princ-line (strcat "Result: " status))
   (swcad-title-princ-line "No drawing data was changed.")
   (swcad-title-close-log)
   (princ)
@@ -2706,6 +4155,15 @@
   )
 )
 
+(defun swcad-title-source-frame-candidate-less-p (a b / a-bbox b-bbox)
+  (setq a-bbox (caddr a))
+  (setq b-bbox (caddr b))
+  (if (swcad-title-source-title-same-row-p a-bbox b-bbox)
+    (< (car a-bbox) (car b-bbox))
+    (> (cadddr a-bbox) (cadddr b-bbox))
+  )
+)
+
 (defun swcad-title-source-title-candidates (/ insert-ss insert-index insert-total ename data block bbox area result)
   (setq result nil)
   (setq insert-ss (ssget "_X" '((0 . "INSERT"))))
@@ -2733,6 +4191,104 @@
   (vl-sort result 'swcad-title-source-title-candidate-less-p)
 )
 
+(defun swcad-title-source-frame-candidates (/ insert-ss insert-index insert-total ename data block bbox area sheet result)
+  (setq result nil)
+  (setq insert-ss (ssget "_X" '((0 . "INSERT"))))
+  (setq insert-total (if insert-ss (sslength insert-ss) 0))
+  (setq insert-index 0)
+  (while (< insert-index insert-total)
+    (setq ename (ssname insert-ss insert-index))
+    (setq data (entget ename '("*")))
+    (setq block (swcad-title-effective-insert-name ename))
+    (setq sheet (swcad-title-sheet-size-from-block-name block))
+    (if
+      (and
+        sheet
+        (not (swcad-title-native-target-frame-name-p block))
+        (not (swcad-title-native-target-title-name-p block))
+      )
+      (progn
+        (setq bbox (swcad-title-safe-bbox ename))
+        (setq area (swcad-title-bbox-area bbox))
+        (if (and bbox (> area 1000.0))
+          (setq result (append result (list (list ename data bbox block area sheet))))
+        )
+      )
+    )
+    (setq insert-index (+ insert-index 1))
+  )
+  (vl-sort result 'swcad-title-source-frame-candidate-less-p)
+)
+
+(defun swcad-title-frame-has-source-title-p (frame-bbox sources / found source)
+  (setq found nil)
+  (foreach source sources
+    (if
+      (and
+        (not found)
+        frame-bbox
+        (swcad-title-bbox-contains-bbox-p frame-bbox (caddr source) 2.0)
+      )
+      (setq found T)
+    )
+  )
+  found
+)
+
+(defun swcad-title-frame-only-source-candidates (/ frames sources result frame)
+  (setq frames (swcad-title-source-frame-candidates))
+  (setq sources (swcad-title-source-title-candidates))
+  (setq result nil)
+  (foreach frame frames
+    (if (not (swcad-title-frame-has-source-title-p (caddr frame) sources))
+      (setq result (append result (list frame)))
+    )
+  )
+  result
+)
+
+(defun swcad-title-frame-only-source-for-existing-gmtitle (/ frames frame frame-block found)
+  (setq frames (swcad-title-frame-only-source-candidates))
+  (setq found nil)
+  (foreach frame frames
+    (if (not found)
+      (progn
+        (setq frame-block (swcad-title-target-frame-block-name-for-sheet (nth 5 frame)))
+        (if (swcad-title-default-location-gmtitle-frame-for-block frame-block)
+          (setq found frame)
+        )
+      )
+    )
+  )
+  (if found
+    found
+    (car frames)
+  )
+)
+
+(defun swcad-title-frame-only-default-values (source-frame / source-block source-sheet target-frame file-base)
+  (setq source-block (cadddr source-frame))
+  (setq source-sheet (nth 5 source-frame))
+  (setq target-frame (swcad-title-target-frame-block-name-for-sheet source-sheet))
+  (setq file-base (vl-filename-base (getvar "DWGNAME")))
+  (list
+    (cons "GEN-TITLE-SIZ{6.7}" target-frame)
+    (cons "GEN-TITLE-DWG{23}" file-base)
+    (cons "GEN-TITLE-NR{23}" "XXX")
+    (cons "GEN-TITLE-SCA{6.7}" "1:1")
+  )
+)
+
+(defun swcad-title-frame-only-title-offset (sheet-size / normalized dims width)
+  (setq normalized (swcad-title-normalized-sheet-size sheet-size))
+  (setq dims (swcad-title-sheet-dimensions normalized))
+  (setq width (if dims (car dims) 210.0))
+  (cond
+    ((equal normalized "A4") '(20.0 10.0))
+    (T (list (max 20.0 (- width 190.0)) 10.0))
+  )
+)
+
 (defun swcad-title-transfer-source-bbox (/ source)
   (setq source (car (swcad-title-source-title-candidates)))
   (if source
@@ -2748,12 +4304,14 @@
   )
 )
 
-(defun swcad-title-source-record-frame-block (source / source-ename source-bbox frame frame-bbox)
+(defun swcad-title-source-record-frame-block (source / source-ename source-bbox source-block frame frame-bbox frame-block)
   (setq source-ename (car source))
   (setq source-bbox (caddr source))
+  (setq source-block (cadddr source))
   (setq frame (if source-bbox (swcad-title-transfer-source-frame source-bbox source-ename) nil))
   (setq frame-bbox (if frame (caddr frame) nil))
-  (swcad-title-target-frame-block-name-for-transfer nil frame-bbox)
+  (setq frame-block (if frame (swcad-title-effective-insert-name (car frame)) ""))
+  (swcad-title-target-frame-block-name-for-source source-block frame-block nil frame-bbox)
 )
 
 (defun swcad-title-transfer-source-for-existing-gmtitle (/ sources source frame-block found)
@@ -2775,12 +4333,13 @@
   )
 )
 
-(defun swcad-title-transfer-source-frame (source-bbox source-title-ename / insert-ss insert-index insert-total ename data block bbox area source-area best bestarea)
+(defun swcad-title-transfer-source-frame (source-bbox source-title-ename / insert-ss insert-index insert-total ename data block bbox area source-area priority best bestarea bestpriority)
   (setq insert-ss (ssget "_X" '((0 . "INSERT"))))
   (setq insert-total (if insert-ss (sslength insert-ss) 0))
   (setq source-area (swcad-title-bbox-area source-bbox))
   (setq best nil)
   (setq bestarea nil)
+  (setq bestpriority nil)
   (setq insert-index 0)
   (while (< insert-index insert-total)
     (setq ename (ssname insert-ss insert-index))
@@ -2797,10 +4356,25 @@
                   (> area (* source-area 2.0))
                   (swcad-title-bbox-contains-bbox-p bbox source-bbox 2.0)
                 )
-              (if (or (not bestarea) (> area bestarea))
-                (progn
-                  (setq best (list ename data bbox))
-                  (setq bestarea area)
+              (progn
+                (setq priority (swcad-title-frame-block-size-priority block))
+                (if
+                  (or
+                    (not best)
+                    (< priority bestpriority)
+                    (and
+                      (= priority bestpriority)
+                      (if (= priority 0)
+                        (< area bestarea)
+                        (> area bestarea)
+                      )
+                    )
+                  )
+                  (progn
+                    (setq best (list ename data bbox))
+                    (setq bestarea area)
+                    (setq bestpriority priority)
+                  )
                 )
               )
             )
@@ -2910,19 +4484,19 @@
   )
 )
 
-(defun swcad-title-transfer-preview (/ source source-ename source-data source-bbox source-block source-frame source-frame-ename source-frame-data source-frame-bbox source-frame-block records mappings unmapped duplicates record preview tag existing slot maxdist missing-count mapped-count duplicate-count unmapped-count values inferred-frame-bbox text-sheet frame-sheet detected-sheet frame-block title-graphic-handles frame-graphic-handles residue-records)
+(defun swcad-title-transfer-preview (/ source source-ename source-data source-bbox source-block source-frame source-frame-ename source-frame-data source-frame-bbox source-frame-block records mappings unmapped duplicates record preview tag existing slot maxdist missing-count mapped-count duplicate-count unmapped-count values block-sheet inferred-frame-bbox text-sheet frame-sheet detected-sheet frame-block title-graphic-handles frame-graphic-handles residue-records)
   (swcad-title-open-transfer-log)
   (setq maxdist 7.0)
   (setq source (swcad-title-transfer-source-bbox))
   (setq source-ename (if source (car source) nil))
   (setq source-data (if source (cadr source) nil))
   (setq source-bbox (if source (caddr source) nil))
-  (setq source-block (if source-data (swcad-title-dxf-value source-data 2) nil))
+  (setq source-block (if source-ename (swcad-title-effective-insert-name source-ename) nil))
   (setq source-frame (if source-bbox (swcad-title-transfer-source-frame source-bbox source-ename) nil))
   (setq source-frame-ename (if source-frame (car source-frame) nil))
   (setq source-frame-data (if source-frame (cadr source-frame) nil))
   (setq source-frame-bbox (if source-frame (caddr source-frame) nil))
-  (setq source-frame-block (if source-frame-data (swcad-title-dxf-value source-frame-data 2) nil))
+  (setq source-frame-block (if source-frame-ename (swcad-title-effective-insert-name source-frame-ename) nil))
   (setq mappings nil)
   (setq unmapped nil)
   (setq duplicates nil)
@@ -3013,16 +4587,13 @@
         (swcad-title-princ-line "  <none>")
       )
       (setq values (swcad-title-transfer-values mappings))
-      (setq inferred-frame-bbox
-        (if source-frame-bbox
-          source-frame-bbox
-          (swcad-title-inferred-source-frame-bbox source-bbox values)
-        )
-      )
+      (setq block-sheet (swcad-title-source-block-sheet-size source-block source-frame-block))
+      (setq values (swcad-title-values-with-sheet-size-override values block-sheet))
+      (setq inferred-frame-bbox (swcad-title-effective-source-frame-bbox source-bbox source-frame-bbox values block-sheet))
       (setq text-sheet (swcad-title-normalized-sheet-size (swcad-title-sheet-size-value values)))
       (setq frame-sheet (swcad-title-sheet-size-from-frame-bbox inferred-frame-bbox))
-      (setq detected-sheet (swcad-title-detected-sheet-size values inferred-frame-bbox))
-      (setq frame-block (swcad-title-target-frame-block-name-for-transfer values inferred-frame-bbox))
+      (setq detected-sheet (swcad-title-detected-sheet-size-for-source source-block source-frame-block values inferred-frame-bbox))
+      (setq frame-block (swcad-title-target-frame-block-name-for-source source-block source-frame-block values inferred-frame-bbox))
       (setq title-graphic-handles (swcad-title-source-title-graphic-handles source-bbox))
       (setq frame-graphic-handles
         (if source-frame-ename
@@ -3059,6 +4630,8 @@
           (if text-sheet text-sheet "<none>")
           ", frame-bbox="
           (if frame-sheet frame-sheet "<none>")
+          ", block-name="
+          (if block-sheet block-sheet "<none>")
           ", selected="
           (if detected-sheet detected-sheet "<fallback>")
         )
@@ -3094,20 +4667,20 @@
   (princ)
 )
 
-(defun swcad-title-transfer-apply (/ source source-data source-bbox source-ename source-block source-frame source-frame-ename source-frame-data source-frame-block source-frame-bbox frame-block title-block gmtitle-result gmtitle-title-ename gmtitle-frame-ename gmtitle-new-enames title-ref build mappings records unmapped duplicates values answer attr-count deleted-text-count skipped-block-text-count old-frame-deleted record doc pair inferred-frame-bbox text-sheet frame-sheet detected-sheet title-graphic-handles frame-graphic-handles residue-records residue-handles deleted-title-graphic-count deleted-frame-graphic-count deleted-residue-count actual-title-name actual-frame-name deleted-new-gmtitle-count align-result align-count align-dx align-dy align-needed)
+(defun swcad-title-transfer-apply (/ source source-data source-bbox source-ename source-block source-frame source-frame-ename source-frame-data source-frame-block source-frame-bbox frame-block title-block gmtitle-result gmtitle-title-ename gmtitle-frame-ename gmtitle-new-enames title-ref build mappings records unmapped duplicates values block-sheet answer attr-count deleted-text-count skipped-block-text-count old-frame-deleted record doc pair inferred-frame-bbox text-sheet frame-sheet detected-sheet title-graphic-handles frame-graphic-handles residue-records residue-handles deleted-title-graphic-count deleted-frame-graphic-count deleted-residue-count actual-title-name actual-frame-name deleted-new-gmtitle-count align-result align-count align-dx align-dy align-needed)
   (swcad-title-open-apply-log)
   (setq *swcad-title-last-apply-status* nil)
   (setq source (swcad-title-transfer-source-bbox))
   (setq source-ename (if source (car source) nil))
   (setq source-data (if source (cadr source) nil))
   (setq source-bbox (if source (caddr source) nil))
-  (setq source-block (if source-data (swcad-title-dxf-value source-data 2) nil))
+  (setq source-block (if source-ename (swcad-title-effective-insert-name source-ename) nil))
   (setq source-frame (if source-bbox (swcad-title-transfer-source-frame source-bbox source-ename) nil))
   (setq source-frame-ename (if source-frame (car source-frame) nil))
   (setq source-frame-data (if source-frame (cadr source-frame) nil))
   (setq source-frame-bbox (if source-frame (caddr source-frame) nil))
-  (setq source-frame-block (if source-frame-data (swcad-title-dxf-value source-frame-data 2) nil))
-  (setq frame-block (swcad-title-target-frame-block-name-for-transfer nil source-frame-bbox))
+  (setq source-frame-block (if source-frame-ename (swcad-title-effective-insert-name source-frame-ename) nil))
+  (setq frame-block (swcad-title-target-frame-block-name-for-source source-block source-frame-block nil source-frame-bbox))
   (setq title-block (swcad-title-target-title-block-name))
   (swcad-title-princ-line "----- SWTITLETRANSFERAPPLY native GMTITLE transfer apply -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
@@ -3178,16 +4751,13 @@
       (setq unmapped (caddr build))
       (setq duplicates (cadddr build))
       (setq values (swcad-title-transfer-values mappings))
-      (setq inferred-frame-bbox
-        (if source-frame-bbox
-          source-frame-bbox
-          (swcad-title-inferred-source-frame-bbox source-bbox values)
-        )
-      )
+      (setq block-sheet (swcad-title-source-block-sheet-size source-block source-frame-block))
+      (setq values (swcad-title-values-with-sheet-size-override values block-sheet))
+      (setq inferred-frame-bbox (swcad-title-effective-source-frame-bbox source-bbox source-frame-bbox values block-sheet))
       (setq text-sheet (swcad-title-normalized-sheet-size (swcad-title-sheet-size-value values)))
       (setq frame-sheet (swcad-title-sheet-size-from-frame-bbox inferred-frame-bbox))
-      (setq detected-sheet (swcad-title-detected-sheet-size values inferred-frame-bbox))
-      (setq frame-block (swcad-title-target-frame-block-name-for-transfer values inferred-frame-bbox))
+      (setq detected-sheet (swcad-title-detected-sheet-size-for-source source-block source-frame-block values inferred-frame-bbox))
+      (setq frame-block (swcad-title-target-frame-block-name-for-source source-block source-frame-block values inferred-frame-bbox))
       (setq title-graphic-handles (swcad-title-source-title-graphic-handles source-bbox))
       (setq frame-graphic-handles
         (if source-frame-ename
@@ -3242,6 +4812,8 @@
           (if text-sheet text-sheet "<none>")
           ", frame-bbox="
           (if frame-sheet frame-sheet "<none>")
+          ", block-name="
+          (if block-sheet block-sheet "<none>")
           ", selected="
           (if detected-sheet detected-sheet "<fallback>")
         )
@@ -3385,7 +4957,7 @@
   (princ)
 )
 
-(defun swcad-title-transfer-finalize (/ *error* source source-data source-bbox source-ename source-block source-frame source-frame-ename source-frame-data source-frame-block source-frame-bbox frame-block title-block gmtitle-title-ename gmtitle-frame-ename title-ref build mappings records unmapped duplicates values attr-count deleted-text-count skipped-block-text-count old-frame-deleted record doc pair inferred-frame-bbox text-sheet frame-sheet detected-sheet title-graphic-handles frame-graphic-handles residue-records residue-handles deleted-title-graphic-count deleted-frame-graphic-count deleted-residue-count actual-title-name actual-frame-name align-result align-count align-dx align-dy align-needed)
+(defun swcad-title-transfer-finalize (/ *error* source source-data source-bbox source-ename source-block source-frame source-frame-ename source-frame-data source-frame-block source-frame-bbox frame-block title-block gmtitle-title-ename gmtitle-frame-ename title-ref build mappings records unmapped duplicates values block-sheet attr-count deleted-text-count skipped-block-text-count old-frame-deleted record doc pair inferred-frame-bbox text-sheet frame-sheet detected-sheet title-graphic-handles frame-graphic-handles residue-records residue-handles deleted-title-graphic-count deleted-frame-graphic-count deleted-residue-count actual-title-name actual-frame-name align-result align-count align-dx align-dy align-needed)
   (swcad-title-open-apply-log)
   (defun *error* (msg)
     (if msg
@@ -3400,13 +4972,13 @@
   (setq source-ename (if source (car source) nil))
   (setq source-data (if source (cadr source) nil))
   (setq source-bbox (if source (caddr source) nil))
-  (setq source-block (if source-data (swcad-title-dxf-value source-data 2) nil))
+  (setq source-block (if source-ename (swcad-title-effective-insert-name source-ename) nil))
   (setq source-frame (if source-bbox (swcad-title-transfer-source-frame source-bbox source-ename) nil))
   (setq source-frame-ename (if source-frame (car source-frame) nil))
   (setq source-frame-data (if source-frame (cadr source-frame) nil))
   (setq source-frame-bbox (if source-frame (caddr source-frame) nil))
-  (setq source-frame-block (if source-frame-data (swcad-title-dxf-value source-frame-data 2) nil))
-  (setq frame-block (swcad-title-target-frame-block-name-for-transfer nil source-frame-bbox))
+  (setq source-frame-block (if source-frame-ename (swcad-title-effective-insert-name source-frame-ename) nil))
+  (setq frame-block (swcad-title-target-frame-block-name-for-source source-block source-frame-block nil source-frame-bbox))
   (setq title-block (swcad-title-target-title-block-name))
   (swcad-title-princ-line "----- SWTITLETRANSFERFINALIZE existing GMTITLE transfer finalize -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
@@ -3464,17 +5036,14 @@
       (setq duplicates (cadddr build))
       (setq values (swcad-title-transfer-values mappings))
       (swcad-title-princ-line "Finalize step: mappings built.")
-      (setq inferred-frame-bbox
-        (if source-frame-bbox
-          source-frame-bbox
-          (swcad-title-inferred-source-frame-bbox source-bbox values)
-        )
-      )
+      (setq block-sheet (swcad-title-source-block-sheet-size source-block source-frame-block))
+      (setq values (swcad-title-values-with-sheet-size-override values block-sheet))
+      (setq inferred-frame-bbox (swcad-title-effective-source-frame-bbox source-bbox source-frame-bbox values block-sheet))
       (swcad-title-princ-line "Finalize step: inferred frame bbox ready.")
       (setq text-sheet (swcad-title-normalized-sheet-size (swcad-title-sheet-size-value values)))
       (setq frame-sheet (swcad-title-sheet-size-from-frame-bbox inferred-frame-bbox))
-      (setq detected-sheet (swcad-title-detected-sheet-size values inferred-frame-bbox))
-      (setq frame-block (swcad-title-target-frame-block-name-for-transfer values inferred-frame-bbox))
+      (setq detected-sheet (swcad-title-detected-sheet-size-for-source source-block source-frame-block values inferred-frame-bbox))
+      (setq frame-block (swcad-title-target-frame-block-name-for-source source-block source-frame-block values inferred-frame-bbox))
       (swcad-title-princ-line (strcat "Finalize step: target frame block " frame-block))
       (setq gmtitle-frame-ename (swcad-title-unfinalized-gmtitle-frame-for-block frame-block))
       (swcad-title-insert-log-label "Finalize step: candidate GMTITLE frame" gmtitle-frame-ename)
@@ -3514,6 +5083,8 @@
           (if text-sheet text-sheet "<none>")
           ", frame-bbox="
           (if frame-sheet frame-sheet "<none>")
+          ", block-name="
+          (if block-sheet block-sheet "<none>")
           ", selected="
           (if detected-sheet detected-sheet "<fallback>")
         )
@@ -3656,6 +5227,164 @@
   (princ)
 )
 
+(defun swcad-title-transfer-frame-only-finalize (/ *error* source-frame source-frame-ename source-frame-data source-frame-bbox source-frame-block source-sheet frame-block title-block gmtitle-title-ename gmtitle-frame-ename title-ref values attr-count doc align-result align-count align-dx align-dy align-needed residue-records residue-handles deleted-residue-count actual-title-name actual-frame-name)
+  (swcad-title-open-apply-log)
+  (defun *error* (msg)
+    (if msg
+      (swcad-title-princ-line (strcat "Error: " (swcad-title-string msg)))
+    )
+    (swcad-title-apply-result "ERROR_FRAME_ONLY_FINALIZE")
+    (swcad-title-close-log)
+    (princ)
+  )
+  (setq *swcad-title-last-apply-status* nil)
+  (setq source-frame (swcad-title-frame-only-source-for-existing-gmtitle))
+  (setq source-frame-ename (if source-frame (car source-frame) nil))
+  (setq source-frame-data (if source-frame (cadr source-frame) nil))
+  (setq source-frame-bbox (if source-frame (caddr source-frame) nil))
+  (setq source-frame-block (if source-frame (cadddr source-frame) nil))
+  (setq source-sheet (if source-frame (nth 5 source-frame) nil))
+  (setq frame-block (swcad-title-target-frame-block-name-for-sheet source-sheet))
+  (setq title-block (swcad-title-target-title-block-name))
+  (swcad-title-princ-line "----- SWTITLEFRAMEONLYFINALIZE existing/native frame-only transfer -----")
+  (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-print-work-copy-status)
+  (swcad-title-princ-line
+    (strcat
+      "Source frame-only insert: "
+      (if source-frame-data
+        (strcat
+          "handle="
+          (swcad-title-string (swcad-title-dxf-value source-frame-data 5))
+          ", block="
+          (swcad-title-string source-frame-block)
+          ", sheet="
+          (swcad-title-string source-sheet)
+          ", bbox="
+          (swcad-title-bbox-string source-frame-bbox)
+        )
+        "<none>"
+      )
+    )
+  )
+  (cond
+    ((not source-frame-bbox)
+      (swcad-title-apply-result "ABORT_NO_FRAME_ONLY_SOURCE")
+    )
+    ((swcad-title-document-read-only-p)
+      (swcad-title-apply-result "ABORT_READ_ONLY_DOCUMENT")
+      (swcad-title-princ-line "Open a writable copy of the DWG before finalizing.")
+    )
+    ((not (swcad-title-apply-work-copy-confirmed-p))
+      (swcad-title-apply-result "ABORT_NOT_WORK_COPY")
+      (swcad-title-princ-line "Open or create a copy under Documents/CAD tool/work before finalizing.")
+    )
+    (T
+      (setq gmtitle-frame-ename (swcad-title-default-location-gmtitle-frame-for-block frame-block))
+      (if gmtitle-frame-ename
+        (progn
+          (setq gmtitle-title-ename (swcad-title-title-for-native-frame gmtitle-frame-ename frame-block))
+          (if (not gmtitle-title-ename)
+            (setq gmtitle-title-ename (swcad-title-default-location-title-for-frame gmtitle-frame-ename frame-block))
+          )
+        )
+      )
+      (setq actual-title-name (if gmtitle-title-ename (swcad-title-effective-insert-name gmtitle-title-ename) ""))
+      (setq actual-frame-name (if gmtitle-frame-ename (swcad-title-effective-insert-name gmtitle-frame-ename) ""))
+      (setq values (swcad-title-frame-only-default-values source-frame))
+      (setq residue-records (swcad-title-source-sheet-residue-records source-frame-bbox nil source-frame-ename))
+      (setq residue-handles (swcad-title-residue-record-handles residue-records))
+      (swcad-title-princ-line (strcat "Expected existing GMTITLE frame block: " frame-block))
+      (swcad-title-princ-line (strcat "Expected existing GMTITLE title block: " title-block))
+      (swcad-title-insert-log-label "Existing/default GMTITLE title insert" gmtitle-title-ename)
+      (swcad-title-insert-log-label "Existing/default GMTITLE frame insert" gmtitle-frame-ename)
+      (swcad-title-princ-line "Frame-only values to apply:")
+      (foreach pair values
+        (swcad-title-princ-line
+          (strcat
+            "  "
+            (car pair)
+            " = \""
+            (swcad-title-string (cdr pair))
+            "\""
+          )
+        )
+      )
+      (swcad-title-print-residue-records "Old SOLIDWORKS sheet residue queued for cleanup:" residue-records)
+      (if
+        (and
+          (swcad-title-native-target-title-name-p actual-title-name)
+          gmtitle-frame-ename
+          (swcad-title-frame-name-matches-p actual-frame-name frame-block)
+        )
+        (progn
+          (setq title-ref (swcad-title-safe-vla-object gmtitle-title-ename))
+          (setq doc (swcad-title-doc))
+          (vl-catch-all-apply 'vla-StartUndoMark (list doc))
+          (setq align-result (swcad-title-align-gmtitle-to-frame-bbox gmtitle-title-ename gmtitle-frame-ename source-frame-bbox))
+          (setq align-count (car align-result))
+          (setq align-dx (cadr align-result))
+          (setq align-dy (caddr align-result))
+          (setq align-needed (or (> (swcad-title-abs align-dx) 0.0001) (> (swcad-title-abs align-dy) 0.0001)))
+          (if (and align-needed (< align-count 2))
+            (progn
+              (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+              (swcad-title-apply-result "ABORT_FRAME_ONLY_ALIGN_FAILED")
+              (swcad-title-princ-line
+                (strcat
+                  "Frame-only GMTITLE alignment failed: moved="
+                  (itoa align-count)
+                  ", dx="
+                  (swcad-title-number-string align-dx)
+                  ", dy="
+                  (swcad-title-number-string align-dy)
+                )
+              )
+              (swcad-title-princ-line "No old frame-only sheet content was removed.")
+            )
+            (progn
+              (setq attr-count (swcad-title-set-insert-attributes title-ref values))
+              (swcad-title-delete-ename source-frame-ename)
+              (setq deleted-residue-count (swcad-title-delete-handle-list residue-handles))
+              (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+              (swcad-title-princ-line "Existing/default native GMTITLE was used for frame-only source.")
+              (swcad-title-princ-line
+                (strcat
+                  "Native GMTITLE aligned to source frame: moved="
+                  (itoa align-count)
+                  ", dx="
+                  (swcad-title-number-string align-dx)
+                  ", dy="
+                  (swcad-title-number-string align-dy)
+                )
+              )
+              (swcad-title-princ-line (strcat "Attributes set: " (itoa attr-count)))
+              (swcad-title-princ-line "Old frame-only insert deleted: yes")
+              (swcad-title-princ-line (strcat "Old SOLIDWORKS sheet residue deleted: " (itoa deleted-residue-count)))
+              (swcad-title-apply-result "FINALIZED_FRAME_ONLY_GMTITLE_TRANSFER")
+              (swcad-title-princ-line "Manual final check: double-click the GMTITLE title block and confirm the table editor opens.")
+            )
+          )
+        )
+        (progn
+          (swcad-title-apply-result "ABORT_EXISTING_FRAME_ONLY_GMTITLE_NOT_FOUND")
+          (swcad-title-princ-line (strcat "Expected frame block: " frame-block))
+          (swcad-title-princ-line (strcat "Expected title block: " title-block))
+          (swcad-title-princ-line (strcat "Actual title block: " (if (> (strlen actual-title-name) 0) actual-title-name "<missing>")))
+          (swcad-title-princ-line (strcat "Actual frame block: " (if (> (strlen actual-frame-name) 0) actual-frame-name "<missing>")))
+          (swcad-title-princ-line "Create one native GMTITLE at the default location with the detected DR sheet, or run SWTITLEFRAMEONLYCLONEBATCH.")
+          (swcad-title-princ-line "No old frame-only sheet content was removed.")
+        )
+      )
+    )
+  )
+  (swcad-title-princ-line "Note: frame-only finalize is for sheets with an old frame but no old source title block.")
+  (swcad-title-princ-line "Note: for native-safe use, first create one GMTITLE with the matching DR sheet at the default location.")
+  (swcad-title-close-log)
+  (princ)
+)
+
 (defun swcad-title-transfer-batch-run (count / index source apply-result)
   (setq index 1)
   (while (<= index count)
@@ -3747,6 +5476,345 @@
       )
       (princ "\nSWTITLETRANSFERBATCH finished. Run SWTITLEGMTITLEVERIFY, then double-click a new title block for the final table-editor check.")
       (princ)
+    )
+  )
+)
+
+(defun swcad-title-transfer-clone-apply (/ answer clone-result finalize-result)
+  (setq answer
+    (if *swcad-title-batch-mode*
+      "YES"
+      (getstring
+        T
+        "\nType YES to clone a verified native GMTITLE pair, fill it, and remove the next old title content: "
+      )
+    )
+  )
+  (if (/= (strcase answer) "YES")
+    (progn
+      (setq *swcad-title-last-apply-status* "ABORT_USER_CANCEL")
+      (princ "\nResult: ABORT_USER_CANCEL")
+    )
+    (progn
+      (setq clone-result (vl-catch-all-apply 'swcad-title-create-cloned-gmtitle-for-next-source nil))
+      (if (or (vl-catch-all-error-p clone-result) (not clone-result))
+        (progn
+          (setq *swcad-title-last-apply-status* "ABORT_CLONE_GMTITLE_PAIR_FAILED")
+          (swcad-title-open-apply-log)
+          (swcad-title-princ-line "----- SWTITLETRANSFERCLONEAPPLY native GMTITLE clone apply -----")
+          (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+          (swcad-title-print-work-copy-status)
+          (if (vl-catch-all-error-p clone-result)
+            (swcad-title-princ-line
+              (strcat "Clone error: " (vl-catch-all-error-message clone-result))
+            )
+            (swcad-title-princ-line "Clone error: verified native GMTITLE exemplar or target frame could not be created.")
+          )
+          (swcad-title-princ-line "Target frame block definition check:")
+          (swcad-title-print-frame-def-check-lines)
+          (swcad-title-apply-result "ABORT_CLONE_GMTITLE_PAIR_FAILED")
+          (swcad-title-princ-line "No old SOLIDWORKS title/frame content was removed.")
+          (swcad-title-close-log)
+        )
+        (progn
+          (setq finalize-result (vl-catch-all-apply 'swcad-title-transfer-finalize nil))
+          (if (vl-catch-all-error-p finalize-result)
+            (progn
+              (setq *swcad-title-last-apply-status* "ERROR_CLONE_FINALIZE")
+              (swcad-title-open-apply-log)
+              (swcad-title-princ-line "----- SWTITLETRANSFERCLONEAPPLY finalize error -----")
+              (swcad-title-princ-line (vl-catch-all-error-message finalize-result))
+              (swcad-title-apply-result "ERROR_CLONE_FINALIZE")
+              (swcad-title-close-log)
+            )
+          )
+        )
+      )
+    )
+  )
+  (princ)
+)
+
+(defun swcad-title-transfer-clone-batch-run (count / index source apply-result)
+  (setq index 1)
+  (while (<= index count)
+    (setq source (swcad-title-transfer-source-bbox))
+    (if source
+      (progn
+        (princ
+          (strcat
+            "\n--- SWTITLETRANSFERCLONEBATCH sheet "
+            (itoa index)
+            " / "
+            (itoa count)
+            " ---"
+          )
+        )
+        (setq apply-result (vl-catch-all-apply 'swcad-title-transfer-clone-apply nil))
+        (if (vl-catch-all-error-p apply-result)
+          (progn
+            (setq *swcad-title-last-apply-status* "ERROR_CLONE_BATCH_APPLY")
+            (princ
+              (strcat
+                "\nClone batch apply error: "
+                (vl-catch-all-error-message apply-result)
+              )
+            )
+            (swcad-title-close-log)
+          )
+        )
+        (if (/= *swcad-title-last-apply-status* "FINALIZED_EXISTING_GMTITLE_TRANSFER")
+          (progn
+            (princ
+              (strcat
+                "\nClone batch stopped after status: "
+                (swcad-title-string *swcad-title-last-apply-status*)
+              )
+            )
+            (setq index count)
+          )
+        )
+      )
+      (progn
+        (setq *swcad-title-last-apply-status* "STOP_NO_MORE_SOLIDWORKS_TITLE_SOURCE")
+        (princ "\nResult: STOP_NO_MORE_SOLIDWORKS_TITLE_SOURCE")
+        (setq index count)
+      )
+    )
+    (setq index (+ index 1))
+  )
+)
+
+(defun swcad-title-transfer-clone-batch (/ count answer old-batch-mode batch-result)
+  (setq count (getint "\nNumber of remaining SOLIDWORKS title blocks/sheets to process by native clone <1>: "))
+  (if (not count)
+    (setq count 1)
+  )
+  (if (< count 1)
+    (setq count 1)
+  )
+  (setq answer
+    (getstring
+      T
+      (strcat
+        "\nType YES to process "
+        (itoa count)
+        " sheet(s) by cloning the verified native GMTITLE pair: "
+      )
+    )
+  )
+  (if (/= (strcase answer) "YES")
+    (progn
+      (princ "\nResult: ABORT_USER_CANCEL")
+      (princ)
+    )
+    (progn
+      (setq old-batch-mode *swcad-title-batch-mode*)
+      (setq *swcad-title-batch-mode* T)
+      (setq batch-result (vl-catch-all-apply 'swcad-title-transfer-clone-batch-run (list count)))
+      (setq *swcad-title-batch-mode* old-batch-mode)
+      (if (vl-catch-all-error-p batch-result)
+        (progn
+          (setq *swcad-title-last-apply-status* "ERROR_CLONE_BATCH_FATAL")
+          (princ
+            (strcat
+              "\nClone batch fatal error: "
+              (vl-catch-all-error-message batch-result)
+            )
+          )
+        )
+      )
+      (princ "\nSWTITLETRANSFERCLONEBATCH finished. Run SWTITLEGMTITLEVERIFYALL for the full check.")
+      (princ)
+    )
+  )
+)
+
+(defun swcad-title-transfer-frame-only-clone-apply (/ answer source-frame clone-result finalize-result)
+  (setq answer
+    (if *swcad-title-batch-mode*
+      "YES"
+      (getstring
+        T
+        "\nType YES to clone a verified GMTITLE pair, place it on the next frame-only sheet, and remove the old frame: "
+      )
+    )
+  )
+  (if (/= (strcase answer) "YES")
+    (progn
+      (setq *swcad-title-last-apply-status* "ABORT_USER_CANCEL")
+      (princ "\nResult: ABORT_USER_CANCEL")
+    )
+    (progn
+      (setq source-frame (car (swcad-title-frame-only-source-candidates)))
+      (if (not source-frame)
+        (progn
+          (setq *swcad-title-last-apply-status* "STOP_NO_MORE_FRAME_ONLY_SOURCE")
+          (princ "\nResult: STOP_NO_MORE_FRAME_ONLY_SOURCE")
+        )
+        (progn
+          (setq clone-result
+            (vl-catch-all-apply
+              'swcad-title-create-cloned-gmtitle-for-frame-only-source
+              (list source-frame)
+            )
+          )
+          (if (or (vl-catch-all-error-p clone-result) (not clone-result))
+            (progn
+              (setq *swcad-title-last-apply-status* "ABORT_FRAME_ONLY_CLONE_FAILED")
+              (swcad-title-open-apply-log)
+              (swcad-title-princ-line "----- SWTITLEFRAMEONLYCLONEAPPLY frame-only clone apply -----")
+              (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+              (swcad-title-print-work-copy-status)
+              (if (vl-catch-all-error-p clone-result)
+                (swcad-title-princ-line
+                  (strcat "Frame-only clone error: " (vl-catch-all-error-message clone-result))
+                )
+                (swcad-title-princ-line "Frame-only clone error: verified GMTITLE exemplar or target frame could not be created.")
+              )
+              (swcad-title-princ-line "Target frame block definition check:")
+              (swcad-title-print-frame-def-check-lines)
+              (swcad-title-apply-result "ABORT_FRAME_ONLY_CLONE_FAILED")
+              (swcad-title-princ-line "No old frame-only sheet content was removed.")
+              (swcad-title-close-log)
+            )
+            (progn
+              (setq finalize-result (vl-catch-all-apply 'swcad-title-transfer-frame-only-finalize nil))
+              (if (vl-catch-all-error-p finalize-result)
+                (progn
+                  (setq *swcad-title-last-apply-status* "ERROR_FRAME_ONLY_CLONE_FINALIZE")
+                  (swcad-title-open-apply-log)
+                  (swcad-title-princ-line "----- SWTITLEFRAMEONLYCLONEAPPLY finalize error -----")
+                  (swcad-title-princ-line (vl-catch-all-error-message finalize-result))
+                  (swcad-title-apply-result "ERROR_FRAME_ONLY_CLONE_FINALIZE")
+                  (swcad-title-close-log)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  (princ)
+)
+
+(defun swcad-title-transfer-frame-only-clone-batch-run (count / index source-frame apply-result)
+  (setq index 1)
+  (while (<= index count)
+    (setq source-frame (car (swcad-title-frame-only-source-candidates)))
+    (if source-frame
+      (progn
+        (princ
+          (strcat
+            "\n--- SWTITLEFRAMEONLYCLONEBATCH sheet "
+            (itoa index)
+            " / "
+            (itoa count)
+            " ---"
+          )
+        )
+        (setq apply-result (vl-catch-all-apply 'swcad-title-transfer-frame-only-clone-apply nil))
+        (if (vl-catch-all-error-p apply-result)
+          (progn
+            (setq *swcad-title-last-apply-status* "ERROR_FRAME_ONLY_CLONE_BATCH_APPLY")
+            (princ
+              (strcat
+                "\nFrame-only clone batch apply error: "
+                (vl-catch-all-error-message apply-result)
+              )
+            )
+            (swcad-title-close-log)
+          )
+        )
+        (if (/= *swcad-title-last-apply-status* "FINALIZED_FRAME_ONLY_GMTITLE_TRANSFER")
+          (progn
+            (princ
+              (strcat
+                "\nFrame-only clone batch stopped after status: "
+                (swcad-title-string *swcad-title-last-apply-status*)
+              )
+            )
+            (setq index count)
+          )
+        )
+      )
+      (progn
+        (setq *swcad-title-last-apply-status* "STOP_NO_MORE_FRAME_ONLY_SOURCE")
+        (princ "\nResult: STOP_NO_MORE_FRAME_ONLY_SOURCE")
+        (setq index count)
+      )
+    )
+    (setq index (+ index 1))
+  )
+)
+
+(defun swcad-title-transfer-frame-only-clone-batch (/ remaining count answer old-batch-mode batch-result)
+  (setq remaining (length (swcad-title-frame-only-source-candidates)))
+  (if (< remaining 1)
+    (progn
+      (princ "\nResult: STOP_NO_MORE_FRAME_ONLY_SOURCE")
+      (princ)
+    )
+    (progn
+      (setq count
+        (getint
+          (strcat
+            "\nNumber of frame-only sheet(s) to process by GMTITLE clone <"
+            (itoa remaining)
+            ">: "
+          )
+        )
+      )
+      (if (not count)
+        (setq count remaining)
+      )
+      (if (< count 1)
+        (setq count 1)
+      )
+      (if (> count remaining)
+        (setq count remaining)
+      )
+      (setq answer
+        (getstring
+          T
+          (strcat
+            "\nType YES to process "
+            (itoa count)
+            " frame-only sheet(s) by cloning the verified GMTITLE pair: "
+          )
+        )
+      )
+      (if (/= (strcase answer) "YES")
+        (progn
+          (princ "\nResult: ABORT_USER_CANCEL")
+          (princ)
+        )
+        (progn
+          (setq old-batch-mode *swcad-title-batch-mode*)
+          (setq *swcad-title-batch-mode* T)
+          (setq batch-result
+            (vl-catch-all-apply
+              'swcad-title-transfer-frame-only-clone-batch-run
+              (list count)
+            )
+          )
+          (setq *swcad-title-batch-mode* old-batch-mode)
+          (if (vl-catch-all-error-p batch-result)
+            (progn
+              (setq *swcad-title-last-apply-status* "ERROR_FRAME_ONLY_CLONE_BATCH_FATAL")
+              (princ
+                (strcat
+                  "\nFrame-only clone batch fatal error: "
+                  (vl-catch-all-error-message batch-result)
+                )
+              )
+            )
+          )
+          (princ "\nSWTITLEFRAMEONLYCLONEBATCH finished. Run SWTITLEGMTITLEVERIFYALL and SWTITLEMULTIPREVIEW for the full check.")
+          (princ)
+        )
+      )
     )
   )
 )
@@ -3960,8 +6028,32 @@
   (swcad-title-multi-preview)
 )
 
+(defun c:SWTITLEMULTIDETAIL ()
+  (swcad-title-multi-detail)
+)
+
+(defun c:SWTITLEFRAMESCAN ()
+  (swcad-title-frame-scan)
+)
+
 (defun c:SWTITLEGMTITLEVERIFY ()
   (swcad-title-gmtitle-verify)
+)
+
+(defun c:SWTITLEGMTITLEVERIFYALL ()
+  (swcad-title-gmtitle-verify-all)
+)
+
+(defun c:SWTITLEGMTITLELINKSCAN ()
+  (swcad-title-gmtitle-link-scan)
+)
+
+(defun c:SWTITLEFRAMEDEFCHECK ()
+  (swcad-title-frame-def-check)
+)
+
+(defun c:SWTITLEFRAMEDEFCLEANSAFE ()
+  (swcad-title-frame-def-clean-safe)
 )
 
 (defun c:SWTITLETRANSFERPREVIEW ()
@@ -3978,6 +6070,26 @@
 
 (defun c:SWTITLETRANSFERBATCH ()
   (swcad-title-transfer-batch)
+)
+
+(defun c:SWTITLETRANSFERCLONEAPPLY ()
+  (swcad-title-transfer-clone-apply)
+)
+
+(defun c:SWTITLETRANSFERCLONEBATCH ()
+  (swcad-title-transfer-clone-batch)
+)
+
+(defun c:SWTITLEFRAMEONLYFINALIZE ()
+  (swcad-title-transfer-frame-only-finalize)
+)
+
+(defun c:SWTITLEFRAMEONLYCLONEAPPLY ()
+  (swcad-title-transfer-frame-only-clone-apply)
+)
+
+(defun c:SWTITLEFRAMEONLYCLONEBATCH ()
+  (swcad-title-transfer-frame-only-clone-batch)
 )
 
 (defun c:SWSCALESCAN (/ insert-ss insert-index insert-total dim-ss dim-index dim-total ename data overrides style styledata override-value style-value effective-value expected-values effective-counts override-counts style-counts match-count mismatch-count mismatch-example-count match result)
@@ -4118,5 +6230,5 @@
 )
 
 (princ (strcat "\nswcad_title_scale.lsp ready " *swcad-title-scale-version*))
-(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWTITLEMULTIPREVIEW, SWTITLEGMTITLEVERIFY, SWTITLETRANSFERPREVIEW, SWTITLETRANSFERAPPLY, SWTITLETRANSFERFINALIZE, SWTITLETRANSFERBATCH, SWSCALESCAN")
+(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWTITLEMULTIPREVIEW, SWTITLEGMTITLEVERIFY, SWTITLEGMTITLEVERIFYALL, SWTITLEGMTITLELINKSCAN, SWTITLEFRAMEDEFCHECK, SWTITLEFRAMEDEFCLEANSAFE, SWTITLETRANSFERPREVIEW, SWTITLETRANSFERAPPLY, SWTITLETRANSFERFINALIZE, SWTITLETRANSFERBATCH, SWTITLETRANSFERCLONEAPPLY, SWTITLETRANSFERCLONEBATCH, SWTITLEFRAMEONLYFINALIZE, SWTITLEFRAMEONLYCLONEAPPLY, SWTITLEFRAMEONLYCLONEBATCH, SWSCALESCAN")
 (princ)
