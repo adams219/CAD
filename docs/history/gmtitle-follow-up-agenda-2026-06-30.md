@@ -238,6 +238,37 @@ Native-link diagnostic update:
   - The current cloned A3 route points to the visible frame insert handle.
   - A cloned title can therefore have attributes and `native-links=1` but still fail the native GMTITLE table-editor behavior.
 
+Native-link raw detail update:
+
+- Version: `260630-native-link-detail`
+- Added command:
+  - `SWTITLEGMTITLELINKDETAIL`
+- Log:
+  - `work\swcad_title_gmtitle_link_detail_last.txt`
+- Purpose:
+  - Dump the raw target object behind each title block's native GMTITLE handle.
+  - Distinguish an internal/native recognition handle from a visible cloned frame insert.
+- Result on `0000_A_DRP125_CP_ALL_260604_a4_native_test_260630_01.dwg`:
+  - Native A2 title `16BE8` points to handle `16BF5`.
+    - target kind: `internal-no-entget`
+    - VLA object: `<none>`
+    - raw `entget`: `<nil>`
+  - Native/default A4 title `17AD3` points to handle `17AE0`.
+    - target kind: `internal-no-entget`
+    - VLA object: `<none>`
+    - raw `entget`: `<nil>`
+  - Cloned A3 titles point to visible `DR_A3_Outline` frame inserts.
+    - target kind: `visible-target-frame`
+    - VLA object: `AcDbBlockReference`
+    - raw `entget`: ordinary visible `INSERT` data
+- Interpretation:
+  - The native A2/A4 GMTITLE command creates or references a hidden/internal recognition object that is addressable by handle, but not exposed as a normal graphical entity through `entget` or VLA.
+  - The current fast clone route does not recreate that internal object. It links the title directly to the visible frame insert instead.
+  - This explains why the fast route can correctly transfer geometry, attributes, and visible output while still not being proven as a complete native GMTITLE object.
+- Development decision:
+  - It is acceptable during development for cloned A3 sheets to open in the Advanced Attribute Editor.
+  - Before final completion, the A3 recognition problem must be solved or a different native-creation strategy must be used so A2/A3/A4 all open the GMTITLE table editor on double-click.
+
 Conclusion:
 
   - There is no obvious command-line `GMTITLE` variant available in this installation.

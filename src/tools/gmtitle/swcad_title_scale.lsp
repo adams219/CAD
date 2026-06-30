@@ -33,12 +33,14 @@
 ;;; SWTITLEFRAMEDEFCHECK diagnoses polluted target DR_A*_Outline block
 ;;; definitions. SWTITLEFRAMEDEFCLEANSAFE repairs only unused polluted
 ;;; definitions by backing them up and importing a clean install copy.
+;;; SWTITLEGMTITLELINKDETAIL dumps raw native-link target objects so the
+;;; internal GMTITLE recognition handle can be compared with visible clones.
 ;;; SWSCALESCAN compares title-block scale candidates with dimension
 ;;; DIMLFAC values. It does not modify the drawing.
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260630-native-link-verify")
+(setq *swcad-title-scale-version* "260630-native-link-detail")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -197,6 +199,10 @@
 
 (defun swcad-title-open-gmtitle-link-scan-log ()
   (swcad-title-open-log "swcad_title_gmtitle_link_scan_last.txt" "SWTITLEGMTITLELINKSCAN log")
+)
+
+(defun swcad-title-open-gmtitle-link-detail-log ()
+  (swcad-title-open-log "swcad_title_gmtitle_link_detail_last.txt" "SWTITLEGMTITLELINKDETAIL log")
 )
 
 (defun swcad-title-open-frame-def-check-log ()
@@ -2373,18 +2379,23 @@
     ((not ename) "missing")
     (T
       (setq data (entget ename '("*")))
-      (setq etype (swcad-title-string (swcad-title-dxf-value data 0)))
-      (cond
-        ((= (strlen etype) 0) "internal")
-        ((equal etype "INSERT")
-          (setq name (swcad-title-effective-insert-name ename))
+      (if data
+        (progn
+          (setq etype (swcad-title-string (swcad-title-dxf-value data 0)))
           (cond
-            ((swcad-title-native-target-frame-name-p name) "visible-target-frame")
-            ((swcad-title-native-target-title-name-p name) "visible-target-title")
-            (T "visible-insert")
+            ((= (strlen etype) 0) "internal")
+            ((equal etype "INSERT")
+              (setq name (swcad-title-effective-insert-name ename))
+              (cond
+                ((swcad-title-native-target-frame-name-p name) "visible-target-frame")
+                ((swcad-title-native-target-title-name-p name) "visible-target-title")
+                (T "visible-insert")
+              )
+            )
+            (T etype)
           )
         )
-        (T etype)
+        "internal-no-entget"
       )
     )
   )
@@ -3417,6 +3428,168 @@
     )
     "<missing>"
   )
+)
+
+(defun swcad-title-reference-handle-code-p (code)
+  (or
+    (= code 390)
+    (and (>= code 320) (<= code 369))
+    (= code 1005)
+  )
+)
+
+(defun swcad-title-reference-handle-value-string (value / ename)
+  (cond
+    ((= (type value) 'ENAME)
+      (swcad-title-ename-handle value)
+    )
+    ((= (type value) 'STR)
+      (if (handent value)
+        (strcase value)
+        value
+      )
+    )
+    (T (swcad-title-string value))
+  )
+)
+
+(defun swcad-title-print-reference-handle-pairs (data / found pair code value handle)
+  (setq found nil)
+  (foreach pair data
+    (if (and (listp pair) (swcad-title-reference-handle-code-p (car pair)))
+      (progn
+        (setq code (car pair))
+        (setq value (cdr pair))
+        (setq handle (swcad-title-reference-handle-value-string value))
+        (setq found T)
+        (swcad-title-princ-line
+          (strcat
+            "    ref DXF "
+            (itoa code)
+            " -> "
+            handle
+            " / "
+            (swcad-title-handle-entity-summary handle)
+          )
+        )
+      )
+    )
+  )
+  (if (not found)
+    (swcad-title-princ-line "    ref handles: <none>")
+  )
+)
+
+(defun swcad-title-print-handle-raw-detail (handle / ename data kind object object-name object-handle object-owner-id)
+  (setq ename (if (> (strlen (swcad-title-string handle)) 0) (handent handle) nil))
+  (setq kind (swcad-title-native-link-target-kind handle))
+  (swcad-title-princ-line
+    (strcat
+      "  Handle "
+      (swcad-title-string handle)
+      ": kind="
+      kind
+      ", summary="
+      (swcad-title-handle-entity-summary handle)
+    )
+  )
+  (if ename
+    (progn
+      (setq object (swcad-title-safe-vla-object ename))
+      (setq object-name (swcad-title-safe-vla-get object 'ObjectName))
+      (setq object-handle (swcad-title-safe-vla-get object 'Handle))
+      (setq object-owner-id (swcad-title-safe-vla-get object 'OwnerID))
+      (swcad-title-princ-line
+        (strcat
+          "  VLA object: "
+          (if object
+            (strcat
+              "ObjectName="
+              (swcad-title-string object-name)
+              ", Handle="
+              (swcad-title-string object-handle)
+              ", OwnerID="
+              (swcad-title-string object-owner-id)
+            )
+            "<none>"
+          )
+        )
+      )
+      (setq data (entget ename '("*")))
+      (if data
+        (progn
+          (swcad-title-princ-line "  Reference handles:")
+          (swcad-title-print-reference-handle-pairs data)
+          (swcad-title-princ-line "  Raw entget:")
+          (foreach pair data
+            (swcad-title-code-value-line "    DXF" pair)
+          )
+        )
+        (progn
+          (swcad-title-princ-line "  Reference handles: <none, entget returned nil>")
+          (swcad-title-princ-line "  Raw entget: <nil>")
+        )
+      )
+    )
+    (swcad-title-princ-line "  Raw entget: <missing>")
+  )
+)
+
+(defun swcad-title-gmtitle-link-detail (/ title-name titles title-index title title-data title-object title-bbox attr-pairs native-handles native-target-kinds nearest nearest-handle title-handle handle)
+  (swcad-title-open-gmtitle-link-detail-log)
+  (setq title-name (swcad-title-target-title-block-name))
+  (setq titles
+    (vl-sort
+      (swcad-title-inserts-by-effective-name title-name)
+      '(lambda (a b)
+        (< (swcad-title-bbox-min-x a) (swcad-title-bbox-min-x b))
+      )
+    )
+  )
+  (swcad-title-princ-line "----- SWTITLEGMTITLELINKDETAIL read-only native-link raw detail -----")
+  (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-print-work-copy-status)
+  (swcad-title-princ-line (strcat "Target title inserts: " (itoa (length titles))))
+  (setq title-index 1)
+  (foreach title titles
+    (setq title-data (entget title '("*")))
+    (setq title-object (swcad-title-safe-vla-object title))
+    (setq title-bbox (swcad-title-safe-bbox title))
+    (setq attr-pairs (if title-object (swcad-title-title-attribute-pairs title-object) nil))
+    (setq native-handles (swcad-title-gmtitle-native-xdata-info title))
+    (setq native-target-kinds (swcad-title-native-link-target-kinds title))
+    (setq nearest (swcad-title-nearest-frame-record title-bbox (swcad-title-frame-records)))
+    (setq nearest-handle (if nearest (caddr nearest) ""))
+    (setq title-handle (swcad-title-string (swcad-title-dxf-value title-data 5)))
+    (swcad-title-princ-line
+      (strcat
+        "Title #"
+        (itoa title-index)
+        ": handle="
+        title-handle
+        ", sheet="
+        (swcad-title-attr-value-by-tag attr-pairs "GEN-TITLE-SIZ{6.7}")
+        ", native-target-kinds="
+        (swcad-title-list-string native-target-kinds)
+        ", nearest-frame="
+        (if nearest (cadr nearest) "<none>")
+        "/"
+        nearest-handle
+      )
+    )
+    (foreach handle native-handles
+      (swcad-title-print-handle-raw-detail handle)
+    )
+    (if (not native-handles)
+      (swcad-title-princ-line "  Native handles: <none>")
+    )
+    (setq title-index (+ title-index 1))
+  )
+  (swcad-title-princ-line "Result: OK_LINK_DETAIL_DUMPED")
+  (swcad-title-princ-line "No drawing data was changed.")
+  (swcad-title-close-log)
+  (princ)
 )
 
 (defun swcad-title-gmtitle-link-scan (/ title-name titles title-index title title-data title-object title-bbox attr-pairs missing-tags native-handles native-target-kinds apps frame-records nearest nearest-handle linked-handle linked-frame-ename linked-frame-data linked-frame-apps linked-frame-native-handles frame-link-counts duplicate-link-found visible-frame-link-found visible-frame-link-count contaminated-frame-found title-handle handle-matches-nearest old-child-names frame-name children item)
@@ -6705,6 +6878,10 @@
   (swcad-title-gmtitle-link-scan)
 )
 
+(defun c:SWTITLEGMTITLELINKDETAIL ()
+  (swcad-title-gmtitle-link-detail)
+)
+
 (defun c:SWTITLEFRAMEDEFCHECK ()
   (swcad-title-frame-def-check)
 )
@@ -6899,5 +7076,5 @@
 )
 
 (princ (strcat "\nswcad_title_scale.lsp ready " *swcad-title-scale-version*))
-(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWTITLEMULTIPREVIEW, SWTITLEGMTITLEVERIFY, SWTITLEGMTITLEVERIFYALL, SWTITLEGMTITLELINKSCAN, SWTITLEFRAMEDEFCHECK, SWTITLEFRAMEDEFCLEANSAFE, SWTITLEFASTSTATUS, SWTITLETRANSFERPREVIEW, SWTITLETRANSFERAPPLY, SWTITLETRANSFERFINALIZE, SWTITLETRANSFERBATCH, SWTITLETRANSFERCLONEAPPLY, SWTITLETRANSFERCLONEBATCH, SWTITLETRANSFERFASTBATCH, SWTITLETRANSFERBOOTSTRAPFAST, SWTITLEFRAMEONLYFINALIZE, SWTITLEFRAMEONLYCLONEAPPLY, SWTITLEFRAMEONLYCLONEBATCH, SWSCALESCAN")
+(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWTITLEMULTIPREVIEW, SWTITLEGMTITLEVERIFY, SWTITLEGMTITLEVERIFYALL, SWTITLEGMTITLELINKSCAN, SWTITLEGMTITLELINKDETAIL, SWTITLEFRAMEDEFCHECK, SWTITLEFRAMEDEFCLEANSAFE, SWTITLEFASTSTATUS, SWTITLETRANSFERPREVIEW, SWTITLETRANSFERAPPLY, SWTITLETRANSFERFINALIZE, SWTITLETRANSFERBATCH, SWTITLETRANSFERCLONEAPPLY, SWTITLETRANSFERCLONEBATCH, SWTITLETRANSFERFASTBATCH, SWTITLETRANSFERBOOTSTRAPFAST, SWTITLEFRAMEONLYFINALIZE, SWTITLEFRAMEONLYCLONEAPPLY, SWTITLEFRAMEONLYCLONEBATCH, SWSCALESCAN")
 (princ)
