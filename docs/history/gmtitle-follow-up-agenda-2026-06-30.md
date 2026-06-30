@@ -1,10 +1,39 @@
 # GMTITLE Follow-up Agenda - 2026-06-30
 
+## Latest Status: preserve-copy fast clone verified for A2/A3/A4
+
+Status: current preserve-copy route passes the main editor-behavior check.
+
+- Code version: `260630-preserve-copy-fast-clone-a4`
+- Test copy:
+  - `C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260604_preservecopy_test_260630_01.dwg`
+- `SWTITLETRANSFERFASTBATCH` converted the remaining A4 frame-only sheets after relaxing the cloned-native-link check to accept `visible-target-frame` as a usable cloned link kind.
+- `SWTITLEGMTITLEVERIFYALL` result:
+  - `DR_A2_Outline`: 1
+  - `DR_A3_Outline`: 12
+  - `DR_A4_Outline`: 2
+  - `DR_titlea_3rd`: 15
+  - remaining source title candidates: 0
+  - remaining source sheet frame candidates: 0
+  - other non-target title-like inserts: 0
+  - every title has 11 attrs, 11 nonempty attrs, no missing tags, and one native link.
+- Direct CAD double-click verification:
+  - A4 title handle `17AEF`: opened `속성 블록 편집`.
+  - A3 title handle `17919`: opened `속성 블록 편집`.
+  - A2 title handle `16BE8`: opened `속성 블록 편집`.
+  - None of these checks opened the Advanced Attribute Editor.
+- Remaining warning:
+  - `SWTITLEGMTITLEVERIFYALL` still returns `WARN_TARGET_FRAME_DEFS_CONTAMINATED` because the current child-name detector flags `DR_A2_Outline`, `DR_A3_Outline`, and `DR_A4_Outline`.
+  - In the preserve-copy route, this is now treated as a verification warning rather than a hard blocker.
+- Still open:
+  - A clean DWG with no native GMTITLE exemplar still cannot create the first native GMTITLE fully automatically.
+  - `SWTITLETRANSFERBOOTSTRAPFAST` can detect the correct first selection (`DR_A2_Outline` + `DR_titlea_3rd`), but the native GMTITLE picker dialog is not yet reliably controllable without manual selection.
+
 ## Open Item: cloned GMTITLE edit behavior is not fully proven
 
-Status: deferred
+Status: historically important, but the current preserve-copy fast clone has now passed A2/A3/A4 double-click verification in the test copy above.
 
-Some cloned `DR_titlea_3rd` title blocks can still open the Advanced Attribute Editor instead of the native GMTITLE table editor when double-clicked.
+Earlier cloned `DR_titlea_3rd` title blocks could open the Advanced Attribute Editor instead of the native GMTITLE table editor when double-clicked.
 
 This means the current clone route is useful for transferring visible title data and basic native xdata, but it is not yet proven to fully recreate every internal condition that GstarCAD Mechanical uses to recognize a title block as a native GMTITLE object.
 

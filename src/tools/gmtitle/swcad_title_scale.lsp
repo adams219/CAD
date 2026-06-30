@@ -48,7 +48,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260630-preserve-copy-fast-clone")
+(setq *swcad-title-scale-version* "260630-preserve-copy-fast-clone-a4")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -3824,6 +3824,18 @@
   )
 )
 
+(defun swcad-title-cloned-native-link-kinds-p (kinds)
+  (and
+    (or
+      (member "internal" kinds)
+      (member "internal-no-entget" kinds)
+      (member "visible-target-frame" kinds)
+    )
+    (not (member "visible-target-title" kinds))
+    (not (member "missing" kinds))
+  )
+)
+
 (defun swcad-title-native-example-pair (/ frame-records example-title example-title-bbox frame-record example-frame example-frame-block example-frame-bbox)
   (setq frame-records (swcad-title-frame-records))
   (setq example-title (swcad-title-native-example-title))
@@ -3897,7 +3909,7 @@
           )
           (setq copied-title-bbox (swcad-title-safe-bbox copied-title))
           (setq copied-kinds (swcad-title-native-link-target-kinds copied-title))
-          (if (swcad-title-internal-native-link-kinds-p copied-kinds)
+          (if (swcad-title-cloned-native-link-kinds-p copied-kinds)
             (list
               copied-title
               copied-frame
@@ -4096,9 +4108,9 @@
                       )
                       (swcad-title-print-gmtitle-compare-case "Copied preserve-link title detail" copied-title (swcad-title-frame-records))
                       (setq status
-                        (if (swcad-title-internal-native-link-kinds-p copied-kinds)
-                          "OK_PRESERVE_COPY_INTERNAL_LINK"
-                          "WARN_PRESERVE_COPY_LINK_NOT_INTERNAL"
+                        (if (swcad-title-cloned-native-link-kinds-p copied-kinds)
+                          "OK_PRESERVE_COPY_NATIVE_LINK"
+                          "WARN_PRESERVE_COPY_LINK_NOT_USABLE"
                         )
                       )
                       (swcad-title-princ-line (strcat "Result: " status))
