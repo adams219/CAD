@@ -174,6 +174,24 @@ Fast remaining-sheet batch command:
     - The next bottleneck is automatic/native creation of the first `DR_A*_Outline + DR_titlea_3rd` GMTITLE exemplar.
     - Until that exemplar exists, `SWTITLETRANSFERFASTBATCH` should stop before modifying the drawing.
 
+Native GMTITLE command-line automation check:
+
+- Test copy:
+  - `C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260604_fastbatch_test_260630_01.dwg`
+- Checks:
+  - `-GMTITLE`
+  - `CMDDIA=0`, then `GMTITLE`
+- Result:
+  - `-GMTITLE` returned an unknown-command message.
+  - `GMTITLE` still opened the modal title/border dialog even with `CMDDIA=0`.
+  - The dialog was canceled and `CMDDIA` was restored to `1`.
+- Conclusion:
+  - There is no obvious command-line `GMTITLE` variant available in this installation.
+  - The first native GMTITLE exemplar cannot currently be created by passing simple command-line options to `GMTITLE`.
+  - Next practical options are either:
+    - keep one manual/native exemplar step, then let `SWTITLETRANSFERFASTBATCH` process the rest; or
+    - investigate the internal native recognition data more deeply so the first exemplar can be constructed without the dialog.
+
 ## Concern
 
 `native-links=1` proves that the cloned title block has at least one native xdata link, but it does not prove that the complete GstarCAD Mechanical GMTITLE recognition state is valid.
