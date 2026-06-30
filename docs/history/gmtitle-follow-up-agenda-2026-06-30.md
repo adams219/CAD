@@ -123,6 +123,34 @@ Clean-start baseline test:
   - The pollution was introduced by an earlier conversion/import path.
   - The next conversion test should start from this clean work copy and verify that the current guarded clone path imports real clean `DR_A*_Outline` definitions instead of creating fake/polluted target definitions.
 
+Fast remaining-sheet batch command:
+
+- Added command:
+  - `SWTITLETRANSFERFASTBATCH`
+- Purpose:
+  - Counts every remaining source title sheet automatically.
+  - Counts every remaining frame-only sheet automatically.
+  - Runs the existing verified-native-GMTITLE clone path for title sheets.
+  - Then runs the frame-only clone path for A4-like frame-only sheets.
+- Preconditions:
+  - Current DWG must be a writable work-folder copy.
+  - At least one native `DR_titlea_3rd` GMTITLE exemplar with native xdata must already exist.
+  - Target `DR_A*_Outline` block definitions must not be contaminated.
+- Expected clean-start flow:
+  - Use `SWTITLETRANSFERAPPLY` or `SWTITLETRANSFERFINALIZE` once to create/finalize the first native GMTITLE exemplar.
+  - Run `SWTITLETRANSFERFASTBATCH`.
+  - It should process the remaining A2/A3 title sheets and the A4 frame-only sheets without asking for counts.
+  - Run `SWTITLEGMTITLEVERIFYALL` and then manually double-click A2/A3/A4 titles for the final editor check.
+- Important caveat:
+  - This improves the fast multi-sheet automation flow, but it does not by itself prove the A3 double-click native GMTITLE table behavior.
+  - The A3 GMTITLE recognition issue remains a required final-completion item.
+- Clean-start abort test:
+  - The updated LSP loaded successfully in the clean-start work copy.
+  - Running `SWTITLETRANSFERFASTBATCH` before creating any native GMTITLE exemplar stopped safely.
+  - Result reason: no native `DR_titlea_3rd` GMTITLE exemplar with native xdata exists yet.
+  - The command instructed the user to run `SWTITLETRANSFERAPPLY` or `SWTITLETRANSFERFINALIZE` for the first sheet.
+  - No drawing data should have been changed by this abort path.
+
 ## Concern
 
 `native-links=1` proves that the cloned title block has at least one native xdata link, but it does not prove that the complete GstarCAD Mechanical GMTITLE recognition state is valid.

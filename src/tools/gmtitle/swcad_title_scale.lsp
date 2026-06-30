@@ -19,6 +19,8 @@
 ;;; SWTITLETRANSFERCLONEBATCH reuses one verified native GMTITLE pair in
 ;;; the current work-copy drawing to finish remaining sheets without
 ;;; reopening the fragile GMTITLE picker for every sheet.
+;;; SWTITLETRANSFERFASTBATCH runs the title clone batch and the frame-only
+;;; clone batch together for every remaining detected source sheet.
 ;;; SWTITLEFRAMEONLYFINALIZE moves one already-created native GMTITLE
 ;;; frame/title onto a detected frame-only sheet such as A4, then removes
 ;;; the old source frame/residue. SWTITLEFRAMEONLYCLONEBATCH is the faster
@@ -31,7 +33,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260630-frame-def-clean-safe")
+(setq *swcad-title-scale-version* "260630-fast-batch-all")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -1924,6 +1926,28 @@
 
 (defun swcad-title-target-frame-block-contaminated-p (frame-block)
   (if (swcad-title-target-frame-block-source-like-children frame-block) T nil)
+)
+
+(defun swcad-title-contaminated-target-frame-blocks (/ result frame-block)
+  (setq result nil)
+  (foreach frame-block (swcad-title-target-frame-block-candidates)
+    (if
+      (and
+        (swcad-title-block-exists-p frame-block)
+        (swcad-title-target-frame-block-contaminated-p frame-block)
+      )
+      (setq result (append result (list frame-block)))
+    )
+  )
+  result
+)
+
+(defun swcad-title-source-title-count ()
+  (length (swcad-title-source-title-candidates))
+)
+
+(defun swcad-title-frame-only-source-count ()
+  (length (swcad-title-frame-only-source-candidates))
 )
 
 (defun swcad-title-safe-vla-object (ename / result)
@@ -5819,6 +5843,176 @@
   )
 )
 
+(defun swcad-title-transfer-fast-batch (/ source-count frame-only-count final-source-count final-frame-only-count contaminated example-title answer old-batch-mode source-result frame-result)
+  (setq source-count (swcad-title-source-title-count))
+  (setq frame-only-count (swcad-title-frame-only-source-count))
+  (setq contaminated (swcad-title-contaminated-target-frame-blocks))
+  (setq example-title (swcad-title-native-example-title))
+  (princ "\n----- SWTITLETRANSFERFASTBATCH fast remaining-sheet transfer -----")
+  (princ (strcat "\nDWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (princ (strcat "\nCTAB: " (getvar "CTAB")))
+  (princ
+    (strcat
+      "\nWork-folder test copy: "
+      (if (swcad-title-current-dwg-in-work-p) "yes" "no")
+    )
+  )
+  (princ (strcat "\nRemaining source title sheets: " (itoa source-count)))
+  (princ (strcat "\nRemaining frame-only sheets: " (itoa frame-only-count)))
+  (princ
+    (strcat
+      "\nNative GMTITLE exemplar: "
+      (if example-title
+        (strcat
+          "yes, handle="
+          (swcad-title-string (swcad-title-ename-handle example-title))
+        )
+        "no"
+      )
+    )
+  )
+  (princ (strcat "\nContaminated target frame definitions: " (swcad-title-list-string contaminated)))
+  (cond
+    ((swcad-title-document-read-only-p)
+      (setq *swcad-title-last-apply-status* "ABORT_READ_ONLY_DOCUMENT")
+      (princ "\nResult: ABORT_READ_ONLY_DOCUMENT")
+      (princ "\nOpen a writable work copy before running the fast batch.")
+    )
+    ((not (swcad-title-current-dwg-in-work-p))
+      (setq *swcad-title-last-apply-status* "ABORT_NOT_WORK_COPY")
+      (princ "\nResult: ABORT_NOT_WORK_COPY")
+      (princ "\nFast batch is limited to Documents/CAD tool/work copies.")
+    )
+    ((not example-title)
+      (setq *swcad-title-last-apply-status* "ABORT_NO_NATIVE_GMTITLE_EXEMPLAR")
+      (princ "\nResult: ABORT_NO_NATIVE_GMTITLE_EXEMPLAR")
+      (princ "\nCreate/finalize one native GMTITLE first, then run this command again.")
+      (princ "\nRecommended: run SWTITLETRANSFERAPPLY or SWTITLETRANSFERFINALIZE for the first sheet.")
+    )
+    (contaminated
+      (setq *swcad-title-last-apply-status* "ABORT_TARGET_FRAME_DEFS_CONTAMINATED")
+      (princ "\nResult: ABORT_TARGET_FRAME_DEFS_CONTAMINATED")
+      (princ "\nRun SWTITLEFRAMEDEFCHECK. Start from a clean work copy if referenced definitions are already polluted.")
+    )
+    ((and (= source-count 0) (= frame-only-count 0))
+      (setq *swcad-title-last-apply-status* "OK_NO_REMAINING_SOURCES")
+      (princ "\nResult: OK_NO_REMAINING_SOURCES")
+      (princ "\nRun SWTITLEGMTITLEVERIFYALL for verification.")
+    )
+    (T
+      (setq answer
+        (getstring
+          T
+          (strcat
+            "\nType YES to process "
+            (itoa source-count)
+            " title sheet(s) and "
+            (itoa frame-only-count)
+            " frame-only sheet(s): "
+          )
+        )
+      )
+      (if (/= (strcase answer) "YES")
+        (progn
+          (setq *swcad-title-last-apply-status* "ABORT_USER_CANCEL")
+          (princ "\nResult: ABORT_USER_CANCEL")
+        )
+        (progn
+          (setq old-batch-mode *swcad-title-batch-mode*)
+          (setq *swcad-title-batch-mode* T)
+          (if (> source-count 0)
+            (progn
+              (princ (strcat "\nFast batch: processing title sheets, count=" (itoa source-count)))
+              (setq source-result
+                (vl-catch-all-apply
+                  'swcad-title-transfer-clone-batch-run
+                  (list source-count)
+                )
+              )
+              (if (vl-catch-all-error-p source-result)
+                (progn
+                  (setq *swcad-title-last-apply-status* "ERROR_FAST_BATCH_TITLE_FATAL")
+                  (princ
+                    (strcat
+                      "\nFast batch title error: "
+                      (vl-catch-all-error-message source-result)
+                    )
+                  )
+                )
+              )
+            )
+          )
+          (setq final-source-count (swcad-title-source-title-count))
+          (if (and
+                (= final-source-count 0)
+                (or
+                  (= source-count 0)
+                  (equal *swcad-title-last-apply-status* "FINALIZED_EXISTING_GMTITLE_TRANSFER")
+                  (equal *swcad-title-last-apply-status* "STOP_NO_MORE_SOLIDWORKS_TITLE_SOURCE")
+                )
+              )
+            (progn
+              (setq frame-only-count (swcad-title-frame-only-source-count))
+              (if (> frame-only-count 0)
+                (progn
+                  (princ (strcat "\nFast batch: processing frame-only sheets, count=" (itoa frame-only-count)))
+                  (setq frame-result
+                    (vl-catch-all-apply
+                      'swcad-title-transfer-frame-only-clone-batch-run
+                      (list frame-only-count)
+                    )
+                  )
+                  (if (vl-catch-all-error-p frame-result)
+                    (progn
+                      (setq *swcad-title-last-apply-status* "ERROR_FAST_BATCH_FRAME_ONLY_FATAL")
+                      (princ
+                        (strcat
+                          "\nFast batch frame-only error: "
+                          (vl-catch-all-error-message frame-result)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+            (princ
+              (strcat
+                "\nFast batch skipped frame-only phase because title phase left "
+                (itoa final-source-count)
+                " source title sheet(s)."
+              )
+            )
+          )
+          (setq *swcad-title-batch-mode* old-batch-mode)
+          (setq final-source-count (swcad-title-source-title-count))
+          (setq final-frame-only-count (swcad-title-frame-only-source-count))
+          (princ (strcat "\nRemaining source title sheets after fast batch: " (itoa final-source-count)))
+          (princ (strcat "\nRemaining frame-only sheets after fast batch: " (itoa final-frame-only-count)))
+          (setq contaminated (swcad-title-contaminated-target-frame-blocks))
+          (princ (strcat "\nContaminated target frame definitions after fast batch: " (swcad-title-list-string contaminated)))
+          (cond
+            ((or (> final-source-count 0) (> final-frame-only-count 0))
+              (setq *swcad-title-last-apply-status* "WARN_FAST_BATCH_REMAINING_SOURCES")
+              (princ "\nResult: WARN_FAST_BATCH_REMAINING_SOURCES")
+            )
+            (contaminated
+              (setq *swcad-title-last-apply-status* "WARN_FAST_BATCH_FRAME_DEFS_CONTAMINATED")
+              (princ "\nResult: WARN_FAST_BATCH_FRAME_DEFS_CONTAMINATED")
+            )
+            (T
+              (setq *swcad-title-last-apply-status* "OK_FAST_BATCH_COMPLETE")
+              (princ "\nResult: OK_FAST_BATCH_COMPLETE")
+              (princ "\nRun SWTITLEGMTITLEVERIFYALL and manually double-click A2/A3/A4 GMTITLE titles for final table-editor verification.")
+            )
+          )
+        )
+      )
+    )
+  )
+  (princ)
+)
+
 (defun swcad-title-scale-text-to-dimlfac (text / cleaned ratio pos left right numerator denominator value)
   (setq cleaned (vl-string-trim " \t\r\n" (swcad-title-string text)))
   (setq ratio (swcad-title-extract-ratio-text cleaned))
@@ -6080,6 +6274,10 @@
   (swcad-title-transfer-clone-batch)
 )
 
+(defun c:SWTITLETRANSFERFASTBATCH ()
+  (swcad-title-transfer-fast-batch)
+)
+
 (defun c:SWTITLEFRAMEONLYFINALIZE ()
   (swcad-title-transfer-frame-only-finalize)
 )
@@ -6230,5 +6428,5 @@
 )
 
 (princ (strcat "\nswcad_title_scale.lsp ready " *swcad-title-scale-version*))
-(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWTITLEMULTIPREVIEW, SWTITLEGMTITLEVERIFY, SWTITLEGMTITLEVERIFYALL, SWTITLEGMTITLELINKSCAN, SWTITLEFRAMEDEFCHECK, SWTITLEFRAMEDEFCLEANSAFE, SWTITLETRANSFERPREVIEW, SWTITLETRANSFERAPPLY, SWTITLETRANSFERFINALIZE, SWTITLETRANSFERBATCH, SWTITLETRANSFERCLONEAPPLY, SWTITLETRANSFERCLONEBATCH, SWTITLEFRAMEONLYFINALIZE, SWTITLEFRAMEONLYCLONEAPPLY, SWTITLEFRAMEONLYCLONEBATCH, SWSCALESCAN")
+(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWTITLEMULTIPREVIEW, SWTITLEGMTITLEVERIFY, SWTITLEGMTITLEVERIFYALL, SWTITLEGMTITLELINKSCAN, SWTITLEFRAMEDEFCHECK, SWTITLEFRAMEDEFCLEANSAFE, SWTITLETRANSFERPREVIEW, SWTITLETRANSFERAPPLY, SWTITLETRANSFERFINALIZE, SWTITLETRANSFERBATCH, SWTITLETRANSFERCLONEAPPLY, SWTITLETRANSFERCLONEBATCH, SWTITLETRANSFERFASTBATCH, SWTITLEFRAMEONLYFINALIZE, SWTITLEFRAMEONLYCLONEAPPLY, SWTITLEFRAMEONLYCLONEBATCH, SWSCALESCAN")
 (princ)
