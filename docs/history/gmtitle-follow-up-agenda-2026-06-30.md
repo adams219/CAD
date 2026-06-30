@@ -218,6 +218,26 @@ Native GMTITLE picker UI automation check:
   - Keyboard and list-item attempts were not reliable enough to use as a production automation path.
   - The dialog was canceled; no old source title/frame content was removed.
 
+Native-link diagnostic update:
+
+- Version: `260630-native-link-verify`
+- `SWTITLEGMTITLELINKSCAN`, `SWTITLEGMTITLEVERIFY`, and `SWTITLEGMTITLEVERIFYALL` now classify each `GENIUS_GENOREF_13` native link target as:
+  - `internal`
+  - `visible-target-frame`
+  - `visible-target-title`
+  - `visible-insert`
+  - `missing`
+  - or the raw DXF entity type.
+- On `0000_A_DRP125_CP_ALL_260604_a4_native_test_260630_01.dwg`, the scan showed:
+  - Native A2 title: `native-target-kinds=internal`
+  - Native/default A4 title: `native-target-kinds=internal`
+  - Cloned A3 titles: `native-target-kinds=visible-target-frame`
+- `SWTITLEGMTITLELINKSCAN` now returns `WARN_NATIVE_LINKS_POINT_TO_VISIBLE_FRAMES` when any title block links directly to the visible `DR_A*_Outline` frame insert.
+- This is now the strongest concrete clue for the A3 editor issue:
+  - Real native GMTITLE titles appear to point to an internal object handle.
+  - The current cloned A3 route points to the visible frame insert handle.
+  - A cloned title can therefore have attributes and `native-links=1` but still fail the native GMTITLE table-editor behavior.
+
 Conclusion:
 
   - There is no obvious command-line `GMTITLE` variant available in this installation.

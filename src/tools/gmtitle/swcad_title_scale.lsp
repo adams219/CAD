@@ -38,7 +38,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260630-bootstrap-flow")
+(setq *swcad-title-scale-version* "260630-native-link-verify")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -2367,6 +2367,48 @@
   found-handles
 )
 
+(defun swcad-title-native-link-target-kind (handle / ename data etype name)
+  (setq ename (if (> (strlen (swcad-title-string handle)) 0) (handent handle) nil))
+  (cond
+    ((not ename) "missing")
+    (T
+      (setq data (entget ename '("*")))
+      (setq etype (swcad-title-string (swcad-title-dxf-value data 0)))
+      (cond
+        ((= (strlen etype) 0) "internal")
+        ((equal etype "INSERT")
+          (setq name (swcad-title-effective-insert-name ename))
+          (cond
+            ((swcad-title-native-target-frame-name-p name) "visible-target-frame")
+            ((swcad-title-native-target-title-name-p name) "visible-target-title")
+            (T "visible-insert")
+          )
+        )
+        (T etype)
+      )
+    )
+  )
+)
+
+(defun swcad-title-native-link-target-kinds (title-ename / handles result handle)
+  (setq handles (swcad-title-gmtitle-native-xdata-info title-ename))
+  (setq result nil)
+  (foreach handle handles
+    (setq result
+      (swcad-title-list-add-unique
+        (swcad-title-native-link-target-kind handle)
+        result
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-native-link-visible-frame-p (title-ename / kinds)
+  (setq kinds (swcad-title-native-link-target-kinds title-ename))
+  (if (member "visible-target-frame" kinds) T nil)
+)
+
 (defun swcad-title-ename-handle (ename / data)
   (if ename
     (progn
@@ -3377,7 +3419,7 @@
   )
 )
 
-(defun swcad-title-gmtitle-link-scan (/ title-name titles title-index title title-data title-object title-bbox attr-pairs missing-tags native-handles apps frame-records nearest nearest-handle linked-handle linked-frame-ename linked-frame-data linked-frame-apps linked-frame-native-handles frame-link-counts duplicate-link-found contaminated-frame-found title-handle handle-matches-nearest old-child-names frame-name children item)
+(defun swcad-title-gmtitle-link-scan (/ title-name titles title-index title title-data title-object title-bbox attr-pairs missing-tags native-handles native-target-kinds apps frame-records nearest nearest-handle linked-handle linked-frame-ename linked-frame-data linked-frame-apps linked-frame-native-handles frame-link-counts duplicate-link-found visible-frame-link-found visible-frame-link-count contaminated-frame-found title-handle handle-matches-nearest old-child-names frame-name children item)
   (swcad-title-open-gmtitle-link-scan-log)
   (setq title-name (swcad-title-target-title-block-name))
   (setq titles
@@ -3391,6 +3433,8 @@
   (setq frame-records (swcad-title-frame-records))
   (setq frame-link-counts nil)
   (setq duplicate-link-found nil)
+  (setq visible-frame-link-found nil)
+  (setq visible-frame-link-count 0)
   (setq contaminated-frame-found nil)
   (swcad-title-princ-line "----- SWTITLEGMTITLELINKSCAN read-only GMTITLE link scan -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
@@ -3406,6 +3450,7 @@
     (setq attr-pairs (if title-object (swcad-title-title-attribute-pairs title-object) nil))
     (setq missing-tags (swcad-title-missing-template-tags attr-pairs))
     (setq native-handles (swcad-title-gmtitle-native-xdata-info title))
+    (setq native-target-kinds (swcad-title-native-link-target-kinds title))
     (setq apps (swcad-title-xdata-app-names title))
     (setq nearest (swcad-title-nearest-frame-record title-bbox frame-records))
     (setq nearest-handle (if nearest (caddr nearest) ""))
@@ -3417,6 +3462,12 @@
       (if linked-frame-ename (swcad-title-gmtitle-native-xdata-info linked-frame-ename) nil)
     )
     (setq handle-matches-nearest (and (> (strlen linked-handle) 0) (equal (strcase linked-handle) (strcase nearest-handle))))
+    (if (member "visible-target-frame" native-target-kinds)
+      (progn
+        (setq visible-frame-link-found T)
+        (setq visible-frame-link-count (+ visible-frame-link-count 1))
+      )
+    )
     (if (> (strlen linked-handle) 0)
       (setq frame-link-counts (swcad-title-count-frame-link linked-handle frame-link-counts))
     )
@@ -3453,6 +3504,8 @@
       (strcat
         "  native-handles="
         (swcad-title-list-string native-handles)
+        ", native-target-kinds="
+        (swcad-title-list-string native-target-kinds)
         ", linked-entity="
         (swcad-title-handle-entity-summary linked-handle)
         ", nearest-frame="
@@ -3500,6 +3553,12 @@
     )
     (swcad-title-princ-line "  <none>")
   )
+  (swcad-title-princ-line
+    (strcat
+      "Titles whose native link points to a visible target frame: "
+      (itoa visible-frame-link-count)
+    )
+  )
   (swcad-title-princ-line "Target frame block definition child INSERT names:")
   (foreach frame-name (swcad-title-target-frame-block-candidates)
     (setq children (swcad-title-block-child-insert-names frame-name))
@@ -3525,6 +3584,7 @@
       "Result: "
       (cond
         (duplicate-link-found "WARN_DUPLICATE_NATIVE_FRAME_LINKS")
+        (visible-frame-link-found "WARN_NATIVE_LINKS_POINT_TO_VISIBLE_FRAMES")
         (contaminated-frame-found "WARN_TARGET_FRAME_BLOCK_DEFINITION_CONTAMINATED")
         ((not frame-link-counts) "WARN_NO_NATIVE_FRAME_LINKS")
         (T "OK_LINK_SCAN_NO_DUPLICATE_FRAME_LINKS")
@@ -3536,7 +3596,7 @@
   (princ)
 )
 
-(defun swcad-title-gmtitle-verify (/ frame-name title-name frame-count title-enames title-count title-index title-ename title-data title-object title-bbox attr-pairs missing-tags nonempty-attrs native-handles other-title-inserts filedia cmddia status record any-missing-tags any-empty-attrs any-missing-native-xdata)
+(defun swcad-title-gmtitle-verify (/ frame-name title-name frame-count title-enames title-count title-index title-ename title-data title-object title-bbox attr-pairs missing-tags nonempty-attrs native-handles native-target-kinds other-title-inserts filedia cmddia status record any-missing-tags any-empty-attrs any-missing-native-xdata any-visible-frame-native-link)
   (swcad-title-open-gmtitle-verify-log)
   (setq frame-name (swcad-title-existing-target-frame-block-name))
   (if (not frame-name)
@@ -3555,6 +3615,7 @@
   (setq any-missing-tags nil)
   (setq any-empty-attrs nil)
   (setq any-missing-native-xdata nil)
+  (setq any-visible-frame-native-link nil)
   (swcad-title-princ-line "----- SWTITLEGMTITLEVERIFY read-only GMTITLE transfer verification -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -3574,6 +3635,7 @@
         (setq missing-tags (swcad-title-missing-template-tags attr-pairs))
         (setq nonempty-attrs (swcad-title-nonempty-attribute-count attr-pairs))
         (setq native-handles (swcad-title-gmtitle-native-xdata-info title-ename))
+        (setq native-target-kinds (swcad-title-native-link-target-kinds title-ename))
         (if missing-tags
           (setq any-missing-tags T)
         )
@@ -3582,6 +3644,9 @@
         )
         (if (not native-handles)
           (setq any-missing-native-xdata T)
+        )
+        (if (member "visible-target-frame" native-target-kinds)
+          (setq any-visible-frame-native-link T)
         )
         (swcad-title-princ-line
           (strcat
@@ -3598,6 +3663,7 @@
         (swcad-title-princ-line (strcat "Non-empty title attributes: " (itoa nonempty-attrs)))
         (swcad-title-print-string-list "Missing expected title tags:" missing-tags)
         (swcad-title-print-string-list "Native GMTITLE GENIUS_GENOREF_13 handle links:" native-handles)
+        (swcad-title-print-string-list "Native GMTITLE link target kinds:" native-target-kinds)
         (setq title-index (+ title-index 1))
       )
     )
@@ -3627,6 +3693,7 @@
       (any-missing-tags "FAIL_MISSING_EXPECTED_ATTRIBUTES")
       (any-empty-attrs "WARN_TITLE_ATTRIBUTES_EMPTY")
       (any-missing-native-xdata "WARN_NATIVE_GMTITLE_XDATA_NOT_FOUND")
+      (any-visible-frame-native-link "WARN_NATIVE_LINKS_POINT_TO_VISIBLE_FRAMES")
       (other-title-inserts "WARN_OTHER_TITLE_LIKE_INSERTS_REMAIN")
       (T "OK_VERIFY_GMTITLE_READY_FOR_MANUAL_DOUBLE_CLICK_CHECK")
     )
@@ -3638,7 +3705,7 @@
   (princ)
 )
 
-(defun swcad-title-gmtitle-verify-all (/ title-name title-enames title-count title-index title-ename title-data title-object title-bbox attr-pairs missing-tags nonempty-attrs native-handles source-titles source-frames other-title-inserts contaminated filedia cmddia status frame-name frame-count total-frame-count any-missing-tags any-empty-attrs any-missing-native-xdata)
+(defun swcad-title-gmtitle-verify-all (/ title-name title-enames title-count title-index title-ename title-data title-object title-bbox attr-pairs missing-tags nonempty-attrs native-handles native-target-kinds source-titles source-frames other-title-inserts contaminated filedia cmddia status frame-name frame-count total-frame-count any-missing-tags any-empty-attrs any-missing-native-xdata any-visible-frame-native-link visible-frame-native-link-count)
   (swcad-title-open-gmtitle-verify-all-log)
   (setq title-name (swcad-title-target-title-block-name))
   (setq title-enames (swcad-title-inserts-by-effective-name title-name))
@@ -3652,6 +3719,8 @@
   (setq any-missing-tags nil)
   (setq any-empty-attrs nil)
   (setq any-missing-native-xdata nil)
+  (setq any-visible-frame-native-link nil)
+  (setq visible-frame-native-link-count 0)
   (setq total-frame-count 0)
 
   (swcad-title-princ-line "----- SWTITLEGMTITLEVERIFYALL read-only full GMTITLE verification -----")
@@ -3684,6 +3753,7 @@
         (setq missing-tags (swcad-title-missing-template-tags attr-pairs))
         (setq nonempty-attrs (swcad-title-nonempty-attribute-count attr-pairs))
         (setq native-handles (swcad-title-gmtitle-native-xdata-info title-ename))
+        (setq native-target-kinds (swcad-title-native-link-target-kinds title-ename))
         (if missing-tags
           (setq any-missing-tags T)
         )
@@ -3692,6 +3762,12 @@
         )
         (if (not native-handles)
           (setq any-missing-native-xdata T)
+        )
+        (if (member "visible-target-frame" native-target-kinds)
+          (progn
+            (setq any-visible-frame-native-link T)
+            (setq visible-frame-native-link-count (+ visible-frame-native-link-count 1))
+          )
         )
         (swcad-title-princ-line
           (strcat
@@ -3707,6 +3783,8 @@
             (itoa (length missing-tags))
             ", native-links="
             (itoa (length native-handles))
+            ", native-link-kinds="
+            (swcad-title-list-string native-target-kinds)
             ", bbox="
             (swcad-title-bbox-string title-bbox)
           )
@@ -3715,6 +3793,12 @@
       )
     )
     (swcad-title-princ-line "Title inserts: <missing>")
+  )
+  (swcad-title-princ-line
+    (strcat
+      "Titles whose native link points to a visible target frame: "
+      (itoa visible-frame-native-link-count)
+    )
   )
 
   (setq status
@@ -3726,6 +3810,7 @@
       (any-missing-tags "FAIL_MISSING_EXPECTED_ATTRIBUTES")
       (any-empty-attrs "WARN_TITLE_ATTRIBUTES_EMPTY")
       (any-missing-native-xdata "WARN_NATIVE_GMTITLE_XDATA_NOT_FOUND")
+      (any-visible-frame-native-link "WARN_NATIVE_LINKS_POINT_TO_VISIBLE_FRAMES")
       ((> (length source-titles) 0) "WARN_SOURCE_TITLE_INSERTS_REMAIN")
       ((> (length source-frames) 0) "WARN_SOURCE_FRAME_INSERTS_REMAIN")
       ((> (length other-title-inserts) 0) "WARN_OTHER_TITLE_LIKE_INSERTS_REMAIN")
