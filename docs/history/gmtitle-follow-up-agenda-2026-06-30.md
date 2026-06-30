@@ -218,6 +218,36 @@ Native GMTITLE picker UI automation check:
   - Keyboard and list-item attempts were not reliable enough to use as a production automation path.
   - The dialog was canceled; no old source title/frame content was removed.
 
+Repeat picker/config check on strict clean copy:
+
+- Test copy:
+  - `C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260604_strictnative_test_260630_01.dwg`
+- `SWTITLETRANSFERBOOTSTRAPFAST` correctly detected the first bootstrap sheet as:
+  - source sheet: `A2`
+  - paper/frame: `DR_A2_Outline`
+  - title block: `DR_titlea_3rd`
+- The native `GMTITLE` dialog still opened with GstarCAD defaults:
+  - paper: `A3 (297x420mm)`
+  - title block: `ISO title block A`
+  - object move: on
+- Accessibility inspection could see `DR_A2_Outline`, but direct element selection, keyboard selection, and direct combo value setting did not reliably change the selected value.
+- The dialog was canceled and the pending insertion state was escaped.
+- `SWTITLETRANSFERAPPLY` ended safely with `ABORT_NO_NATIVE_GMTITLE_TITLE`; no old SOLIDWORKS title/frame content was removed.
+- `SWTITLEFASTSTATUS` after the abort still reported:
+  - source title sheets: `13`
+  - source sheet frames: `15`
+  - frame-only sheets: `2`
+  - native GMTITLE exemplar: `no`
+  - contaminated target frame definitions: `<none>`
+  - result: `WAITING_FOR_NATIVE_GMTITLE_EXEMPLAR`
+
+Config/registry check:
+
+- Read-only searches in the GstarCAD installation folder, user `AppData\Local\Gstarsoft`, user `AppData\Roaming\Gstarsoft`, and `HKCU\Software\Gstarsoft` did not reveal a simple stored value for `DR_A2_Outline`, `DR_titlea_3rd`, or `GMTITLE`.
+- Text settings such as `impro.ini`, `PublicSymbol.ini`, and `CalVar.ini` do not contain the native GMTITLE picker selection.
+- Current conclusion: there is still no proven way to pre-fill the first native `GMTITLE` dialog from LISP or a simple config value.
+- Practical safe route remains: create/finalize the first native GMTITLE once through the real dialog, then use the fast batch path for the remaining title sheets and A4 frame-only sheets.
+
 Native-link diagnostic update:
 
 - Version: `260630-native-link-verify`
@@ -286,6 +316,7 @@ Conclusion:
   - There is no obvious command-line `GMTITLE` variant available in this installation.
   - The first native GMTITLE exemplar cannot currently be created by passing simple command-line options to `GMTITLE`.
   - Direct UI automation of the GMTITLE picker is also not reliable enough to be treated as the final automatic solution.
+  - AppData/registry searches did not reveal a simple saved selection value that can be set before launching `GMTITLE`.
   - Next practical options are either:
     - use `SWTITLETRANSFERBOOTSTRAPFAST` so the first native dialog appears only once, with the exact detected DR paper/title values printed in the command line, and the remaining sheets are processed automatically after the first native transfer succeeds; or
     - investigate the internal native recognition data more deeply so the first exemplar can be constructed without the dialog.

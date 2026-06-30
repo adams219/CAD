@@ -25,7 +25,9 @@
 ;;; SWTITLETRANSFERFASTBATCH runs the title clone batch and the frame-only
 ;;; clone batch together for every remaining detected source sheet.
 ;;; SWTITLETRANSFERBOOTSTRAPFAST creates/finalizes the first native GMTITLE
-;;; exemplar when needed, then continues with the fast batch phases.
+;;; exemplar when needed, then continues with the fast batch phases. The
+;;; first native picker is still a GstarCAD dialog step; command-line and
+;;; UI-automation selection are not reliable enough yet.
 ;;; SWTITLEFRAMEONLYFINALIZE moves one already-created native GMTITLE
 ;;; frame/title onto a detected frame-only sheet such as A4, then removes
 ;;; the old source frame/residue. SWTITLEFRAMEONLYCLONEBATCH is the faster
@@ -42,7 +44,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260630-strict-native-exemplar")
+(setq *swcad-title-scale-version* "260630-manual-native-guidance")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -4149,6 +4151,12 @@
       ", then place/confirm it."
     )
   )
+  (swcad-title-princ-line (strcat "  Paper/format: " (swcad-title-string frame-block)))
+  (swcad-title-princ-line (strcat "  Title block: " (swcad-title-target-title-block-name)))
+  (swcad-title-princ-line "  Turn OFF: Frame positioning.")
+  (swcad-title-princ-line "  Turn OFF: Object move.")
+  (swcad-title-princ-line "  Keep the default placement if possible; this LISP aligns the GMTITLE pair afterward.")
+  (swcad-title-princ-line "  Note: automatic command-line selection for this first native GMTITLE is not available in current tests.")
   (swcad-title-princ-line "FILEDIA and CMDDIA are not changed by this command.")
   (initdia)
   (command "GMTITLE")
@@ -6625,7 +6633,13 @@
         )
         (progn
           (princ "\nBootstrap phase: native GMTITLE will open once for the first detected title sheet.")
-          (princ "\nIn the GMTITLE dialog, choose the detected DR sheet and DR_titlea_3rd, then place/confirm it.")
+          (princ "\nManual first-native picker is currently required by GstarCAD.")
+          (princ "\nIn the GMTITLE dialog:")
+          (princ "\n  1. Choose the detected DR sheet shown above.")
+          (princ "\n  2. Choose DR_titlea_3rd.")
+          (princ "\n  3. Turn OFF Frame positioning.")
+          (princ "\n  4. Turn OFF Object move.")
+          (princ "\n  5. Confirm/place it once; the LISP aligns it and then runs the fast batch.")
           (setq old-batch-mode *swcad-title-batch-mode*)
           (setq *swcad-title-batch-mode* T)
           (setq apply-result (vl-catch-all-apply 'swcad-title-transfer-apply nil))
