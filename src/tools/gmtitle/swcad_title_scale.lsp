@@ -48,7 +48,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260630-preserve-copy-force-test")
+(setq *swcad-title-scale-version* "260630-preserve-copy-fast-clone")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -2114,7 +2114,6 @@
   (cond
     ((swcad-title-document-read-only-p) "BLOCKED_READ_ONLY_DOCUMENT")
     ((not (swcad-title-current-dwg-in-work-p)) "BLOCKED_NOT_WORK_COPY")
-    (contaminated "BLOCKED_TARGET_FRAME_DEFS_CONTAMINATED")
     ((and (= source-count 0) (= frame-only-count 0)) "OK_NO_REMAINING_SOURCES")
     ((not example-title) "WAITING_FOR_NATIVE_GMTITLE_EXEMPLAR")
     (T "OK_READY_FOR_FAST_BATCH")
@@ -2161,6 +2160,9 @@
   (swcad-title-princ-line
     (strcat "Contaminated target frame definitions: " (swcad-title-list-string contaminated))
   )
+  (if contaminated
+    (swcad-title-princ-line "Warning: these frame definitions may be native/install internals or real pollution. Fast clone no longer blocks on this alone; verify the visible result after conversion.")
+  )
   (swcad-title-princ-line (strcat "Result: " status))
   (cond
     ((equal status "WAITING_FOR_NATIVE_GMTITLE_EXEMPLAR")
@@ -2168,9 +2170,6 @@
     )
     ((equal status "OK_READY_FOR_FAST_BATCH")
       (swcad-title-princ-line "Next: run SWTITLETRANSFERFASTBATCH.")
-    )
-    ((equal status "BLOCKED_TARGET_FRAME_DEFS_CONTAMINATED")
-      (swcad-title-princ-line "Next: run SWTITLEFRAMEDEFCHECK and restart from a clean work copy if referenced definitions are polluted.")
     )
   )
   (swcad-title-princ-line "No drawing data was changed.")
@@ -2854,7 +2853,14 @@
 )
 
 (defun swcad-title-native-example-title (/ titles title result)
-  (setq titles (swcad-title-inserts-by-effective-name (swcad-title-target-title-block-name)))
+  (setq titles
+    (vl-sort
+      (swcad-title-inserts-by-effective-name (swcad-title-target-title-block-name))
+      '(lambda (a b)
+        (< (swcad-title-bbox-min-x a) (swcad-title-bbox-min-x b))
+      )
+    )
+  )
   (setq result nil)
   (foreach title titles
     (if
@@ -2950,7 +2956,7 @@
   )
 )
 
-(defun swcad-title-create-cloned-gmtitle-for-next-source (/ source source-ename source-data source-bbox source-block source-frame source-frame-ename source-frame-bbox source-frame-block build mappings values block-sheet inferred-frame-bbox frame-block example-title frame-ename title-ename frame-bbox offset-x offset-y target-x target-y doc ok)
+(defun swcad-title-create-cloned-gmtitle-for-next-source (/ source source-ename source-data source-bbox source-block source-frame source-frame-ename source-frame-bbox source-frame-block build mappings values block-sheet inferred-frame-bbox frame-block default-values clone-result title-ename frame-ename offset-x offset-y doc ok)
   (setq source (swcad-title-transfer-source-bbox))
   (setq source-ename (if source (car source) nil))
   (setq source-data (if source (cadr source) nil))
@@ -2974,41 +2980,37 @@
       (setq values (swcad-title-values-with-sheet-size-override values block-sheet))
       (setq inferred-frame-bbox (swcad-title-effective-source-frame-bbox source-bbox source-frame-bbox values block-sheet))
       (setq frame-block (swcad-title-target-frame-block-name-for-source source-block source-frame-block values inferred-frame-bbox))
-      (setq example-title (swcad-title-native-example-title))
-      (if (and frame-block example-title inferred-frame-bbox)
+      (if (and frame-block inferred-frame-bbox)
         (progn
           (setq doc (swcad-title-doc))
           (vl-catch-all-apply 'vla-StartUndoMark (list doc))
-          (setq frame-ename (swcad-title-insert-frame-reference frame-block))
-          (setq title-ename (if frame-ename (swcad-title-copy-ename example-title) nil))
-          (setq frame-bbox (if frame-ename (swcad-title-safe-bbox frame-ename) nil))
-          (setq ok nil)
-          (if (and frame-bbox title-ename)
-            (progn
-              (setq offset-x (- (car source-bbox) (car inferred-frame-bbox)))
-              (setq offset-y (- (cadr source-bbox) (cadr inferred-frame-bbox)))
-              (setq target-x (+ (car frame-bbox) offset-x))
-              (setq target-y (+ (cadr frame-bbox) offset-y))
-              (swcad-title-move-ename-bbox-min-to title-ename target-x target-y)
-              (setq ok (swcad-title-relink-title-to-frame title-ename frame-ename))
-              (if ok
-                (swcad-title-set-insert-attributes
-                  (swcad-title-safe-vla-object title-ename)
-                  (list
-                    (cons "GEN-TITLE-SIZ{6.7}" frame-block)
-                    (cons "GEN-TITLE-DWG{23}" (swcad-title-current-dwg-full-path))
-                    (cons "GEN-TITLE-NR{23}" "XXX")
-                  )
-                )
-              )
+          (setq offset-x (- (car source-bbox) (car inferred-frame-bbox)))
+          (setq offset-y (- (cadr source-bbox) (cadr inferred-frame-bbox)))
+          (setq default-values
+            (list
+              (cons "GEN-TITLE-SIZ{6.7}" frame-block)
+              (cons "GEN-TITLE-DWG{23}" (swcad-title-current-dwg-full-path))
+              (cons "GEN-TITLE-NR{23}" "XXX")
             )
+          )
+          (setq clone-result
+            (swcad-title-clone-native-gmtitle-pair-preserve-links
+              frame-block
+              (list offset-x offset-y)
+              default-values
+            )
+          )
+          (setq title-ename (if clone-result (car clone-result) nil))
+          (setq frame-ename (if clone-result (cadr clone-result) nil))
+          (setq ok nil)
+          (if clone-result
+            (setq ok T)
           )
           (vl-catch-all-apply 'vla-EndUndoMark (list doc))
           (if ok
             (list title-ename frame-ename frame-block)
             (progn
-              (swcad-title-delete-ename title-ename)
-              (swcad-title-delete-ename frame-ename)
+              (swcad-title-delete-cloned-gmtitle-pair title-ename frame-ename)
               nil
             )
           )
@@ -3020,7 +3022,7 @@
   )
 )
 
-(defun swcad-title-create-cloned-gmtitle-for-frame-only-source (source-frame / frame-ename frame-data frame-bbox source-block sheet frame-block values example-title new-frame-ename title-ename new-frame-bbox offset target-x target-y doc ok)
+(defun swcad-title-create-cloned-gmtitle-for-frame-only-source (source-frame / frame-ename frame-data frame-bbox source-block sheet frame-block values clone-result new-frame-ename title-ename offset doc ok)
   (setq frame-ename (if source-frame (car source-frame) nil))
   (setq frame-data (if source-frame (cadr source-frame) nil))
   (setq frame-bbox (if source-frame (caddr source-frame) nil))
@@ -3037,36 +3039,29 @@
     )
     (progn
       (setq values (swcad-title-frame-only-default-values source-frame))
-      (setq example-title (swcad-title-native-example-title))
-      (if example-title
+      (if (swcad-title-native-example-title)
         (progn
           (setq doc (swcad-title-doc))
           (vl-catch-all-apply 'vla-StartUndoMark (list doc))
-          (setq new-frame-ename (swcad-title-insert-frame-reference frame-block))
-          (setq title-ename (if new-frame-ename (swcad-title-copy-ename example-title) nil))
-          (setq new-frame-bbox (if new-frame-ename (swcad-title-safe-bbox new-frame-ename) nil))
-          (setq ok nil)
-          (if (and new-frame-bbox title-ename)
-            (progn
-              (setq offset (swcad-title-frame-only-title-offset sheet))
-              (setq target-x (+ (car new-frame-bbox) (car offset)))
-              (setq target-y (+ (cadr new-frame-bbox) (cadr offset)))
-              (swcad-title-move-ename-bbox-min-to title-ename target-x target-y)
-              (setq ok (swcad-title-relink-title-to-frame title-ename new-frame-ename))
-              (if ok
-                (swcad-title-set-insert-attributes
-                  (swcad-title-safe-vla-object title-ename)
-                  values
-                )
-              )
+          (setq offset (swcad-title-frame-only-title-offset sheet))
+          (setq clone-result
+            (swcad-title-clone-native-gmtitle-pair-preserve-links
+              frame-block
+              offset
+              values
             )
+          )
+          (setq title-ename (if clone-result (car clone-result) nil))
+          (setq new-frame-ename (if clone-result (cadr clone-result) nil))
+          (setq ok nil)
+          (if clone-result
+            (setq ok T)
           )
           (vl-catch-all-apply 'vla-EndUndoMark (list doc))
           (if ok
             (list title-ename new-frame-ename frame-block values)
             (progn
-              (swcad-title-delete-ename title-ename)
-              (swcad-title-delete-ename new-frame-ename)
+              (swcad-title-delete-cloned-gmtitle-pair title-ename new-frame-ename)
               nil
             )
           )
@@ -3826,6 +3821,103 @@
     )
     (not (member "visible-target-frame" kinds))
     (not (member "visible-target-title" kinds))
+  )
+)
+
+(defun swcad-title-native-example-pair (/ frame-records example-title example-title-bbox frame-record example-frame example-frame-block example-frame-bbox)
+  (setq frame-records (swcad-title-frame-records))
+  (setq example-title (swcad-title-native-example-title))
+  (setq example-title-bbox (if example-title (swcad-title-safe-bbox example-title) nil))
+  (setq frame-record (if example-title-bbox (swcad-title-nearest-frame-record example-title-bbox frame-records) nil))
+  (setq example-frame (if frame-record (car frame-record) nil))
+  (setq example-frame-block (if frame-record (cadr frame-record) nil))
+  (setq example-frame-bbox (if frame-record (cadddr frame-record) nil))
+  (if
+    (and
+      example-title
+      example-title-bbox
+      example-frame
+      example-frame-bbox
+      example-frame-block
+    )
+    (list example-title example-frame example-frame-block example-title-bbox example-frame-bbox)
+    nil
+  )
+)
+
+(defun swcad-title-delete-cloned-gmtitle-pair (title-ename frame-ename)
+  (swcad-title-delete-ename title-ename)
+  (swcad-title-delete-ename frame-ename)
+)
+
+(defun swcad-title-clone-native-gmtitle-pair-preserve-links (target-frame-block title-offset values / pair example-title example-frame example-frame-block example-title-bbox example-frame-bbox copied-frame copied-title copied-frame-bbox copied-title-bbox fallback-offset copied-kinds attr-count)
+  (setq pair (swcad-title-native-example-pair))
+  (if (and pair target-frame-block)
+    (progn
+      (setq example-title (car pair))
+      (setq example-frame (cadr pair))
+      (setq example-frame-block (caddr pair))
+      (setq example-title-bbox (cadddr pair))
+      (setq example-frame-bbox (nth 4 pair))
+      (setq copied-frame (swcad-title-copy-ename example-frame))
+      (setq copied-title (if copied-frame (swcad-title-copy-ename example-title) nil))
+      (if
+        (and
+          copied-frame
+          copied-title
+          (not (equal (strcase target-frame-block) (strcase example-frame-block)))
+          (not (swcad-title-change-insert-block-name copied-frame target-frame-block))
+        )
+        (progn
+          (swcad-title-delete-cloned-gmtitle-pair copied-title copied-frame)
+          (setq copied-title nil)
+          (setq copied-frame nil)
+        )
+      )
+      (if (and copied-frame copied-title)
+        (progn
+          (swcad-title-move-ename-bbox-min-to copied-frame 0.0 0.0)
+          (setq copied-frame-bbox (swcad-title-safe-bbox copied-frame))
+          (setq fallback-offset (swcad-title-title-frame-offset example-title-bbox example-frame-bbox))
+          (if (not title-offset)
+            (setq title-offset fallback-offset)
+          )
+          (if copied-frame-bbox
+            (swcad-title-move-ename-bbox-min-to
+              copied-title
+              (+ (car copied-frame-bbox) (car title-offset))
+              (+ (cadr copied-frame-bbox) (cadr title-offset))
+            )
+          )
+          (setq attr-count
+            (swcad-title-set-insert-attributes
+              (swcad-title-safe-vla-object copied-title)
+              values
+            )
+          )
+          (setq copied-title-bbox (swcad-title-safe-bbox copied-title))
+          (setq copied-kinds (swcad-title-native-link-target-kinds copied-title))
+          (if (swcad-title-internal-native-link-kinds-p copied-kinds)
+            (list
+              copied-title
+              copied-frame
+              target-frame-block
+              values
+              attr-count
+              copied-kinds
+              copied-title-bbox
+              copied-frame-bbox
+            )
+            (progn
+              (swcad-title-delete-cloned-gmtitle-pair copied-title copied-frame)
+              nil
+            )
+          )
+        )
+        nil
+      )
+    )
+    nil
   )
 )
 
@@ -7071,6 +7163,9 @@
     )
   )
   (princ (strcat "\nContaminated target frame definitions: " (swcad-title-list-string contaminated)))
+  (if contaminated
+    (princ "\nWarning: target frame definitions are flagged source-like; preserve-copy fast clone will continue and final verification must check the visible frames.")
+  )
   (cond
     ((swcad-title-document-read-only-p)
       (setq *swcad-title-last-apply-status* "ABORT_READ_ONLY_DOCUMENT")
@@ -7081,11 +7176,6 @@
       (setq *swcad-title-last-apply-status* "ABORT_NOT_WORK_COPY")
       (princ "\nResult: ABORT_NOT_WORK_COPY")
       (princ "\nFast batch is limited to Documents/CAD tool/work copies.")
-    )
-    (contaminated
-      (setq *swcad-title-last-apply-status* "ABORT_TARGET_FRAME_DEFS_CONTAMINATED")
-      (princ "\nResult: ABORT_TARGET_FRAME_DEFS_CONTAMINATED")
-      (princ "\nRun SWTITLEFRAMEDEFCHECK. Start from a clean work copy if referenced definitions are already polluted.")
     )
     ((and (= source-count 0) (= frame-only-count 0))
       (setq *swcad-title-last-apply-status* "OK_NO_REMAINING_SOURCES")
@@ -7154,6 +7244,9 @@
     )
   )
   (princ (strcat "\nContaminated target frame definitions: " (swcad-title-list-string contaminated)))
+  (if contaminated
+    (princ "\nWarning: target frame definitions are flagged source-like; bootstrap/fast clone will continue and final verification must check the visible frames.")
+  )
   (cond
     ((swcad-title-document-read-only-p)
       (setq *swcad-title-last-apply-status* "ABORT_READ_ONLY_DOCUMENT")
@@ -7164,11 +7257,6 @@
       (setq *swcad-title-last-apply-status* "ABORT_NOT_WORK_COPY")
       (princ "\nResult: ABORT_NOT_WORK_COPY")
       (princ "\nBootstrap fast transfer is limited to Documents/CAD tool/work copies.")
-    )
-    (contaminated
-      (setq *swcad-title-last-apply-status* "ABORT_TARGET_FRAME_DEFS_CONTAMINATED")
-      (princ "\nResult: ABORT_TARGET_FRAME_DEFS_CONTAMINATED")
-      (princ "\nRun SWTITLEFRAMEDEFCHECK. Start from a clean work copy if referenced definitions are already polluted.")
     )
     ((and (= source-count 0) (= frame-only-count 0))
       (setq *swcad-title-last-apply-status* "OK_NO_REMAINING_SOURCES")

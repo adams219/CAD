@@ -371,11 +371,29 @@ Preserve-copy experiment command:
     - Result: `OK_PRESERVE_COPY_INTERNAL_LINK`
     - The copied A3 title kept `native-target-kinds=internal-no-entget`.
     - The copied A3 title linked to internal handle `16BF5`, not to the copied visible `DR_A3_Outline` frame handle.
+  - Manual double-click verification:
+    - Copied A3 title handle `17A55` opened the desired `속성 블록 편집` table dialog, not the Advanced Attribute Editor.
+    - The dialog showed populated title attributes including checked/designed/approved/date/scale/sheet/file fields.
+    - This confirms that preserving the internal native link can keep the GMTITLE-style editor behavior even when the visible copied frame is retargeted to `DR_A3_Outline`.
 - Current verification status:
   - Static checks passed: `git diff --check`, and a simple parenthesis-balance check returned `parenDepth=0`.
   - CAD execution now proves that preserve-copy can create A2 and A3 visible titles with internal GMTITLE link kind.
-  - Manual double-click verification is still not complete; a follow-up attempt to zoom to handle `17A55` failed due to a command-line point format issue.
-  - The next key check is whether copied A3 title `17A55` opens the native GMTITLE table editor or the Advanced Attribute Editor on double-click.
+  - Manual double-click verification passed for copied A3 title `17A55`.
+  - The next key check is whether the production fast clone path can use the same preserve-copy behavior across A2/A3/A4 sheets.
+
+Fast clone implementation update:
+
+- Version: `260630-preserve-copy-fast-clone`
+- Production fast clone now copies a native GMTITLE frame/title pair while preserving the internal native link instead of rewriting the title xdata to the visible frame handle.
+- Native exemplar selection is sorted left-to-right so repeated fast clone runs choose the stable known-good exemplar first.
+- `SWTITLEFASTSTATUS`, `SWTITLETRANSFERFASTBATCH`, and `SWTITLETRANSFERBOOTSTRAPFAST` no longer abort only because `DR_A*_Outline` definitions are flagged source-like; they log a warning and require final visual/verify checks.
+- CAD test copy: `work\0000_A_DRP125_CP_ALL_260604_preservecopy_a3isolated_test_260630_01.dwg`
+  - Before fast batch: `SWTITLEFASTSTATUS` returned `OK_READY_FOR_FAST_BATCH` with two A4 frame-only sheets.
+  - `SWTITLETRANSFERFASTBATCH` converted the remaining A4 frame-only sheets.
+  - Final `SWTITLEFASTSTATUS` returned `OK_NO_REMAINING_SOURCES`.
+  - Final `SWTITLEGMTITLEVERIFYALL` reported remaining source title candidates `0`, remaining source sheet frame candidates `0`, and visible-frame native links `0`.
+  - The final verifier still returns `WARN_TARGET_FRAME_DEFS_CONTAMINATED` because the current source-like child-name detector flags native/install frame internals. Treat this as a warning until the detector is refined.
+  - Last frame-only finalize log showed old A4 frame handle `5291` deleted and `101` lower-left/upper sheet-format residue entities removed.
 
 Strict native exemplar update:
 
