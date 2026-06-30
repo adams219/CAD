@@ -128,6 +128,7 @@ Fast remaining-sheet batch command:
 - Added command:
   - `SWTITLETRANSFERFASTBATCH`
   - `SWTITLEFASTSTATUS`
+  - `SWTITLETRANSFERBOOTSTRAPFAST`
 - Purpose:
   - `SWTITLEFASTSTATUS` is a read-only readiness check for the fast route.
   - It reports source title count, source frame count, frame-only count, and A-size counts before any edit is attempted.
@@ -135,12 +136,19 @@ Fast remaining-sheet batch command:
   - Counts every remaining frame-only sheet automatically.
   - Runs the existing verified-native-GMTITLE clone path for title sheets.
   - Then runs the frame-only clone path for A4-like frame-only sheets.
+  - `SWTITLETRANSFERBOOTSTRAPFAST` wraps the practical current workflow:
+    - if a verified native GMTITLE exemplar already exists, it runs the fast remaining-sheet batch;
+    - if no exemplar exists, it runs the first native `GMTITLE` transfer once, then starts the fast remaining-sheet batch after that first transfer succeeds.
 - Preconditions:
   - Current DWG must be a writable work-folder copy.
-  - At least one native `DR_titlea_3rd` GMTITLE exemplar with native xdata must already exist.
   - Target `DR_A*_Outline` block definitions must not be contaminated.
-- Expected clean-start flow:
-  - Use `SWTITLETRANSFERAPPLY` or `SWTITLETRANSFERFINALIZE` once to create/finalize the first native GMTITLE exemplar.
+  - For direct `SWTITLETRANSFERFASTBATCH`, at least one native `DR_titlea_3rd` GMTITLE exemplar with native xdata must already exist.
+  - For `SWTITLETRANSFERBOOTSTRAPFAST`, either a native exemplar can already exist, or at least one source title sheet must remain so the command can create/finalize the first native exemplar.
+
+Expected clean-start flow:
+
+  - Use `SWTITLETRANSFERBOOTSTRAPFAST` for the current one-command flow.
+  - Alternative manual flow: use `SWTITLETRANSFERAPPLY` or `SWTITLETRANSFERFINALIZE` once to create/finalize the first native GMTITLE exemplar.
   - Run `SWTITLETRANSFERFASTBATCH`.
   - It should process the remaining A2/A3 title sheets and the A4 frame-only sheets without asking for counts.
   - Run `SWTITLEGMTITLEVERIFYALL` and then manually double-click A2/A3/A4 titles for the final editor check.
@@ -173,6 +181,7 @@ Fast remaining-sheet batch command:
     - The current clean fastbatch test copy is correctly detected and safe to continue from.
     - The next bottleneck is automatic/native creation of the first `DR_A*_Outline + DR_titlea_3rd` GMTITLE exemplar.
     - Until that exemplar exists, `SWTITLETRANSFERFASTBATCH` should stop before modifying the drawing.
+    - `SWTITLETRANSFERBOOTSTRAPFAST` is now the preferred command for this exact state because it handles the first-native step and then continues into the fast batch.
 
 Native GMTITLE command-line automation check:
 
@@ -185,11 +194,13 @@ Native GMTITLE command-line automation check:
   - `-GMTITLE` returned an unknown-command message.
   - `GMTITLE` still opened the modal title/border dialog even with `CMDDIA=0`.
   - The dialog was canceled and `CMDDIA` was restored to `1`.
-- Conclusion:
+
+Conclusion:
+
   - There is no obvious command-line `GMTITLE` variant available in this installation.
   - The first native GMTITLE exemplar cannot currently be created by passing simple command-line options to `GMTITLE`.
   - Next practical options are either:
-    - keep one manual/native exemplar step, then let `SWTITLETRANSFERFASTBATCH` process the rest; or
+    - use `SWTITLETRANSFERBOOTSTRAPFAST` so the first native dialog appears only once and the remaining sheets are processed automatically; or
     - investigate the internal native recognition data more deeply so the first exemplar can be constructed without the dialog.
 
 ## Concern
