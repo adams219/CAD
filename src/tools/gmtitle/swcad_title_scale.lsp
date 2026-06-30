@@ -39,6 +39,8 @@
 ;;; internal GMTITLE recognition handle can be compared with visible clones.
 ;;; SWTITLEGMTITLECOMPARE prints one internal/native title and one
 ;;; visible-frame-linked clone side by side for A3 recognition debugging.
+;;; SWTITLEGMTITLEPRESERVECOPYTEST copies one real native GMTITLE frame/title
+;;; pair without relinking it to the visible frame, for recognition testing.
 ;;; Fast clone phases now require a real native exemplar whose GMTITLE link
 ;;; targets an internal recognition handle, not a visible cloned frame insert.
 ;;; SWSCALESCAN compares title-block scale candidates with dimension
@@ -46,7 +48,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260630-gmtitle-compare")
+(setq *swcad-title-scale-version* "260630-preserve-copy-test")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -213,6 +215,10 @@
 
 (defun swcad-title-open-gmtitle-compare-log ()
   (swcad-title-open-log "swcad_title_gmtitle_compare_last.txt" "SWTITLEGMTITLECOMPARE log")
+)
+
+(defun swcad-title-open-gmtitle-preserve-copy-test-log ()
+  (swcad-title-open-log "swcad_title_gmtitle_preserve_copy_test_last.txt" "SWTITLEGMTITLEPRESERVECOPYTEST log")
 )
 
 (defun swcad-title-open-frame-def-check-log ()
@@ -2727,6 +2733,62 @@
   )
 )
 
+(defun swcad-title-ensure-clean-frame-definition (frame-block)
+  (cond
+    ((not frame-block) nil)
+    ((and
+       (swcad-title-block-exists-p frame-block)
+       (not (swcad-title-target-frame-block-contaminated-p frame-block))
+     )
+      T
+    )
+    ((swcad-title-block-exists-p frame-block)
+      nil
+    )
+    (T
+      (swcad-title-import-clean-frame-definition frame-block)
+    )
+  )
+)
+
+(defun swcad-title-change-insert-block-name (ename block-name / data new-data pair changed result)
+  (setq data (if ename (entget ename '("*")) nil))
+  (if
+    (and
+      data
+      (equal (swcad-title-string (swcad-title-dxf-value data 0)) "INSERT")
+      (swcad-title-ensure-clean-frame-definition block-name)
+    )
+    (progn
+      (setq new-data nil)
+      (setq changed nil)
+      (foreach pair data
+        (if (and (listp pair) (= (car pair) 2))
+          (progn
+            (setq new-data (append new-data (list (cons 2 block-name))))
+            (setq changed T)
+          )
+          (setq new-data (append new-data (list pair)))
+        )
+      )
+      (if changed
+        (progn
+          (setq result (vl-catch-all-apply 'entmod (list new-data)))
+          (if (vl-catch-all-error-p result)
+            nil
+            (progn
+              (entupd ename)
+              T
+            )
+          )
+        )
+        nil
+      )
+    )
+    nil
+  )
+)
+
 (defun swcad-title-move-ename-bbox-min-to (ename x y / bbox dx dy)
   (setq bbox (swcad-title-safe-bbox ename))
   (if bbox
@@ -3708,6 +3770,260 @@
     )
   )
   result
+)
+
+(defun swcad-title-frame-records-right-origin (frame-records fallback-bbox / max-x min-y record bbox)
+  (setq max-x nil)
+  (setq min-y (if fallback-bbox (cadr fallback-bbox) 0.0))
+  (foreach record frame-records
+    (setq bbox (cadddr record))
+    (if bbox
+      (progn
+        (if (or (not max-x) (> (caddr bbox) max-x))
+          (setq max-x (caddr bbox))
+        )
+        (if (< (cadr bbox) min-y)
+          (setq min-y (cadr bbox))
+        )
+      )
+    )
+  )
+  (if (not max-x)
+    (setq max-x (if fallback-bbox (caddr fallback-bbox) 0.0))
+  )
+  (list (+ max-x 50.0) min-y)
+)
+
+(defun swcad-title-copy-test-target-sheet (raw / value normalized)
+  (setq value (strcase (vl-string-trim " \t\r\n" (swcad-title-string raw))))
+  (cond
+    ((or (= value "") (= value "SAME")) "SAME")
+    (T
+      (setq normalized (swcad-title-normalized-sheet-size value))
+      (if (and normalized (wcmatch normalized "A1,A2,A3,A4"))
+        normalized
+        nil
+      )
+    )
+  )
+)
+
+(defun swcad-title-title-frame-offset (title-bbox frame-bbox)
+  (if (and title-bbox frame-bbox)
+    (list (- (car title-bbox) (car frame-bbox)) (- (cadr title-bbox) (cadr frame-bbox)))
+    '(0.0 0.0)
+  )
+)
+
+(defun swcad-title-internal-native-link-kinds-p (kinds)
+  (and
+    (or
+      (member "internal" kinds)
+      (member "internal-no-entget" kinds)
+    )
+    (not (member "visible-target-frame" kinds))
+    (not (member "visible-target-title" kinds))
+  )
+)
+
+(defun swcad-title-gmtitle-preserve-copy-test (/ frame-records example-title example-title-bbox example-frame-record example-frame example-frame-block example-frame-bbox raw target-sheet target-frame-block block-change-needed answer doc copied-frame copied-title origin title-offset copied-frame-bbox copied-title-bbox copied-kinds attr-count status)
+  (swcad-title-open-gmtitle-preserve-copy-test-log)
+  (setq frame-records (swcad-title-frame-records))
+  (setq example-title (swcad-title-first-title-by-native-kind "internal"))
+  (setq example-title-bbox (if example-title (swcad-title-safe-bbox example-title) nil))
+  (setq example-frame-record (if example-title-bbox (swcad-title-nearest-frame-record example-title-bbox frame-records) nil))
+  (setq example-frame (if example-frame-record (car example-frame-record) nil))
+  (setq example-frame-block (if example-frame-record (cadr example-frame-record) nil))
+  (setq example-frame-bbox (if example-frame-record (cadddr example-frame-record) nil))
+  (swcad-title-princ-line "----- SWTITLEGMTITLEPRESERVECOPYTEST native pair copy experiment -----")
+  (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-print-work-copy-status)
+  (swcad-title-princ-line
+    (strcat
+      "Native exemplar title: "
+      (if example-title
+        (strcat
+          (swcad-title-ename-handle example-title)
+          ", link-kinds="
+          (swcad-title-list-string (swcad-title-native-link-target-kinds example-title))
+        )
+        "<none>"
+      )
+    )
+  )
+  (swcad-title-princ-line
+    (strcat
+      "Nearest native exemplar frame: "
+      (if example-frame
+        (strcat
+          example-frame-block
+          "/"
+          (swcad-title-ename-handle example-frame)
+          ", link-kinds="
+          (swcad-title-list-string (swcad-title-native-link-target-kinds example-frame))
+        )
+        "<none>"
+      )
+    )
+  )
+  (cond
+    ((swcad-title-document-read-only-p)
+      (setq status "ABORT_READ_ONLY_DOCUMENT")
+      (swcad-title-princ-line "Result: ABORT_READ_ONLY_DOCUMENT")
+      (swcad-title-princ-line "Open a writable work copy before running the preserve-copy test.")
+    )
+    ((not (swcad-title-current-dwg-in-work-p))
+      (setq status "ABORT_NOT_WORK_COPY")
+      (swcad-title-princ-line "Result: ABORT_NOT_WORK_COPY")
+      (swcad-title-princ-line "This experiment is limited to Documents/CAD tool/work copies.")
+    )
+    ((not example-title)
+      (setq status "ABORT_NO_INTERNAL_NATIVE_TITLE")
+      (swcad-title-princ-line "Result: ABORT_NO_INTERNAL_NATIVE_TITLE")
+    )
+    ((not example-frame)
+      (setq status "ABORT_NO_NEAREST_NATIVE_FRAME")
+      (swcad-title-princ-line "Result: ABORT_NO_NEAREST_NATIVE_FRAME")
+    )
+    (T
+      (setq raw (getstring T "\nTarget sheet for copy test [SAME/A1/A2/A3/A4] <SAME>: "))
+      (setq target-sheet (swcad-title-copy-test-target-sheet raw))
+      (if (not target-sheet)
+        (progn
+          (setq status "ABORT_INVALID_TARGET_SHEET")
+          (swcad-title-princ-line "Result: ABORT_INVALID_TARGET_SHEET")
+          (swcad-title-princ-line "Use SAME, A1, A2, A3, or A4.")
+        )
+        (progn
+          (setq target-frame-block
+            (if (equal target-sheet "SAME")
+              example-frame-block
+              (swcad-title-target-frame-block-name-for-sheet target-sheet)
+            )
+          )
+          (setq block-change-needed (not (equal (strcase target-frame-block) (strcase example-frame-block))))
+          (swcad-title-princ-line (strcat "Requested target sheet: " target-sheet))
+          (swcad-title-princ-line (strcat "Target frame block: " target-frame-block))
+          (cond
+            ((and
+               block-change-needed
+               (swcad-title-block-exists-p target-frame-block)
+               (swcad-title-target-frame-block-contaminated-p target-frame-block)
+             )
+              (setq status "ABORT_TARGET_FRAME_DEFINITION_NOT_CLEAN")
+              (swcad-title-princ-line "Result: ABORT_TARGET_FRAME_DEFINITION_NOT_CLEAN")
+              (swcad-title-princ-line "Target frame definition is already present but contaminated.")
+            )
+            (T
+              (setq answer
+                (getstring
+                  T
+                  "\nType YES to copy one native GMTITLE pair for recognition testing. No old content is deleted: "
+                )
+              )
+              (if (not (equal (strcase answer) "YES"))
+                (progn
+                  (setq status "ABORT_USER_CANCEL")
+                  (swcad-title-princ-line "Result: ABORT_USER_CANCEL")
+                  (swcad-title-princ-line "No drawing data was changed.")
+                )
+                (progn
+                  (setq doc (swcad-title-doc))
+                  (vl-catch-all-apply 'vla-StartUndoMark (list doc))
+                  (setq copied-frame (swcad-title-copy-ename example-frame))
+                  (setq copied-title (if copied-frame (swcad-title-copy-ename example-title) nil))
+                  (if (and copied-frame copied-title block-change-needed)
+                    (if (not (swcad-title-change-insert-block-name copied-frame target-frame-block))
+                      (progn
+                        (swcad-title-delete-ename copied-title)
+                        (swcad-title-delete-ename copied-frame)
+                        (setq copied-title nil)
+                        (setq copied-frame nil)
+                      )
+                    )
+                  )
+                  (if (and copied-frame copied-title)
+                    (progn
+                      (setq origin (swcad-title-frame-records-right-origin frame-records example-frame-bbox))
+                      (swcad-title-move-ename-bbox-min-to copied-frame (car origin) (cadr origin))
+                      (setq copied-frame-bbox (swcad-title-safe-bbox copied-frame))
+                      (setq title-offset
+                        (if (equal target-sheet "SAME")
+                          (swcad-title-title-frame-offset example-title-bbox example-frame-bbox)
+                          (swcad-title-frame-only-title-offset target-sheet)
+                        )
+                      )
+                      (if (not title-offset)
+                        (setq title-offset (swcad-title-title-frame-offset example-title-bbox example-frame-bbox))
+                      )
+                      (if copied-frame-bbox
+                        (swcad-title-move-ename-bbox-min-to
+                          copied-title
+                          (+ (car copied-frame-bbox) (car title-offset))
+                          (+ (cadr copied-frame-bbox) (cadr title-offset))
+                        )
+                      )
+                      (setq attr-count
+                        (swcad-title-set-insert-attributes
+                          (swcad-title-safe-vla-object copied-title)
+                          (list
+                            (cons "GEN-TITLE-SIZ{6.7}" (if (equal target-sheet "SAME") (swcad-title-sheet-size-from-block-name target-frame-block) target-sheet))
+                            (cons "GEN-TITLE-DWG{23}" "PRESERVE_COPY_TEST")
+                            (cons "GEN-TITLE-NR{23}" "PRESERVE_COPY_TEST")
+                          )
+                        )
+                      )
+                      (setq copied-title-bbox (swcad-title-safe-bbox copied-title))
+                      (setq copied-kinds (swcad-title-native-link-target-kinds copied-title))
+                      (swcad-title-princ-line
+                        (strcat
+                          "Copied frame: "
+                          target-frame-block
+                          "/"
+                          (swcad-title-ename-handle copied-frame)
+                          ", bbox="
+                          (swcad-title-bbox-string copied-frame-bbox)
+                        )
+                      )
+                      (swcad-title-princ-line
+                        (strcat
+                          "Copied title: "
+                          (swcad-title-ename-handle copied-title)
+                          ", bbox="
+                          (swcad-title-bbox-string copied-title-bbox)
+                          ", attr-set="
+                          (itoa attr-count)
+                          ", link-kinds="
+                          (swcad-title-list-string copied-kinds)
+                        )
+                      )
+                      (swcad-title-print-gmtitle-compare-case "Copied preserve-link title detail" copied-title (swcad-title-frame-records))
+                      (setq status
+                        (if (swcad-title-internal-native-link-kinds-p copied-kinds)
+                          "OK_PRESERVE_COPY_INTERNAL_LINK"
+                          "WARN_PRESERVE_COPY_LINK_NOT_INTERNAL"
+                        )
+                      )
+                      (swcad-title-princ-line (strcat "Result: " status))
+                      (swcad-title-princ-line "Old SOLIDWORKS title/frame content was not removed.")
+                    )
+                    (progn
+                      (setq status "ABORT_COPY_NATIVE_PAIR_FAILED")
+                      (swcad-title-princ-line "Result: ABORT_COPY_NATIVE_PAIR_FAILED")
+                    )
+                  )
+                  (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  (swcad-title-close-log)
+  (princ)
 )
 
 (defun swcad-title-print-gmtitle-compare-case (label title frame-records / title-data title-object attr-pairs title-bbox native-handles native-target-kinds nearest nearest-ename nearest-handle linked-handle linked-ename handle-matches-nearest)
@@ -7174,6 +7490,10 @@
   (swcad-title-gmtitle-compare)
 )
 
+(defun c:SWTITLEGMTITLEPRESERVECOPYTEST ()
+  (swcad-title-gmtitle-preserve-copy-test)
+)
+
 (defun c:SWTITLEFRAMEDEFCHECK ()
   (swcad-title-frame-def-check)
 )
@@ -7368,5 +7688,5 @@
 )
 
 (princ (strcat "\nswcad_title_scale.lsp ready " *swcad-title-scale-version*))
-(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWTITLEMULTIPREVIEW, SWTITLEGMTITLEVERIFY, SWTITLEGMTITLEVERIFYALL, SWTITLEGMTITLELINKSCAN, SWTITLEGMTITLELINKDETAIL, SWTITLEGMTITLECOMPARE, SWTITLEFRAMEDEFCHECK, SWTITLEFRAMEDEFCLEANSAFE, SWTITLEFASTSTATUS, SWTITLETRANSFERPREVIEW, SWTITLETRANSFERAPPLY, SWTITLETRANSFERFINALIZE, SWTITLETRANSFERBATCH, SWTITLETRANSFERCLONEAPPLY, SWTITLETRANSFERCLONEBATCH, SWTITLETRANSFERFASTBATCH, SWTITLETRANSFERBOOTSTRAPFAST, SWTITLEFRAMEONLYFINALIZE, SWTITLEFRAMEONLYCLONEAPPLY, SWTITLEFRAMEONLYCLONEBATCH, SWSCALESCAN")
+(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWTITLEMULTIPREVIEW, SWTITLEGMTITLEVERIFY, SWTITLEGMTITLEVERIFYALL, SWTITLEGMTITLELINKSCAN, SWTITLEGMTITLELINKDETAIL, SWTITLEGMTITLECOMPARE, SWTITLEGMTITLEPRESERVECOPYTEST, SWTITLEFRAMEDEFCHECK, SWTITLEFRAMEDEFCLEANSAFE, SWTITLEFASTSTATUS, SWTITLETRANSFERPREVIEW, SWTITLETRANSFERAPPLY, SWTITLETRANSFERFINALIZE, SWTITLETRANSFERBATCH, SWTITLETRANSFERCLONEAPPLY, SWTITLETRANSFERCLONEBATCH, SWTITLETRANSFERFASTBATCH, SWTITLETRANSFERBOOTSTRAPFAST, SWTITLEFRAMEONLYFINALIZE, SWTITLEFRAMEONLYCLONEAPPLY, SWTITLEFRAMEONLYCLONEBATCH, SWSCALESCAN")
 (princ)

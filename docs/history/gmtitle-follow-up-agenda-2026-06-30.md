@@ -331,6 +331,34 @@ Native-vs-clone compare diagnostic update:
   - The cloned A3 title is linked directly to the visible frame insert.
   - This is now the clearest concrete difference to investigate before claiming that the cloned A3 sheets are true native GMTITLE objects.
 
+Preserve-copy experiment command:
+
+- Version: `260630-preserve-copy-test`
+- Added command:
+  - `SWTITLEGMTITLEPRESERVECOPYTEST`
+- Log:
+  - `work\swcad_title_gmtitle_preserve_copy_test_last.txt`
+- Purpose:
+  - Copy one real native GMTITLE frame/title pair without rewriting the title's `GENIUS_GENOREF_13` xdata to the visible frame handle.
+  - Place the copied pair to the right side of the current target frames.
+  - Optionally retarget the copied frame insert to `DR_A1_Outline`, `DR_A2_Outline`, `DR_A3_Outline`, or `DR_A4_Outline` for recognition experiments.
+  - Never remove old SOLIDWORKS title/frame content.
+- Safety:
+  - Runs only on writable `Documents\CAD tool\work` copies.
+  - Requires explicit `YES` before copying.
+  - If the requested target frame definition already exists and is contaminated, it aborts before modifying the drawing.
+  - Missing clean frame definitions are imported only after the `YES` confirmation and inside the undo mark.
+- Intended next CAD test:
+  - First run with target `SAME`.
+  - Check whether the copied title still reports `native-target-kinds=internal-no-entget`.
+  - If `SAME` preserves the internal link, run a second test with target `A3` on a clean work copy.
+  - Manually double-click the copied title block to see whether it opens the native GMTITLE table editor or the Advanced Attribute Editor.
+- Current verification status:
+  - Static checks passed: `git diff --check`, and a simple parenthesis-balance check returned `parenDepth=0`.
+  - Direct CAD command-line input became unreliable during this session because the floating command line repeatedly fell into an `Specify insertion point` state.
+  - Launching a separate GstarCAD instance with a `/b` script produced a blank startup/modal window and did not create the preserve-copy log.
+  - Therefore the new command is implemented but still needs a successful in-CAD execution test before it can be trusted for the production flow.
+
 Strict native exemplar update:
 
 - Version: `260630-strict-native-exemplar`
