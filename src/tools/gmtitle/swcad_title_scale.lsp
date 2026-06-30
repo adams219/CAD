@@ -38,7 +38,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260630-bootstrap-fast")
+(setq *swcad-title-scale-version* "260630-bootstrap-flow")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -2048,6 +2048,44 @@
   )
 )
 
+(defun swcad-title-next-bootstrap-selection-record (/ source source-ename source-bbox source-block source-frame source-frame-bbox source-frame-block build mappings values block-sheet effective-frame-bbox frame-block sheet)
+  (setq source (car (swcad-title-source-title-candidates)))
+  (if source
+    (progn
+      (setq source-ename (car source))
+      (setq source-bbox (caddr source))
+      (setq source-block (cadddr source))
+      (setq source-frame (if source-bbox (swcad-title-transfer-source-frame source-bbox source-ename) nil))
+      (setq source-frame-bbox (if source-frame (caddr source-frame) nil))
+      (setq source-frame-block (if source-frame (swcad-title-effective-insert-name (car source-frame)) nil))
+      (setq build (swcad-title-transfer-build-mappings source-bbox source-ename 7.0))
+      (setq mappings (car build))
+      (setq values (swcad-title-transfer-values mappings))
+      (setq block-sheet (swcad-title-source-block-sheet-size source-block source-frame-block))
+      (setq effective-frame-bbox (swcad-title-effective-source-frame-bbox source-bbox source-frame-bbox values block-sheet))
+      (setq frame-block (swcad-title-target-frame-block-name-for-source source-block source-frame-block values effective-frame-bbox))
+      (setq sheet (swcad-title-sheet-size-from-block-name frame-block))
+      (list sheet frame-block (swcad-title-target-title-block-name))
+    )
+    nil
+  )
+)
+
+(defun swcad-title-print-next-bootstrap-selection (/ record sheet frame-block title-block)
+  (setq record (swcad-title-next-bootstrap-selection-record))
+  (if record
+    (progn
+      (setq sheet (car record))
+      (setq frame-block (cadr record))
+      (setq title-block (caddr record))
+      (swcad-title-princ-line "Next native GMTITLE bootstrap selection:")
+      (swcad-title-princ-line (strcat "  source sheet: " (if sheet sheet "<unknown>")))
+      (swcad-title-princ-line (strcat "  paper/frame: " (if frame-block frame-block "<unknown>")))
+      (swcad-title-princ-line (strcat "  title block: " (if title-block title-block "<unknown>")))
+    )
+  )
+)
+
 (defun swcad-title-fast-prerequisite-status (summary contaminated example-title / source-count frame-only-count)
   (setq source-count (swcad-title-fast-summary-value summary "source-title-count"))
   (setq frame-only-count (swcad-title-fast-summary-value summary "frame-only-count"))
@@ -2058,6 +2096,13 @@
     ((and (= source-count 0) (= frame-only-count 0)) "OK_NO_REMAINING_SOURCES")
     ((not example-title) "WAITING_FOR_NATIVE_GMTITLE_EXEMPLAR")
     (T "OK_READY_FOR_FAST_BATCH")
+  )
+)
+
+(defun swcad-title-bootstrap-first-native-success-p (status)
+  (or
+    (equal status "APPLIED_TITLE_TRANSFER")
+    (equal status "FINALIZED_EXISTING_GMTITLE_TRANSFER")
   )
 )
 
@@ -2078,6 +2123,13 @@
     )
   )
   (swcad-title-print-fast-sheet-summary summary)
+  (if
+    (and
+      (not example-title)
+      (> (swcad-title-fast-summary-value summary "source-title-count") 0)
+    )
+    (swcad-title-print-next-bootstrap-selection)
+  )
   (swcad-title-princ-line
     (strcat
       "Native GMTITLE exemplar: "
@@ -3586,7 +3638,7 @@
   (princ)
 )
 
-(defun swcad-title-gmtitle-verify-all (/ title-name title-enames title-count title-index title-ename title-data title-object title-bbox attr-pairs missing-tags nonempty-attrs native-handles source-titles source-frames other-title-inserts filedia cmddia status frame-name frame-count total-frame-count any-missing-tags any-empty-attrs any-missing-native-xdata)
+(defun swcad-title-gmtitle-verify-all (/ title-name title-enames title-count title-index title-ename title-data title-object title-bbox attr-pairs missing-tags nonempty-attrs native-handles source-titles source-frames other-title-inserts contaminated filedia cmddia status frame-name frame-count total-frame-count any-missing-tags any-empty-attrs any-missing-native-xdata)
   (swcad-title-open-gmtitle-verify-all-log)
   (setq title-name (swcad-title-target-title-block-name))
   (setq title-enames (swcad-title-inserts-by-effective-name title-name))
@@ -3594,6 +3646,7 @@
   (setq source-titles (swcad-title-source-title-candidates))
   (setq source-frames (swcad-title-source-frame-candidates))
   (setq other-title-inserts (swcad-title-other-title-like-inserts title-name))
+  (setq contaminated (swcad-title-contaminated-target-frame-blocks))
   (setq filedia (getvar "FILEDIA"))
   (setq cmddia (getvar "CMDDIA"))
   (setq any-missing-tags nil)
@@ -3618,6 +3671,7 @@
   (swcad-title-princ-line (strcat "Remaining source title candidates: " (itoa (length source-titles))))
   (swcad-title-princ-line (strcat "Remaining source sheet frame candidates: " (itoa (length source-frames))))
   (swcad-title-princ-line (strcat "Other non-target title-like inserts: " (itoa (length other-title-inserts))))
+  (swcad-title-princ-line (strcat "Contaminated target frame definitions: " (swcad-title-list-string contaminated)))
 
   (if title-enames
     (progn
@@ -3668,10 +3722,12 @@
       ((or (/= filedia 1) (/= cmddia 1)) "WARN_FILEDIA_OR_CMDDIA_NOT_1")
       ((= total-frame-count 0) "FAIL_MISSING_TARGET_FRAMES")
       ((= title-count 0) "FAIL_MISSING_TARGET_TITLES")
+      (contaminated "WARN_TARGET_FRAME_DEFS_CONTAMINATED")
       (any-missing-tags "FAIL_MISSING_EXPECTED_ATTRIBUTES")
       (any-empty-attrs "WARN_TITLE_ATTRIBUTES_EMPTY")
       (any-missing-native-xdata "WARN_NATIVE_GMTITLE_XDATA_NOT_FOUND")
       ((> (length source-titles) 0) "WARN_SOURCE_TITLE_INSERTS_REMAIN")
+      ((> (length source-frames) 0) "WARN_SOURCE_FRAME_INSERTS_REMAIN")
       ((> (length other-title-inserts) 0) "WARN_OTHER_TITLE_LIKE_INSERTS_REMAIN")
       (T "OK_VERIFY_ALL_GMTITLE_READY")
     )
@@ -6218,6 +6274,13 @@
     )
   )
   (swcad-title-print-fast-sheet-summary summary)
+  (if
+    (and
+      (not example-title)
+      (> source-count 0)
+    )
+    (swcad-title-print-next-bootstrap-selection)
+  )
   (princ
     (strcat
       "\nNative GMTITLE exemplar: "
@@ -6303,7 +6366,13 @@
               )
             )
           )
-          (if (equal *swcad-title-last-apply-status* "FINALIZED_EXISTING_GMTITLE_TRANSFER")
+          (princ
+            (strcat
+              "\nBootstrap first-native status: "
+              (swcad-title-string *swcad-title-last-apply-status*)
+            )
+          )
+          (if (swcad-title-bootstrap-first-native-success-p *swcad-title-last-apply-status*)
             (progn
               (princ "\nBootstrap phase complete. Starting fast remaining-sheet batch.")
               (swcad-title-run-fast-batch-phases)

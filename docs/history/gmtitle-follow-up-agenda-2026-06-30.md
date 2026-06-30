@@ -182,6 +182,17 @@ Expected clean-start flow:
     - The next bottleneck is automatic/native creation of the first `DR_A*_Outline + DR_titlea_3rd` GMTITLE exemplar.
     - Until that exemplar exists, `SWTITLETRANSFERFASTBATCH` should stop before modifying the drawing.
     - `SWTITLETRANSFERBOOTSTRAPFAST` is now the preferred command for this exact state because it handles the first-native step and then continues into the fast batch.
+- Bootstrap guidance update:
+  - Version: `260630-bootstrap-flow`
+  - `SWTITLEFASTSTATUS` and `SWTITLETRANSFERBOOTSTRAPFAST` now print the next detected native GMTITLE bootstrap selection before editing.
+  - On the clean bootstrap test copy, the next selection was:
+    - source sheet: `A2`
+    - paper/frame: `DR_A2_Outline`
+    - title block: `DR_titlea_3rd`
+  - `SWTITLETRANSFERBOOTSTRAPFAST` now treats both of these first-native statuses as successful bootstrap results:
+    - `APPLIED_TITLE_TRANSFER`
+    - `FINALIZED_EXISTING_GMTITLE_TRANSFER`
+  - This fixes the flow bug where the first sheet could be created successfully by `SWTITLETRANSFERAPPLY`, but the remaining fast batch would not start because the bootstrap wrapper only recognized the finalize status.
 
 Native GMTITLE command-line automation check:
 
@@ -195,12 +206,25 @@ Native GMTITLE command-line automation check:
   - `GMTITLE` still opened the modal title/border dialog even with `CMDDIA=0`.
   - The dialog was canceled and `CMDDIA` was restored to `1`.
 
+Native GMTITLE picker UI automation check:
+
+- Test copy:
+  - `C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260604_bootstrap_test_260630_01.dwg`
+- Goal:
+  - Select `DR_A2_Outline` and `DR_titlea_3rd` in the native GMTITLE dialog without screen-coordinate picking.
+- Result:
+  - Accessibility inspection could see the combo/list values, including `DR_A1_Outline`, `DR_A2_Outline`, `DR_A3_Outline`, and `DR_A4_Outline`.
+  - Programmatic combo expansion and direct value setting did not reliably change the selected paper/frame.
+  - Keyboard and list-item attempts were not reliable enough to use as a production automation path.
+  - The dialog was canceled; no old source title/frame content was removed.
+
 Conclusion:
 
   - There is no obvious command-line `GMTITLE` variant available in this installation.
   - The first native GMTITLE exemplar cannot currently be created by passing simple command-line options to `GMTITLE`.
+  - Direct UI automation of the GMTITLE picker is also not reliable enough to be treated as the final automatic solution.
   - Next practical options are either:
-    - use `SWTITLETRANSFERBOOTSTRAPFAST` so the first native dialog appears only once and the remaining sheets are processed automatically; or
+    - use `SWTITLETRANSFERBOOTSTRAPFAST` so the first native dialog appears only once, with the exact detected DR paper/title values printed in the command line, and the remaining sheets are processed automatically after the first native transfer succeeds; or
     - investigate the internal native recognition data more deeply so the first exemplar can be constructed without the dialog.
 
 ## Concern
