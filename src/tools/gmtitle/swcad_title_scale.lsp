@@ -3323,7 +3323,7 @@
   )
 )
 
-(defun swcad-title-gmtitle-link-scan (/ title-name titles title-index title title-data title-object title-bbox attr-pairs missing-tags native-handles apps frame-records nearest nearest-handle linked-handle frame-link-counts duplicate-link-found contaminated-frame-found title-handle handle-matches-nearest old-child-names frame-name children item)
+(defun swcad-title-gmtitle-link-scan (/ title-name titles title-index title title-data title-object title-bbox attr-pairs missing-tags native-handles apps frame-records nearest nearest-handle linked-handle linked-frame-ename linked-frame-data linked-frame-apps linked-frame-native-handles frame-link-counts duplicate-link-found contaminated-frame-found title-handle handle-matches-nearest old-child-names frame-name children item)
   (swcad-title-open-gmtitle-link-scan-log)
   (setq title-name (swcad-title-target-title-block-name))
   (setq titles
@@ -3356,6 +3356,12 @@
     (setq nearest (swcad-title-nearest-frame-record title-bbox frame-records))
     (setq nearest-handle (if nearest (caddr nearest) ""))
     (setq linked-handle (if native-handles (car native-handles) ""))
+    (setq linked-frame-ename (if (> (strlen linked-handle) 0) (handent linked-handle) nil))
+    (setq linked-frame-data (if linked-frame-ename (entget linked-frame-ename '("*")) nil))
+    (setq linked-frame-apps (if linked-frame-ename (swcad-title-xdata-app-names linked-frame-ename) nil))
+    (setq linked-frame-native-handles
+      (if linked-frame-ename (swcad-title-gmtitle-native-xdata-info linked-frame-ename) nil)
+    )
     (setq handle-matches-nearest (and (> (strlen linked-handle) 0) (equal (strcase linked-handle) (strcase nearest-handle))))
     (if (> (strlen linked-handle) 0)
       (setq frame-link-counts (swcad-title-count-frame-link linked-handle frame-link-counts))
@@ -3377,6 +3383,8 @@
         (itoa (length attr-pairs))
         ", missing-tags="
         (itoa (length missing-tags))
+        ", owner="
+        (swcad-title-string (swcad-title-dxf-value title-data 330))
       )
     )
     (swcad-title-princ-line
@@ -3408,6 +3416,23 @@
         ", extension-dictionaries="
         (itoa (swcad-title-dxf-code-count title-data 360))
       )
+    )
+    (if linked-frame-ename
+      (swcad-title-princ-line
+        (strcat
+          "  linked-frame-structure: owner="
+          (swcad-title-string (swcad-title-dxf-value linked-frame-data 330))
+          ", xdata-apps="
+          (swcad-title-list-string linked-frame-apps)
+          ", native-handles="
+          (swcad-title-list-string linked-frame-native-handles)
+          ", persistent-reactors="
+          (itoa (swcad-title-dxf-code-count linked-frame-data -5))
+          ", extension-dictionaries="
+          (itoa (swcad-title-dxf-code-count linked-frame-data 360))
+        )
+      )
+      (swcad-title-princ-line "  linked-frame-structure: <missing>")
     )
     (setq title-index (+ title-index 1))
   )
