@@ -37,6 +37,8 @@
 ;;; definitions by backing them up and importing a clean install copy.
 ;;; SWTITLEGMTITLELINKDETAIL dumps raw native-link target objects so the
 ;;; internal GMTITLE recognition handle can be compared with visible clones.
+;;; SWTITLEGMTITLECOMPARE prints one internal/native title and one
+;;; visible-frame-linked clone side by side for A3 recognition debugging.
 ;;; Fast clone phases now require a real native exemplar whose GMTITLE link
 ;;; targets an internal recognition handle, not a visible cloned frame insert.
 ;;; SWSCALESCAN compares title-block scale candidates with dimension
@@ -44,7 +46,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260630-manual-native-guidance")
+(setq *swcad-title-scale-version* "260630-gmtitle-compare")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -207,6 +209,10 @@
 
 (defun swcad-title-open-gmtitle-link-detail-log ()
   (swcad-title-open-log "swcad_title_gmtitle_link_detail_last.txt" "SWTITLEGMTITLELINKDETAIL log")
+)
+
+(defun swcad-title-open-gmtitle-compare-log ()
+  (swcad-title-open-log "swcad_title_gmtitle_compare_last.txt" "SWTITLEGMTITLECOMPARE log")
 )
 
 (defun swcad-title-open-frame-def-check-log ()
@@ -3565,6 +3571,257 @@
   )
 )
 
+(defun swcad-title-print-xdata-record-detail (ename / records record pair)
+  (setq records (if ename (swcad-title-xdata-records ename) nil))
+  (swcad-title-princ-line "  xdata detail:")
+  (if records
+    (foreach record records
+      (progn
+        (swcad-title-princ-line
+          (strcat
+            "    app="
+            (swcad-title-xdata-record-app-name record)
+          )
+        )
+        (foreach pair (cdr record)
+          (swcad-title-code-value-line "      XD" pair)
+        )
+      )
+    )
+    (swcad-title-princ-line "    <none>")
+  )
+)
+
+(defun swcad-title-print-entity-structure-detail (label ename / data etype handle name layer owner bbox object object-name object-handle object-owner-id apps native-handles native-target-kinds)
+  (swcad-title-princ-line (strcat label ":"))
+  (if ename
+    (progn
+      (setq data (entget ename '("*")))
+      (setq etype (swcad-title-string (swcad-title-dxf-value data 0)))
+      (setq handle (swcad-title-string (swcad-title-dxf-value data 5)))
+      (setq name "")
+      (if (equal etype "INSERT")
+        (setq name (swcad-title-effective-insert-name ename))
+      )
+      (setq layer (swcad-title-string (swcad-title-dxf-value data 8)))
+      (setq owner (swcad-title-string (swcad-title-dxf-value data 330)))
+      (setq bbox (swcad-title-safe-bbox ename))
+      (setq object (swcad-title-safe-vla-object ename))
+      (setq object-name (swcad-title-safe-vla-get object 'ObjectName))
+      (setq object-handle (swcad-title-safe-vla-get object 'Handle))
+      (setq object-owner-id (swcad-title-safe-vla-get object 'OwnerID))
+      (setq apps (swcad-title-xdata-app-names ename))
+      (setq native-handles (swcad-title-gmtitle-native-xdata-info ename))
+      (setq native-target-kinds (swcad-title-native-link-target-kinds ename))
+      (swcad-title-princ-line
+        (strcat
+          "  type="
+          etype
+          ", name="
+          (if (> (strlen name) 0) name "<none>")
+          ", handle="
+          handle
+          ", layer="
+          layer
+          ", owner="
+          owner
+        )
+      )
+      (swcad-title-princ-line (strcat "  bbox=" (swcad-title-bbox-string bbox)))
+      (swcad-title-princ-line
+        (strcat
+          "  VLA object="
+          (if object
+            (strcat
+              (swcad-title-string object-name)
+              ", Handle="
+              (swcad-title-string object-handle)
+              ", OwnerID="
+              (swcad-title-string object-owner-id)
+            )
+            "<none>"
+          )
+        )
+      )
+      (swcad-title-princ-line
+        (strcat
+          "  xdata-apps="
+          (swcad-title-list-string apps)
+          ", native-handles="
+          (swcad-title-list-string native-handles)
+          ", native-target-kinds="
+          (swcad-title-list-string native-target-kinds)
+        )
+      )
+      (swcad-title-princ-line
+        (strcat
+          "  persistent-reactors="
+          (itoa (swcad-title-dxf-code-count data -5))
+          ", extension-dictionaries="
+          (itoa (swcad-title-dxf-code-count data 360))
+        )
+      )
+      (swcad-title-princ-line "  reference handles:")
+      (swcad-title-print-reference-handle-pairs data)
+      (swcad-title-print-xdata-record-detail ename)
+    )
+    (swcad-title-princ-line "  <missing>")
+  )
+)
+
+(defun swcad-title-first-title-by-native-kind (kind / title-name titles result title kinds)
+  (setq title-name (swcad-title-target-title-block-name))
+  (setq titles
+    (vl-sort
+      (swcad-title-inserts-by-effective-name title-name)
+      '(lambda (a b)
+        (< (swcad-title-bbox-min-x a) (swcad-title-bbox-min-x b))
+      )
+    )
+  )
+  (setq result nil)
+  (foreach title titles
+    (if (not result)
+      (progn
+        (setq kinds (swcad-title-native-link-target-kinds title))
+        (cond
+          ((equal kind "internal")
+            (if
+              (and
+                (or
+                  (member "internal" kinds)
+                  (member "internal-no-entget" kinds)
+                )
+                (not (member "visible-target-frame" kinds))
+                (not (member "visible-target-title" kinds))
+              )
+              (setq result title)
+            )
+          )
+          ((equal kind "visible-target-frame")
+            (if (member "visible-target-frame" kinds)
+              (setq result title)
+            )
+          )
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-print-gmtitle-compare-case (label title frame-records / title-data title-object attr-pairs title-bbox native-handles native-target-kinds nearest nearest-ename nearest-handle linked-handle linked-ename handle-matches-nearest)
+  (swcad-title-princ-line "")
+  (swcad-title-princ-line label)
+  (if title
+    (progn
+      (setq title-data (entget title '("*")))
+      (setq title-object (swcad-title-safe-vla-object title))
+      (setq attr-pairs (if title-object (swcad-title-title-attribute-pairs title-object) nil))
+      (setq title-bbox (swcad-title-safe-bbox title))
+      (setq native-handles (swcad-title-gmtitle-native-xdata-info title))
+      (setq native-target-kinds (swcad-title-native-link-target-kinds title))
+      (setq nearest (swcad-title-nearest-frame-record title-bbox frame-records))
+      (setq nearest-ename (if nearest (car nearest) nil))
+      (setq nearest-handle (if nearest (caddr nearest) ""))
+      (setq linked-handle (if native-handles (car native-handles) ""))
+      (setq linked-ename (if (> (strlen linked-handle) 0) (handent linked-handle) nil))
+      (setq handle-matches-nearest
+        (and
+          (> (strlen linked-handle) 0)
+          (> (strlen nearest-handle) 0)
+          (equal (strcase linked-handle) (strcase nearest-handle))
+        )
+      )
+      (swcad-title-princ-line
+        (strcat
+          "  sheet="
+          (swcad-title-attr-value-by-tag attr-pairs "GEN-TITLE-SIZ{6.7}")
+          ", DWG=\""
+          (swcad-title-attr-value-by-tag attr-pairs "GEN-TITLE-DWG{23}")
+          "\", NR=\""
+          (swcad-title-attr-value-by-tag attr-pairs "GEN-TITLE-NR{23}")
+          "\", native-target-kinds="
+          (swcad-title-list-string native-target-kinds)
+        )
+      )
+      (swcad-title-princ-line
+        (strcat
+          "  nearest-frame="
+          (if nearest (cadr nearest) "<none>")
+          "/"
+          nearest-handle
+          ", linked-handle="
+          (if (> (strlen linked-handle) 0) linked-handle "<none>")
+          ", link-matches-nearest="
+          (if handle-matches-nearest "yes" "no")
+        )
+      )
+      (swcad-title-print-entity-structure-detail "  title insert" title)
+      (swcad-title-print-entity-structure-detail "  nearest frame insert" nearest-ename)
+      (swcad-title-princ-line "  native linked target detail:")
+      (if native-handles
+        (foreach linked-handle native-handles
+          (swcad-title-print-handle-raw-detail linked-handle)
+        )
+        (swcad-title-princ-line "    <none>")
+      )
+      (if
+        (and
+          linked-ename
+          (not (equal linked-ename nearest-ename))
+        )
+        (swcad-title-print-entity-structure-detail "  linked visible/internal ename structure" linked-ename)
+      )
+    )
+    (swcad-title-princ-line "  <missing>")
+  )
+)
+
+(defun swcad-title-gmtitle-compare (/ frame-records native-title visible-title status)
+  (swcad-title-open-gmtitle-compare-log)
+  (setq frame-records (swcad-title-frame-records))
+  (setq native-title (swcad-title-first-title-by-native-kind "internal"))
+  (setq visible-title (swcad-title-first-title-by-native-kind "visible-target-frame"))
+  (swcad-title-princ-line "----- SWTITLEGMTITLECOMPARE read-only native-vs-clone comparison -----")
+  (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
+  (swcad-title-print-work-copy-status)
+  (swcad-title-princ-line (strcat "Target frame inserts: " (itoa (length frame-records))))
+  (swcad-title-princ-line
+    (strcat
+      "Internal/native title exemplar: "
+      (if native-title
+        (swcad-title-ename-handle native-title)
+        "<none>"
+      )
+    )
+  )
+  (swcad-title-princ-line
+    (strcat
+      "Visible-frame-linked clone exemplar: "
+      (if visible-title
+        (swcad-title-ename-handle visible-title)
+        "<none>"
+      )
+    )
+  )
+  (swcad-title-print-gmtitle-compare-case "Case A: internal/native GMTITLE title" native-title frame-records)
+  (swcad-title-print-gmtitle-compare-case "Case B: visible-frame-linked cloned GMTITLE title" visible-title frame-records)
+  (setq status
+    (cond
+      ((and native-title visible-title) "OK_COMPARE_INTERNAL_AND_VISIBLE_FRAME_LINK")
+      ((not native-title) "WARN_NO_INTERNAL_NATIVE_TITLE_TO_COMPARE")
+      ((not visible-title) "WARN_NO_VISIBLE_FRAME_LINKED_CLONE_TO_COMPARE")
+      (T "WARN_COMPARE_INPUTS_MISSING")
+    )
+  )
+  (swcad-title-princ-line (strcat "Result: " status))
+  (swcad-title-princ-line "No drawing data was changed.")
+  (swcad-title-close-log)
+  (princ)
+)
+
 (defun swcad-title-gmtitle-link-detail (/ title-name titles title-index title title-data title-object title-bbox attr-pairs native-handles native-target-kinds nearest nearest-handle title-handle handle)
   (swcad-title-open-gmtitle-link-detail-log)
   (setq title-name (swcad-title-target-title-block-name))
@@ -6913,6 +7170,10 @@
   (swcad-title-gmtitle-link-detail)
 )
 
+(defun c:SWTITLEGMTITLECOMPARE ()
+  (swcad-title-gmtitle-compare)
+)
+
 (defun c:SWTITLEFRAMEDEFCHECK ()
   (swcad-title-frame-def-check)
 )
@@ -7107,5 +7368,5 @@
 )
 
 (princ (strcat "\nswcad_title_scale.lsp ready " *swcad-title-scale-version*))
-(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWTITLEMULTIPREVIEW, SWTITLEGMTITLEVERIFY, SWTITLEGMTITLEVERIFYALL, SWTITLEGMTITLELINKSCAN, SWTITLEGMTITLELINKDETAIL, SWTITLEFRAMEDEFCHECK, SWTITLEFRAMEDEFCLEANSAFE, SWTITLEFASTSTATUS, SWTITLETRANSFERPREVIEW, SWTITLETRANSFERAPPLY, SWTITLETRANSFERFINALIZE, SWTITLETRANSFERBATCH, SWTITLETRANSFERCLONEAPPLY, SWTITLETRANSFERCLONEBATCH, SWTITLETRANSFERFASTBATCH, SWTITLETRANSFERBOOTSTRAPFAST, SWTITLEFRAMEONLYFINALIZE, SWTITLEFRAMEONLYCLONEAPPLY, SWTITLEFRAMEONLYCLONEBATCH, SWSCALESCAN")
+(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWTITLEMULTIPREVIEW, SWTITLEGMTITLEVERIFY, SWTITLEGMTITLEVERIFYALL, SWTITLEGMTITLELINKSCAN, SWTITLEGMTITLELINKDETAIL, SWTITLEGMTITLECOMPARE, SWTITLEFRAMEDEFCHECK, SWTITLEFRAMEDEFCLEANSAFE, SWTITLEFASTSTATUS, SWTITLETRANSFERPREVIEW, SWTITLETRANSFERAPPLY, SWTITLETRANSFERFINALIZE, SWTITLETRANSFERBATCH, SWTITLETRANSFERCLONEAPPLY, SWTITLETRANSFERCLONEBATCH, SWTITLETRANSFERFASTBATCH, SWTITLETRANSFERBOOTSTRAPFAST, SWTITLEFRAMEONLYFINALIZE, SWTITLEFRAMEONLYCLONEAPPLY, SWTITLEFRAMEONLYCLONEBATCH, SWSCALESCAN")
 (princ)

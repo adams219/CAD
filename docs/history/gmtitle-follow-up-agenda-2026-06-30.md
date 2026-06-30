@@ -299,6 +299,38 @@ Native-link raw detail update:
   - It is acceptable during development for cloned A3 sheets to open in the Advanced Attribute Editor.
   - Before final completion, the A3 recognition problem must be solved or a different native-creation strategy must be used so A2/A3/A4 all open the GMTITLE table editor on double-click.
 
+Native-vs-clone compare diagnostic update:
+
+- Version: `260630-gmtitle-compare`
+- Added command:
+  - `SWTITLEGMTITLECOMPARE`
+- Log:
+  - `work\swcad_title_gmtitle_compare_last.txt`
+- Purpose:
+  - Print one known internal/native GMTITLE title and one visible-frame-linked cloned GMTITLE title side by side.
+  - Make the A3 recognition problem easier to inspect without editing the drawing.
+- CAD test result on `0000_A_DRP125_CP_ALL_260604_a4_native_test_260630_01.dwg`:
+  - The command loaded and ran successfully.
+  - Result: `OK_COMPARE_INTERNAL_AND_VISIBLE_FRAME_LINK`
+  - Internal/native exemplar:
+    - title handle: `16BE8`
+    - sheet: `A2`
+    - linked handle: `16BF5`
+    - native target kind: `internal-no-entget`
+    - nearest visible frame: `DR_A2_Outline/16B22`
+    - link matches nearest visible frame: `no`
+  - Visible-frame-linked clone exemplar:
+    - title handle: `17919`
+    - sheet: `A3`
+    - linked handle: `17918`
+    - native target kind: `visible-target-frame`
+    - nearest visible frame: `DR_A3_Outline/17918`
+    - link matches nearest visible frame: `yes`
+- Interpretation:
+  - The real native GMTITLE title is not linked directly to the visible frame insert.
+  - The cloned A3 title is linked directly to the visible frame insert.
+  - This is now the clearest concrete difference to investigate before claiming that the cloned A3 sheets are true native GMTITLE objects.
+
 Strict native exemplar update:
 
 - Version: `260630-strict-native-exemplar`
