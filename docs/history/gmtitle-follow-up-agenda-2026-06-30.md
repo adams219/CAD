@@ -269,6 +269,18 @@ Native-link raw detail update:
   - It is acceptable during development for cloned A3 sheets to open in the Advanced Attribute Editor.
   - Before final completion, the A3 recognition problem must be solved or a different native-creation strategy must be used so A2/A3/A4 all open the GMTITLE table editor on double-click.
 
+Strict native exemplar update:
+
+- Version: `260630-strict-native-exemplar`
+- Fast clone phases now require a usable native GMTITLE exemplar whose `GENIUS_GENOREF_13` link target kind is `internal` or `internal-no-entget`.
+- Titles whose native link points directly to a visible cloned `DR_A*_Outline` frame are no longer accepted as exemplars.
+- Reason:
+  - A visible-frame-linked clone can carry attributes and native xdata but still fail the native GMTITLE table-editor behavior.
+  - Reusing that clone as the next exemplar would multiply the uncertain state.
+- Expected behavior:
+  - `SWTITLEFASTSTATUS`, `SWTITLETRANSFERFASTBATCH`, and `SWTITLETRANSFERBOOTSTRAPFAST` should report the exemplar handle and `native-link-kinds` when a real native exemplar exists.
+  - If only visible-frame-linked clones exist, fast batch should stop with `ABORT_NO_NATIVE_GMTITLE_EXEMPLAR` instead of cloning from an unproven source.
+
 Conclusion:
 
   - There is no obvious command-line `GMTITLE` variant available in this installation.

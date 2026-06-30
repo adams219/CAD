@@ -35,12 +35,14 @@
 ;;; definitions by backing them up and importing a clean install copy.
 ;;; SWTITLEGMTITLELINKDETAIL dumps raw native-link target objects so the
 ;;; internal GMTITLE recognition handle can be compared with visible clones.
+;;; Fast clone phases now require a real native exemplar whose GMTITLE link
+;;; targets an internal recognition handle, not a visible cloned frame insert.
 ;;; SWSCALESCAN compares title-block scale candidates with dimension
 ;;; DIMLFAC values. It does not modify the drawing.
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260630-native-link-detail")
+(setq *swcad-title-scale-version* "260630-strict-native-exemplar")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -2139,10 +2141,7 @@
   (swcad-title-princ-line
     (strcat
       "Native GMTITLE exemplar: "
-      (if example-title
-        (strcat "yes, handle=" (swcad-title-string (swcad-title-ename-handle example-title)))
-        "no"
-      )
+      (swcad-title-native-example-description example-title)
     )
   )
   (swcad-title-princ-line
@@ -2752,6 +2751,35 @@
   result
 )
 
+(defun swcad-title-usable-native-example-title-p (title-ename / handles kinds)
+  (setq handles (swcad-title-gmtitle-native-xdata-info title-ename))
+  (setq kinds (swcad-title-native-link-target-kinds title-ename))
+  (and
+    handles
+    (or
+      (member "internal" kinds)
+      (member "internal-no-entget" kinds)
+    )
+    (not (member "visible-target-frame" kinds))
+    (not (member "visible-target-title" kinds))
+  )
+)
+
+(defun swcad-title-native-example-description (title-ename / data)
+  (if title-ename
+    (progn
+      (setq data (entget title-ename '("*")))
+      (strcat
+        "yes, handle="
+        (swcad-title-string (swcad-title-dxf-value data 5))
+        ", native-link-kinds="
+        (swcad-title-list-string (swcad-title-native-link-target-kinds title-ename))
+      )
+    )
+    "no"
+  )
+)
+
 (defun swcad-title-native-example-title (/ titles title result)
   (setq titles (swcad-title-inserts-by-effective-name (swcad-title-target-title-block-name)))
   (setq result nil)
@@ -2759,7 +2787,7 @@
     (if
       (and
         (not result)
-        (swcad-title-gmtitle-native-xdata-info title)
+        (swcad-title-usable-native-example-title-p title)
       )
       (setq result title)
     )
@@ -6454,13 +6482,7 @@
   (princ
     (strcat
       "\nNative GMTITLE exemplar: "
-      (if example-title
-        (strcat
-          "yes, handle="
-          (swcad-title-string (swcad-title-ename-handle example-title))
-        )
-        "no"
-      )
+      (swcad-title-native-example-description example-title)
     )
   )
   (princ (strcat "\nContaminated target frame definitions: " (swcad-title-list-string contaminated)))
@@ -6488,7 +6510,8 @@
     ((not example-title)
       (setq *swcad-title-last-apply-status* "ABORT_NO_NATIVE_GMTITLE_EXEMPLAR")
       (princ "\nResult: ABORT_NO_NATIVE_GMTITLE_EXEMPLAR")
-      (princ "\nCreate/finalize one native GMTITLE first, then run this command again.")
+      (princ "\nCreate/finalize one real native GMTITLE first, then run this command again.")
+      (princ "\nCloned titles whose native link points to a visible frame are not accepted as exemplars.")
       (princ "\nRecommended: run SWTITLETRANSFERBOOTSTRAPFAST, or run SWTITLETRANSFERAPPLY/SWTITLETRANSFERFINALIZE for the first sheet.")
     )
     (T
@@ -6542,13 +6565,7 @@
   (princ
     (strcat
       "\nNative GMTITLE exemplar: "
-      (if example-title
-        (strcat
-          "yes, handle="
-          (swcad-title-string (swcad-title-ename-handle example-title))
-        )
-        "no"
-      )
+      (swcad-title-native-example-description example-title)
     )
   )
   (princ (strcat "\nContaminated target frame definitions: " (swcad-title-list-string contaminated)))
