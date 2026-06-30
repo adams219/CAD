@@ -127,7 +127,10 @@ Fast remaining-sheet batch command:
 
 - Added command:
   - `SWTITLETRANSFERFASTBATCH`
+  - `SWTITLEFASTSTATUS`
 - Purpose:
+  - `SWTITLEFASTSTATUS` is a read-only readiness check for the fast route.
+  - It reports source title count, source frame count, frame-only count, and A-size counts before any edit is attempted.
   - Counts every remaining source title sheet automatically.
   - Counts every remaining frame-only sheet automatically.
   - Runs the existing verified-native-GMTITLE clone path for title sheets.
@@ -150,6 +153,26 @@ Fast remaining-sheet batch command:
   - Result reason: no native `DR_titlea_3rd` GMTITLE exemplar with native xdata exists yet.
   - The command instructed the user to run `SWTITLETRANSFERAPPLY` or `SWTITLETRANSFERFINALIZE` for the first sheet.
   - No drawing data should have been changed by this abort path.
+- Fast-status test after adding `SWTITLEFASTSTATUS`:
+  - Test copy:
+    - `C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260604_fastbatch_test_260630_01.dwg`
+  - Log:
+    - `work\swcad_title_fast_status_last.txt`
+  - Result:
+    - source title sheets: `13`
+    - source sheet frames: `15`
+    - title sheets with frame: `13`
+    - title sheets without frame: `0`
+    - frame-only sheets: `2`
+    - source sheet frame counts: `A2: 1`, `A3: 12`, `A4: 2`
+    - title sheet counts: `A2: 1`, `A3: 12`
+    - native GMTITLE exemplar: `no`
+    - contaminated target frame definitions: `<none>`
+    - status: `WAITING_FOR_NATIVE_GMTITLE_EXEMPLAR`
+  - Conclusion:
+    - The current clean fastbatch test copy is correctly detected and safe to continue from.
+    - The next bottleneck is automatic/native creation of the first `DR_A*_Outline + DR_titlea_3rd` GMTITLE exemplar.
+    - Until that exemplar exists, `SWTITLETRANSFERFASTBATCH` should stop before modifying the drawing.
 
 ## Concern
 
