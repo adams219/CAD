@@ -48,7 +48,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260630-preserve-copy-test")
+(setq *swcad-title-scale-version* "260630-preserve-copy-force-test")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -2757,7 +2757,10 @@
     (and
       data
       (equal (swcad-title-string (swcad-title-dxf-value data 0)) "INSERT")
-      (swcad-title-ensure-clean-frame-definition block-name)
+      (or
+        (swcad-title-block-exists-p block-name)
+        (swcad-title-ensure-clean-frame-definition block-name)
+      )
     )
     (progn
       (setq new-data nil)
@@ -3826,7 +3829,7 @@
   )
 )
 
-(defun swcad-title-gmtitle-preserve-copy-test (/ frame-records example-title example-title-bbox example-frame-record example-frame example-frame-block example-frame-bbox raw target-sheet target-frame-block block-change-needed answer doc copied-frame copied-title origin title-offset copied-frame-bbox copied-title-bbox copied-kinds attr-count status)
+(defun swcad-title-gmtitle-preserve-copy-test (/ frame-records example-title example-title-bbox example-frame-record example-frame example-frame-block example-frame-bbox raw target-sheet target-frame-block block-change-needed target-contaminated answer doc copied-frame copied-title origin title-offset copied-frame-bbox copied-title-bbox copied-kinds attr-count status)
   (swcad-title-open-gmtitle-preserve-copy-test-log)
   (setq frame-records (swcad-title-frame-records))
   (setq example-title (swcad-title-first-title-by-native-kind "internal"))
@@ -3903,18 +3906,19 @@
             )
           )
           (setq block-change-needed (not (equal (strcase target-frame-block) (strcase example-frame-block))))
+          (setq target-contaminated
+            (and
+              block-change-needed
+              (swcad-title-block-exists-p target-frame-block)
+              (swcad-title-target-frame-block-contaminated-p target-frame-block)
+            )
+          )
           (swcad-title-princ-line (strcat "Requested target sheet: " target-sheet))
           (swcad-title-princ-line (strcat "Target frame block: " target-frame-block))
+          (if target-contaminated
+            (swcad-title-princ-line "Warning: target frame definition is flagged contaminated; continuing because this is an explicit preserve-copy recognition experiment.")
+          )
           (cond
-            ((and
-               block-change-needed
-               (swcad-title-block-exists-p target-frame-block)
-               (swcad-title-target-frame-block-contaminated-p target-frame-block)
-             )
-              (setq status "ABORT_TARGET_FRAME_DEFINITION_NOT_CLEAN")
-              (swcad-title-princ-line "Result: ABORT_TARGET_FRAME_DEFINITION_NOT_CLEAN")
-              (swcad-title-princ-line "Target frame definition is already present but contaminated.")
-            )
             (T
               (setq answer
                 (getstring

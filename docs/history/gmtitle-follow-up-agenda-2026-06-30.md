@@ -333,7 +333,7 @@ Native-vs-clone compare diagnostic update:
 
 Preserve-copy experiment command:
 
-- Version: `260630-preserve-copy-test`
+- Version: `260630-preserve-copy-force-test`
 - Added command:
   - `SWTITLEGMTITLEPRESERVECOPYTEST`
 - Log:
@@ -346,18 +346,36 @@ Preserve-copy experiment command:
 - Safety:
   - Runs only on writable `Documents\CAD tool\work` copies.
   - Requires explicit `YES` before copying.
-  - If the requested target frame definition already exists and is contaminated, it aborts before modifying the drawing.
+  - If the requested target frame definition is flagged contaminated, it logs a warning but continues because this command is an explicit recognition experiment, not the production conversion path.
   - Missing clean frame definitions are imported only after the `YES` confirmation and inside the undo mark.
-- Intended next CAD test:
-  - First run with target `SAME`.
-  - Check whether the copied title still reports `native-target-kinds=internal-no-entget`.
-  - If `SAME` preserves the internal link, run a second test with target `A3` on a clean work copy.
-  - Manually double-click the copied title block to see whether it opens the native GMTITLE table editor or the Advanced Attribute Editor.
+- CAD execution notes:
+  - Stable command input was recovered by first using the exposed `명령 취소` button to return to a normal `명령:` prompt, then typing commands with the command prompt focused.
+  - `vla-Open` repeatedly opened work copies as read-only in this session.
+  - A writable work test document was created by running `vla-SaveAs` from the read-only A4 native test copy.
+- SAME target test:
+  - Test copy: `work\0000_A_DRP125_CP_ALL_260604_preservecopy_saveas_test_260630_01.dwg`
+  - Native exemplar title: `16BE8`
+  - Copied frame: `DR_A2_Outline/179CA`
+  - Copied title: `179CB`
+  - Result: `OK_PRESERVE_COPY_INTERNAL_LINK`
+  - The copied title kept `native-target-kinds=internal-no-entget`.
+  - The copied title still linked to internal handle `16BF5`, not to the copied visible frame handle.
+- A3 target test:
+  - Test copy: `work\0000_A_DRP125_CP_ALL_260604_preservecopy_a3isolated_test_260630_01.dwg`
+  - Existing A3 frame refs were deleted in the test copy only.
+  - `SWTITLEFRAMEDEFCLEANSAFE` could not clean/import `DR_A3_Outline`; the imported/remaining definition was still reported as having child `DR-A3 From_HYUN`.
+  - This suggests the current frame-definition contamination guard may be too broad for native/install DR frame definitions.
+  - After allowing the explicit preserve-copy experiment to continue with a warning:
+    - Copied frame: `DR_A3_Outline/17A54`
+    - Copied title: `17A55`
+    - Result: `OK_PRESERVE_COPY_INTERNAL_LINK`
+    - The copied A3 title kept `native-target-kinds=internal-no-entget`.
+    - The copied A3 title linked to internal handle `16BF5`, not to the copied visible `DR_A3_Outline` frame handle.
 - Current verification status:
   - Static checks passed: `git diff --check`, and a simple parenthesis-balance check returned `parenDepth=0`.
-  - Direct CAD command-line input became unreliable during this session because the floating command line repeatedly fell into an `Specify insertion point` state.
-  - Launching a separate GstarCAD instance with a `/b` script produced a blank startup/modal window and did not create the preserve-copy log.
-  - Therefore the new command is implemented but still needs a successful in-CAD execution test before it can be trusted for the production flow.
+  - CAD execution now proves that preserve-copy can create A2 and A3 visible titles with internal GMTITLE link kind.
+  - Manual double-click verification is still not complete; a follow-up attempt to zoom to handle `17A55` failed due to a command-line point format issue.
+  - The next key check is whether copied A3 title `17A55` opens the native GMTITLE table editor or the Advanced Attribute Editor on double-click.
 
 Strict native exemplar update:
 
