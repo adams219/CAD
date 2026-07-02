@@ -1,0 +1,4 @@
+(load "C:/Users/DR-DESIGN/Documents/CAD tool/src/tools/gmtitle/swcad_title_scale.lsp")
+SWTITLEFRAMEDEFCHECK
+SWTITLENATIVEFRAMECHECK
+SWTITLEGMTITLEVERIFYALL

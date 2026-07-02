@@ -1,0 +1,88 @@
+(load "C:/Users/DR-DESIGN/Documents/CAD tool/src/tools/gmtitle/swcad_title_scale.lsp")
+(swcad-title-open-log "codex_a4_def_deep_inspect_260701.txt" "A4 frame definition deep inspect")
+(swcad-title-princ-line "----- A4 frame definition deep inspect -----")
+(swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+(defun swt-deep-vla-prop (obj prop / result)
+  (setq result (vl-catch-all-apply 'vlax-get-property (list obj prop)))
+  (if (vl-catch-all-error-p result) "" (swcad-title-string result))
+)
+(defun swt-deep-add-block-and-children (name names / child)
+  (if (and name (> (strlen (swcad-title-string name)) 0))
+    (progn
+      (setq names (swcad-title-list-add-unique name names))
+      (foreach child (swcad-title-block-child-insert-names name)
+        (setq names (swcad-title-list-add-unique child names))
+      )
+    )
+  )
+  names
+)
+(defun swt-deep-print-block (name / block count item ename etype bbox eff layer handle)
+  (swcad-title-princ-line
+    (strcat
+      "BLOCK "
+      name
+      ": exists="
+      (if (swcad-title-block-exists-p name) "yes" "no")
+      ", count="
+      (if (swcad-title-block-definition-count name) (itoa (swcad-title-block-definition-count name)) "<none>")
+      ", children="
+      (swcad-title-list-string (swcad-title-block-child-insert-names name))
+    )
+  )
+  (setq block (swcad-title-block-definition-object name))
+  (if block
+    (progn
+      (setq count 0)
+      (vlax-for item block
+        (setq count (+ count 1))
+        (setq ename (swcad-title-vla-object->ename item))
+        (setq etype (if ename (swcad-title-entity-type-name ename) "<no-ename>"))
+        (setq bbox (if ename (swcad-title-safe-bbox ename) nil))
+        (setq eff (if (and ename (equal etype "INSERT")) (swcad-title-effective-insert-name ename) ""))
+        (setq layer (swt-deep-vla-prop item 'Layer))
+        (setq handle (if ename (swcad-title-ename-handle ename) "<no-handle>"))
+        (swcad-title-princ-line
+          (strcat
+            "  item#"
+            (itoa count)
+            ": handle="
+            handle
+            ", type="
+            etype
+            (if (> (strlen eff) 0) (strcat ", block=" eff) "")
+            ", layer="
+            layer
+            ", bbox="
+            (swcad-title-bbox-string bbox)
+          )
+        )
+      )
+    )
+  )
+)
+(setq swt_deep_names nil)
+(setq swt_deep_names (swt-deep-add-block-and-children "DR_A4_Outline" swt_deep_names))
+(foreach swt_deep_name swt_deep_names
+  (foreach swt_deep_child (swcad-title-block-child-insert-names swt_deep_name)
+    (setq swt_deep_names (swt-deep-add-block-and-children swt_deep_child swt_deep_names))
+  )
+)
+(swcad-title-princ-line (strcat "Inspect blocks: " (swcad-title-list-string swt_deep_names)))
+(foreach swt_deep_name swt_deep_names
+  (swt-deep-print-block swt_deep_name)
+)
+(swcad-title-princ-line "Visible DR_A4_Outline inserts:")
+(setq swt_deep_frames (swcad-title-inserts-by-effective-name "DR_A4_Outline"))
+(foreach swt_deep_frame swt_deep_frames
+  (swcad-title-princ-line
+    (strcat
+      "  insert handle="
+      (swcad-title-ename-handle swt_deep_frame)
+      ", bbox="
+      (swcad-title-bbox-string (swcad-title-safe-bbox swt_deep_frame))
+    )
+  )
+)
+(swcad-title-close-log)
+(princ "\nA4 frame definition deep inspect complete.")

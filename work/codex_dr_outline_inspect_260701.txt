@@ -1,0 +1,7 @@
+DR outline inspect
+----- DR outline install-copy inspect -----
+DWG: C:\Users\DR-DESIGN\Documents\CAD tool\work\codex_dr_a4_outline_inspect_260701.dwg
+Entity count: 7
+INSERT handle=428, block=도면 세로 A4 From_HYUN, bbox=(0, 0) - (210, 297)
+Global bbox: (0, 0) - (266.25210777, 302.7)
+Global size: 266.25210777 x 302.7

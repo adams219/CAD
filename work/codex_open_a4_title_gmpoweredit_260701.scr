@@ -1,0 +1,19 @@
+(load "C:/Users/DR-DESIGN/Documents/CAD tool/src/tools/gmtitle/swcad_title_scale.lsp")
+(setq swt_open_pairs (swcad-title-target-gmtitle-pair-records))
+(setq swt_open_title nil)
+(foreach swt_open_pair swt_open_pairs
+  (if
+    (and
+      (not swt_open_title)
+      (equal (swcad-title-sheet-size-from-block-name (caddr swt_open_pair)) "A4")
+    )
+    (setq swt_open_title (car swt_open_pair))
+  )
+)
+(if swt_open_title
+  (progn
+    (princ (strcat "\nSWTITLE GMPOWEREDIT A4 title handle=" (swcad-title-ename-handle swt_open_title)))
+    (command "GMPOWEREDIT" swt_open_title "")
+  )
+  (princ "\nSWTITLE GMPOWEREDIT A4 title target not found.")
+)

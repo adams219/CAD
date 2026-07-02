@@ -1,0 +1,7 @@
+A4 default values check
+----- A4 frame-only default values read-only check -----
+DWG: C:\Users\DR-DESIGN\Documents\CAD tool\work\codex_cad_a4_defaults_check_260701.dwg
+source-frame=0310_도면_세로_A4_FROM_HYUN
+source-sheet=A4
+default-values=((GEN-TITLE-SIZ{6.7} . A4) (GEN-TITLE-DWG{23} . codex_cad_a4_defaults_check_260701) (GEN-TITLE-NR{23} . XXX) (GEN-TITLE-SCA{6.7} . 1:1))
+No drawing data was changed.

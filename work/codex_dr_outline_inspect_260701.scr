@@ -1,0 +1,44 @@
+(load "C:/Users/DR-DESIGN/Documents/CAD tool/src/tools/gmtitle/swcad_title_scale.lsp")
+(swcad-title-open-log "codex_dr_outline_inspect_260701.txt" "DR outline inspect")
+(swcad-title-princ-line "----- DR outline install-copy inspect -----")
+(swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+(setq swt_inspect_ss (ssget "_X"))
+(setq swt_inspect_total (if swt_inspect_ss (sslength swt_inspect_ss) 0))
+(swcad-title-princ-line (strcat "Entity count: " (itoa swt_inspect_total)))
+(setq swt_inspect_i 0)
+(setq swt_inspect_global nil)
+(while (< swt_inspect_i swt_inspect_total)
+  (setq swt_inspect_e (ssname swt_inspect_ss swt_inspect_i))
+  (setq swt_inspect_type (swcad-title-entity-type-name swt_inspect_e))
+  (setq swt_inspect_bbox (swcad-title-safe-bbox swt_inspect_e))
+  (if swt_inspect_bbox
+    (setq swt_inspect_global
+      (if swt_inspect_global
+        (list
+          (min (car swt_inspect_global) (car swt_inspect_bbox))
+          (min (cadr swt_inspect_global) (cadr swt_inspect_bbox))
+          (max (caddr swt_inspect_global) (caddr swt_inspect_bbox))
+          (max (cadddr swt_inspect_global) (cadddr swt_inspect_bbox))
+        )
+        swt_inspect_bbox
+      )
+    )
+  )
+  (if (equal swt_inspect_type "INSERT")
+    (swcad-title-princ-line
+      (strcat
+        "INSERT handle="
+        (swcad-title-ename-handle swt_inspect_e)
+        ", block="
+        (swcad-title-effective-insert-name swt_inspect_e)
+        ", bbox="
+        (swcad-title-bbox-string swt_inspect_bbox)
+      )
+    )
+  )
+  (setq swt_inspect_i (+ swt_inspect_i 1))
+)
+(swcad-title-princ-line (strcat "Global bbox: " (swcad-title-bbox-string swt_inspect_global)))
+(swcad-title-princ-line (strcat "Global size: " (swcad-title-bbox-size-string swt_inspect_global)))
+(swcad-title-close-log)
+(princ "\nDR outline inspect complete.")

@@ -1,0 +1,7 @@
+(load "C:/Users/DR-DESIGN/Documents/CAD tool/src/tools/gmtitle/swcad_title_scale.lsp")
+(c:SWTITLEREPAIRFRAMEDEFS)
+YES
+(c:SWTITLEGMTITLEVERIFYALL)
+(c:SWTITLENATIVEFRAMECHECK)
+(c:SWTITLEFRAMEDEFCHECK)
+(princ "\nSWTITLE A4 repair test complete.")
