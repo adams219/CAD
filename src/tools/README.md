@@ -1,11 +1,12 @@
 # CAD Tool Source Folders
 
-이 폴더는 실제로 로드하거나 검증 중인 CAD 자동화 도구를 기능별로 관리합니다.
+실제로 로드하거나 검증 중인 CAD 자동화 도구를 기능별로 관리한다.
 
 | Folder | Purpose |
 | --- | --- |
-| `gstarcad-dimstyle/` | SolidWorks DWG 치수스타일, 공차, Mechanical 맞춤공차 변환 도구입니다. |
-| `gstarcad-layout/` | 모델 공간 도면 프레임에서 A4 layout과 PDF 출력을 만드는 도구입니다. |
-| `gmtitle/` | GMTITLE / FTAP / `DIMLFAC` 스케일 읽기 전용 진단 도구입니다. |
+| `gstarcad-dimstyle/` | SolidWorks DWG 치수 스타일과 Mechanical 맞춤공차 변환 도구. |
+| `gstarcad-layout/` | 모델 공간 도면을 A4 layout/PDF 흐름으로 정리하는 도구. |
+| `gmtitle/` | SolidWorks 도면틀/표제란을 GstarCAD Mechanical GMTITLE 기반 DR 도면틀로 변환하는 도구. |
 
-채팅 중 나온 임시 파일은 먼저 `../../work/chat-*`에 두고, 실사용이 확정된 파일만 이곳으로 옮깁니다.
+임시 실험 파일, CAD 로그, 작업복사본 DWG는 `work/` 아래에 둔다.
+검증이 끝난 LSP와 문서만 `src/` 또는 `docs/`로 승격한다.

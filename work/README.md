@@ -1,22 +1,20 @@
-# Chat Workspaces
+# Work Folder
 
-## Notice: 2026-06-26 Folder Reorganization
+`work/`는 CAD 테스트용 임시 작업 폴더다.
 
-저장소 최상위에 흩어져 있던 기능별 작업 폴더를 정리했습니다.
+이 폴더에는 다음 파일이 생길 수 있다.
 
-- 실제 LSP 도구와 사용 문서: `src/tools/`
-- 새 모듈형 LSP 골격: `src/lsp/`
-- 공식 가이드/이력/조사 문서: `docs/guide/`, `docs/history/`, `docs/investigations/`
-- 채팅별 임시 작업물과 실험 결과: `work/chat-1`, `work/chat-2`, `work/chat-3`
+- 테스트용 DWG 복사본
+- GstarCAD에서 실행한 임시 LSP/SCR
+- `*_last.txt` 형식의 진단 로그
+- `.bak`, `.dwl`, `.dwl2` 같은 CAD 임시/잠금 파일
+- 현재 대화에서 확인 중인 중간 산출물
 
-앞으로 채팅에서 만든 파일은 먼저 해당 채팅 폴더에 날짜와 주제별로 저장한 뒤, 검증이 끝난 것만 `src/` 또는 `docs/`로 옮깁니다.
+원칙:
 
-채팅으로 진행한 작업물은 먼저 이 폴더에 분리해서 보관합니다.
+- 원본 DWG는 여기서 직접 보관하지 않는다.
+- 검증이 끝난 LSP는 `src/`로 옮긴다.
+- 정식 사용 문서는 `docs/`로 옮긴다.
+- `work/*.dwg`, `work/*.lsp`, `work/*.scr`, `work/*.txt`와 CAD 임시파일은 git에 올리지 않는다.
 
-```text
-work/chat-1/YYYY-MM-DD-topic/
-work/chat-2/YYYY-MM-DD-topic/
-work/chat-3/YYYY-MM-DD-topic/
-```
-
-각 작업 폴더에는 가능하면 `README.md`, `input/`, `output/`, `notes/`를 둡니다. 검증된 LSP는 `src/tools/` 또는 `src/lsp/`로, 공식 문서는 `docs/`로 옮깁니다.
+현재 작업을 이어가야 하는 최신 테스트 DWG만 필요할 때 남기고, 오래된 테스트 산출물은 삭제해도 된다.

@@ -27,6 +27,12 @@ _local/
 # Generated local diagnostic output
 work/*.dwg
 work/*.lsp
+work/*.scr
+work/*.txt
+work/**/*.dwg
+work/**/*.lsp
+work/**/*.scr
+work/**/*.txt
 work/*_last.txt
 work/cad_docs_last.txt
 work/swcad_title_debug_last.txt

@@ -1,15 +1,11 @@
 ;;; Read-only title-block and scale diagnostic module.
 ;;;
-;;; Standalone test workflow:
-;;;   APPLOAD this file directly, then run SWTITLEDEBUG, SWTITLESCAN,
-;;;   SWTITLETEXTSCAN, SWTITLEMULTIPREVIEW, SWTITLETRANSFERPREVIEW,
-;;;   SWTITLEFASTSTATUS, SWTITLETRANSFERAPPLY,
-;;;   SWTITLETRANSFERBOOTSTRAPFAST, SWTITLETRANSFERBATCH, or SWSCALESCAN.
+;;; Standalone workflow:
+;;;   APPLOAD this file directly, then run SWTITLEVERSION,
+;;;   SWTITLEMULTIPREVIEW, SWTITLEFASTSTATUS, SWTITLETRANSFERBOOTSTRAPFAST,
+;;;   SWTITLETRANSFERFASTBATCH, SWTITLEA3A4ALL, SWTITLESTATUSREFRESH,
+;;;   or SWTITLEGMTITLEVERIFYALL.
 ;;;
-;;; SWTITLEDEBUG prints raw information from a selected GM TITLE / FTAP
-;;; candidate object. It does not modify the drawing.
-;;; SWTITLETEXTSCAN lists title-block attributes and loose TEXT/MTEXT
-;;; found in title-block bounds. It does not modify the drawing.
 ;;; SWTITLETRANSFERPREVIEW maps loose title-block text to GM TITLE
 ;;; attribute tags. It does not modify the drawing.
 ;;; SWTITLEMULTIPREVIEW lists every detected SOLIDWORKS title/frame
@@ -17,9 +13,6 @@
 ;;; SWTITLETRANSFERAPPLY extracts old loose/block title text, runs native
 ;;; GMTITLE for the user to place a real DR frame/title, fills its
 ;;; attributes, then removes the selected old SOLIDWORKS title content.
-;;; SWTITLETRANSFERCLONEBATCH reuses one verified native GMTITLE pair in
-;;; the current work-copy drawing to finish remaining sheets without
-;;; reopening the fragile GMTITLE picker for every sheet.
 ;;; SWTITLEFASTSTATUS checks whether the current drawing is ready for the
 ;;; fast remaining-sheet batch and records sheet counts by A-size.
 ;;; SWTITLETRANSFERFASTBATCH runs the title clone batch and the frame-only
@@ -28,46 +21,24 @@
 ;;; exemplar when needed, then continues with the fast batch phases. The
 ;;; first native picker is still a GstarCAD dialog step; command-line and
 ;;; UI-automation selection are not reliable enough yet.
-;;; SWTITLEFRAMEONLYFINALIZE moves one already-created native GMTITLE
-;;; frame/title onto a detected frame-only sheet such as A4, then removes
-;;; the old source frame/residue. SWTITLEFRAMEONLYCLONEBATCH is the faster
-;;; cloned variant for repeated frame-only sheets.
-;;; SWTITLEFRAMEDEFCHECK diagnoses polluted target DR_A*_Outline block
-;;; definitions. SWTITLEFRAMEDEFCLEANSAFE repairs only unused polluted
-;;; definitions by backing them up and importing a clean install copy.
-;;; SWTITLEREPAIRFRAMEDEFS rebuilds referenced target frame definitions
-;;; whose visible bbox no longer matches the expected A-size geometry.
+;;; SWTITLEFRAMEONLYAPPLY creates/finalizes a native frame/title pair for
+;;; a detected frame-only sheet such as A4, then removes old source residue.
 ;;; Verifiers also warn when the raw CAD selection bbox is much larger
 ;;; than the effective visible frame, because that can make GMPOWEREDIT
 ;;; or double-click hit the frame/block instead of the title editor.
-;;; SWTITLEGMTITLELINKDETAIL dumps raw native-link target objects so the
-;;; internal GMTITLE recognition handle can be compared with visible clones.
-;;; SWTITLEGMTITLECOMPARE prints one internal/native title and one
-;;; visible-frame-linked clone side by side for A3 recognition debugging.
-;;; SWTITLEGMTITLEPRESERVECOPYTEST copies one real native GMTITLE frame/title
-;;; pair without relinking it to the visible frame, for recognition testing.
 ;;; Fast clone phases now require a real native exemplar whose GMTITLE link
 ;;; targets an internal recognition handle, not a visible cloned frame insert.
 ;;; Verifiers warn when multiple title blocks share one internal GMTITLE link,
 ;;; because that preserve-copy pattern can still fail GMPOWEREDIT.
-;;; SWTITLEUPGRADENATIVEONE replaces one A3/A4 native-recheck or cloned GMTITLE
-;;; pair with a fresh native GMTITLE pair so double-click behavior can be tested
-;;; against true GMTITLE output.
-;;; SWTITLEUPGRADENATIVESELECT does the same for the cloned or target
-;;; frame/title pair selected by the user.
-;;; SWTITLEA3A4PREP/SWTITLEA3A4FINISH replace the next A3/A4 clone or
-;;; native-recheck candidate with a manually created real GMTITLE pair.
+;;; SWTITLEA3A4NEXT replaces one A3/A4 native-recheck or cloned GMTITLE
+;;; pair with a fresh native GMTITLE pair. SWTITLEA3A4ALL repeats that
+;;; flow for every currently listed A3/A4 candidate.
 ;;; SWTITLENEXTSTEP is a read-only guide that inspects the current drawing and
 ;;; prints the next safest command in the conversion sequence.
 ;;; SWTITLEVERSION prints the currently loaded LSP version so stale CAD loads
 ;;; are easy to spot before trusting status logs.
 ;;; SWTITLESTATUSREFRESH reruns the main read-only status commands and refreshes
 ;;; their work-folder logs without modifying the drawing.
-;;; SWTITLEUPGRADENATIVEBATCH repeats that native upgrade for remaining clone
-;;; pairs. SWTITLEUPGRADENATIVEA3A4BATCH defaults to every listed A3/A4
-;;; candidate and is retained as a diagnostic path. Current safer one-sheet
-;;; work uses SWTITLEA3A4PREP, a normal GMTITLE command, then SWTITLEA3A4FINISH.
-;;; SWTITLEUPGRADENATIVEA3A4ALL is kept as an explicit all-candidate alias.
 ;;; SWTITLEPICKCHECK is a read-only helper for checking whether the user
 ;;; clicked the editable GMTITLE title block or the frame INSERT.
 ;;; SWSCALESCAN compares title-block scale candidates with dimension
@@ -75,7 +46,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260702-a3a4-manual-native-finish-1")
+(setq *swcad-title-scale-version* "260702-command-surface-cleanup-1")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
@@ -97,6 +68,7 @@
 (setq *swcad-title-skip-native-upgrade-confirmation* nil)
 (setq *swcad-title-a3a4-batch-default-all* nil)
 (setq *swcad-title-pending-manual-native-upgrade* nil)
+(setq *swcad-title-native-placement-trust-tolerance* 0.5)
 (setq *swcad-title-target-frame-block-name* "DR_A3_Outline")
 (setq *swcad-title-target-title-block-name* "DR_titlea_3rd")
 
@@ -715,6 +687,13 @@
 
 (defun swcad-title-near-p (a b tolerance)
   (<= (swcad-title-abs (- (float a) (float b))) tolerance)
+)
+
+(defun swcad-title-native-placement-substantial-move-p (dx dy)
+  (or
+    (> (swcad-title-abs dx) *swcad-title-native-placement-trust-tolerance*)
+    (> (swcad-title-abs dy) *swcad-title-native-placement-trust-tolerance*)
+  )
 )
 
 (defun swcad-title-bbox-intersects-p (a b)
@@ -3053,23 +3032,22 @@
               " frame-only source sheet(s) still remain, usually A4 sheets without a source title block."
             )
           )
-          (swcad-title-princ-line "SWTITLEUPGRADENATIVEA3A4BATCH does not create those missing A4 target sheets.")
+          (swcad-title-princ-line "SWTITLEA3A4ALL does not create those missing A4 target sheets.")
           (swcad-title-princ-line "It only replaces already-created A3/A4 GMTITLE target pairs whose double-click behavior is not trusted.")
           (swcad-title-princ-line "After the listed A3/A4 native upgrades, run SWTITLEFASTSTATUS and handle remaining frame-only sheets with SWTITLEFRAMEONLYAPPLY or SWTITLETRANSFERFASTBATCH.")
         )
       )
       (if (> a3a4-count 1)
         (progn
-          (swcad-title-princ-line "Next: run SWTITLEUPGRADENATIVEA3A4BATCH and press Enter to process every listed A3/A4 candidate by default.")
-          (swcad-title-princ-line (strcat "There are " (itoa a3a4-count) " A3/A4 candidate(s). SWTITLEUPGRADENATIVEA3A4BATCH now defaults to that full count; press Enter there to process all listed candidates."))
+          (swcad-title-princ-line "Next: run SWTITLEA3A4ALL to process every listed A3/A4 candidate.")
+          (swcad-title-princ-line (strcat "There are " (itoa a3a4-count) " A3/A4 candidate(s). SWTITLEA3A4ALL processes all listed candidates."))
           (swcad-title-princ-line "It will open the native GMTITLE dialog for each selected A3/A4 candidate, then copy the existing title values and delete the old clone/non-native pair.")
           (swcad-title-princ-line "In each GMTITLE dialog, choose the printed DR_A*_Outline paper and DR_titlea_3rd. Leave Frame positioning ON and turn Object move OFF.")
-          (swcad-title-princ-line "For a one-sheet cautious test instead, run SWTITLEA3A4PREP, create GMTITLE normally, then run SWTITLEA3A4FINISH.")
+          (swcad-title-princ-line "For all remaining A3/A4 candidates, run SWTITLEA3A4ALL. For a one-sheet cautious test, run SWTITLEA3A4NEXT.")
         )
         (progn
-          (swcad-title-princ-line "Next: run SWTITLEA3A4PREP.")
-          (swcad-title-princ-line "Then run normal GMTITLE, choose the printed DR_A*_Outline paper and DR_titlea_3rd, leave Frame positioning ON, turn Object move OFF, and use the printed insertion point.")
-          (swcad-title-princ-line "After GMTITLE creates the pair, run SWTITLEA3A4FINISH and then double-click the upgraded title block.")
+          (swcad-title-princ-line "Next: run SWTITLEA3A4NEXT.")
+          (swcad-title-princ-line "In the GMTITLE dialog, choose the printed DR_A*_Outline paper and DR_titlea_3rd, leave Frame positioning ON, and turn Object move OFF.")
         )
       )
     )
@@ -3148,7 +3126,7 @@
   (swcad-title-apply-result status)
   (cond
     ((equal status "NEXT_UPGRADE_A3_A4_NATIVE")
-      (swcad-title-princ-line "Next command: SWTITLEUPGRADENATIVEA3A4BATCH.")
+      (swcad-title-princ-line "Next command: SWTITLEA3A4ALL.")
       (swcad-title-princ-line (strcat "It defaults to all " (itoa a3a4-count) " currently listed A3/A4 candidate(s)."))
       (swcad-title-princ-line "This fixes native double-click behavior for already-created A3/A4 GMTITLE target pairs.")
       (if (> frame-only-count 0)
@@ -7327,14 +7305,14 @@
     (progn
       (swcad-title-princ-line "GMPOWEREDIT diagnosis: cloned GMTITLE pairs remain.")
       (swcad-title-princ-line "Clone means the visible frame/title and attributes were copied, but GstarCAD native editor recognition is not proven for that pair.")
-      (swcad-title-princ-line "Next: run SWTITLEUPGRADENATIVESTATUS, then SWTITLEUPGRADENATIVEA3A4BATCH or SWTITLEUPGRADENATIVESELECT.")
+      (swcad-title-princ-line "Next: run SWTITLEUPGRADENATIVESTATUS, then SWTITLEA3A4ALL or SWTITLEA3A4NEXT.")
     )
   )
   (if (> shared-link-count 0)
     (progn
       (swcad-title-princ-line "GMPOWEREDIT diagnosis: multiple GMTITLE titles share the same internal native recognition handle.")
       (swcad-title-princ-line "This is typical of preserve-copy/clone output: it can look correct, but double-click recognition can fall back to REFEDIT or block editing.")
-      (swcad-title-princ-line "Next: replace those pairs with fresh native GMTITLE output using SWTITLEUPGRADENATIVESELECT or SWTITLEUPGRADENATIVEA3A4BATCH.")
+      (swcad-title-princ-line "Next: replace those pairs with fresh native GMTITLE output using SWTITLEA3A4NEXT or SWTITLEA3A4ALL.")
     )
   )
   (if (and missing-required-sheets (> (length source-frames) 0))
@@ -7695,7 +7673,7 @@
               )
             )
             (swcad-title-princ-line
-              "For A3/A4 targets, use SWTITLEA3A4PREP, normal GMTITLE, then SWTITLEA3A4FINISH for one sheet."
+              "For A3/A4 targets, use SWTITLEA3A4NEXT for one sheet or SWTITLEA3A4ALL for all remaining candidates."
             )
             result
           )
@@ -9052,7 +9030,7 @@
       (swcad-title-princ-line (strcat "  sheet residue cleanup candidates: " (itoa (length residue-records))))
     )
     (progn
-      (swcad-title-princ-line "No title-like insert was found. Run SWTITLETEXTSCAN for raw text details.")
+      (swcad-title-princ-line "No title-like insert was found. Run SWTITLESCAN or SWTITLECOMMANDTEXTSCAN for more details.")
       (swcad-title-princ-line "Summary:")
       (swcad-title-princ-line "  mapped fields: 0")
     )
@@ -9290,7 +9268,12 @@
                     (swcad-title-princ-line (strcat "Removed partial/new GMTITLE inserts: " (itoa deleted-new-gmtitle-count)))
                     (swcad-title-princ-line "No old SOLIDWORKS title/frame content was removed.")
                   )
-                  (if (and align-needed (not *swcad-title-last-native-gmtitle-placement-used*))
+                  (if
+                    (and
+                      align-needed
+                      (not *swcad-title-last-native-gmtitle-placement-used*)
+                      (swcad-title-native-placement-substantial-move-p align-dx align-dy)
+                    )
                     (progn
                       (vl-catch-all-apply 'vla-EndUndoMark (list doc))
                       (setq deleted-new-gmtitle-count (swcad-title-delete-ename-list gmtitle-new-enames))
@@ -9328,7 +9311,12 @@
                     )
                     (setq deleted-residue-count (swcad-title-delete-handle-list residue-handles))
                     (setq marker-role
-                      (if (and align-needed (not *swcad-title-last-native-gmtitle-placement-used*))
+                      (if
+                        (and
+                          align-needed
+                          (not *swcad-title-last-native-gmtitle-placement-used*)
+                          (swcad-title-native-placement-substantial-move-p align-dx align-dy)
+                        )
                         "native-moved-unverified"
                         "native-apply"
                       )
@@ -9640,6 +9628,7 @@
               (and
                 align-needed
                 (not *swcad-title-last-native-gmtitle-placement-used*)
+                (swcad-title-native-placement-substantial-move-p align-dx align-dy)
                 (not (equal (strcase (swcad-title-string pending-role)) "CLONE"))
               )
               (progn
@@ -9685,7 +9674,12 @@
               (setq marker-role
                 (cond
                   ((equal (strcase (swcad-title-string pending-role)) "CLONE") "clone")
-                  ((and align-needed (not *swcad-title-last-native-gmtitle-placement-used*)) "native-moved-unverified")
+                  ((and
+                     align-needed
+                     (not *swcad-title-last-native-gmtitle-placement-used*)
+                     (swcad-title-native-placement-substantial-move-p align-dx align-dy)
+                   )
+                    "native-moved-unverified")
                   (pending-pair "native-finalize")
                   (T "native-finalize-manual")
                 )
@@ -9733,7 +9727,7 @@
               (if (equal (strcase marker-role) "CLONE")
                 (progn
                   (swcad-title-apply-result "FINALIZED_CLONED_GMTITLE_TRANSFER")
-                  (swcad-title-princ-line "Next: run SWTITLEUPGRADENATIVEA3A4BATCH before final double-click checks.")
+                  (swcad-title-princ-line "Next: run SWTITLEA3A4ALL before final double-click checks.")
                 )
                 (progn
                   (swcad-title-apply-result "FINALIZED_EXISTING_GMTITLE_TRANSFER")
@@ -9918,6 +9912,7 @@
               (and
                 align-needed
                 (not *swcad-title-last-native-gmtitle-placement-used*)
+                (swcad-title-native-placement-substantial-move-p align-dx align-dy)
                 (not (equal (strcase (swcad-title-string pending-role)) "CLONE"))
               )
               (progn
@@ -9941,7 +9936,12 @@
               (setq marker-role
                 (cond
                   ((equal (strcase (swcad-title-string pending-role)) "CLONE") "clone")
-                  ((and align-needed (not *swcad-title-last-native-gmtitle-placement-used*)) "native-frame-only-moved-unverified")
+                  ((and
+                     align-needed
+                     (not *swcad-title-last-native-gmtitle-placement-used*)
+                     (swcad-title-native-placement-substantial-move-p align-dx align-dy)
+                   )
+                    "native-frame-only-moved-unverified")
                   (pending-pair "native-frame-only-apply")
                   (T "native-frame-only-finalize")
                 )
@@ -9984,7 +9984,7 @@
               (if (equal (strcase marker-role) "CLONE")
                 (progn
                   (swcad-title-apply-result "FINALIZED_CLONED_FRAME_ONLY_GMTITLE_TRANSFER")
-                  (swcad-title-princ-line "Next: run SWTITLEUPGRADENATIVEA3A4BATCH before final double-click checks.")
+                  (swcad-title-princ-line "Next: run SWTITLEA3A4ALL before final double-click checks.")
                 )
                 (progn
                   (swcad-title-apply-result "FINALIZED_FRAME_ONLY_GMTITLE_TRANSFER")
@@ -10013,7 +10013,7 @@
               (swcad-title-princ-line (strcat "Removed pending invalid GMTITLE inserts: " (itoa deleted-new-count)))
             )
           )
-          (swcad-title-princ-line "Do not run SWTITLEFRAMEONLYCLONEBATCH or SWTITLETRANSFERFASTBATCH for this sheet size until one same-size native GMTITLE passes this geometry check.")
+          (swcad-title-princ-line "Do not run SWTITLETRANSFERFASTBATCH for this sheet size until one same-size native GMTITLE passes this geometry check.")
           (swcad-title-princ-line "Create one native GMTITLE with the detected DR sheet and verify its bbox first; if A4 keeps failing, inspect the GMTITLE A4 selection/format definition.")
           (swcad-title-princ-line "No old frame-only sheet content was removed.")
         )
@@ -10240,7 +10240,7 @@
           )
         )
       )
-      (princ "\nSWTITLETRANSFERBATCH finished. Run SWTITLEGMTITLEVERIFY, then double-click a new title block for the final table-editor check.")
+      (princ "\nLegacy transfer batch finished. Run SWTITLEGMTITLEVERIFYALL, then double-click a new title block for the final table-editor check.")
       (princ)
     )
   )
@@ -10323,7 +10323,7 @@
         (setq target-frame-block (swcad-title-next-fast-target-frame-block))
         (princ
           (strcat
-            "\n--- SWTITLETRANSFERCLONEBATCH sheet "
+            "\n--- internal fast title clone phase sheet "
             (itoa index)
             " / "
             (itoa count)
@@ -10430,7 +10430,7 @@
           )
         )
       )
-      (princ "\nSWTITLETRANSFERCLONEBATCH finished. Run SWTITLEGMTITLEVERIFYALL for the full check.")
+      (princ "\nInternal fast title clone phase finished. Run SWTITLEGMTITLEVERIFYALL for the full check.")
       (princ)
     )
   )
@@ -10491,7 +10491,7 @@
                 )
               )
               (swcad-title-princ-line "Exact-size native clone requires one real GMTITLE exemplar for the same DR_A*_Outline sheet size.")
-              (swcad-title-princ-line "For the first A4 frame-only sheet, run SWTITLEFRAMEONLYAPPLY once, then rerun SWTITLEFRAMEONLYCLONEBATCH.")
+              (swcad-title-princ-line "For the first A4 frame-only sheet, run SWTITLEFRAMEONLYAPPLY once, then rerun SWTITLETRANSFERFASTBATCH.")
               (swcad-title-princ-line "Target frame block definition check:")
               (swcad-title-print-frame-def-check-lines)
               (swcad-title-apply-result "ABORT_FRAME_ONLY_CLONE_FAILED")
@@ -10534,7 +10534,7 @@
         (setq target-frame-block (swcad-title-next-frame-only-target-frame-block))
         (princ
           (strcat
-            "\n--- SWTITLEFRAMEONLYCLONEBATCH sheet "
+            "\n--- internal fast frame-only clone phase sheet "
             (itoa index)
             " / "
             (itoa count)
@@ -10561,7 +10561,7 @@
                 (princ "\nIf SWTITLEFRAMEONLYAPPLY aborts with invalid geometry, do not continue with clone/fast batch for A4.")
               )
             )
-            (princ "\nRun SWTITLEFRAMEONLYAPPLY for the first frame-only sheet of this size, then rerun SWTITLEFRAMEONLYCLONEBATCH or SWTITLETRANSFERFASTBATCH.")
+            (princ "\nRun SWTITLEFRAMEONLYAPPLY for the first frame-only sheet of this size, then rerun SWTITLETRANSFERFASTBATCH.")
             (setq index count)
           )
           (progn
@@ -10670,7 +10670,7 @@
               )
             )
           )
-          (princ "\nSWTITLEFRAMEONLYCLONEBATCH finished. Run SWTITLEGMTITLEVERIFYALL and SWTITLEMULTIPREVIEW for the full check.")
+          (princ "\nFrame-only clone phase finished. Run SWTITLEGMTITLEVERIFYALL and SWTITLEMULTIPREVIEW for the full check.")
           (princ)
         )
       )
@@ -10851,7 +10851,7 @@
       (princ "\nResult: ABORT_NO_NATIVE_GMTITLE_EXEMPLAR")
       (princ "\nCreate/finalize one real native GMTITLE first, then run this command again.")
       (princ "\nCloned titles whose native link points to a visible frame are not accepted as exemplars.")
-      (princ "\nRecommended: run SWTITLETRANSFERBOOTSTRAPFAST, or run SWTITLETRANSFERAPPLY/SWTITLETRANSFERFINALIZE for the first sheet.")
+      (princ "\nRecommended: run SWTITLETRANSFERBOOTSTRAPFAST, or run SWTITLETRANSFERAPPLY for the first sheet.")
     )
     ((and missing-required (not (swcad-title-next-fast-target-ready-p)))
       (setq *swcad-title-last-apply-status* "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
@@ -10982,7 +10982,7 @@
       (setq *swcad-title-last-apply-status* "ABORT_NO_TITLE_SOURCE_FOR_BOOTSTRAP")
       (princ "\nResult: ABORT_NO_TITLE_SOURCE_FOR_BOOTSTRAP")
       (princ "\nNo title source remains to create the first native GMTITLE exemplar.")
-      (princ "\nCreate one native GMTITLE manually, then run SWTITLEFRAMEONLYCLONEBATCH or SWTITLETRANSFERFASTBATCH.")
+      (princ "\nCreate one native GMTITLE manually, then run SWTITLETRANSFERFASTBATCH.")
     )
     (T
       (setq answer
@@ -11560,7 +11560,7 @@
          )
           (swcad-title-apply-result "NEEDS_NATIVE_A3A4_UPGRADE")
           (swcad-title-princ-line "This picked pair is not accepted as fresh native GMTITLE for final double-click behavior.")
-          (swcad-title-princ-line "Next: run SWTITLEA3A4PREP, create one GMTITLE normally, then run SWTITLEA3A4FINISH.")
+          (swcad-title-princ-line "Next: run SWTITLEA3A4NEXT.")
         )
         (T
           (swcad-title-apply-result "NEEDS_GMTITLE_PAIR_REVIEW")
@@ -11667,7 +11667,7 @@
       (if (> needs-count 0)
         (progn
           (swcad-title-apply-result "NEEDS_NATIVE_A3A4_UPGRADE")
-          (swcad-title-princ-line "Next: run SWTITLEUPGRADENATIVESTATUS, then use SWTITLEA3A4PREP plus SWTITLEA3A4FINISH for remaining candidates.")
+          (swcad-title-princ-line "Next: run SWTITLEUPGRADENATIVESTATUS, then use SWTITLEA3A4NEXT or SWTITLEA3A4ALL for remaining candidates.")
         )
         (progn
           (swcad-title-apply-result "OK_DOUBLE_CLICK_MANUAL_CHECK_READY")
@@ -11902,22 +11902,21 @@
         (progn
           (swcad-title-apply-result "REVIEW_ACCIDENTAL_COMMAND_TEXT_BEFORE_A3A4_UPGRADE")
           (swcad-title-princ-line "Next command before A3/A4 upgrade: SWTITLECOMMANDTEXTSCAN")
-          (swcad-title-princ-line "After confirming/cleaning accidental command text, rerun SWTITLEA3A4FIXPLAN.")
+          (swcad-title-princ-line "After confirming/cleaning accidental command text, rerun SWTITLESTATUSREFRESH.")
         )
         (progn
           (swcad-title-apply-result "NEEDS_NATIVE_A3A4_UPGRADE")
-          (swcad-title-princ-line "Next command: SWTITLEUPGRADENATIVEA3A4BATCH")
+          (swcad-title-princ-line "Next command: SWTITLEA3A4ALL")
         )
       )
       (swcad-title-princ-line
         (strcat
-          "SWTITLEUPGRADENATIVEA3A4BATCH defaults to all "
+          "SWTITLEA3A4ALL processes all "
           (itoa total)
-          " currently listed A3/A4 candidate(s). Pressing Enter in that command keeps this all-candidate default."
+          " currently listed A3/A4 candidate(s)."
         )
       )
-      (swcad-title-princ-line "Pressing Enter in SWTITLEUPGRADENATIVEA3A4BATCH processes every currently listed A3/A4 candidate.")
-      (swcad-title-princ-line "If you want to process only one sheet first, use SWTITLEA3A4PREP, normal GMTITLE, then SWTITLEA3A4FINISH.")
+      (swcad-title-princ-line "Use SWTITLEA3A4ALL for all listed candidates, or SWTITLEA3A4NEXT for one sheet first.")
       (swcad-title-princ-line "For the GMTITLE dialog: choose the printed DR_A*_Outline paper and DR_titlea_3rd.")
       (swcad-title-princ-line "Required dialog state: Frame positioning=ON, Object move=OFF.")
       (swcad-title-princ-line "Do not accept ISO defaults. Cancel and rerun if the dialog still shows ISO paper/title.")
@@ -12090,14 +12089,14 @@
     ((> selection-risk-count 0)
       (swcad-title-apply-result "WARN_TARGET_FRAME_SELECTION_RISK")
       (swcad-title-princ-line "Reason: one or more target frame selection bbox values are oversized or overlap another target frame.")
-      (swcad-title-princ-line "Next: run SWTITLEFRAMEDEFCHECK. If invalid or oversized geometry is reported in a work copy, consider SWTITLEREPAIRFRAMEDEFS before continuing.")
+      (swcad-title-princ-line "Next: run SWTITLESTATUSREFRESH and review the verification logs before continuing.")
     )
     ((and (> command-text-count 0) (> a3a4-total 0))
       (swcad-title-apply-result "REVIEW_ACCIDENTAL_COMMAND_TEXT_BEFORE_A3A4_UPGRADE")
       (swcad-title-princ-line "Reason: possible command text exists in the drawing while A3/A4 native replacement candidates are present.")
       (swcad-title-princ-line "Next: run SWTITLECOMMANDTEXTSCAN and review the listed TEXT/MTEXT handles before A3/A4 upgrades.")
       (swcad-title-princ-line "If they are accidental command leftovers in a work copy, run SWTITLECOMMANDTEXTCLEANSAFE, then rerun SWTITLEUPGRADENATIVESTATUS.")
-      (swcad-title-princ-line (strcat "After that, run SWTITLEUPGRADENATIVEA3A4BATCH if the candidate count is still " (itoa a3a4-total) "."))
+      (swcad-title-princ-line (strcat "After that, run SWTITLEA3A4ALL if the candidate count is still " (itoa a3a4-total) "."))
     )
     ((> a3a4-total 0)
       (swcad-title-apply-result "NEEDS_NATIVE_A3A4_UPGRADE")
@@ -12112,11 +12111,11 @@
           (swcad-title-princ-line "You can upgrade the listed A3/A4 target pairs now even if A4 frame-only source sheets still remain.")
         )
       )
-      (swcad-title-princ-line "Next safest path: run SWTITLEA3A4PREP, create one normal GMTITLE with the printed values, then run SWTITLEA3A4FINISH.")
-      (swcad-title-princ-line (strcat "Batch path: run SWTITLEUPGRADENATIVEA3A4BATCH and press Enter to process all " (itoa a3a4-total) " currently listed candidate(s)."))
+      (swcad-title-princ-line "Next safest path: run SWTITLEA3A4NEXT for one sheet.")
+      (swcad-title-princ-line (strcat "Batch path: run SWTITLEA3A4ALL to process all " (itoa a3a4-total) " currently listed candidate(s)."))
       (swcad-title-princ-line "For every GMTITLE dialog: choose the printed DR_A*_Outline paper, choose DR_titlea_3rd, keep Frame positioning ON, turn Object move OFF, then OK.")
       (swcad-title-princ-line "Do not confirm ISO A3/A4 or ISO title defaults; cancel and rerun if the dialog is still on ISO values.")
-      (swcad-title-princ-line "Use SWTITLEUPGRADENATIVESELECT if you want to pick a specific sheet yourself.")
+      (swcad-title-princ-line "Use SWTITLEPICKCHECK if you want to diagnose a specific sheet first.")
       (if (or (> (length source-titles) 0) (> (length source-frames) 0))
         (swcad-title-princ-line "After that, rerun SWTITLEFASTSTATUS and handle remaining source sheets with SWTITLETRANSFERFASTBATCH or SWTITLEFRAMEONLYAPPLY.")
       )
@@ -12206,7 +12205,7 @@
     ((not pair)
       (swcad-title-apply-result "STOP_NO_NATIVE_UPGRADE_CANDIDATE")
       (swcad-title-princ-line "No A3/A4 native-recheck or cloned GMTITLE pair was found.")
-      (swcad-title-princ-line "If frames still feel wrong, run SWTITLEUPGRADENATIVESTATUS, SWTITLEGMTITLEVERIFYALL, and SWTITLEGMTITLECOMPARE for diagnostics.")
+      (swcad-title-princ-line "If frames still feel wrong, run SWTITLEUPGRADENATIVESTATUS, SWTITLEGMTITLEVERIFYALL, and SWTITLEPICKCHECK for diagnostics.")
     )
     ((swcad-title-document-read-only-p)
       (swcad-title-apply-result "ABORT_READ_ONLY_DOCUMENT")
@@ -12317,7 +12316,12 @@
                   (swcad-title-princ-line (strcat "Removed new GMTITLE inserts: " (itoa deleted-new-count)))
                   (swcad-title-princ-line "The existing GMTITLE pair was kept.")
                 )
-                (if (and align-needed (not *swcad-title-last-native-gmtitle-placement-used*))
+                (if
+                  (and
+                    align-needed
+                    (not *swcad-title-last-native-gmtitle-placement-used*)
+                    (swcad-title-native-placement-substantial-move-p align-dx align-dy)
+                  )
                   (progn
                     (vl-catch-all-apply 'vla-EndUndoMark (list doc))
                     (setq deleted-new-count (swcad-title-delete-ename-list new-enames))
@@ -12362,7 +12366,7 @@
                     (swcad-title-apply-result "UPGRADED_CLONE_TO_NATIVE_GMTITLE")
                     (swcad-title-princ-line "Manual check: double-click the upgraded title block and confirm the GMTITLE table editor opens.")
                     (if (> remaining-a3a4-count 0)
-                      (swcad-title-princ-line "If this sheet works, run SWTITLEA3A4PREP again for the next A3/A4 candidate.")
+                      (swcad-title-princ-line "If this sheet works, run SWTITLEA3A4NEXT again for the next A3/A4 candidate, or SWTITLEA3A4ALL for the rest.")
                       (swcad-title-princ-line "All A3/A4 upgrade candidates are cleared; run SWTITLEGMTITLEVERIFYALL and SWTITLENATIVEFRAMECHECK.")
                     )
                   )
@@ -12439,7 +12443,7 @@
   (setq values (if old-title-object (swcad-title-title-attribute-pairs old-title-object) nil))
   (setq before-handles (swcad-title-insert-handle-list))
   (setq placement-point (swcad-title-bbox-lower-left-point old-frame-bbox))
-  (swcad-title-princ-line "----- SWTITLEA3A4PREP manual native GMTITLE prepare -----")
+  (swcad-title-princ-line "----- internal A3/A4 manual native GMTITLE prepare -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -12499,8 +12503,8 @@
       (swcad-title-princ-line (strcat "GMTITLE title block to choose: " (swcad-title-target-title-block-name)))
       (swcad-title-princ-line "GMTITLE options: Frame positioning ON, Object move OFF.")
       (swcad-title-princ-line (strcat "When GMTITLE asks for the insertion point, type: " (swcad-title-point-string placement-point)))
-      (swcad-title-princ-line "After the native GMTITLE is visibly created, run SWTITLEA3A4FINISH.")
-      (swcad-title-princ-line "Codex automation note: do not paste the coordinate into the CAD prompt; send it as keystrokes or type it manually.")
+      (swcad-title-princ-line "After the native GMTITLE is visibly created, use SWTITLEA3A4NEXT for the guided finish/retry flow.")
+      (swcad-title-princ-line "Tip: use SWTITLEA3A4NEXT to avoid typing this coordinate; it sends the lower-left point automatically after the GMTITLE dialog.")
       (swcad-title-apply-result "READY_MANUAL_NATIVE_GMTITLE_CREATE")
     )
   )
@@ -12520,7 +12524,7 @@
   (setq old-frame-bbox (swcad-title-pending-manual-native-value "old-frame-bbox"))
   (setq values (swcad-title-pending-manual-native-value "values"))
   (setq before-handles (swcad-title-pending-manual-native-value "before-handles"))
-  (swcad-title-princ-line "----- SWTITLEA3A4FINISH manual native GMTITLE finish -----")
+  (swcad-title-princ-line "----- internal A3/A4 manual native GMTITLE finish -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -12528,7 +12532,7 @@
   (cond
     ((not *swcad-title-pending-manual-native-upgrade*)
       (swcad-title-apply-result "ABORT_NO_MANUAL_NATIVE_GMTITLE_PENDING")
-      (swcad-title-princ-line "Run SWTITLEA3A4PREP first, then create one native GMTITLE with the printed values.")
+      (swcad-title-princ-line "Run SWTITLEA3A4NEXT again and create one native GMTITLE with the printed values.")
     )
     ((or (not old-title) (not old-frame))
       (setq *swcad-title-pending-manual-native-upgrade* nil)
@@ -12583,7 +12587,11 @@
           (setq align-dx (cadr align-result))
           (setq align-dy (caddr align-result))
           (setq align-needed (or (> (swcad-title-abs align-dx) 0.0001) (> (swcad-title-abs align-dy) 0.0001)))
-          (if align-needed
+          (if
+            (and
+              align-needed
+              (swcad-title-native-placement-substantial-move-p align-dx align-dy)
+            )
             (progn
               (vl-catch-all-apply 'vla-EndUndoMark (list doc))
               (setq deleted-new-count (swcad-title-delete-ename-list new-enames))
@@ -12600,7 +12608,7 @@
                 )
               )
               (swcad-title-princ-line (strcat "Removed new GMTITLE inserts: " (itoa deleted-new-count)))
-              (swcad-title-princ-line "Run SWTITLEA3A4PREP again and create the GMTITLE at the printed insertion point.")
+              (swcad-title-princ-line "Run SWTITLEA3A4NEXT again and create the GMTITLE at the printed insertion point.")
             )
             (progn
               (setq new-title-object (swcad-title-safe-vla-object new-title))
@@ -12618,6 +12626,16 @@
               (vl-catch-all-apply 'vla-EndUndoMark (list doc))
               (setq *swcad-title-pending-manual-native-upgrade* nil)
               (setq remaining-a3a4-count (length (swcad-title-a3a4-native-upgrade-candidate-records)))
+              (swcad-title-princ-line
+                (strcat
+                  "Native GMTITLE aligned to pending frame: moved="
+                  (itoa align-count)
+                  ", dx="
+                  (swcad-title-number-string align-dx)
+                  ", dy="
+                  (swcad-title-number-string align-dy)
+                )
+              )
               (swcad-title-princ-line (strcat "Attributes copied: " (itoa attr-count)))
               (swcad-title-princ-line (strcat "Native upgrade marker set: " (if marker-ok "yes" "no") ", role=native-upgrade"))
               (swcad-title-princ-line "Old cloned/untrusted title deleted: yes")
@@ -12625,7 +12643,7 @@
               (swcad-title-princ-line (strcat "Remaining A3/A4 native upgrade candidates: " (itoa remaining-a3a4-count)))
               (swcad-title-apply-result "FINISHED_MANUAL_NATIVE_GMTITLE_UPGRADE")
               (if (> remaining-a3a4-count 0)
-                (swcad-title-princ-line "Next: run SWTITLEA3A4PREP for the next candidate.")
+                (swcad-title-princ-line "Next: run SWTITLEA3A4NEXT for the next candidate, or SWTITLEA3A4ALL for the rest.")
                 (swcad-title-princ-line "All A3/A4 native upgrade candidates are cleared; run SWTITLEGMTITLEVERIFYALL and SWTITLENATIVEFRAMECHECK.")
               )
             )
@@ -12655,7 +12673,7 @@
             (swcad-title-princ-line (strcat "Frame geometry warning: " geometry-warning))
           )
           (swcad-title-princ-line (strcat "Removed wrong/new GMTITLE inserts: " (itoa deleted-new-count)))
-          (swcad-title-princ-line "The pending old target pair was kept. Run SWTITLEA3A4PREP and create the GMTITLE again.")
+          (swcad-title-princ-line "The pending old target pair was kept. Run SWTITLEA3A4NEXT and create the GMTITLE again.")
         )
       )
     )
@@ -12772,7 +12790,7 @@
           ", Frame positioning=ON, Object move=OFF."
         )
       )
-  (swcad-title-princ-line "After SWTITLEA3A4FINISH succeeds, rerun SWTITLEUPGRADENATIVESTATUS; repeat until A3/A4 target pairs needing native replacement is 0.")
+      (swcad-title-princ-line "After this command succeeds, rerun SWTITLEUPGRADENATIVESTATUS; repeat SWTITLEA3A4NEXT until A3/A4 target pairs needing native replacement is 0.")
       (setq *swcad-title-native-upgrade-selected-pair* pair)
       (setq old-skip *swcad-title-skip-native-upgrade-confirmation*)
       (setq *swcad-title-skip-native-upgrade-confirmation* T)
@@ -12782,7 +12800,7 @@
         (progn
           (swcad-title-princ-line
             (strcat
-              "SWTITLEUPGRADENATIVEA3A4NEXT error: "
+              "SWTITLEA3A4NEXT error: "
               (vl-catch-all-error-message result)
             )
           )
@@ -12792,7 +12810,7 @@
     )
     (progn
       (swcad-title-open-native-upgrade-log)
-      (swcad-title-princ-line "----- SWTITLEUPGRADENATIVEA3A4NEXT guided one-sheet upgrade -----")
+      (swcad-title-princ-line "----- SWTITLEA3A4NEXT guided one-sheet upgrade -----")
       (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
       (swcad-title-print-work-copy-status)
@@ -12810,7 +12828,7 @@
   (defun *error* (msg)
     (setq *swcad-title-native-upgrade-batch-mode* old-batch-mode)
     (if msg
-      (swcad-title-princ-line (strcat "SWTITLEUPGRADENATIVEBATCH error: " (swcad-title-string msg)))
+      (swcad-title-princ-line (strcat "Internal native upgrade batch error: " (swcad-title-string msg)))
     )
     (swcad-title-apply-result "ERROR_NATIVE_UPGRADE_BATCH")
     (swcad-title-close-log)
@@ -12820,7 +12838,7 @@
   (swcad-title-open-native-upgrade-log)
   (setq records (swcad-title-cloned-gmtitle-pair-records))
   (setq total (length records))
-  (swcad-title-princ-line "----- SWTITLEUPGRADENATIVEBATCH clone-to-native frame upgrade batch -----")
+  (swcad-title-princ-line "----- internal clone-to-native frame upgrade batch -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -12836,7 +12854,7 @@
     ((not (swcad-title-current-dwg-in-work-p))
       (swcad-title-apply-result "ABORT_NOT_WORK_COPY")
       (swcad-title-princ-line "Batch native upgrade is limited to Documents/CAD tool/work copies.")
-      (swcad-title-princ-line "Use SWTITLEUPGRADENATIVEONE with EDIT confirmation if you intentionally want to test outside work.")
+      (swcad-title-princ-line "Open a work-folder copy before running native upgrade commands.")
     )
     (T
       (setq count
@@ -12865,7 +12883,7 @@
               (progn
                 (swcad-title-princ-line
                   (strcat
-                    "--- SWTITLEUPGRADENATIVEBATCH sheet "
+                    "--- internal native upgrade batch sheet "
                     (itoa index)
                     " / "
                     (itoa count)
@@ -12925,7 +12943,7 @@
     (setq *swcad-title-allow-batch-interactive-native-gmtitle* old-allow-interactive)
     (setq *swcad-title-native-upgrade-selected-pair* nil)
     (if msg
-      (swcad-title-princ-line (strcat "SWTITLEUPGRADENATIVEA3A4BATCH error: " (swcad-title-string msg)))
+      (swcad-title-princ-line (strcat "SWTITLEA3A4ALL error: " (swcad-title-string msg)))
     )
     (swcad-title-apply-result "ERROR_NATIVE_A3A4_UPGRADE_BATCH")
     (swcad-title-close-log)
@@ -12937,7 +12955,7 @@
   (setq records (swcad-title-a3a4-native-upgrade-candidate-records))
   (setq total (length records))
   (setq command-text-count (swcad-title-command-text-residue-count))
-  (swcad-title-princ-line "----- SWTITLEUPGRADENATIVEA3A4BATCH A3/A4 target-to-native frame upgrade batch -----")
+  (swcad-title-princ-line "----- SWTITLEA3A4ALL A3/A4 target-to-native frame upgrade batch -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -12961,7 +12979,7 @@
               (swcad-title-print-missing-native-exemplar-actions summary missing-required)
             )
             (progn
-              (swcad-title-princ-line "Next: run SWTITLETRANSFERFASTBATCH to create A3/A4 target pairs, then rerun SWTITLEUPGRADENATIVEA3A4BATCH.")
+              (swcad-title-princ-line "Next: run SWTITLETRANSFERFASTBATCH to create A3/A4 target pairs, then rerun SWTITLEA3A4ALL.")
             )
           )
         )
@@ -12975,13 +12993,13 @@
     ((not (swcad-title-current-dwg-in-work-p))
       (swcad-title-apply-result "ABORT_NOT_WORK_COPY")
       (swcad-title-princ-line "A3/A4 batch native upgrade is limited to Documents/CAD tool/work copies.")
-      (swcad-title-princ-line "Use SWTITLEUPGRADENATIVESELECT with EDIT confirmation if you intentionally want to test one sheet outside work.")
+      (swcad-title-princ-line "Open a work-folder copy before running SWTITLEA3A4NEXT or SWTITLEA3A4ALL.")
     )
     ((swcad-title-script-active-p)
       (swcad-title-apply-result "ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE")
-      (swcad-title-princ-line "Do not run SWTITLEUPGRADENATIVEA3A4BATCH from a SCRIPT file.")
+      (swcad-title-princ-line "Do not run SWTITLEA3A4ALL from a SCRIPT file.")
       (swcad-title-princ-line "Reason: each candidate may need the interactive GMTITLE dialog, and SCRIPT mode suppresses that fallback.")
-      (swcad-title-princ-line "Run the status SCRIPT first, then type SWTITLEUPGRADENATIVEA3A4BATCH manually in the CAD command line.")
+      (swcad-title-princ-line "Run the status SCRIPT first, then type SWTITLEA3A4ALL manually in the CAD command line.")
       (swcad-title-princ-line "No drawing data was changed.")
     )
     ((> command-text-count 0)
@@ -13014,7 +13032,7 @@
         )
       )
       (swcad-title-princ-line "Default count is all currently listed candidates. Press Enter to process every listed A3/A4 candidate.")
-      (swcad-title-princ-line "For a one-sheet trial instead, cancel this command and run SWTITLEA3A4PREP, normal GMTITLE, then SWTITLEA3A4FINISH.")
+      (swcad-title-princ-line "Short command alias: SWTITLEA3A4ALL. For a one-sheet trial instead, cancel this command and run SWTITLEA3A4NEXT.")
       (if *swcad-title-a3a4-batch-default-all*
         (progn
           (setq count default-count)
@@ -13060,7 +13078,7 @@
               (progn
                 (swcad-title-princ-line
                   (strcat
-                    "--- SWTITLEUPGRADENATIVEA3A4BATCH sheet "
+                    "--- SWTITLEA3A4ALL sheet "
                     (itoa index)
                     " / "
                     (itoa count)
@@ -13110,8 +13128,8 @@
           (cond
             ((equal *swcad-title-last-native-gmtitle-abort-reason* "INTERACTIVE_GMTITLE_SKIPPED_IN_BATCH")
               (swcad-title-princ-line "Next: batch cannot safely continue because GMTITLE opens with ISO defaults.")
-              (swcad-title-princ-line "Recommended: run SWTITLEA3A4PREP, create one normal GMTITLE, then run SWTITLEA3A4FINISH and verify.")
-              (swcad-title-princ-line "If you want to proceed through several dialogs in one command, rerun SWTITLEUPGRADENATIVEA3A4BATCH and choose the requested DR paper/title each time.")
+              (swcad-title-princ-line "Recommended: run SWTITLEA3A4NEXT for one sheet and verify.")
+              (swcad-title-princ-line "If you want to proceed through several dialogs in one command, rerun SWTITLEA3A4ALL and choose the requested DR paper/title each time.")
               (swcad-title-princ-line "For A4 frame-only sheets afterward, run SWTITLEFASTSTATUS and use SWTITLEFRAMEONLYAPPLY for the first real DR_A4_Outline exemplar if needed.")
             )
             (T
@@ -13138,7 +13156,7 @@
     (progn
       (swcad-title-princ-line
         (strcat
-          "SWTITLEUPGRADENATIVEA3A4BATCHMANUAL error: "
+          "SWTITLEA3A4ALL interactive error: "
           (vl-catch-all-error-message result)
         )
       )
@@ -13157,7 +13175,7 @@
     (progn
       (swcad-title-princ-line
         (strcat
-          "SWTITLEUPGRADENATIVEA3A4ALL error: "
+          "SWTITLEA3A4ALL error: "
           (vl-catch-all-error-message result)
         )
       )
@@ -13165,32 +13183,6 @@
     )
   )
   (princ)
-)
-
-(defun c:SWTITLEDEBUG (/ picked ename)
-  (setq ename (swcad-title-first-implied-selection))
-  (if ename
-    (progn
-      (swcad-title-princ-line "Using first preselected object for read-only debug.")
-      (swcad-title-debug-entity ename)
-    )
-    (progn
-      (swcad-title-princ-line "Select a GM TITLE / FTAP candidate object for read-only debug.")
-      (setq picked (entsel "\nSelect title object: "))
-      (if picked
-        (progn
-          (setq ename (car picked))
-          (swcad-title-debug-entity ename)
-        )
-        (swcad-title-princ-line "Nothing selected.")
-      )
-    )
-  )
-  (princ)
-)
-
-(defun c:SWTITLETEXTSCAN ()
-  (swcad-title-scan-title-texts)
 )
 
 (defun c:SWTITLECOMMANDTEXTSCAN ()
@@ -13205,18 +13197,6 @@
   (swcad-title-multi-preview)
 )
 
-(defun c:SWTITLEMULTIDETAIL ()
-  (swcad-title-multi-detail)
-)
-
-(defun c:SWTITLEFRAMESCAN ()
-  (swcad-title-frame-scan)
-)
-
-(defun c:SWTITLEGMTITLEVERIFY ()
-  (swcad-title-gmtitle-verify)
-)
-
 (defun c:SWTITLEGMTITLEVERIFYALL ()
   (swcad-title-gmtitle-verify-all)
 )
@@ -13228,7 +13208,7 @@
 (defun c:SWTITLEVERSION ()
   (princ "\n----- SWTITLEVERSION read-only loaded LSP check -----")
   (swcad-title-print-loaded-version)
-  (princ "\nExpected current version for A3/A4 manual native finish: 260702-a3a4-manual-native-finish-1")
+  (princ "\nExpected current version for cleaned command surface: 260702-command-surface-cleanup-1")
   (princ "\nIf a different version is shown, APPLOAD this file again before trusting SWTITLE status results.")
   (princ "\nNo drawing data was changed.")
   (princ)
@@ -13267,84 +13247,16 @@
   (swcad-title-double-click-check)
 )
 
-(defun c:SWTITLEROLECHECK ()
-  (swcad-title-role-check)
-)
-
-(defun c:SWTITLEA3A4FIXPLAN ()
-  (swcad-title-a3a4-fix-plan)
-)
-
-(defun c:SWTITLEGMTITLELINKSCAN ()
-  (swcad-title-gmtitle-link-scan)
-)
-
-(defun c:SWTITLEGMTITLELINKDETAIL ()
-  (swcad-title-gmtitle-link-detail)
-)
-
-(defun c:SWTITLEGMTITLECOMPARE ()
-  (swcad-title-gmtitle-compare)
-)
-
-(defun c:SWTITLEGMTITLEPRESERVECOPYTEST ()
-  (swcad-title-gmtitle-preserve-copy-test)
-)
-
 (defun c:SWTITLEUPGRADENATIVESTATUS ()
   (swcad-title-upgrade-native-status)
 )
 
-(defun c:SWTITLEUPGRADENATIVEONE ()
-  (swcad-title-upgrade-native-one)
-)
-
-(defun c:SWTITLEUPGRADENATIVESELECT ()
-  (swcad-title-upgrade-native-select)
-)
-
-(defun c:SWTITLEUPGRADENATIVEA3A4NEXT ()
-  (swcad-title-upgrade-native-a3a4-prepare)
-)
-
 (defun c:SWTITLEA3A4NEXT ()
-  (swcad-title-upgrade-native-a3a4-prepare)
+  (swcad-title-upgrade-native-a3a4-next)
 )
 
-(defun c:SWTITLEA3A4PREP ()
-  (swcad-title-upgrade-native-a3a4-prepare)
-)
-
-(defun c:SWTITLEA3A4FINISH ()
-  (swcad-title-upgrade-native-a3a4-finish)
-)
-
-(defun c:SWTITLEUPGRADENATIVEBATCH ()
-  (swcad-title-upgrade-native-batch)
-)
-
-(defun c:SWTITLEUPGRADENATIVEA3A4BATCH ()
-  (swcad-title-upgrade-native-a3a4-batch)
-)
-
-(defun c:SWTITLEUPGRADENATIVEA3A4ALL ()
+(defun c:SWTITLEA3A4ALL ()
   (swcad-title-upgrade-native-a3a4-all)
-)
-
-(defun c:SWTITLEUPGRADENATIVEA3A4BATCHMANUAL ()
-  (swcad-title-upgrade-native-a3a4-batch-manual)
-)
-
-(defun c:SWTITLEFRAMEDEFCHECK ()
-  (swcad-title-frame-def-check)
-)
-
-(defun c:SWTITLEFRAMEDEFCLEANSAFE ()
-  (swcad-title-frame-def-clean-safe)
-)
-
-(defun c:SWTITLEREPAIRFRAMEDEFS ()
-  (swcad-title-repair-frame-definitions)
 )
 
 (defun c:SWTITLEFASTSTATUS ()
@@ -13363,22 +13275,6 @@
   (swcad-title-transfer-apply)
 )
 
-(defun c:SWTITLETRANSFERFINALIZE ()
-  (swcad-title-transfer-finalize)
-)
-
-(defun c:SWTITLETRANSFERBATCH ()
-  (swcad-title-transfer-batch)
-)
-
-(defun c:SWTITLETRANSFERCLONEAPPLY ()
-  (swcad-title-transfer-clone-apply)
-)
-
-(defun c:SWTITLETRANSFERCLONEBATCH ()
-  (swcad-title-transfer-clone-batch)
-)
-
 (defun c:SWTITLETRANSFERFASTBATCH ()
   (swcad-title-transfer-fast-batch)
 )
@@ -13387,20 +13283,8 @@
   (swcad-title-transfer-bootstrap-fast)
 )
 
-(defun c:SWTITLEFRAMEONLYFINALIZE ()
-  (swcad-title-transfer-frame-only-finalize)
-)
-
 (defun c:SWTITLEFRAMEONLYAPPLY ()
   (swcad-title-transfer-frame-only-apply)
-)
-
-(defun c:SWTITLEFRAMEONLYCLONEAPPLY ()
-  (swcad-title-transfer-frame-only-clone-apply)
-)
-
-(defun c:SWTITLEFRAMEONLYCLONEBATCH ()
-  (swcad-title-transfer-frame-only-clone-batch)
 )
 
 (defun c:SWSCALESCAN (/ insert-ss insert-index insert-total dim-ss dim-index dim-total ename data overrides style styledata override-value style-value effective-value expected-values effective-counts override-counts style-counts match-count mismatch-count mismatch-example-count match result)
@@ -13541,5 +13425,5 @@
 )
 
 (princ (strcat "\nswcad_title_scale.lsp ready " *swcad-title-scale-version*))
-(princ "\nCommands: SWTITLEDEBUG, SWTITLESCAN, SWTITLETEXTSCAN, SWTITLECOMMANDTEXTSCAN, SWTITLECOMMANDTEXTCLEANSAFE, SWTITLEMULTIPREVIEW, SWTITLEGMTITLEVERIFY, SWTITLEGMTITLEVERIFYALL, SWTITLENATIVEFRAMECHECK, SWTITLEVERSION, SWTITLESTATUSREFRESH, SWTITLEPICKCHECK, SWTITLEDOUBLECLICKCHECK, SWTITLEROLECHECK, SWTITLEA3A4FIXPLAN, SWTITLEGMTITLELINKSCAN, SWTITLEGMTITLELINKDETAIL, SWTITLEGMTITLECOMPARE, SWTITLEGMTITLEPRESERVECOPYTEST, SWTITLEUPGRADENATIVESTATUS, SWTITLEUPGRADENATIVEONE, SWTITLEUPGRADENATIVESELECT, SWTITLEUPGRADENATIVEA3A4NEXT, SWTITLEA3A4NEXT, SWTITLEA3A4PREP, SWTITLEA3A4FINISH, SWTITLEUPGRADENATIVEBATCH, SWTITLEUPGRADENATIVEA3A4BATCH, SWTITLEUPGRADENATIVEA3A4ALL, SWTITLEUPGRADENATIVEA3A4BATCHMANUAL, SWTITLEFRAMEDEFCHECK, SWTITLEFRAMEDEFCLEANSAFE, SWTITLEREPAIRFRAMEDEFS, SWTITLEFASTSTATUS, SWTITLENEXTSTEP, SWTITLETRANSFERPREVIEW, SWTITLETRANSFERAPPLY, SWTITLETRANSFERFINALIZE, SWTITLETRANSFERBATCH, SWTITLETRANSFERCLONEAPPLY, SWTITLETRANSFERCLONEBATCH, SWTITLETRANSFERFASTBATCH, SWTITLETRANSFERBOOTSTRAPFAST, SWTITLEFRAMEONLYFINALIZE, SWTITLEFRAMEONLYAPPLY, SWTITLEFRAMEONLYCLONEAPPLY, SWTITLEFRAMEONLYCLONEBATCH, SWSCALESCAN")
+(princ "\nCommands: SWTITLEVERSION, SWTITLEMULTIPREVIEW, SWTITLEFASTSTATUS, SWTITLENEXTSTEP, SWTITLETRANSFERPREVIEW, SWTITLETRANSFERAPPLY, SWTITLETRANSFERBOOTSTRAPFAST, SWTITLETRANSFERFASTBATCH, SWTITLEFRAMEONLYAPPLY, SWTITLEA3A4NEXT, SWTITLEA3A4ALL, SWTITLEUPGRADENATIVESTATUS, SWTITLESTATUSREFRESH, SWTITLEGMTITLEVERIFYALL, SWTITLENATIVEFRAMECHECK, SWTITLEDOUBLECLICKCHECK, SWTITLEPICKCHECK, SWTITLECOMMANDTEXTSCAN, SWTITLECOMMANDTEXTCLEANSAFE, SWTITLESCAN, SWSCALESCAN")
 (princ)
