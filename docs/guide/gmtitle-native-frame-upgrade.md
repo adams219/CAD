@@ -24,7 +24,7 @@ GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 
 현재 LSP 버전:
 
 ```text
-260704-target-overlap-adopt-main56-a4defrawguard
+260704-target-overlap-adopt-main57-a4rawrepair
 ```
 
 현재 loader 버전은 `SWTITLEVERSION`에서 함께 확인합니다.
@@ -139,9 +139,11 @@ DR_A4_Outline block definition 자체의 raw bbox가 A4보다 과도하게 크�
 
 `SWTITLESTATUS`가 `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX`를 안내하거나 `SWTITLECONVERT`가 `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK`로 멈추면, 이는 실패가 아니라 기존 A4를 보호하기 위한 중단입니다.
 
+`main57-a4rawrepair`에서는 사용 중이 아닌 `DR_A*_Outline` 정의라면 `SWTITLEPREPARE`가 설치 원본 정의를 다시 가져와 raw bbox 위험이 사라지는지 확인합니다. 가져온 정의도 위험하면 즉시 롤백합니다.
+
 ## 검증 결과
 
-2026-07-04 기준 main56 진단은 통과했습니다.
+2026-07-04 기준 main57에서는 raw bbox 위험을 감지한 뒤, 사용 중이 아닌 정의만 `SWTITLEPREPARE` 복구 후보로 처리합니다.
 
 ```text
 work/swtitle_duplicate_target_pair_compare_main56.txt

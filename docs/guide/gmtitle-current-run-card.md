@@ -23,7 +23,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main56-a4defrawguard
+260704-target-overlap-adopt-main57-a4rawrepair
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 APPLOAD 합니다.
@@ -42,14 +42,14 @@ SWTITLEVERSION
 
 ```text
 GitHub 코드 기준: 36183b2 Guard A4 frame-only GMTITLE flow 이상
-현재 LSP 기준: 260704-target-overlap-adopt-main56-a4defrawguard
+현재 LSP 기준: 260704-target-overlap-adopt-main57-a4rawrepair
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```
 
 주의:
 
 ```text
-a4defrawguard 기준에서는 A4 frame-only뿐 아니라 DR_A4_Outline 정의 raw bbox 위험도 먼저 막습니다.
+a4rawrepair 기준에서는 A4 frame-only뿐 아니라 DR_A4_Outline 정의 raw bbox 위험도 먼저 막고, 사용 중이 아닌 위험 정의는 SWTITLEPREPARE에서 설치 원본으로 복구 후보 처리합니다.
 다른 PC나 열린 CAD 세션이 예전 LSP를 들고 있을 수 있으므로, 실제 CAD의 SWTITLEVERSION을 우선 확인합니다.
 ```
 

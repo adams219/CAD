@@ -31,7 +31,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main56-a4defrawguard")
+(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main57-a4rawrepair")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -7931,7 +7931,7 @@
   )
 )
 
-(defun swcad-title-frame-def-clean-safe (/ doc answer frame-name exists old-child-names insert-count backup-name renamed imported rollback any-contaminated cleaned skipped failed skipped-referenced skipped-missing)
+(defun swcad-title-frame-def-clean-safe (/ doc answer frame-name exists old-child-names raw-risk-record raw-risk-after insert-count children rename-names rename-results target-renamed target backup-name renamed imported imported-valid rollback any-contaminated cleaned skipped failed skipped-referenced skipped-missing)
   (swcad-title-open-frame-def-clean-log)
   (swcad-title-princ-line "----- SWTITLEPREPARE 내부 대상 도면틀 정의 안전 정리 -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
@@ -7972,6 +7972,7 @@
           (foreach frame-name (swcad-title-target-frame-block-candidates)
             (setq exists (swcad-title-block-exists-p frame-name))
             (setq old-child-names (if exists (swcad-title-target-frame-block-source-like-children frame-name) nil))
+            (setq raw-risk-record (if exists (swcad-title-frame-definition-raw-bbox-risk-record frame-name) nil))
             (setq insert-count (if exists (swcad-title-count-inserts-by-effective-name frame-name) 0))
             (cond
               ((not exists)
@@ -7984,7 +7985,7 @@
                   )
                 )
               )
-              ((not old-child-names)
+              ((and (not old-child-names) (not raw-risk-record))
                 (setq skipped (+ skipped 1))
                 (swcad-title-princ-line
                   (strcat
@@ -8001,19 +8002,35 @@
                   (strcat
                     "  "
                     frame-name
-                    ": skip, contaminated but referenced by "
+                    ": skip, definition needs repair but is referenced by "
                     (itoa insert-count)
                     " insert(s). Children="
                     (swcad-title-list-string old-child-names)
+                    ", raw-risk="
+                    (if raw-risk-record "yes" "no")
                   )
                 )
               )
               (T
                 (setq any-contaminated T)
-                (setq backup-name (swcad-title-unique-block-name frame-name))
-                (setq renamed (swcad-title-rename-block-definition frame-name backup-name))
+                (setq children (swcad-title-block-descendant-insert-names frame-name))
+                (setq rename-names (cons frame-name children))
+                (setq rename-results (swcad-title-rename-definition-list-to-backups rename-names))
+                (setq backup-name nil)
+                (setq target-renamed nil)
+                (foreach target rename-results
+                  (if (equal (strcase (car target)) (strcase (swcad-title-string frame-name)))
+                    (progn
+                      (setq backup-name (cadr target))
+                      (setq target-renamed (caddr target))
+                    )
+                  )
+                )
+                (setq renamed target-renamed)
                 (setq imported (if renamed (swcad-title-import-clean-frame-definition frame-name) nil))
-                (if (and renamed imported)
+                (setq raw-risk-after (if (and renamed imported (swcad-title-block-exists-p frame-name)) (swcad-title-frame-definition-raw-bbox-risk-record frame-name) nil))
+                (setq imported-valid (and renamed imported (not raw-risk-after)))
+                (if imported-valid
                   (progn
                     (setq cleaned (+ cleaned 1))
                     (swcad-title-princ-line
@@ -8028,8 +8045,11 @@
                   )
                   (progn
                     (setq rollback nil)
-                    (if (and renamed (not (swcad-title-block-exists-p frame-name)))
-                      (setq rollback (swcad-title-rename-block-definition backup-name frame-name))
+                    (if renamed
+                      (progn
+                        (swcad-title-rollback-definition-renames rename-results)
+                        (setq rollback T)
+                      )
                     )
                     (setq failed (+ failed 1))
                     (swcad-title-princ-line
@@ -8040,6 +8060,8 @@
                         (if renamed "yes" "no")
                         ", imported="
                         (if imported "yes" "no")
+                        ", raw-risk-after="
+                        (if raw-risk-after "yes" "no")
                         ", rollback="
                         (if rollback "yes" "no")
                         "."
@@ -16756,7 +16778,7 @@
   (princ)
 )
 
-(defun swcad-title-integrated-prepare (/ command-text-records frame-title-records embedded-title-records style-records frame-definition-blockers contaminated-definition-records orphan-records duplicate-pair-records)
+(defun swcad-title-integrated-prepare (/ command-text-records frame-title-records embedded-title-records style-records frame-definition-blockers contaminated-definition-records definition-raw-risk-records orphan-records duplicate-pair-records)
   (swcad-title-integrated-command-header "SWTITLEPREPARE" "도면틀/블록 정의 정규화")
   (if (swcad-title-script-active-p)
     (progn
@@ -16774,6 +16796,7 @@
       (setq style-records (swcad-title-frame-style-normalization-records))
       (setq frame-definition-blockers (swcad-title-frame-definition-blocking-records))
       (setq contaminated-definition-records (swcad-title-frame-definition-blocking-records-by-class "source-contaminated"))
+      (setq definition-raw-risk-records (swcad-title-frame-definition-raw-bbox-risk-records))
       (setq orphan-records (swcad-title-orphan-target-frame-records))
       (setq duplicate-pair-records (swcad-title-duplicate-target-pair-records))
       (swcad-title-princ-text
@@ -16791,6 +16814,8 @@
           (itoa (length frame-definition-blockers))
           "\n  원본 블록이 섞인 도면틀 정의: "
           (itoa (length contaminated-definition-records))
+          "\n  DR 도면틀 정의 raw bbox 위험: "
+          (itoa (length definition-raw-risk-records))
           "\n  제목블록 없는 고아 GMTITLE 도면틀: "
           (itoa (length orphan-records))
           "\n  같은 위치에 겹친 GMTITLE target 쌍: "
@@ -16814,7 +16839,8 @@
         (swcad-title-princ-text "\n도면틀 스타일 정규화: 후보 없음")
       )
       (setq contaminated-definition-records (swcad-title-frame-definition-blocking-records-by-class "source-contaminated"))
-      (if contaminated-definition-records
+      (setq definition-raw-risk-records (swcad-title-frame-definition-raw-bbox-risk-records))
+      (if (or contaminated-definition-records definition-raw-risk-records)
         (swcad-title-frame-def-clean-safe)
         (swcad-title-princ-text "\n오염된 DR 도면틀 정의 복구: 후보 없음")
       )
@@ -17209,7 +17235,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main56-a4defrawguard")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main57-a4rawrepair")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)
