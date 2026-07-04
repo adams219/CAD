@@ -34,6 +34,35 @@ SWTITLEVERIFY_FINAL_FAIL
 
 이 상태는 변환 전 기준이다. 지금은 A3/A4 후보를 바로 복제 처리하는 단계가 아니라, 먼저 실제 GstarCAD `GMTITLE`로 각 용지 크기의 native 기준 객체를 만들어야 한다.
 
+### 로그 신뢰 기준
+
+목표모드에서는 `work\*_last.txt` 파일 이름만 보고 현재 상태를 판단하지 않는다. 검증 suite나 probe가 실행되면 `*_last.txt`가 실제 작업복사본이 아니라 임시 probe DWG를 가리킬 수 있다.
+
+현재 디스크 기준 작업복사본 상태를 확인할 때 우선 보는 증거는 아래와 같다.
+
+```text
+work\swtitle_actual_workcopy_status_main56_diagnostics.txt
+work\swcad_title_fast_status_last_actual_workcopy_main56_diagnostics.txt
+work\swcad_title_next_step_last_actual_workcopy_main56_diagnostics.txt
+work\swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
+```
+
+사용자가 CAD에서 방금 명령을 실행한 경우에는 suffix 로그보다 현재 CAD가 새로 쓴 `*_last.txt`가 더 중요하다. 단, 반드시 로그 안의 `DWG 파일:` 또는 `DWG:` 경로가 현재 열린 `work` 복사본인지 확인한다.
+
+```text
+신뢰 가능:
+  DWG 파일이 현재 열린 work 복사본과 같음
+  SWTITLE LSP 버전이 260705-verify-source-priority
+  방금 실행한 명령 결과임
+
+신뢰 보류:
+  DWG 파일이 swtitle_*_probe*.dwg
+  DWG 파일이 command_text_guard, fixture, compare, diagnostics 전용 복사본
+  사용자가 보고 있는 CAD 도면과 로그의 DWG 경로가 다름
+```
+
+이 기준을 통과하지 못하면 같은 명령을 반복하지 말고, 먼저 현재 CAD에서 `SWTITLESTATUS`를 다시 실행한다.
+
 ## 현재 증거 기반 원인 판정
 
 2026-07-05 `run_main45_verification_suite.ps1` 기준으로, 현재 작업복사본의 원인은 아래처럼 분리한다.
@@ -70,6 +99,21 @@ BATCH 자동화:
 5. 같은 선택값이 반복되는 구간에서만 BATCH를 쓰고, 숨김/SCRIPT 자동화에는 쓰지 않는다.
 6. A4는 원본에 표제란이 없으므로 A4 frame-only 단계에서 불필요한 DR_titlea_3rd가 생기면 중단한다.
 ```
+
+## 목표모드 작업 단위
+
+목표는 큰 문제 하나지만, 실제 진행은 아래 작업 단위로 끊어 판단한다.
+
+| 작업 단위 | 해결하려는 질문 | 통과 증거 | 통과 전 금지 |
+| --- | --- | --- | --- |
+| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260705-verify-source-priority`, `작업 폴더 복사본: 예` | `SWTITLECONVERT` 실행 |
+| 첫 native 기준 객체 | 이 DWG 안에 실제 GMTITLE 쌍이 최소 1개 있는가 | `target-title-count > 0`, 같은 크기 `DR_A*_Outline` 기준 객체 존재 | clone/fast batch 완료 판단 |
+| A3/A4 native 교체 | 겉보기 복제본이 아니라 fresh native 쌍인가 | `A3/A4 native 교체 후보: 0`, clone/shared-link 경고 0 | 도면틀 더블클릭만 보고 성공 판정 |
+| A4 frame-only | 원본에 없는 제목블록 없이 도면틀만 교체됐는가 | `A4 도면틀-only 대상 수`와 예상 A4 수량 일치, 불필요한 `DR_titlea_3rd` 없음 | A4에 제목블록 생성 |
+| 잔여물 보호 | 도면 내부 번호/주석/BOM/치수가 삭제되지 않았는가 | cleanup 후보 로그와 화면 확인이 일치 | cleanup 범위 확대 |
+| 최종 검증 | 전체 도면 수량과 native 동작이 맞는가 | `SWTITLEVERIFY_FINAL_OK`, 대표 제목블록 더블클릭 성공 | 목표 완료 처리 |
+
+각 작업 단위가 통과할 때만 다음 단위로 넘어간다. 한 단계가 실패하면 "다음 명령"을 추가하기보다 실패한 단위의 증거를 먼저 보강한다.
 
 ## 2026-07-04 CAD 확인 결과
 
@@ -528,6 +572,20 @@ SWTITLEVERIFY_FINAL_OK로 이어짐
 ```
 
 하나라도 실패하면 자동 선택은 기본 흐름으로 승격하지 않는다.
+
+### 자동화 4단계: 완전 자동화 승격 후보
+
+장기적으로 사람이 확인하는 단계를 줄이려면, 아래 증거가 추가로 필요하다.
+
+```text
+1. GMTITLE 창 선택값을 화면 좌표가 아니라 UI 상태/명령 응답/생성 INSERT 검증으로 확인할 수 있음
+2. 잘못된 ISO 용지/제목블록이 생성되면 즉시 감지하고 새 INSERT를 제거할 수 있음
+3. DR_A2_Outline, DR_A3_Outline, DR_A4_Outline 각각에서 같은 검증이 반복 성공함
+4. A4 frame-only는 제목블록 없이 도면틀만 들어오는 경로가 별도 검증됨
+5. 자동 흐름 뒤 `SWTITLEVERIFY_FINAL_OK`와 대표 더블클릭 확인이 모두 통과함
+```
+
+이 조건을 만족하기 전까지는 "사람이 DR 용지와 DR_titlea_3rd를 눈으로 확인하는 단계"를 제거하지 않는다. 자동화는 먼저 안내, 좌표 입력, 값 복사, 잔여물 제거, 잘못된 결과 rollback 쪽을 강화한다.
 
 ## 중단 규칙
 

@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260705-a3-frame-guidance
+260705-verify-source-priority
 ```
 
 ## GMTITLE 변환 명령
@@ -68,6 +68,8 @@ Enter = 중단, 도면 변경 없음
 `BATCH`도 GMTITLE 창 선택을 완전 자동화하지는 않습니다. 각 창에서 `DR_A*_Outline`, `DR_titlea_3rd`, `Frame positioning ON`, `Object move OFF`를 사람이 확인해야 합니다. 선택값이 틀리거나 실패하면 기존 쌍을 보존하고 중단합니다.
 
 `MANUAL`은 새 공개 명령이 아니라 `SWTITLECONVERT` 안의 복구 선택지입니다. `MANUAL`을 입력하면 이번 후보의 기존 제목블록 값과 왼쪽 아래 기준점을 저장합니다. 그 다음 GstarCAD `GMTITLE`로 안내된 DR 용지/제목블록을 한 장 만들고, 삽입점은 긴 소수점 좌표를 직접 치지 말고 기존 도면틀 왼쪽 아래 끝점/스냅으로 지정합니다. 이후 `SWTITLECONVERT`를 다시 실행하면, 방금 만든 GMTITLE을 검사해서 값 복사와 기존 복제 쌍 삭제를 마무리합니다.
+
+사람 확인이 아직 남아 있는 이유는 자동화가 불가능해서가 아니라, 현재 검증된 증거상 GstarCAD `GMTITLE` 창이 일반 A3/A4 또는 ISO 제목블록 기본값으로 열릴 수 있기 때문입니다. `SWTITLECONVERT`는 좌표 계산, 값 복사, 기존 객체 삭제, 잘못 생성된 INSERT 제거는 자동으로 처리하지만, `DR_A*_Outline`과 `DR_titlea_3rd` 선택이 눈으로 확인되기 전에는 native GMTITLE 구조가 안전하다고 보지 않습니다.
 
 ## 권장 실행 순서
 
@@ -158,6 +160,8 @@ C:\Users\DR-DESIGN\Documents\CAD tool\work
 | `swcad_title_native_frame_check_last.txt` | A2/A3/A4 native-like 도면틀/제목블록 구조 비교 로그 |
 | `swcad_title_duplicate_target_pair_clean_last.txt` | 겹친 GMTITLE target 쌍 정리 로그 |
 | `swcad_title_verify_summary_last.txt` | `SWTITLEVERIFY` 최종 요약 |
+
+주의: `*_last.txt`는 "마지막으로 어떤 DWG에서 실행됐는지"가 기준입니다. 검증 suite나 probe가 실행된 뒤에는 실제 작업도면이 아니라 `swtitle_*_probe*.dwg` 로그가 마지막으로 남을 수 있습니다. 로그를 판단할 때는 파일 이름보다 로그 안의 `DWG 파일:` 경로를 먼저 확인합니다. 현재 열린 CAD 도면과 다르면, 열린 CAD에서 `SWTITLESTATUS` 또는 `SWTITLEVERIFY`를 다시 실행해 새 로그를 만든 뒤 판단합니다.
 
 ## 완료 기준
 

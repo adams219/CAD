@@ -80,9 +80,21 @@ work/swcad_title_verify_summary_last.txt
 주의:
 old fixture/test suffix가 붙은 로그
 다른 DWG에서 마지막으로 실행된 로그
+swtitle_*_probe*.dwg 또는 *_compare_*.dwg를 가리키는 로그
 ```
 
 `*_last.txt`는 마지막으로 실행한 DWG의 로그입니다. 현재 열린 세션과 디스크 파일 상태가 다르면, 먼저 열린 CAD에서 `SWTITLESTATUS`를 다시 실행해 최신 로그를 만듭니다.
+
+판단 순서:
+
+```text
+1. 로그 안의 DWG 파일 경로 확인
+2. 그 경로가 현재 열린 work 복사본인지 확인
+3. SWTITLE LSP 버전 확인
+4. 그 다음에만 결과/NEXT_* 문구를 믿기
+```
+
+이 순서를 건너뛰면 probe가 만든 마지막 로그를 실제 작업 결과로 착각할 수 있습니다.
 
 ## 현재 로그 판독표
 
