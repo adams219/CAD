@@ -16325,7 +16325,7 @@
                 )
               )
               (swcad-title-princ-line (strcat "Removed new GMTITLE inserts: " (itoa deleted-new-count)))
-              (swcad-title-princ-line "SWTITLECONVERT를 다시 실행하고 출력된 삽입점에 GMTITLE을 만드세요.")
+              (swcad-title-princ-line "SWTITLECONVERT를 다시 실행하고 기존 도면틀 왼쪽 아래 끝점/스냅으로 GMTITLE을 만드세요.")
             )
             (progn
               (setq new-title-object (swcad-title-safe-vla-object new-title))
@@ -16547,7 +16547,7 @@
         )
         ((= (strcase answer) "MANUAL")
           (swcad-title-princ-line "A3/A4 MANUAL 복구 모드로 전환합니다.")
-          (swcad-title-princ-line "이번 실행은 대상/값/삽입점만 저장합니다. GMTITLE로 안내된 한 장을 만든 뒤 SWTITLECONVERT를 다시 실행하면 마무리합니다.")
+          (swcad-title-princ-line "이번 실행은 대상/값/왼쪽 아래 기준점만 저장합니다. GMTITLE로 안내된 한 장을 만든 뒤 SWTITLECONVERT를 다시 실행하면 마무리합니다.")
           (swcad-title-upgrade-native-a3a4-prepare)
         )
         ((= (strcase answer) "BATCH")

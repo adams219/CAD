@@ -60,7 +60,7 @@ docs/history/gmtitle-native-automation-goal-plan-2026-07-04.md
 
 ```text
 OPEN  = 다음 후보 1장만 처리
-MANUAL = OPEN이 계속 새 GMTITLE 객체를 못 잡을 때, 대상/값/삽입점을 저장한 뒤 수동 생성 후 SWTITLECONVERT 재실행으로 마무리
+MANUAL = OPEN이 계속 새 GMTITLE 객체를 못 잡을 때, 대상/값/왼쪽 아래 기준점을 저장한 뒤 수동 생성 후 SWTITLECONVERT 재실행으로 마무리
 BATCH = 처리 수량을 입력하고 여러 후보를 이어서 처리
 Enter = 중단, 도면 변경 없음
 ```
