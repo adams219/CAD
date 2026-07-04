@@ -82,7 +82,7 @@
   )
 )
 
-(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames first-native-guidance-ok next-step-log log-evidence-note verify-summary-log verify-source-priority verify-a4-first)
+(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note verify-summary-log verify-source-priority verify-a4-first)
   (setq load-result
     (vl-catch-all-apply
       'load
@@ -174,6 +174,18 @@
               "로그 판단 기준:"
             )
           )
+          (setq automation-split-note
+            (swtitle-diag45-file-contains-p
+              next-step-log
+              "자동화 분담:"
+            )
+          )
+          (setq human-check-note
+            (swtitle-diag45-file-contains-p
+              next-step-log
+              "사람 확인:"
+            )
+          )
           (setq verify-summary-log (swcad-title-work-log-path "swcad_title_verify_summary_last.txt"))
           (setq verify-source-priority
             (swtitle-diag45-file-contains-p
@@ -195,6 +207,8 @@
           (swtitle-diag45-write-line handle (strcat "  target-frame-count: " (itoa frame-count)))
           (swtitle-diag45-write-line handle (strcat "  next-step-log: " next-step-log))
           (swtitle-diag45-write-line handle (strcat "  log-evidence-note-found: " (if log-evidence-note "yes" "no")))
+          (swtitle-diag45-write-line handle (strcat "  automation-split-note-found: " (if automation-split-note "yes" "no")))
+          (swtitle-diag45-write-line handle (strcat "  human-check-note-found: " (if human-check-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  verify-summary-log: " verify-summary-log))
           (swtitle-diag45-write-line handle (strcat "  verify-source-priority-note-found: " (if verify-source-priority "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  verify-a4-frame-only-first-note-found: " (if verify-a4-first "yes" "no")))

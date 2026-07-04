@@ -4318,6 +4318,8 @@
 )
 
 (defun swcad-title-print-automation-policy-summary ()
+  (swcad-title-princ-line "자동화 분담: LSP는 시트 탐지, 값 추출, 왼쪽 아래 배치점 계산, 새 GMTITLE 결과 검사, 값 입력, 기존 객체 정리를 처리합니다.")
+  (swcad-title-princ-line "사람 확인: GMTITLE 창에서는 표시된 DR_A*_Outline, DR_titlea_3rd, Frame positioning ON, Object move OFF를 눈으로 확인해야 합니다.")
   (if *swcad-title-allow-commandline-gmtitle*
     (progn
       (swcad-title-princ-line "자동화 판단: 명령줄 -GMTITLE 실험 플래그가 켜져 있습니다.")

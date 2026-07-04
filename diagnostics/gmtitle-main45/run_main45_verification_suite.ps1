@@ -145,6 +145,8 @@ Assert-LogContains `
     "target-title-count: 0",
     "target-frame-count: 0",
     "log-evidence-note-found: yes",
+    "automation-split-note-found: yes",
+    "human-check-note-found: yes",
     "verify-source-priority-note-found: yes",
     "verify-a4-frame-only-first-note-found: no",
     "frame-definition-blockers: 0",
