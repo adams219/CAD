@@ -5,7 +5,7 @@
 
 (vl-load-com)
 
-(setq *swcad-version* "260626-1356")
+(setq *swcad-version* "260704-4step-gmtitle-main49")
 
 (defun swcad-loader-source (/ src)
   (setq src nil)
@@ -70,5 +70,7 @@
 (princ "\nSWCAD ready.")
 (princ "\nMain command: SWAUTO")
 (princ "\nHelp: SWHELP")
-(princ "\nTitle/scale diagnostics planned: SWTITLESCAN, SWSCALESCAN, SWTITLEDEBUG")
+(princ "\nGMTITLE workflow: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERT, SWTITLEVERIFY")
+(princ "\nGMTITLE note: old SWTITLE transfer/fast/A3A4/frame-only commands are disabled; use the workflow above.")
+(princ "\nLoaded LSP check: SWTITLEVERSION")
 (princ)

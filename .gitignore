@@ -28,11 +28,16 @@ _local/
 work/*.dwg
 work/*.lsp
 work/*.scr
+work/*.ps1
 work/*.txt
 work/**/*.dwg
 work/**/*.lsp
 work/**/*.scr
+work/**/*.ps1
 work/**/*.txt
+work/**/*.md
+work/**/*.tar
+work/**/*.zip
 work/*_last.txt
 work/cad_docs_last.txt
 work/swcad_title_debug_last.txt
