@@ -52,6 +52,48 @@ hidden verification suite: 아직 미실행/미통과
 
 GstarCAD가 열려 있는 동안에는 숨김 `/b` CAD suite를 실행하지 않는다. 열린 세션으로 명령이 흘러가거나 기존 명령 대기 상태 뒤에서 멈출 수 있기 때문이다. 이 경우에는 `diagnostics\gmtitle-main45\run_goal_status.ps1`와 `run_static_preflight.ps1`만 신뢰한다.
 
+## 최신 CAD 진행 체크포인트
+
+2026-07-05 07:26 기준 최신 CAD 로그는 아래 상태다.
+
+```text
+로그:
+C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_next_step_last.txt
+
+DWG:
+C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg
+
+상태:
+NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION
+
+누락 수량:
+A4: 필요 2, 현재 0
+
+권장 다음 명령:
+SWTITLEPREPARE
+```
+
+이 체크포인트는 기본 작업복사본의 변환 전 상태보다 우선한다.
+즉 현재 열린 CAD가 이 DWG라면, 다음 작업은 첫 native GMTITLE 생성이 아니라 A4 frame-only 도면틀 정의 준비다.
+
+이 단계의 목표:
+
+```text
+DR_A4_Outline 정의를 A4 frame-only 변환에 쓸 수 있는지 확인
+raw bbox 위험이 있으면 기존 A4를 삭제하지 않고 중단
+원본에 없던 DR_titlea_3rd 제목블록을 A4에 만들지 않음
+SWTITLEPREPARE 뒤 SWTITLESTATUS로 다음 단계가 실제로 바뀌었는지 확인
+```
+
+이 단계에서 하지 않을 것:
+
+```text
+SWTITLECONVERT 반복 실행
+A4에 제목블록을 붙여서 억지로 target 수량 맞추기
+raw bbox 위험을 무시하고 기존 A4 삭제
+설치 원본 DR_A4_Outline을 검증 없이 신뢰
+```
+
 ## 현재까지 확정된 사실
 
 ### 1. A3 제목블록 문제

@@ -58,9 +58,44 @@ SWTITLEVERSION
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
 
-## 현재 기준 상태
+## 현재 기준 상태를 고르는 법
+
+먼저 `work\swcad_title_next_step_last.txt` 안의 DWG 경로를 봅니다.
+
+그 경로가 지금 열린 CAD 도면과 같으면, 최신 CAD 로그를 우선합니다.
+그 경로가 probe/diagnostics/예전 복사본이면, 현재 CAD에서 `SWTITLESTATUS`를 다시 실행합니다.
+
+### 최신 CAD 진행 상태
+
+2026-07-05 07:26 기준 최신 CAD 로그는 아래 상태입니다.
+
+```text
+DWG:
+C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg
+
+상태:
+NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION
+
+의미:
+A2/A3 쪽 변환은 많이 진행됐고, 현재는 A4 frame-only 도면틀 정의를 준비/검증해야 함
+
+다음 명령:
+SWTITLEPREPARE
+
+그 다음:
+SWTITLESTATUS
+```
+
+이 상태에서는 `SWTITLECONVERT`를 반복하지 않습니다.
+먼저 `SWTITLEPREPARE`가 A4 도면틀 정의를 안전하게 만들 수 있는지 확인해야 합니다.
+
+`SWTITLEPREPARE` 뒤에는 반드시 `SWTITLESTATUS`를 다시 실행합니다.
+그 결과가 `SWTITLECONVERT`를 안내하면 그때 변환을 진행하고, `WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`가 나오면 멈춥니다.
+
+### 기본 작업복사본 초기 상태
 
 2026-07-05 검증 suite 기준, 기본 작업복사본은 아직 변환 전 상태입니다.
+이 내용은 새 복사본에서 처음부터 시작할 때 쓰는 기준입니다.
 
 ```text
 SWTITLESTATUS: NEXT_CREATE_FIRST_NATIVE_GMTITLE
@@ -80,6 +115,9 @@ target 도면틀/제목블록: 0
 ```
 
 이 상태에서 다음 실제 CAD 명령은 `SWTITLECONVERT`입니다. 첫 대상은 보통 A2입니다.
+
+중요: 위 초기 상태를 이미 변환이 진행된 CAD 도면에 그대로 적용하지 않습니다.
+항상 최신 `SWTITLESTATUS` 또는 `swcad_title_next_step_last.txt`의 DWG 경로가 현재 열린 도면과 같은지 먼저 확인합니다.
 
 ## 기본 순서
 

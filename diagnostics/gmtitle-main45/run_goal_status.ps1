@@ -7,6 +7,8 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
 $staticPreflight = Join-Path $PSScriptRoot "run_static_preflight.ps1"
 $suite = Join-Path $PSScriptRoot "run_main45_verification_suite.ps1"
+$runCard = Join-Path $repoRoot "docs\guide\gmtitle-current-run-card.md"
+$goalPlan = Join-Path $repoRoot "docs\guide\gmtitle-goal-mode-plan.md"
 $script:LatestCadDwg = $null
 $script:LatestCadStatusCode = $null
 $script:LatestCadRecommendedCommand = $null
@@ -193,6 +195,9 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output ("    1. Confirm the open GstarCAD drawing matches: {0}" -f $script:LatestCadDwg)
     Write-Output ("    2. Run in GstarCAD: {0}" -f $script:LatestCadRecommendedCommand)
     Write-Output "    3. Run SWTITLESTATUS again and confirm the A4 missing count changes or a new warning explains why it stopped."
+    if ($script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") {
+      Write-Output "    4. Do not repeat SWTITLECONVERT before this prepare/status loop. A4 is frame-only and must not receive an extra title block."
+    }
     Write-Output ""
     Write-Output "  Hidden suite verification path:"
   }
@@ -207,5 +212,9 @@ if ($existingGstarCAD.Count -gt 0) {
   Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f $suite)
 }
 
+Write-Output ""
+Write-Output "Goal-mode reference docs:"
+Write-Output ("  Run card: {0}" -f $runCard)
+Write-Output ("  Detailed plan: {0}" -f $goalPlan)
 Write-Output ""
 Write-Output "Goal status: not complete until the hidden suite passes and the actual work-copy reaches SWTITLEVERIFY_FINAL_OK."

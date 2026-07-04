@@ -152,9 +152,58 @@ Object move가 OFF인지 확인
   probe 로그를 실제 작업도면 로그로 착각함
 ```
 
-## 현재 기준 상태
+## 최신 CAD 진행 상태
 
-현재 믿을 수 있는 기준은 최신 CAD 로그와 work 복사본이다.
+목표모드에서는 "기본 작업복사본의 시작 상태"보다 "현재 열린 CAD가 방금 남긴 로그"를 우선한다.
+
+2026-07-05 07:26 기준 최신 CAD next-step 로그는 아래 상태다.
+
+```text
+로그:
+C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_next_step_last.txt
+
+DWG:
+C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg
+
+상태 코드:
+NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION
+
+수량 힌트:
+  A2: 1
+  A3: 12
+  A4: 2
+
+누락:
+  A4: 필요 2, 현재 0
+
+권장 다음 명령:
+SWTITLEPREPARE
+```
+
+이 상태의 해석:
+
+```text
+A2/A3 변환은 최신 CAD 세션에서 상당 부분 진행됐다.
+현재 남은 핵심은 A4 frame-only 도면틀 정의 준비/검증이다.
+A4 원본은 표제란 없는 도면틀-only이므로, DR_titlea_3rd를 새로 만들면 안 된다.
+DR_A4_Outline 정의가 raw bbox 위험 없이 준비되기 전에는 기존 A4를 삭제하지 않는다.
+```
+
+따라서 이 상태에서의 실제 순서는 아래다.
+
+```text
+1. 열린 CAD 도면이 위 DWG 경로와 같은지 확인
+2. SWTITLEPREPARE 실행
+3. SWTITLESTATUS 실행
+4. 상태가 SWTITLECONVERT를 안내하면 A4 frame-only 변환 진행
+5. WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE 또는 raw bbox 위험이 나오면 중단
+```
+
+이 단계에서는 `SWTITLECONVERT`를 반복해서 누르지 않는다. A4 정의가 준비되지 않은 상태에서 변환을 반복하면, 원본에 없던 제목블록이 생기거나 A4 원본 도면틀이 잘못 삭제될 수 있다.
+
+## 기본 작업복사본 초기 기준 상태
+
+아래 상태는 새 work 복사본에서 처음부터 시작할 때의 기준이다. 이미 변환이 진행된 CAD 도면에는 최신 `SWTITLESTATUS`/`swcad_title_next_step_last.txt`를 먼저 적용한다.
 
 ```text
 LSP 기준:
