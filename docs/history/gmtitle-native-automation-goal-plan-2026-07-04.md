@@ -53,6 +53,15 @@ SWTITLECONVERT
 SWTITLEVERIFY
 ```
 
+읽기 전용 보조 명령은 아래만 허용한다.
+
+```text
+SWTITLEVERSION
+SWSCALESCAN
+```
+
+main62 정적 확인 결과, `src/tools/gmtitle/swcad_title_scale.lsp`의 public `defun c:` 명령은 위 6개뿐이다. 예전 transfer/fast/A3A4/frame-only/verify-all 명령은 `swcad-title-disable-legacy-public-commands` 목록에서 비활성화 대상으로 관리한다.
+
 현재 파악한 구조:
 
 ```text

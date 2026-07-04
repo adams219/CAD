@@ -19,17 +19,17 @@ GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 
 
 초기 preserve-copy 방식은 빠르게 여러 장을 만들 수 있었지만, 일부 복제본이 GMTITLE 표 편집창 대신 고급 속성 편집기로 열렸습니다. 그래서 A2/A3/A4 각각 같은 크기의 실제 native GMTITLE 기준 객체를 만들고, 신뢰하기 어려운 복제 쌍은 `SWTITLECONVERT` 안에서 한 장씩 native 교체하도록 방향을 잡았습니다.
 
-## 현재 main56 기준
+## 현재 main62 기준
 
 현재 LSP 버전:
 
 ```text
-260704-target-overlap-adopt-main60-automation-policy
+260704-target-overlap-adopt-main62-korean-guidance
 ```
 
 현재 loader 버전은 `SWTITLEVERSION`에서 함께 확인합니다.
 
-main56에서는 `DR_A2_Outline`, `DR_A3_Outline`, `DR_A4_Outline` 도면틀 정의와 이미 생성된 GMTITLE target 쌍을 먼저 검사합니다.
+현재 흐름에서는 `DR_A2_Outline`, `DR_A3_Outline`, `DR_A4_Outline` 도면틀 정의와 이미 생성된 GMTITLE target 쌍을 먼저 검사합니다.
 
 분류 기준:
 
@@ -110,7 +110,7 @@ DR_A3_Outline 도면틀 정의 안에 오른쪽 아래 표제란처럼 보이는
 여기에 별도 DR_titlea_3rd 제목블록이 겹치면 중복처럼 보인다.
 ```
 
-main56 해결 방향:
+현재 해결 방향:
 
 ```text
 SWTITLESTATUS가 먼저 후보를 보여준다.
@@ -120,6 +120,8 @@ SWTITLEPREPARE가 작업복사본에서만 실제 겹치는 도면틀 정의 내
 별도 제목블록과 겹치지 않는 native-format 내부 형상은 일반 cleanup에서 제외한다.
 같은 위치에 이미 생성된 DR_A*_Outline + DR_titlea_3rd target 쌍이 2개 있으면 중복 target 쌍으로 따로 표시한다.
 SWTITLECONVERT는 같은 bbox에 기존 native GMTITLE 쌍이 있으면 새로 만들지 않고 그 쌍을 채택한다.
+A3/A4 native 교체 후보가 남아 있으면 SWTITLESTATUS는 A4 frame-only보다 그 후보를 먼저 안내한다.
+핵심 상태/검증 안내는 CAD 명령창에서 한국어로 확인한다.
 ```
 
 ## A4 frame-only 문제

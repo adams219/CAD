@@ -19,9 +19,9 @@ codex/gm-title
 주의:
 
 ```text
-2026-07-04 현재 필요한 GitHub 코드 기준은 e738d2e 이상입니다.
-main56-a4guard LSP/문서/진단 보강은 GitHub에 푸시되어 있습니다.
-다른 PC에서 이어가려면 `codex/gm-title` 브랜치에서 `Add GMTITLE main56 adoption guard` 커밋 또는 그 이후 커밋을 받은 뒤, CAD에서 `SWTITLEVERSION`으로 실제 로드 버전을 확인합니다.
+2026-07-04 현재 로컬 작업 기준은 main62 korean-guidance입니다.
+현재 로컬 브랜치는 GitHub보다 앞선 커밋이 있을 수 있으므로, 다른 PC에서 이어가기 전에 이 브랜치가 GitHub에 push됐는지 확인합니다.
+다른 PC에서는 `codex/gm-title` 브랜치를 받은 뒤, CAD에서 `SWTITLEVERSION`으로 실제 로드 버전을 확인합니다.
 ```
 
 최신 커밋 확인:
@@ -69,7 +69,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main60-automation-policy
+260704-target-overlap-adopt-main62-korean-guidance
 ```
 
 다른 버전이면 변환하지 말고 다시 APPLOAD 합니다. 그래도 다른 버전이면 다른 브랜치를 받았거나, 열린 CAD 세션이 예전 LSP를 유지하고 있을 수 있습니다.
@@ -123,13 +123,15 @@ Frame positioning: ON
 Object move: OFF
 ```
 
-## main56 주의점
+## main62 주의점
 
 ```text
 SWTITLESTATUS가 겹친 GMTITLE target 쌍을 표시하면 SWTITLECONVERT를 반복하지 않습니다.
 먼저 SWTITLEPREPARE로 정리합니다.
 같은 위치에 기존 native GMTITLE 쌍이 있으면 SWTITLECONVERT가 새로 만들지 않고 그 쌍을 채택합니다.
 DR_A3_Outline 안의 native-format title-like 형상은 그 자체만으로 삭제하지 않습니다.
+A3/A4 native 교체 후보가 남아 있으면 SWTITLESTATUS는 A4 frame-only보다 그 후보를 먼저 안내합니다.
+핵심 상태/검증 안내는 한국어로 표시됩니다.
 ```
 
 ## 완료 기준

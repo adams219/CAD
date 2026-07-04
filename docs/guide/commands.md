@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260704-target-overlap-adopt-main60-automation-policy
+260704-target-overlap-adopt-main62-korean-guidance
 ```
 
 ## GMTITLE 변환 명령
