@@ -31,15 +31,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 work/swtitle_a4_outline_norm_none_260705.txt
 work/swtitle_a4_outline_norm_huge-insert_260705.txt
 work/swtitle_a4_outline_norm_direct-outside_260705.txt
+work/swtitle_a4_outline_norm_nested-outside_260705.txt
+work/swtitle_a4_outline_norm_nested-direct-outside_260705.txt
 ```
 
 2026-07-05 추가 조사 후보:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -Strategies nested-outside
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -Strategies nested-outside,nested-direct-outside
 ```
 
-이 후보는 기본 실행에 포함하지 않는다. 목적은 `DR_A4_Outline` 직접 하위의 oversized INSERT인 `도면 세로 A4 From_HYUN` 내부를 확인하고, parent를 통째로 제거하지 않고 child 내부에서 raw bbox를 키우는 객체를 분리할 수 있는지 검증하는 것이다.
+목적은 `DR_A4_Outline` 직접 하위의 oversized INSERT인 `도면 세로 A4 From_HYUN` 내부를 확인하고, parent를 통째로 제거하지 않고 child 내부에서 raw bbox를 키우는 객체를 분리할 수 있는지 검증하는 것이다.
+
+`nested-direct-outside`는 큰 child INSERT 자체는 유지하면서 child 내부 A4 바깥 객체와 parent에 직접 붙은 바깥 선/텍스트를 함께 비교한다. 기존 `huge-insert`와 `direct-outside`가 각각 틀을 잃거나 너무 많이 지웠기 때문에, 이 둘을 분리해서 비교하는 용도다.
 
 이 후보가 통과하려면 최소한 아래가 필요하다.
 
@@ -51,7 +55,7 @@ After strict A4 raw match warning: <none>
 Normalization safe for A4 frame-only conversion: yes
 ```
 
-이 증거가 나오기 전에는 `nested-outside`를 `SWTITLEPREPARE` 또는 `SWTITLECONVERT` 생산 흐름에 넣지 않는다.
+이 증거가 나오기 전에는 `nested-outside`나 `nested-direct-outside`를 `SWTITLEPREPARE` 또는 `SWTITLECONVERT` 생산 흐름에 넣지 않는다.
 
 ## 테스트한 전략
 
@@ -144,14 +148,15 @@ A4 밖 direct 객체 전체 삭제: 도면틀 파괴
 
 ## 다음 구현 방향
 
-단순 삭제식 정규화는 중단한다.
+단순 삭제식 정규화는 중단한다. 다만 child 내부와 parent 직접 객체를 분리해서 보는 copied-DWG probe는 아직 유효한 조사 방향이다.
 
 다음 조사는 아래 순서가 맞다.
 
-1. GstarCAD에서 실제 GMTITLE로 생성된 A4 outline-only 또는 A4 frame 구조를 확보한다.
-2. 그 native A4 결과의 `DR_A4_Outline` definition, insert bbox, xdata, extension dictionary, reactors를 설치 원본 import 결과와 비교한다.
-3. 설치 원본 `DR_A4_Outline`이 잘못된 것인지, import 방식이 잘못된 것인지, 또는 GstarCAD가 GMTITLE 실행 시 추가 정리를 하는지 분리한다.
-4. 깨끗한 A4 outline 기준을 찾은 뒤에만 `SWTITLEPREPARE` 또는 `SWTITLECONVERT`에 A4 frame-only 변환을 다시 연결한다.
+1. `nested-outside,nested-direct-outside` copied-DWG probe를 실행해 child 내부/parent 직접 객체 분리 가능성을 먼저 확인한다.
+2. 그래도 safe=yes가 나오지 않으면 GstarCAD에서 실제 GMTITLE로 생성된 A4 outline-only 또는 A4 frame 구조를 확보한다.
+3. 그 native A4 결과의 `DR_A4_Outline` definition, insert bbox, xdata, extension dictionary, reactors를 설치 원본 import 결과와 비교한다.
+4. 설치 원본 `DR_A4_Outline`이 잘못된 것인지, import 방식이 잘못된 것인지, 또는 GstarCAD가 GMTITLE 실행 시 추가 정리를 하는지 분리한다.
+5. 깨끗한 A4 outline 기준을 찾은 뒤에만 `SWTITLEPREPARE` 또는 `SWTITLECONVERT`에 A4 frame-only 변환을 다시 연결한다.
 
 ## 현재 목표 상태
 

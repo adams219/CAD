@@ -46,10 +46,10 @@ Existing GstarCAD process detected before the A4 normalization probe.
 The probe uses hidden /b GstarCAD, which is unreliable while a visible GstarCAD session is open.
 
 Save the work-copy DWG, close GstarCAD, then rerun:
-powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -Strategies nested-outside
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -Strategies nested-outside,nested-direct-outside
 
 Or start the probe in waiting mode, save/close GstarCAD, and let it continue:
-powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -Strategies nested-outside -WaitForGstarCADClose
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -Strategies nested-outside,nested-direct-outside -WaitForGstarCADClose
 
 Existing process:
 $details

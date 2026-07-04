@@ -181,7 +181,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Default input:
 
 ```text
-work\0000_A_DRP125 CP_ALL_260704_test.dwg
+latest DWG path from work\swcad_title_next_step_last.txt
+fallback: work\0000_A_DRP125 CP_ALL_260704_test.dwg
 ```
 
 Default log:
@@ -224,18 +225,20 @@ Default logs:
 work\swtitle_a4_outline_norm_none_260705.txt
 work\swtitle_a4_outline_norm_huge-insert_260705.txt
 work\swtitle_a4_outline_norm_direct-outside_260705.txt
+work\swtitle_a4_outline_norm_nested-outside_260705.txt
+work\swtitle_a4_outline_norm_nested-direct-outside_260705.txt
 ```
 
-Optional nested-block investigation:
+Nested-block investigation:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1" `
-  -Strategies nested-outside `
+  -Strategies nested-outside,nested-direct-outside `
   -WaitForGstarCADClose
 ```
 
-This does not change the production conversion path. It waits for visible GstarCAD to close, then runs a copied-DWG hidden probe for checking whether the oversized `도면 세로 A4 From_HYUN` child block inside `DR_A4_Outline` can be normalized without destroying the visible A4 outline.
+This does not change the production conversion path. It waits for visible GstarCAD to close, then runs copied-DWG hidden probes for checking whether the oversized `도면 세로 A4 From_HYUN` child block inside `DR_A4_Outline` can be normalized without destroying the visible A4 outline. `nested-direct-outside` also compares parent-level outside objects while keeping the large child INSERT.
 
 Current expected conclusion:
 
@@ -244,6 +247,7 @@ none: unsafe, raw bbox remains (0,0)-(872.26126377,302.7)
 huge-insert: unsafe, raw bbox improves but still does not match A4
 direct-outside: unsafe, deletes too much and leaves only POINT/TEXT remnants
 nested-outside: investigation candidate, not yet promoted
+nested-direct-outside: investigation candidate, not yet promoted
 Normalization safe for A4 frame-only conversion: no
 ```
 
