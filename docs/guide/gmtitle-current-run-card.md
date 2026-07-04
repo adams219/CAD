@@ -23,7 +23,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main57-a4rawrepair
+260704-target-overlap-adopt-main58-a4outline
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 APPLOAD 합니다.
@@ -42,14 +42,14 @@ SWTITLEVERSION
 
 ```text
 GitHub 코드 기준: 36183b2 Guard A4 frame-only GMTITLE flow 이상
-현재 LSP 기준: 260704-target-overlap-adopt-main57-a4rawrepair
+현재 LSP 기준: 260704-target-overlap-adopt-main58-a4outline
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```
 
 주의:
 
 ```text
-a4rawrepair 기준에서는 A4 frame-only뿐 아니라 DR_A4_Outline 정의 raw bbox 위험도 먼저 막고, 사용 중이 아닌 위험 정의는 SWTITLEPREPARE에서 설치 원본으로 복구 후보 처리합니다.
+a4outline 기준에서는 DR_A4_Outline 정의 raw bbox 위험을 먼저 막고, 위험이 사라진 뒤 표제란 없는 A4는 SWTITLECONVERT가 제목블록 없이 도면틀만 교체합니다.
 다른 PC나 열린 CAD 세션이 예전 LSP를 들고 있을 수 있으므로, 실제 CAD의 SWTITLEVERSION을 우선 확인합니다.
 ```
 
@@ -189,7 +189,8 @@ target-sheet-counts:
 겹친 GMTITLE target 쌍: 0
 ```
 
-마지막으로 대표 A2/A3/A4의 `DR_titlea_3rd` 제목블록을 더블클릭합니다.
+마지막으로 실제 `DR_titlea_3rd` 제목블록이 있는 대표 용지만 더블클릭합니다.
+표제란 없는 A4는 `DR_A4_Outline` 도면틀 수량/형상 검증으로 확인하며, 더블클릭할 제목블록은 없습니다.
 
 기대 결과:
 

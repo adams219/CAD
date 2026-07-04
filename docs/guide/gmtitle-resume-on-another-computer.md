@@ -69,7 +69,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main57-a4rawrepair
+260704-target-overlap-adopt-main58-a4outline
 ```
 
 다른 버전이면 변환하지 말고 다시 APPLOAD 합니다. 그래도 다른 버전이면 다른 브랜치를 받았거나, 열린 CAD 세션이 예전 LSP를 유지하고 있을 수 있습니다.
@@ -146,7 +146,8 @@ target-sheet-counts:
   A3: 12
   A4: 2
 겹친 GMTITLE target 쌍: 0
-대표 A2/A3/A4 DR_titlea_3rd 더블클릭 시 GMTITLE 표 편집창 열림
+실제 DR_titlea_3rd가 있는 대표 용지를 더블클릭하면 GMTITLE 표 편집창 열림
+표제란 없는 A4는 DR_A4_Outline 도면틀만 검증하고, 더블클릭할 제목블록은 없음
 도면 안 번호, 주석, BOM, 치수, 모델 형상 유지
 ```
 

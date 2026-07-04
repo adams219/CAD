@@ -55,7 +55,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main57-a4rawrepair
+260704-target-overlap-adopt-main58-a4outline
 ```
 
 다른 버전이 나오면 변환하지 말고 최신 LSP를 다시 APPLOAD 하세요.
@@ -240,7 +240,8 @@ target-sheet-counts:
 고아 도면틀 없음
 ```
 
-마지막으로 대표 A2/A3/A4의 `DR_titlea_3rd` 제목블록을 더블클릭해서 GMTITLE 표 편집창이 열리는지 확인합니다.
+마지막으로 실제 `DR_titlea_3rd` 제목블록이 있는 대표 용지만 더블클릭해서 GMTITLE 표 편집창이 열리는지 확인합니다.
+표제란 없는 A4는 제목블록을 만들지 않으므로 `SWTITLEVERIFY`의 A4 도면틀 수량/형상 검증으로 확인합니다.
 
 도면 안의 번호, 주석, BOM, 치수, 모델 형상이 남아 있는지도 확인합니다.
 

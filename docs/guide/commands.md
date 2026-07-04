@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260704-target-overlap-adopt-main57-a4rawrepair
+260704-target-overlap-adopt-main58-a4outline
 ```
 
 ## GMTITLE 변환 명령
@@ -65,6 +65,8 @@ SWTITLEVERIFY     최종 검증 단계에서
 `SWTITLESTATUS`가 `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX`를 안내하거나 `SWTITLECONVERT`가 `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK`로 멈추면, 변환을 반복하지 말고 도면틀 정의 복구/정규화 계획을 먼저 확인합니다.
 
 `SWTITLESTATUS`가 `SWTITLECONVERT`를 안내하면 변환을 실행합니다.
+
+표제란 없는 A4 시트는 `SWTITLECONVERT`가 `DR_titlea_3rd`를 만들지 않고 `DR_A4_Outline` 도면틀만 교체합니다. 형상/선택 범위 검사를 통과하지 못하면 기존 A4는 삭제하지 않습니다.
 
 `SWTITLESTATUS`가 검증을 안내하면 `SWTITLEVERIFY`를 실행합니다.
 
@@ -138,7 +140,8 @@ target-sheet-counts:
   A3: 12
   A4: 2
 겹친 GMTITLE target 쌍: 0
-대표 A2/A3/A4 DR_titlea_3rd 더블클릭 시 GMTITLE 표 편집창 열림
+실제 DR_titlea_3rd가 있는 대표 용지를 더블클릭하면 GMTITLE 표 편집창이 열림
+표제란 없는 A4는 DR_A4_Outline 도면틀만 검증하고, 더블클릭할 제목블록은 없음
 도면 안 번호, 주석, BOM, 치수, 모델 형상 유지
 ```
 
