@@ -192,6 +192,16 @@ Frame positioning: ON
 Object move: OFF
 ```
 
+2026-07-04 실제 CAD 확인에서는 A3 native 교체 중 GMTITLE 창 기본값이 아래처럼 잘못 떴습니다.
+
+```text
+용지/도면틀: A3 (297x420mm)
+제목블록: ISO 제목 블록 A
+Object move: ON
+```
+
+이 상태에서 `확인`을 누르면 안 됩니다. 실제 표시값을 `DR_A3_Outline`, `DR_titlea_3rd`, `Object move OFF`로 바꿀 수 있을 때만 진행하고, 불확실하면 `Esc`로 취소합니다. 취소하면 기존 쌍은 보존됩니다.
+
 현재 자동 선택을 기본으로 쓰지 않는 이유:
 
 ```text

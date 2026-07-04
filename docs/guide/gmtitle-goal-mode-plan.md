@@ -30,6 +30,46 @@ SWTITLEVERIFY_FINAL_FAIL
 
 이 상태는 변환 완료가 아니다. A4가 누락되어 있어도, 현재 우선순위는 A3/A4 native 교체 후보를 먼저 줄이는 것이다.
 
+## 2026-07-04 CAD 확인 결과
+
+`SWTITLECONVERT`에서 `OPEN`을 선택해 A3 후보 1장을 열어 보니, GMTITLE 창의 실제 기본값이 기대값과 달랐다.
+
+```text
+기대값:
+  용지/도면틀: DR_A3_Outline
+  제목블록: DR_titlea_3rd
+  Frame positioning: ON
+  Object move: OFF
+
+실제 GMTITLE 창 기본값:
+  용지/도면틀: A3 (297x420mm)
+  제목블록: ISO 제목 블록 A
+  Frame positioning: ON
+  Object move: ON
+```
+
+따라서 현재 GstarCAD 세션에서는 자동 기본 선택을 믿으면 안 된다. 이 확인은 `-GMTITLE` 또는 기본 GMTITLE 선택을 자동화 기본값으로 승격하지 말아야 한다는 직접 증거다.
+
+이때는 `확인`을 누르지 않고 `Esc`로 취소했다. 결과는 아래처럼 기존 쌍을 보존하는 정상 중단이었다.
+
+```text
+ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS
+새 GMTITLE INSERT 생성 수: 0
+기존 GMTITLE 쌍은 보존됨
+SWTITLESTATUS 재확인: A3/A4 native 교체 후보 11개 유지
+```
+
+다음에 같은 단계로 들어가면, GMTITLE 창에서 아래 값이 실제로 보일 때만 진행한다.
+
+```text
+용지/도면틀: DR_A3_Outline
+제목블록: DR_titlea_3rd
+Frame positioning: ON
+Object move: OFF
+```
+
+하나라도 다르면 `확인`을 누르지 않는다. 먼저 올바른 값으로 바꿀 수 있는지 확인하고, 불확실하면 취소한다.
+
 ## 절대 기준
 
 아래 기준을 어기면 같은 실수를 반복하게 된다.
@@ -163,6 +203,8 @@ OFF
 중요한 점:
 
 ```text
+실제 CAD 확인상 기본값은 A3 (297x420mm) / ISO 제목 블록 A / Object move ON으로 뜰 수 있다.
+이 상태에서 확인을 누르면 목표와 다른 도면틀/제목블록이 생성될 수 있다.
 소수점 좌표를 사람이 직접 입력하지 않는다.
 SWTITLECONVERT가 GMTITLE 이후 왼쪽 아래 기준점을 자동으로 보낸다.
 Object move는 OFF여야 도면 내부 형상이 움직이지 않는다.
