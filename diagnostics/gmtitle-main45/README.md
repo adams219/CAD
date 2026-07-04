@@ -88,6 +88,40 @@ work\swtitle_actual_workcopy_status_main45_diagnostics.txt
 
 Pass `-SourceWorkCopyPath`, `-ProbeDwgPath`, or `-LogPath` to override those paths.
 
+## A4 Outline Prepare Probe
+
+Use `run_a4_outline_prepare_probe.ps1` to copy a work DWG, load the current GMTITLE LSP, and run the internal A4 frame-only `DR_A4_Outline` definition preflight on the copy.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_a4_outline_prepare_probe.ps1"
+```
+
+Default input:
+
+```text
+work\0000_A_DRP125 CP_ALL_260704_test.dwg
+```
+
+Default log:
+
+```text
+work\swtitle_a4_outline_prepare_probe_260705.txt
+```
+
+Expected safe result for the current installed `DR_A4_Outline` state:
+
+```text
+Loaded version: 260705-a4-outline-preflight
+Before definition status: missing
+Prepare result: OK status=WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE
+After definition status: missing
+After frame-only-count: 2
+Runtime check completed: yes
+```
+
+This is a safety pass, not a completed A4 conversion. It proves that the tool refuses the unsafe imported `DR_A4_Outline` definition and preserves the existing A4 source frames.
+
 ## Final Completion Gate
 
 After the interactive `SWTITLECONVERT` workflow has been completed in GstarCAD, use `run_final_completion_gate.ps1` to verify the converted work-copy DWG.

@@ -19,7 +19,7 @@ codex/gm-title
 주의:
 
 ```text
-2026-07-04 현재 로컬 작업 기준은 `260704-manual-native-finish-snap`입니다.
+2026-07-05 현재 로컬 작업 기준은 `260705-a4-outline-preflight`입니다.
 현재 로컬 브랜치는 GitHub보다 앞선 커밋이 있을 수 있으므로, 다른 PC에서 이어가기 전에 이 브랜치가 GitHub에 push됐는지 확인합니다.
 다른 PC에서는 `codex/gm-title` 브랜치를 받은 뒤, CAD에서 `SWTITLEVERSION`으로 실제 로드 버전을 확인합니다.
 ```
@@ -69,7 +69,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-manual-native-finish-snap
+260705-a4-outline-preflight
 ```
 
 다른 버전이면 변환하지 말고 다시 APPLOAD 합니다. 그래도 다른 버전이면 다른 브랜치를 받았거나, 열린 CAD 세션이 예전 LSP를 유지하고 있을 수 있습니다.

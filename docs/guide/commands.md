@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260704-manual-native-finish-snap
+260705-a4-outline-preflight
 ```
 
 ## GMTITLE 변환 명령
@@ -86,6 +86,15 @@ SWTITLEVERIFY     최종 검증 단계에서
 `SWTITLESTATUS`가 `SWTITLEPREPARE`를 안내하면 변환을 반복하지 말고 먼저 정규화합니다.
 
 `SWTITLESTATUS`가 `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX`를 안내하거나 `SWTITLECONVERT`가 `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK`로 멈추면, 변환을 반복하지 말고 도면틀 정의 복구/정규화 계획을 먼저 확인합니다.
+
+표제란 없는 A4 시트가 남아 있는데 `DR_A4_Outline` 정의가 없거나 안전 검사를 통과하지 못하면 `SWTITLESTATUS`가 아래 상태를 안내할 수 있습니다.
+
+```text
+WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION
+NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION
+```
+
+이 경우 `SWTITLECONVERT`를 반복하지 말고 `SWTITLEPREPARE`를 먼저 실행합니다. `SWTITLEPREPARE`는 설치 원본의 `DR_A4_Outline`을 가져오더라도 210 x 297 A4 형상과 실제 CAD 선택 범위가 안전한지 먼저 검사합니다. 통과하지 못하면 가져온 정의를 제거/격리하고 기존 A4 원본 도면틀은 삭제하지 않습니다.
 
 `SWTITLESTATUS`가 `SWTITLECONVERT`를 안내하면 변환을 실행합니다.
 
