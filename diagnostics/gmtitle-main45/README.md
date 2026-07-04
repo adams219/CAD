@@ -6,7 +6,7 @@ The detailed runtime fixtures and generated logs are kept under `work/` during l
 
 ## Static Preflight
 
-Use `run_static_preflight.ps1` when GstarCAD is still open or before running the hidden CAD suite. It does not open CAD or touch any DWG. It checks Lisp balance, expected loader/GMTITLE versions, public command surface, A4 raw-bbox guards, script guards, and suite/documentation guard markers.
+Use `run_static_preflight.ps1` when GstarCAD is still open or before running the hidden CAD suite. It does not open CAD or touch any DWG. It checks Lisp balance, expected loader/GMTITLE versions, public command surface, A4 raw-bbox guards, script guards, suite step numbering, and guide/documentation version markers.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `

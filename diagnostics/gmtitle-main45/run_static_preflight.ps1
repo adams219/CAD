@@ -11,6 +11,14 @@ $mainLspPath = Join-Path $repoRoot "src\tools\gmtitle\swcad_title_scale.lsp"
 $loaderPath = Join-Path $repoRoot "swcad_load.lsp"
 $suitePath = Join-Path $PSScriptRoot "run_main45_verification_suite.ps1"
 $readmePath = Join-Path $PSScriptRoot "README.md"
+$guidePaths = @(
+  "docs\guide\commands.md",
+  "docs\guide\gmtitle-cad-conversion-checklist.md",
+  "docs\guide\gmtitle-current-run-card.md",
+  "docs\guide\gmtitle-goal-mode-plan.md",
+  "docs\guide\gmtitle-native-frame-upgrade.md",
+  "docs\guide\gmtitle-resume-on-another-computer.md"
+) | ForEach-Object { Join-Path $repoRoot $_ }
 
 $failures = New-Object System.Collections.Generic.List[string]
 
@@ -126,6 +134,21 @@ function Assert-Contains {
   }
 }
 
+function Assert-VersionInFile {
+  param(
+    [string]$Path,
+    [string]$Version,
+    [string]$Label
+  )
+
+  $text = Read-Text $Path
+  if ($text.Contains($Version)) {
+    Write-Output "${Label}: version found"
+  } else {
+    Add-Failure "${Label} missing expected version: $Version"
+  }
+}
+
 $mainText = Read-Text $mainLspPath
 $loaderText = Read-Text $loaderPath
 $suiteText = Read-Text $suitePath
@@ -201,6 +224,24 @@ Assert-Contains -Text $suiteText -Needle "WaitForGstarCADClose" -Label "Suite Gs
 Assert-Contains -Text $suiteText -Needle "Assert-NoExistingGstarCAD" -Label "Suite open-GstarCAD preflight"
 Assert-Contains -Text $readmeText -Needle "-WaitForGstarCADClose" -Label "README waiting-mode guidance"
 Assert-Contains -Text $readmeText -Needle "A4 strict prepare guard" -Label "README A4 strict guard guidance"
+
+$suiteStepNumbers = @(
+  [regex]::Matches($suiteText, 'Write-Output\s+"===== ([0-9]+)\. ') |
+    ForEach-Object { [int]$_.Groups[1].Value }
+)
+$expectedSuiteStepNumbers = 1..15
+if (($suiteStepNumbers.Count -eq $expectedSuiteStepNumbers.Count) -and (@(Compare-Object $suiteStepNumbers $expectedSuiteStepNumbers).Count -eq 0)) {
+  Write-Output ("Suite step numbers: {0}" -f ($suiteStepNumbers -join ", "))
+} else {
+  Add-Failure ("Suite step numbers mismatch: expected {0}, got {1}" -f (($expectedSuiteStepNumbers -join ", ")), (($suiteStepNumbers -join ", ")))
+}
+
+Assert-Contains -Text $readmeText -Needle "15. A3/A4 batch guard probe" -Label "README suite step list"
+
+foreach ($guidePath in $guidePaths) {
+  $label = "Guide version " + (Resolve-Path -LiteralPath $guidePath).Path.Substring($repoRoot.Length + 1)
+  Assert-VersionInFile -Path $guidePath -Version $ExpectedGmtitleVersion -Label $label
+}
 
 if ($failures.Count -gt 0) {
   Write-Output ""
