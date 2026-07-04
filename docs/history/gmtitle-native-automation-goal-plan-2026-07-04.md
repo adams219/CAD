@@ -66,6 +66,26 @@ SWSCALESCAN
 
 main66 정적 확인 결과, `src/tools/gmtitle/swcad_title_scale.lsp`의 public `defun c:` 명령은 위 6개뿐이다. 예전 transfer/fast/A3A4/frame-only/verify-all 명령은 `swcad-title-disable-legacy-public-commands` 목록에서 비활성화 대상으로 관리한다.
 
+main66 CAD 런타임 확인:
+
+```text
+확인 일시: 2026-07-04 22:55 KST
+도면: C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg
+실행: SWTITLEVERIFY
+로그: C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_verify_summary_last.txt
+
+결과:
+  SWTITLEVERIFY_FINAL_FAIL
+  A3/A4 native 교체 필요 쌍: 11
+  대상 도면틀 수량 부족: A4 필요 2, 현재 0
+
+main66에서 확인된 다음 안내:
+  다음: A4 누락이 있더라도 A3/A4 native 교체 후보가 먼저입니다.
+  SWTITLESTATUS로 후보를 확인한 뒤 SWTITLECONVERT를 실행해 다음 A3/A4 후보를 처리하세요.
+```
+
+이 확인은 변환 완료 증거가 아니다. 반대로 현재 목표가 아직 완료되지 않았고, 다음 실제 작업이 A3/A4 native 교체 후보 처리임을 증명하는 증거다.
+
 현재 파악한 구조:
 
 ```text

@@ -125,6 +125,13 @@ A3/A4 native 교체 후보: 11
 A4 대상 도면틀 누락: 필요 2, 현재 0
 ```
 
+main66에서 `SWTITLEVERIFY`도 같은 우선순위를 확인했습니다.
+
+```text
+다음: A4 누락이 있더라도 A3/A4 native 교체 후보가 먼저입니다.
+SWTITLESTATUS로 후보를 확인한 뒤 SWTITLECONVERT를 실행해 다음 A3/A4 후보를 처리하세요.
+```
+
 이 상태에서 다음 실제 CAD 명령은 `SWTITLECONVERT`입니다. A3/A4 native 교체 후보가 남아 있으므로 A4 frame-only보다 A3/A4 native 교체가 먼저 안내됩니다.
 
 ## 기본 순서
