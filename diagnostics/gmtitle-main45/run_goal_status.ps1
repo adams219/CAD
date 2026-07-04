@@ -217,6 +217,7 @@ function Write-A4FrameOnlyEvidenceSummary {
     }
     Write-Output "  Next A4 investigation probe command:"
     Write-Output ("    powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside -WaitForGstarCADClose" -f $nestedProbeScript, $nestedProbeSource)
+    Write-Output "    Note: SourceWorkCopyPath is shown explicitly to avoid ambiguity; the wrapper also uses the latest CAD next-step DWG when SourceWorkCopyPath is omitted."
     if (-not (Test-Path -LiteralPath $nestedProbeSource)) {
       Write-Output "    Warning: the source DWG path above was read from the latest CAD log but does not exist from this shell. Confirm the open CAD DWG path before running."
     }

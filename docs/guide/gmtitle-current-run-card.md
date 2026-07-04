@@ -120,6 +120,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 
 이 명령은 visible GstarCAD가 닫힐 때까지 기다렸다가 복사본 probe를 실행합니다. 먼저 실행해 둔 뒤 CAD에서 작업복사본을 저장하고 GstarCAD를 종료하면 됩니다.
 
+`-SourceWorkCopyPath`는 혼동 방지를 위해 명시한 값입니다. 생략하면 wrapper가 최신 `work\swcad_title_next_step_last.txt` 안의 DWG 경로를 먼저 사용합니다.
+
 ### 기본 작업복사본 초기 상태
 
 2026-07-05 검증 suite 기준, 기본 작업복사본은 아직 변환 전 상태입니다.

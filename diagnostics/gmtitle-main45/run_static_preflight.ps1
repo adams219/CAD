@@ -231,6 +231,7 @@ Assert-Contains -Text $readmeText -Needle "-WaitForGstarCADClose" -Label "README
 Assert-Contains -Text $readmeText -Needle "A4 strict prepare guard" -Label "README A4 strict guard guidance"
 Assert-Contains -Text $a4NormProbeText -Needle "nested-outside" -Label "A4 nested normalization probe strategy"
 Assert-Contains -Text $a4NormProbeRunnerText -Needle "WaitForGstarCADClose" -Label "A4 normalization probe wait option"
+Assert-Contains -Text $a4NormProbeRunnerText -Needle "Get-LatestCadDwgFromNextStepLog" -Label "A4 normalization latest-DWG default"
 
 $suiteStepNumbers = @(
   [regex]::Matches($suiteText, 'Write-Output\s+"===== ([0-9]+)\. ') |

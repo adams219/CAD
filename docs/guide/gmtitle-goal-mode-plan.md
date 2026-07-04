@@ -228,6 +228,7 @@ nested-outside probe:
 운영:
   이 명령은 visible GstarCAD 종료를 기다린 뒤 hidden copied-DWG probe를 실행한다.
   현재 CAD 작업복사본을 저장하고 GstarCAD를 닫은 뒤 결과 로그를 확인한다.
+  SourceWorkCopyPath를 생략하면 wrapper가 최신 work\swcad_title_next_step_last.txt 안의 DWG 경로를 먼저 사용한다.
 ```
 
 따라서 이 상태에서의 실제 순서는 아래다.

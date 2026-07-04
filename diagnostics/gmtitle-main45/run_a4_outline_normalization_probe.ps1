@@ -13,6 +13,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
+$workDir = Join-Path $repoRoot "work"
 
 function Assert-NoExistingGstarCAD {
   param(
@@ -56,8 +57,53 @@ $details
   }
 }
 
+function Read-TextWithFallback {
+  param([string]$Path)
+
+  $bytes = [System.IO.File]::ReadAllBytes($Path)
+  $encodings = @(
+    [System.Text.Encoding]::GetEncoding(949),
+    [System.Text.UTF8Encoding]::new($true, $true),
+    [System.Text.Encoding]::Unicode
+  )
+
+  foreach ($encoding in $encodings) {
+    try {
+      return $encoding.GetString($bytes)
+    } catch {
+    }
+  }
+
+  return [System.Text.Encoding]::Default.GetString($bytes)
+}
+
+function Get-LatestCadDwgFromNextStepLog {
+  param([string]$WorkDir)
+
+  $nextStepLog = Join-Path $WorkDir "swcad_title_next_step_last.txt"
+  if (-not (Test-Path -LiteralPath $nextStepLog)) {
+    return $null
+  }
+
+  $text = Read-TextWithFallback -Path $nextStepLog
+  foreach ($line in ($text -split "\r?\n")) {
+    if ($line -match "^DWG[^:]*:\s*(.+)$") {
+      return $Matches[1].Trim()
+    }
+  }
+
+  return $null
+}
+
 if (-not $SourceWorkCopyPath) {
-  $SourceWorkCopyPath = Join-Path $repoRoot "work\0000_A_DRP125 CP_ALL_260704_test.dwg"
+  $latestCadDwg = Get-LatestCadDwgFromNextStepLog -WorkDir $workDir
+  if ($latestCadDwg -and (Test-Path -LiteralPath $latestCadDwg)) {
+    $SourceWorkCopyPath = $latestCadDwg
+    Write-Output ("Source work-copy from latest CAD next-step log: {0}" -f $SourceWorkCopyPath)
+  } else {
+    $SourceWorkCopyPath = Join-Path $workDir "0000_A_DRP125 CP_ALL_260704_test.dwg"
+    Write-Output ("Source work-copy fallback: {0}" -f $SourceWorkCopyPath)
+  }
 }
 
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
@@ -65,7 +111,6 @@ if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
 }
 Assert-NoExistingGstarCAD -Wait:$WaitForGstarCADClose -WaitTimeoutSeconds $WaitForGstarCADCloseTimeoutSeconds
 
-$workDir = Join-Path $repoRoot "work"
 if (-not (Test-Path -LiteralPath $workDir)) {
   New-Item -ItemType Directory -Path $workDir | Out-Null
 }
