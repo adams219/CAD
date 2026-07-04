@@ -397,6 +397,7 @@ Tracked conclusions and log excerpts are in:
 docs/investigations/gmtitle-main45-verification-index-2026-07-04.md
 docs/history/gmtitle-four-command-goal-audit-2026-07-04.md
 docs/history/gmtitle-main44-vs-main45-comparison-2026-07-04.md
+docs/history/gmtitle-automation-boundary-audit-2026-07-05.md
 ```
 
 ## Safety Rules
