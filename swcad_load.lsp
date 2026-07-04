@@ -5,7 +5,7 @@
 
 (vl-load-com)
 
-(setq *swcad-version* "260704-4step-gmtitle-main58-a4outline")
+(setq *swcad-version* "260704-4step-gmtitle-main60-automation-policy")
 
 (defun swcad-loader-source (/ src)
   (setq src nil)

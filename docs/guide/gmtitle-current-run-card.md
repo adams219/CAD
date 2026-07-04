@@ -23,7 +23,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main58-a4outline
+260704-target-overlap-adopt-main60-automation-policy
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 APPLOAD 합니다.
@@ -42,7 +42,7 @@ SWTITLEVERSION
 
 ```text
 GitHub 코드 기준: 36183b2 Guard A4 frame-only GMTITLE flow 이상
-현재 LSP 기준: 260704-target-overlap-adopt-main58-a4outline
+현재 LSP 기준: 260704-target-overlap-adopt-main60-automation-policy
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```
 
@@ -56,6 +56,7 @@ a4outline 기준에서는 DR_A4_Outline 정의 raw bbox 위험을 먼저 막고,
 판단이 헷갈리면 먼저 아래 파일을 봅니다.
 
 ```text
+docs/history/gmtitle-native-automation-goal-plan-2026-07-04.md
 docs/history/gmtitle-history-gated-plan-2026-07-04.md
 docs/history/gmtitle-main56-target-overlap-adoption-plan-2026-07-04.md
 docs/investigations/gmtitle-main55-vs-main56-duplicate-target-pair-comparison-2026-07-04.md
@@ -64,24 +65,21 @@ docs/history/gmtitle-requirement-completion-audit-2026-07-04.md
 
 열려 있는 CAD 도면이 저장 전 상태일 수 있으므로, 디스크 파일을 숨김 진단으로 다시 연 결과보다 현재 CAD에서 다시 실행한 `SWTITLESTATUS`/`SWTITLEVERIFY` 로그를 우선합니다.
 
-로그를 볼 때는 suffix를 먼저 확인합니다. fixture/test 로그와 실제 작업복사본 로그를 섞어 보면 판단이 틀어집니다.
+로그를 볼 때는 현재 CAD에서 방금 실행한 결과인지 먼저 확인합니다. fixture/test 로그와 실제 작업복사본 로그를 섞어 보면 판단이 틀어집니다.
 
 ```text
 우선 증거:
-work/swtitle_actual_workcopy_status_main56_diagnostics.txt
-work/swcad_title_structure_diagnosis_last_actual_workcopy_main56_diagnostics.txt
-work/swcad_title_fast_status_last_actual_workcopy_main56_diagnostics.txt
-work/swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
-work/swtitle_final_completion_gate_status.txt
-
-주의:
+work/swcad_title_fast_status_last.txt
+work/swcad_title_native_frame_check_last.txt
 work/swcad_title_structure_diagnosis_last.txt
 work/swcad_title_verify_summary_last.txt
+
+주의:
+old fixture/test suffix가 붙은 로그
+다른 DWG에서 마지막으로 실행된 로그
 ```
 
-suffix가 없는 `*_last.txt`는 마지막으로 실행한 임의 테스트 DWG의 로그일 수 있습니다. 실제 업무 도면 상태 판단에는 `actual_workcopy` 또는 `final_completion_gate` suffix가 붙은 로그를 먼저 봅니다.
-
-현재 열린 세션과 디스크 파일 상태가 다르면, 먼저 열린 CAD에서 `SWTITLESTATUS`를 다시 실행해 최신 로그를 만듭니다.
+`*_last.txt`는 마지막으로 실행한 DWG의 로그입니다. 현재 열린 세션과 디스크 파일 상태가 다르면, 먼저 열린 CAD에서 `SWTITLESTATUS`를 다시 실행해 최신 로그를 만듭니다.
 
 ## 현재 저장된 workcopy 기준
 
@@ -143,6 +141,14 @@ SWTITLEVERIFY
 제목블록: DR_titlea_3rd
 Frame positioning: ON
 Object move: OFF
+```
+
+현재 자동 선택을 기본으로 쓰지 않는 이유:
+
+```text
+명령줄 -GMTITLE 자동 선택은 이전 CAD 이력에서 일반 A3/A4 또는 ISO 제목블록으로 잘못 흐른 적이 있습니다.
+복제 GMTITLE은 겉모양과 속성값이 맞아도 native-like 증거가 부족할 수 있습니다.
+자동화 개선은 docs/history/gmtitle-native-automation-goal-plan-2026-07-04.md의 검증 조건을 통과한 뒤 반영합니다.
 ```
 
 ## 하지 말 것

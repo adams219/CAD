@@ -31,7 +31,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main58-a4outline")
+(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main60-automation-policy")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -4205,6 +4205,20 @@
   (princ)
 )
 
+(defun swcad-title-print-automation-policy-summary ()
+  (if *swcad-title-allow-commandline-gmtitle*
+    (progn
+      (swcad-title-princ-line "자동화 판단: 명령줄 -GMTITLE 실험 플래그가 켜져 있습니다.")
+      (swcad-title-princ-line "자동화 판단: 이 경로는 work 복사본에서 새 INSERT/도면틀/제목블록/native-like 검증이 모두 통과할 때만 사용하세요.")
+    )
+    (progn
+      (swcad-title-princ-line "자동화 판단: 명령줄 -GMTITLE/설정파일 자동 선택은 기본 OFF입니다.")
+      (swcad-title-princ-line "자동화 판단: 로컬 조사상 paperset.grx가 native GMTITLE 구조를 만들며, DR 기본 선택값을 설정파일로 고정하는 근거는 아직 없습니다.")
+      (swcad-title-princ-line "자동화 판단: GMTITLE 창이 열리면 DR_A*_Outline과 DR_titlea_3rd를 눈으로 확인하세요. 화면 좌표 클릭 자동화는 사용하지 않습니다.")
+    )
+  )
+)
+
 (defun swcad-title-next-step (/ summary source-count frame-only-count source-frame-count contaminated definition-raw-risk-records definition-raw-risk-count example-title frame-records geometry-risk-count overlap-risk-count selection-risk-count target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records missing-target-sheets missing-required-native a3a4-records a3a4-count style-records style-count command-text-count next-frame-block)
   (swcad-title-open-next-step-log)
   (setq summary (swcad-title-fast-sheet-summary))
@@ -4267,6 +4281,7 @@
   (swcad-title-princ-line (strcat "선택/형상 위험 경고: " (itoa selection-risk-count)))
   (swcad-title-princ-line (strcat "오염 의심 대상 도면틀 정의: " (swcad-title-list-string contaminated)))
   (swcad-title-princ-line (strcat "native GMTITLE 제목블록 존재: " (swcad-title-native-example-description example-title)))
+  (swcad-title-print-automation-policy-summary)
   (if a3a4-records
     (progn
       (swcad-title-princ-line "A3/A4 후보 상세:")
@@ -10040,6 +10055,7 @@
   (swcad-title-princ-line (strcat "  titles with missing tags: " (itoa missing-tags-count)))
   (swcad-title-princ-line (strcat "  titles with empty attributes: " (itoa empty-attrs-count)))
   (swcad-title-princ-line (strcat "  target frame selection risk warnings: " (itoa selection-risk-count)))
+  (swcad-title-print-native-vs-nonnative-sample)
 
   (setq status
     (cond
@@ -15326,6 +15342,128 @@
   )
 )
 
+(defun swcad-title-first-target-pair-by-native-like (want-native-like / records result record native-like)
+  (setq records (swcad-title-target-gmtitle-pair-records))
+  (setq result nil)
+  (foreach record records
+    (if (not result)
+      (progn
+        (setq native-like (swcad-title-target-pair-native-like-p record))
+        (if
+          (if want-native-like native-like (not native-like))
+          (setq result record)
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-print-compact-entity-structure (label ename title-shared-check / data apps native-handles native-kinds role shared shared-text)
+  (swcad-title-princ-line (strcat "  " label ":"))
+  (if ename
+    (progn
+      (setq data (entget ename '("*")))
+      (setq apps (swcad-title-xdata-app-names ename))
+      (setq native-handles (swcad-title-gmtitle-native-xdata-info ename))
+      (setq native-kinds (swcad-title-native-link-target-kinds ename))
+      (setq role (swcad-title-exemplar-role ename))
+      (setq shared (if title-shared-check (swcad-title-target-title-native-link-shared-p ename) nil))
+      (setq shared-text
+        (if title-shared-check
+          (strcat
+            ", 제목블록 native 링크 공유="
+            (if shared "yes" "no")
+          )
+          ""
+        )
+      )
+      (swcad-title-princ-line
+        (strcat
+          "    핸들="
+          (swcad-title-ename-handle ename)
+          ", role="
+          (if (> (strlen role) 0) role "<none>")
+          ", xdata 앱="
+          (swcad-title-list-string apps)
+        )
+      )
+      (swcad-title-princ-line
+        (strcat
+          "    native 핸들="
+          (swcad-title-list-string native-handles)
+          ", native 대상 종류="
+          (swcad-title-list-string native-kinds)
+          shared-text
+        )
+      )
+      (swcad-title-princ-line
+        (strcat
+          "    persistent reactor 수="
+          (itoa (swcad-title-dxf-code-count data -5))
+          ", extension dictionary 수="
+          (itoa (swcad-title-dxf-code-count data 360))
+          ", 범위="
+          (swcad-title-bbox-string (swcad-title-safe-bbox ename))
+        )
+      )
+    )
+    (swcad-title-princ-line "    <missing>")
+  )
+)
+
+(defun swcad-title-print-target-pair-structure-sample (label record / title-ename frame-ename frame-block frame-bbox sheet native-like reason title-role frame-role)
+  (swcad-title-princ-line (strcat label ":"))
+  (if record
+    (progn
+      (setq title-ename (car record))
+      (setq frame-ename (cadr record))
+      (setq frame-block (caddr record))
+      (setq frame-bbox (nth 4 record))
+      (setq title-role (nth 5 record))
+      (setq frame-role (nth 6 record))
+      (setq sheet (swcad-title-sheet-size-from-block-name frame-block))
+      (setq native-like (swcad-title-target-pair-native-like-p record))
+      (setq reason (swcad-title-target-pair-upgrade-reason record))
+      (swcad-title-princ-line
+        (strcat
+          "  용지="
+          (if sheet sheet "<unknown>")
+          ", 도면틀 블록="
+          frame-block
+          ", native-like="
+          (if native-like "yes" "no")
+          ", 이유="
+          reason
+          ", 제목블록 role="
+          (if (> (strlen title-role) 0) title-role "<none>")
+          ", 도면틀 role="
+          (if (> (strlen frame-role) 0) frame-role "<none>")
+          ", 도면틀 범위="
+          (swcad-title-bbox-string frame-bbox)
+        )
+      )
+      (swcad-title-print-compact-entity-structure "제목블록" title-ename T)
+      (swcad-title-print-compact-entity-structure "도면틀" frame-ename nil)
+    )
+    (swcad-title-princ-line "  <none>")
+  )
+)
+
+(defun swcad-title-print-native-vs-nonnative-sample (/ native-record nonnative-record)
+  (setq native-record (swcad-title-first-target-pair-by-native-like T))
+  (setq nonnative-record (swcad-title-first-target-pair-by-native-like nil))
+  (if (or native-record nonnative-record)
+    (progn
+      (swcad-title-princ-line "native/복제 구조 비교 샘플:")
+      (swcad-title-princ-line "  목적: native-like 통과 쌍과 교체 후보의 xdata/handle 차이를 같은 형식으로 비교합니다.")
+      (swcad-title-print-target-pair-structure-sample "  native-like 통과 샘플" native-record)
+      (swcad-title-print-target-pair-structure-sample "  non-native 교체 후보 샘플" nonnative-record)
+      (swcad-title-princ-line "  참고: 이 요약은 읽기 전용이며, 자세한 원인은 이유/제목블록 native 링크 공유/xdata 앱을 우선 봅니다.")
+    )
+  )
+)
+
 (defun swcad-title-sheet-in-list-p (sheet sheets / result item)
   (setq result nil)
   (foreach item sheets
@@ -16986,6 +17124,7 @@
       (swcad-title-princ-line "A4 판단: 표제란 없는 도면틀 시트가 남아 있습니다. SWTITLECONVERT가 표제란 없는 도면틀 흐름으로 처리합니다.")
     )
   )
+  (swcad-title-print-automation-policy-summary)
   (swcad-title-princ-line (strcat "권장 다음 명령: " next-action))
   (swcad-title-close-log)
   next-action
@@ -17467,7 +17606,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main58-a4outline")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main60-automation-policy")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)

@@ -24,7 +24,7 @@ GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 
 현재 LSP 버전:
 
 ```text
-260704-target-overlap-adopt-main58-a4outline
+260704-target-overlap-adopt-main60-automation-policy
 ```
 
 현재 loader 버전은 `SWTITLEVERSION`에서 함께 확인합니다.

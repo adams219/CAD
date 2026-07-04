@@ -55,7 +55,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main58-a4outline
+260704-target-overlap-adopt-main60-automation-policy
 ```
 
 다른 버전이 나오면 변환하지 말고 최신 LSP를 다시 APPLOAD 하세요.
@@ -238,6 +238,8 @@ target-sheet-counts:
 중복 표제란 없음
 같은 위치에 겹친 GMTITLE target 쌍: 0
 고아 도면틀 없음
+clone/native-upgrade/shared-link 경고 없음
+A3/A4 native 교체 후보 0
 ```
 
 마지막으로 실제 `DR_titlea_3rd` 제목블록이 있는 대표 용지만 더블클릭해서 GMTITLE 표 편집창이 열리는지 확인합니다.
@@ -245,22 +247,21 @@ target-sheet-counts:
 
 도면 안의 번호, 주석, BOM, 치수, 모델 형상이 남아 있는지도 확인합니다.
 
-## 현재 상태
+## 현재 목표모드 기준
 
-main56 코드와 진단 fixture는 통과했습니다.
+현재 목표는 A3/A4 복제 GMTITLE이 native GMTITLE처럼 보이는지 단순 확인하는 단계가 아닙니다. 아래 로그에서 native-like 탈락 이유를 확인하면서 진행합니다.
 
 ```text
-중복 target 쌍 감지/정리 probe: 통과
-기존 native GMTITLE 채택 gate probe: 통과
-명령어 텍스트 guard probe: 통과
-잔여물 보호 probe: 통과
-native-format title geometry 보호 probe: 통과
+C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_native_frame_check_last.txt
+C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_verify_summary_last.txt
 ```
 
-하지만 실제 work-copy 변환은 아직 끝나지 않았습니다. final gate는 아직 실패하는 것이 정상입니다.
+특히 아래 항목이 남아 있으면 완료가 아닙니다.
 
 ```text
-SWTITLEVERIFY_FINAL_FAIL
-target-title-count: 0
-target-frame-count: 0
+WARN_CLONED_GMTITLE_FRAME_NEEDS_NATIVE_UPGRADE
+WARN_SHARED_NATIVE_GMTITLE_LINKS
+WARN_A3_A4_TARGET_FRAME_NOT_NATIVE_LIKE
+A3/A4 native 교체 후보 > 0
+shared-native-link-handle 남음
 ```

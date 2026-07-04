@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260704-target-overlap-adopt-main58-a4outline
+260704-target-overlap-adopt-main60-automation-policy
 ```
 
 ## GMTITLE 변환 명령
@@ -45,6 +45,16 @@ SWTITLEVERIFY
 | `SWTITLEPREPARE` | 변환 전에 필요한 정규화를 수행합니다. 실수 명령어 텍스트, 도면틀 정의 내부 표제란 형상, 사용 중이 아닌 오염/raw bbox 위험 도면틀 정의, 고아 GMTITLE 도면틀, 겹친 GMTITLE target 쌍 같은 후보를 먼저 보여주고 `YES` 확인 후 처리합니다. | 있음 |
 | `SWTITLECONVERT` | 상태에 맞는 변환 단계를 실행합니다. 첫 native GMTITLE 생성, 같은 크기 기준 객체 준비, 기존 native GMTITLE 채택, 남은 시트 변환, A3/A4 native 교체, A4 frame-only 처리를 이 명령 안에서 안내합니다. | 있음 |
 | `SWTITLEVERIFY` | 변환 결과를 읽기 전용으로 검증합니다. 남은 원본 객체, 중복/누락, native-like 상태, A2/A3/A4 수량, 최종 OK/WARN/FAIL을 확인합니다. | 없음 |
+
+## 자동화 목표 참고
+
+A3/A4 복제 GMTITLE을 한 장씩 native로 교체해야 하는 이유와, 사람이 반복 선택하는 단계를 줄이기 위한 장기 계획은 아래 문서에 정리합니다.
+
+```text
+docs/history/gmtitle-native-automation-goal-plan-2026-07-04.md
+```
+
+현재 기본값에서는 명령줄 `-GMTITLE` 자동 선택을 사용하지 않습니다. 이전 CAD 이력에서 일반 A3/A4 또는 ISO 제목블록으로 잘못 흐르는 사례가 있었기 때문입니다. 자동화는 별도 work 복사본에서 검증된 뒤에만 기본 흐름에 넣습니다.
 
 ## 권장 실행 순서
 
@@ -123,6 +133,7 @@ C:\Users\DR-DESIGN\Documents\CAD tool\work
 | `swcad_title_frame_style_normalization_clean_last.txt` | 도면틀 스타일 정규화 로그 |
 | `swcad_title_transfer_apply_last.txt` | 첫 native GMTITLE 변환 단계 로그 |
 | `swcad_title_fast_status_last.txt` | 내부 빠른 변환 준비 상태 로그 |
+| `swcad_title_native_frame_check_last.txt` | A2/A3/A4 native-like 도면틀/제목블록 구조 비교 로그 |
 | `swcad_title_duplicate_target_pair_clean_last.txt` | 겹친 GMTITLE target 쌍 정리 로그 |
 | `swcad_title_verify_summary_last.txt` | `SWTITLEVERIFY` 최종 요약 |
 
@@ -140,6 +151,7 @@ target-sheet-counts:
   A3: 12
   A4: 2
 겹친 GMTITLE target 쌍: 0
+clone/native-upgrade/shared-link 경고: 0
 실제 DR_titlea_3rd가 있는 대표 용지를 더블클릭하면 GMTITLE 표 편집창이 열림
 표제란 없는 A4는 DR_A4_Outline 도면틀만 검증하고, 더블클릭할 제목블록은 없음
 도면 안 번호, 주석, BOM, 치수, 모델 형상 유지

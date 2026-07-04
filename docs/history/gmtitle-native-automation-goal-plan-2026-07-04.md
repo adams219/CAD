@@ -1,0 +1,626 @@
+# GMTITLE native 자동화 목표 계획 - 2026-07-04
+
+## 목표
+
+SolidWorks DWG를 GstarCAD Mechanical native GMTITLE 구조로 안정 변환한다.
+
+최종 목표는 사용자가 A3 여러 장을 하나씩 `GMTITLE` 창에서 반복 선택하지 않아도 되게 만드는 것이다. 다만 자동화가 GstarCAD native 인식을 깨뜨리면 안 되므로, 자동화보다 native 구조 검증을 먼저 둔다.
+
+## 현재 결론
+
+현재 LSP 기준:
+
+```text
+260704-target-overlap-adopt-main60-automation-policy
+```
+
+main59/main60에서 추가한 것:
+
+```text
+SWTITLESTATUS 내부 native 도면틀 확인 로그에
+첫 native-like 쌍과 첫 non-native 교체 후보의 구조 비교 샘플을 출력한다.
+SWTITLESTATUS 내부 다음 단계/구조 판단 요약에 자동화 정책을 출력한다.
+
+비교 항목:
+  sheet / block / reason / role
+  title-frame handle
+  xdata app 목록
+  GENIUS_GENOREF_13 native handle link
+  native target kind
+  제목블록 shared-native-link 여부
+  persistent reactor 수
+  extension dictionary 수
+  bbox
+```
+
+이 보강은 도면을 바꾸지 않는 read-only 진단이다. 목적은 사람이 반복 선택해야 하는 근본 이유가 `clone`, `shared-native-link-handle`, `xdata/link 차이`, `marker role` 중 무엇인지 다음 CAD 로그에서 바로 보이게 하는 것이다.
+
+CAD에서 확인할 로그:
+
+```text
+SWTITLESTATUS
+C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_native_frame_check_last.txt
+```
+
+사용자용 공개 명령은 계속 아래 네 개로 유지한다.
+
+```text
+SWTITLESTATUS
+SWTITLEPREPARE
+SWTITLECONVERT
+SWTITLEVERIFY
+```
+
+현재 파악한 구조:
+
+```text
+도면틀: DR_A*_Outline INSERT
+제목블록: DR_titlea_3rd INSERT
+제목블록 속성: GEN-TITLE-* 태그
+GstarCAD native 연결 후보: GENIUS_GENOREF_13 xdata handle link
+SWTITLE 검증 marker: SWTITLE_EXEMPLAR / SWTITLE_NATIVE_EXEMPLAR
+추가 판단 요소: role, shared native-link handle, bbox, source-contamination, double-click behavior
+```
+
+중요한 한계:
+
+```text
+SWTITLE marker와 복사된 xdata만으로는 native GMTITLE 증거로 인정하지 않는다.
+복제본은 겉모양과 속성값은 맞아도 GstarCAD native 편집기 인식이 증명되지 않는다.
+여러 제목블록이 같은 내부 native handle을 공유하면 shared-native-link-handle 상태로 보고 native-like에서 제외한다.
+```
+
+## 지금 사람이 필요한 이유
+
+`SWTITLECONVERT`가 복제 A3/A4를 fresh native GMTITLE로 교체하려면 결국 GstarCAD가 실제 `GMTITLE` 명령을 통해 새 도면틀/제목블록 쌍을 생성해야 한다.
+
+현재 코드에는 명령줄 `-GMTITLE` 경로가 있지만 기본 비활성화되어 있다.
+
+```lisp
+(setq *swcad-title-allow-commandline-gmtitle* nil)
+```
+
+비활성화 이유:
+
+```text
+이전 CAD 이력에서 -GMTITLE 자동 선택이 DR_A*_Outline + DR_titlea_3rd 대신
+일반 ISO/A-series 기본값으로 흐르거나 새 INSERT를 안정적으로 만들지 못했다.
+```
+
+따라서 현재 안정 흐름은:
+
+```text
+SWTITLESTATUS가 다음 후보를 찾음
+SWTITLECONVERT가 한 장의 GMTITLE 창을 열도록 안내
+사용자가 DR_A*_Outline / DR_titlea_3rd / Frame positioning ON / Object move OFF를 눈으로 확인
+LSP가 새 native 결과를 검사하고 속성값 복사, 정렬, 이전 복제 쌍 삭제
+```
+
+이 방식은 느리지만, 잘못된 도면틀을 대량으로 삽입하는 사고를 막는다.
+
+## 현재 완료로 보지 않는 조건
+
+아래 상태는 완료가 아니다.
+
+```text
+WARN_CLONED_GMTITLE_FRAME_NEEDS_NATIVE_UPGRADE
+WARN_SHARED_NATIVE_GMTITLE_LINKS
+WARN_A3_A4_TARGET_FRAME_NOT_NATIVE_LIKE
+A3/A4 native 교체 후보 > 0
+복제 쌍 > 0
+shared-native-link-handle가 남음
+SWTITLEVERIFY_FINAL_OK가 아님
+```
+
+`속성 블록 편집` 창이 열리는 것만으로도 완료가 아니다. 대표 제목블록 더블클릭 확인은 필요하지만, 최종 판단은 `SWTITLEVERIFY`가 아래 조건을 함께 만족해야 한다.
+
+```text
+남은 원본 SolidWorks 표제란 0
+남은 원본 SolidWorks 도면틀 0
+target A2/A3/A4 수량 일치
+non-native-like target pair 0
+도면틀 형상/선택 위험 0
+겹친 target 쌍 0
+```
+
+## 자동화 후보
+
+### 1. 명령줄 `-GMTITLE` 재검증
+
+목표:
+
+```text
+GUI 선택 없이 DR_A3_Outline + DR_titlea_3rd를 정확히 생성할 수 있는지 검증한다.
+```
+
+필수 조건:
+
+```text
+일반 A3/A4 또는 ISO 제목블록으로 흐르지 않아야 함
+새 INSERT가 정확히 2개 또는 기대 수량으로 생겨야 함
+새 frame block이 요청한 DR_A*_Outline이어야 함
+새 title block이 DR_titlea_3rd이어야 함
+Frame positioning / Object move 상태가 도면 내용을 이동시키지 않아야 함
+SCRIPT나 숨김 자동화에서 프롬프트가 남지 않아야 함
+```
+
+실패 시:
+
+```text
+새로 생긴 INSERT를 즉시 삭제
+자동 선택 경로 유지 금지
+대화식 GMTITLE 경로로 되돌림
+```
+
+현재 판단:
+
+```text
+이력상 기본값은 계속 OFF가 맞다.
+다만 별도 work 복사본에서 read-only/rollback 전제의 실험으로 재검증할 수 있다.
+```
+
+로컬 설치 조사 결과:
+
+```text
+C:\Program Files\Gstarsoft\GstarCAD Mechanical 2024 Korean\Common\gcad.rx
+  paperset.grx 로드 확인
+
+C:\Program Files\Gstarsoft\GstarCAD Mechanical 2024 Korean\Common\ImCuiTranslate.xml
+  메뉴 항목 "도면 제목/경계..."는 command="GMTITLE"로 표시됨
+  같은 항목의 원 command 문자열은 ^C^Cimtitle 계열
+
+C:\Program Files\Gstarsoft\GstarCAD Mechanical 2024 Korean\Common\ImLanguage.xml
+  PAPERSET 모듈 존재
+  "Select title block automatically", "Automatic placement", "Drawing Borders with Title Block" 등 문구 존재
+
+C:\Program Files\Gstarsoft\GstarCAD Mechanical 2024 Korean\MCADSetting\PaperSet.dat
+  A0/A1/A2/A3/A4 용지 치수 테이블 성격으로 보임
+  DR_A*_Outline 또는 DR_titlea_3rd 선택값 문자열은 텍스트 검색에서 확인되지 않음
+
+C:\Users\DR-DESIGN\AppData\Roaming\Gstarsoft\GstarMechStd\R24\ko-KR\Gcadm\MCADSetting
+  사용자 설정 파일에는 현재 검색 기준에서 DR_A*_Outline / DR_titlea_3rd / GMTITLE 기본 선택값 흔적 없음
+```
+
+현재 해석:
+
+```text
+GMTITLE native 구조 생성은 LISP가 아니라 paperset.grx / PaperSet.grx 같은 컴파일된 Mechanical 모듈이 담당하는 것으로 보인다.
+도면틀/표제란 파일은 DWG로 존재하지만, 그 파일을 INSERT하는 것만으로는 native GMTITLE 편집 동작이 증명되지 않는다.
+사용자 설정 파일에서 DR 기본 선택값을 직접 고정하는 근거는 아직 찾지 못했다.
+따라서 command-line 자동 선택은 여전히 실험 후보일 뿐 기본 경로로 승격하지 않는다.
+```
+
+### 2. GstarCAD Mechanical API 조사
+
+목표:
+
+```text
+GMTITLE 대화상자를 거치지 않고 native GMTITLE 객체를 만드는 공식 API나 내부 함수를 찾는다.
+```
+
+확인 대상:
+
+```text
+paperset.grx / PaperSet.grx가 노출하는 명령 또는 함수
+imtitle / GMTITLE / GMSBLOCKE의 명령줄 인자 가능성
+GstarCAD Mechanical AutoLISP 함수
+COM object method
+Mechanical/Genius GEN* 내부 함수
+문서화된 title/border 생성 API
+템플릿/설정 파일에서 마지막 선택값을 제어하는 방법
+```
+
+성공 기준:
+
+```text
+DR_A*_Outline과 DR_titlea_3rd를 파라미터로 넘길 수 있음
+결과가 SWTITLEVERIFY에서 native-like로 통과
+더블클릭 시 GMTITLE 표 편집창이 열림
+여러 장 반복 생성해도 shared-native-link-handle이 생기지 않음
+```
+
+### 3. native xdata/link 직접 생성
+
+목표:
+
+```text
+복제 GMTITLE 쌍이 native-like로 인정되지 않는 내부 차이를 찾아 직접 보정 가능한지 확인한다.
+```
+
+비교 대상:
+
+```text
+정상 native A3 1장
+복제 A3 1장
+native 교체 성공 A3 1장
+shared-native-link-handle A3 1장
+```
+
+비교 항목:
+
+```text
+entget 전체
+xdata app 목록
+GENIUS_GENOREF_13 값
+GENIUS_GENOBJ-N-SDF_13 값
+GENIUS_GENODEF_13 값
+extension dictionary
+persistent reactors
+owner block/table 관계
+attribute reference 상태
+frame/title bbox와 삽입점
+SWTITLE marker role
+```
+
+현재 판단:
+
+```text
+직접 생성은 가장 위험하다.
+GstarCAD 내부 handle/link 의미를 완전히 파악하기 전에는 production 경로로 사용하지 않는다.
+```
+
+## 구현 방향
+
+새 공개 명령을 늘리지 않는다. 자동화 실험도 기존 흐름 안에서 상태 기반으로 붙인다.
+
+권장 구조:
+
+```text
+SWTITLESTATUS
+  현재 자동화 가능 상태인지 진단
+  어떤 후보가 왜 manual인지 출력
+  자동화 실험이 안전한 조건인지 출력
+
+SWTITLEPREPARE
+  오염/중복/위험 정의만 정리
+  native 구조 추정만으로 삭제하지 않음
+
+SWTITLECONVERT
+  안전한 자동 경로가 검증된 경우에만 사용
+  실패하면 새 INSERT 삭제 후 대화식 경로로 전환
+  A3/A4 native 교체는 한 번에 한 후보만 기본 처리
+
+SWTITLEVERIFY
+  clone/native-upgrade warning이 없어야 최종 OK
+```
+
+자동화 경로를 넣더라도 기본값은 보수적으로 둔다.
+
+```text
+기본값: 대화식 확인
+실험값: 명령줄 자동 선택 허용
+승격 조건: 실제 work 복사본에서 반복 성공 + final verify OK + 더블클릭 확인
+```
+
+## 목표모드 운영 원칙
+
+이 목표는 "A3 한 장이 우연히 잘 됨"으로 끝내지 않는다.
+
+매 턴마다 아래 순서로 판단한다.
+
+```text
+1. 현재 도면 상태를 증거로 확인한다.
+2. 경고가 남아 있으면 경고 종류를 먼저 분류한다.
+3. 수량 문제인지, native 구조 문제인지, 잔여물 삭제 문제인지 분리한다.
+4. 한 번에 여러 문제를 고치지 않는다.
+5. 수정 후에는 반드시 같은 기준으로 다시 검증한다.
+```
+
+판단에 사용할 권위 있는 증거:
+
+```text
+CAD 명령줄의 현재 결과
+C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_fast_status_last.txt
+C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_native_frame_check_last.txt
+C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_verify_summary_last.txt
+실제 GstarCAD 화면에서 대표 제목블록 더블클릭 결과
+현재 로컬 git diff
+```
+
+증거로 보지 않는 것:
+
+```text
+겉으로 도면틀과 표제란이 겹쳐 보이는 것
+한 장의 제목블록만 GMTITLE 표 편집창으로 열리는 것
+복제된 객체에 SWTITLE marker가 붙어 있는 것
+이전 대화에서 성공했다고 기억하는 것
+```
+
+## 상태별 다음 행동
+
+`SWTITLESTATUS` 또는 `SWTITLEVERIFY` 결과에 따라 다음처럼 움직인다.
+
+```text
+SWTITLEVERIFY_FINAL_OK
+  -> 대표 A2/A3 제목블록을 더블클릭한다.
+  -> A4 frame-only는 불필요한 표제란이 생기지 않았는지 화면으로 확인한다.
+  -> 모두 맞으면 목표 완료 후보로 본다.
+
+WARN_CLONED_GMTITLE_FRAME_NEEDS_NATIVE_UPGRADE
+  -> 복제 쌍이 남아 있다는 뜻이다.
+  -> SWTITLECONVERT로 다음 native 교체 후보 1장만 처리한다.
+  -> 처리 후 SWTITLESTATUS를 다시 실행한다.
+
+WARN_SHARED_NATIVE_GMTITLE_LINKS
+  -> 여러 제목블록이 같은 내부 native handle을 공유할 가능성이 있다.
+  -> 빠른 복제 방식만으로는 완료로 보지 않는다.
+  -> native/복제 구조 비교 샘플의 GENIUS_GENOREF_13 값을 확인한다.
+
+WARN_A3_A4_TARGET_FRAME_NOT_NATIVE_LIKE
+  -> 제목블록은 편집될 수 있어도 도면틀 쌍이 native-like 기준을 통과하지 못했다.
+  -> 도면틀 role, xdata app, native 대상 종류, bbox 겹침 여부를 확인한다.
+  -> 원인이 clone/shared/geometry 중 무엇인지 분류한 뒤 다음 SWTITLECONVERT 후보를 정한다.
+
+WARN_TARGET_FRAME_SELECTION_RISK
+  -> 도면틀 bbox가 겹치거나 oversized라 더블클릭/선택이 엉뚱한 객체로 갈 수 있다.
+  -> 먼저 SWTITLEPREPARE 또는 도면틀 정의 정규화 가능 여부를 확인한다.
+  -> 이 상태에서는 더블클릭 결과만으로 성공/실패를 판단하지 않는다.
+
+WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS
+  -> 해당 크기의 실제 native 기준 객체가 아직 없다.
+  -> A2/A3 표제란 시트는 SWTITLECONVERT로 한 장 생성/마무리한다.
+  -> A4 frame-only는 같은 SWTITLECONVERT 흐름에서 frame-only 후보로 처리하되, 새 A4에 불필요한 제목블록이 붙는지 반드시 검증한다.
+
+ABORT_NOT_WORK_COPY
+  -> 원본 또는 Downloads 도면에서 변경을 막은 것이다.
+  -> work 폴더 복사본을 열고 다시 실행한다.
+
+ABORT_FRAME_DEFINITION_RAW_BBOX_RISK
+  -> DR_A*_Outline 정의 안에 실제 용지 밖 형상이 섞여 있을 수 있다.
+  -> 기존 A4/도면틀을 삭제하지 말고 정의 구조부터 확인한다.
+```
+
+## 크기별 검증 포인트
+
+A2:
+
+```text
+현재 가장 안정적인 기준 크기다.
+첫 native GMTITLE 기준 객체로 자주 사용된다.
+다만 A2가 성공해도 A3/A4 자동화 성공으로 일반화하지 않는다.
+```
+
+A3:
+
+```text
+제목블록은 GMTITLE 표 편집창으로 열려도 도면틀이 native-like가 아닐 수 있다.
+DR_A3_Outline 자체에 표제란이 포함된 형태로 들어오는지 확인해야 한다.
+도면틀+표제란이 하나의 블록처럼 잡히면, 형상은 맞아도 목표 구조와 다를 수 있다.
+```
+
+A4:
+
+```text
+원본에는 표제란 없는 frame-only 시트가 있을 수 있다.
+변환 후 제목블록이 생기면 "성공"이 아니라 "불필요한 표제란 추가"일 수 있다.
+DR_A4_Outline 삽입 시 용지 밖 객체가 딸려오는지 bbox와 화면을 같이 확인한다.
+```
+
+## 자동화 승격 게이트
+
+자동화 후보는 아래 게이트를 순서대로 통과해야 한다.
+
+```text
+Gate 1: work 복사본에서만 실행된다.
+Gate 2: 새로 생긴 INSERT 수와 block name이 예상과 일치한다.
+Gate 3: 실패 시 새 INSERT를 되돌릴 수 있다.
+Gate 4: SWTITLESTATUS에서 clone/shared/native warning이 줄어든다.
+Gate 5: SWTITLEVERIFY_FINAL_OK까지 간다.
+Gate 6: 대표 제목블록 더블클릭이 GMTITLE 표 편집창으로 열린다.
+Gate 7: 같은 과정을 A2/A3/A4에 반복해도 결과가 흔들리지 않는다.
+```
+
+한 게이트라도 실패하면:
+
+```text
+기본값으로 승격하지 않는다.
+실패 로그를 남긴다.
+대화식 SWTITLECONVERT 흐름을 유지한다.
+```
+
+## 단계별 실행 계획
+
+### 1단계: 현재 상태 고정
+
+할 일:
+
+```text
+git status --short --branch
+SWTITLEVERSION
+SWTITLESTATUS
+SWTITLEVERIFY
+```
+
+저장할 증거:
+
+```text
+현재 열린 DWG 경로
+현재 LSP 버전
+A3/A4 native 교체 후보 수
+복제 쌍 수
+shared-native-link-handle 수
+A4 frame-only 남은 수
+최종 verify 결과
+```
+
+완료 기준:
+
+```text
+현재 CAD 상태가 "변환 전", "복제 후 native 교체 중", "최종 OK" 중 어디인지 분명히 구분됨
+```
+
+### 2단계: native/clone 차이 비교
+
+할 일:
+
+```text
+대표 native A3와 복제 A3의 상세 정보를 같은 포맷으로 출력
+필요하면 기존 detail 로그를 보강
+```
+
+확인할 질문:
+
+```text
+복제 쌍은 어떤 xdata app을 공유하는가?
+shared handle은 어느 객체를 가리키는가?
+native-like 통과 쌍은 shared handle이 없는가?
+frame에도 native 의미가 있는 xdata가 있는가?
+extension dictionary/reactor 차이가 있는가?
+```
+
+완료 기준:
+
+```text
+native-like 탈락 이유가 clone / shared-native-link / missing internal link / marker role / geometry 중 무엇인지 후보별로 설명됨
+```
+
+### 3단계: 자동 `-GMTITLE` 실험 설계
+
+전제:
+
+```text
+절대 원본 DWG에서 하지 않음
+work 복사본에서만 함
+실패 시 새 INSERT 삭제 가능해야 함
+```
+
+실험:
+
+```text
+A2 1회
+A3 1회
+A4 frame-only 1회
+반복 A3 3회
+```
+
+각 회차에서 확인:
+
+```text
+새 INSERT 수
+선택된 frame block
+선택된 title block
+native link handle 종류
+shared handle 여부
+bbox 정상 여부
+Object move로 도면 내용 이동 여부
+SWTITLEVERIFY 경고 변화
+```
+
+승격 기준:
+
+```text
+모든 회차에서 요청한 DR 도면틀/제목블록이 정확히 들어감
+실패 시 rollback이 정상
+manual 경로보다 위험이 낮음
+```
+
+### 4단계: API/설정 파일 조사
+
+할 일:
+
+```text
+GstarCAD 설치 폴더의 GMTITLE 관련 LSP/DCL/DLL/설정 파일 이름 조사
+DR_A*_Outline, DR_titlea_3rd 목록이 어디서 로드되는지 확인
+마지막 선택값 또는 기본 선택값을 설정 파일로 고정할 수 있는지 확인
+```
+
+주의:
+
+```text
+설치 폴더는 읽기 전용으로만 확인
+설치 원본 DWG는 수정하지 않음
+```
+
+완료 기준:
+
+```text
+문서화된 API가 있으면 그 경로를 우선 검토
+없으면 설정 파일 기반 자동 선택 가능성만 별도 후보로 남김
+```
+
+### 5단계: 코드 반영 후보
+
+가능한 반영:
+
+```text
+SWTITLESTATUS에 "manual이 필요한 이유"를 더 명확히 출력
+SWTITLEVERIFY에 native-like 탈락 이유 요약을 크기별로 출력
+SWTITLECONVERT에 command-line 실험 경로를 별도 opt-in으로 제한
+native/clone 비교 detail 로그를 한 파일로 고정
+```
+
+당장 하지 않을 것:
+
+```text
+기본값으로 -GMTITLE 자동 선택 켜기
+화면 좌표 클릭 자동화
+A3/A4 전용 공개 명령 추가
+clone을 native로 간주하기
+xdata를 추측으로 조작하기
+```
+
+## 완료 기준
+
+이 목표는 아래 중 하나가 증명될 때 완료로 볼 수 있다.
+
+### A안: 자동화 성공
+
+```text
+SWTITLECONVERT가 A3/A4 반복 선택을 자동화
+SWTITLEVERIFY_FINAL_OK
+WARN_CLONED_GMTITLE_FRAME_NEEDS_NATIVE_UPGRADE 없음
+WARN_SHARED_NATIVE_GMTITLE_LINKS 없음
+A3/A4 native 교체 후보 0
+대표 A2/A3 제목블록 더블클릭 표 편집창 확인
+A4 frame-only 2장 형상 검증 통과
+```
+
+### B안: 자동화 불가 근거 확정
+
+```text
+명령줄 -GMTITLE / API / xdata 직접 생성 경로가 왜 불안정하거나 위험한지 증거 확보
+현재 반자동 4명령 흐름이 최선이라는 근거 문서화
+사용자가 반복 작업을 할 때 실수하지 않도록 로그/안내가 충분히 개선됨
+```
+
+## 다음 실제 작업
+
+현재 목표의 다음 작업은 코드 수정이 아니라 구조 증거를 더 모으는 것이다.
+
+현재 `work` 폴더에 남아 있는 최신 로그는 참고용이다. 아래처럼 `main58-a4outline` 버전으로 찍힌 로그는 현재 `main60-automation-policy`에서 추가한 구조 비교 샘플과 자동화 정책 요약을 포함하지 않으므로, 목표 완료 증거로 사용하지 않는다.
+
+```text
+work\swcad_title_native_frame_check_last.txt
+SWTITLE LSP 버전: 260704-target-overlap-adopt-main58-a4outline
+결과: WARN_CLONED_GMTITLE_FRAME_NEEDS_NATIVE_UPGRADE
+A3 복제 쌍: 10
+native-link 공유 쌍: 1
+A4 누락
+```
+
+따라서 다음 검증은 반드시 CAD에서 최신 LSP를 다시 로드한 뒤 실행한다.
+
+```text
+APPLOAD
+C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp
+SWTITLEVERSION
+SWTITLESTATUS
+```
+
+`SWTITLEVERSION`이 아래와 다르면 그 세션의 결과는 사용하지 않는다.
+
+```text
+260704-target-overlap-adopt-main60-automation-policy
+```
+
+우선순위:
+
+```text
+1. 현재 열린 CAD에서 SWTITLESTATUS/SWTITLEVERIFY 최신 로그 확보
+2. native-like 통과 A3와 복제 A3의 detail 비교
+3. shared-native-link-handle가 어떤 GENIUS_GENOREF_13 값을 공유하는지 확인
+4. 명령줄 -GMTITLE 자동 선택을 work 복사본에서 opt-in 실험할 수 있는지 검토
+5. 실험 결과가 좋을 때만 기본 흐름에 반영
+```
+
+이 계획은 `SWTITLECONVERT` 반복을 줄이기 위한 목표 계획이며, 현재 production 기본값을 즉시 바꾸라는 뜻은 아니다.
