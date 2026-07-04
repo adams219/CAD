@@ -5,7 +5,7 @@
 
 (vl-load-com)
 
-(setq *swcad-version* "260704-4step-gmtitle-manual-native-finish-snap")
+(setq *swcad-version* "260705-4step-gmtitle-a4-outline-preflight")
 
 (defun swcad-loader-source (/ src)
   (setq src nil)

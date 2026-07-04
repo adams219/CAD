@@ -55,7 +55,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-manual-native-finish-snap
+260705-a4-outline-preflight
 ```
 
 다른 버전이 나오면 변환하지 말고 최신 LSP를 다시 APPLOAD 하세요.
@@ -118,6 +118,15 @@ A4 대상 도면틀 누락: 필요 2, 현재 0
 
 현재 기준에서는 `SWTITLEPREPARE`가 사용 중이 아닌 `DR_A*_Outline` 정의의 raw bbox 위험을 복구 후보로 처리합니다. 이미 도면에 삽입되어 사용 중인 정의는 native link와 위치를 보호하기 위해 자동 교체하지 않고 로그에 남깁니다.
 
+표제란 없는 A4 시트가 남아 있고 현재 도면에 `DR_A4_Outline` 정의가 없거나 안전 검사를 통과하지 못하면 아래 상태가 나올 수 있습니다.
+
+```text
+WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION
+NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION
+```
+
+이 경우 `SWTITLECONVERT`를 반복하지 말고 `SWTITLEPREPARE`를 먼저 실행합니다. `SWTITLEPREPARE`는 설치 원본의 `DR_A4_Outline`을 가져와도 210 x 297 A4 형상과 실제 선택 범위가 안전한지 검사합니다. 통과하지 못하면 가져온 정의를 사용하지 않고 기존 A4 원본 도면틀을 보존합니다.
+
 ## 3. 필요한 경우 정규화
 
 `SWTITLESTATUS`가 정규화를 안내할 때만 실행합니다.
@@ -130,6 +139,7 @@ SWTITLEPREPARE
 
 ```text
 source-contaminated 도면틀 정의
+표제란 없는 A4 변환에 필요한 DR_A4_Outline 정의 누락/사전검사
 별도 DR_titlea_3rd와 실제로 겹치는 native-format 도면틀 내부 표제란 형상
 실수로 도면에 들어간 명령어 TEXT/MTEXT
 제목블록 없는 고아 GMTITLE 도면틀
@@ -177,7 +187,7 @@ SWTITLECONVERT
 남은 시트 자동 복제/배치
 기존 SolidWorks 도면틀/표제란/잔여물 제거
 A3/A4 native 인식이 불확실한 쌍은 한 장씩 교체 안내
-A4 frame-only에서 도면틀 정의 raw bbox 위험이 있으면 변환 전 중단
+A4 frame-only에서 DR_A4_Outline 정의가 없거나 raw bbox/선택범위 위험이 있으면 변환 전 중단
 ```
 
 GMTITLE 창이 열리면 로그가 요구한 값만 선택합니다.
@@ -207,11 +217,14 @@ Object move ON 상태로 확인
 
 ```text
 ABORT_FRAME_DEFINITION_RAW_BBOX_RISK
+WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION
 ```
 
 이 경우 GMTITLE 창을 다시 열거나 변환을 반복하지 않습니다.
 
 ```text
+SWTITLESTATUS
+SWTITLEPREPARE
 SWTITLESTATUS
 ```
 
