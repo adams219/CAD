@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260705-a4-outline-preflight
+260705-save-state-warning
 ```
 
 ## GMTITLE 변환 명령

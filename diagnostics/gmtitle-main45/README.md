@@ -88,6 +88,17 @@ work\swtitle_actual_workcopy_status_main45_diagnostics.txt
 
 Pass `-SourceWorkCopyPath`, `-ProbeDwgPath`, or `-LogPath` to override those paths.
 
+The probe logs `DBMOD before commands` and `dbmod-after-commands`. Hidden probes reopen the saved DWG, so a mismatch between the visible CAD screen and probe results usually means the active CAD drawing has unsaved changes.
+
+The integrated CAD commands also print the same save-state warning:
+
+```text
+DWG 저장 상태: 저장됨 (DBMOD=0)
+DWG 저장 상태: 저장되지 않은 변경 있음 (DBMOD=...)
+```
+
+If `DBMOD` is not 0 and another computer or hidden probe should continue the work, save the work-copy DWG first.
+
 ## A4 Outline Prepare Probe
 
 Use `run_a4_outline_prepare_probe.ps1` to copy a work DWG, load the current GMTITLE LSP, and run the internal A4 frame-only `DR_A4_Outline` definition preflight on the copy.
@@ -112,7 +123,7 @@ work\swtitle_a4_outline_prepare_probe_260705.txt
 Expected safe result for the current installed `DR_A4_Outline` state:
 
 ```text
-Loaded version: 260705-a4-outline-preflight
+Loaded version: 260705-save-state-warning
 Before definition status: missing
 Prepare result: OK status=WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE
 After definition status: missing

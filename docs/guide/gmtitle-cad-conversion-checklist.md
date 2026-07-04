@@ -55,7 +55,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260705-a4-outline-preflight
+260705-save-state-warning
 ```
 
 다른 버전이 나오면 변환하지 말고 최신 LSP를 다시 APPLOAD 하세요.

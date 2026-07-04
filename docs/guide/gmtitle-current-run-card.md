@@ -23,7 +23,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260705-a4-outline-preflight
+260705-save-state-warning
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 APPLOAD 합니다.
@@ -42,7 +42,7 @@ SWTITLEVERSION
 
 ```text
 로컬 코드 기준: 현재 브랜치 `codex/gm-title`
-현재 LSP 기준: 260705-a4-outline-preflight
+현재 LSP 기준: 260705-save-state-warning
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```
 
@@ -90,7 +90,7 @@ old fixture/test suffix가 붙은 로그
 
 | 로그 문구 | 의미 | 다음 행동 |
 | --- | --- | --- |
-| `SWTITLEVERSION`이 `260705-a4-outline-preflight`가 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
+| `SWTITLEVERSION`이 `260705-save-state-warning`이 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
 | `자동화 판단: 명령줄 -GMTITLE/설정파일 자동 선택은 기본 OFF입니다.` | 현재는 GMTITLE 창 선택을 사람이 확인하는 안정 모드 | 정상. 화면 좌표 클릭이나 `-GMTITLE` 강제 자동화 금지 |
 | `NEXT_CREATE_FIRST_NATIVE_GMTITLE` | 아직 이 도면에 진짜 GMTITLE 기준 객체가 없음 | `SWTITLECONVERT`로 첫 native GMTITLE 1장 생성 |
 | `WARN_CLONED_GMTITLE_FRAME_NEEDS_NATIVE_UPGRADE` | 겉모양은 맞지만 도면틀이 복제 구조라 native 증거 부족 | `SWTITLECONVERT`로 다음 후보 1장만 native 교체 |

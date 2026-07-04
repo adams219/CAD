@@ -105,9 +105,10 @@
         (swtitle-diag45-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))
       )
       (swtitle-diag45-write-line handle (strcat "Loaded version: " version-value))
-      (swtitle-diag45-write-line handle "Expected version: 260704-target-overlap-adopt-main56-a4frameguard")
+      (swtitle-diag45-write-line handle "Expected version: 260705-save-state-warning")
       (swtitle-diag45-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-diag45-write-line handle (strcat "CTAB: " (getvar "CTAB")))
+      (swtitle-diag45-write-line handle (strcat "DBMOD before commands: " (itoa (getvar "DBMOD"))))
       (swtitle-diag45-write-line handle "Commands requested: SWTITLEVERSION, SWTITLESTATUS, SWTITLEVERIFY")
       (swtitle-diag45-write-line handle (strcat "Detail log suffix: " requested-log-suffix))
       (if load-ok
@@ -145,6 +146,7 @@
           (swtitle-diag45-count-line handle "  target-sheet-counts:" target-counts)
           (swtitle-diag45-write-line handle (strcat "  status-after-status: " status-after-status))
           (swtitle-diag45-write-line handle (strcat "  status-after-verify: " status-after-verify))
+          (swtitle-diag45-write-line handle (strcat "  dbmod-after-commands: " (itoa (getvar "DBMOD"))))
         )
         (progn
           (setq ok-version nil)

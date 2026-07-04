@@ -31,7 +31,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260705-a4-outline-preflight")
+(setq *swcad-title-scale-version* "260705-save-state-warning")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -901,6 +901,34 @@
 
 (defun swcad-title-current-dwg-full-path ()
   (vl-string-translate "\\" "/" (strcat (getvar "DWGPREFIX") (getvar "DWGNAME")))
+)
+
+(defun swcad-title-current-dwg-dbmod (/ value)
+  (setq value (swcad-title-safe-getvar "DBMOD"))
+  (if (numberp value) value 0)
+)
+
+(defun swcad-title-current-dwg-unsaved-p ()
+  (/= (swcad-title-current-dwg-dbmod) 0)
+)
+
+(defun swcad-title-print-current-dwg-save-status (/ dbmod)
+  (setq dbmod (swcad-title-current-dwg-dbmod))
+  (swcad-title-princ-line
+    (strcat
+      "DWG 저장 상태: "
+      (if (/= dbmod 0) "저장되지 않은 변경 있음" "저장됨")
+      " (DBMOD="
+      (itoa dbmod)
+      ")"
+    )
+  )
+  (if (/= dbmod 0)
+    (progn
+      (swcad-title-princ-line "주의: 숨김 진단 probe는 마지막 저장본을 다시 열기 때문에 현재 화면과 다를 수 있습니다.")
+      (swcad-title-princ-line "다른 PC나 숨김 probe에서 이어가려면 먼저 이 작업복사본 DWG를 저장하세요.")
+    )
+  )
 )
 
 (defun swcad-title-string-prefix-p (prefix value)
@@ -17161,6 +17189,7 @@
     )
   )
   (swcad-title-print-loaded-version)
+  (swcad-title-print-current-dwg-save-status)
   (swcad-title-princ-text
     "\nSolidWorks DWG를 GMTITLE 구조로 바꾸는 4단계 통합 흐름입니다."
   )
@@ -17880,7 +17909,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-a4-outline-preflight")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-save-state-warning")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)
