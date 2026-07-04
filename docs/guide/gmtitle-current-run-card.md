@@ -213,6 +213,17 @@ Enter = 중단, 도면 변경 없음
 
 `BATCH`는 명령 반복을 줄이는 기능입니다. GMTITLE 창 선택을 대신 해 주는 기능은 아니므로, 각 창에서 로그가 요구한 DR 용지/제목블록/옵션을 확인합니다.
 
+`BATCH`는 아래 조건일 때만 사용합니다.
+
+```text
+OPEN으로 최소 1장 성공한 뒤
+SWTITLESTATUS에서 A3/A4 native 교체 후보가 여러 개 남아 있을 때
+반복되는 후보들이 같은 방식으로 DR 용지/DR_titlea_3rd를 선택하면 되는 상태일 때
+각 GMTITLE 창을 직접 볼 수 있는 전체화면 CAD 상태일 때
+```
+
+`BATCH` 중 한 번이라도 ISO 용지, ISO 제목블록, Object move ON, 예상과 다른 DR 용지가 보이면 `확인`을 누르지 말고 취소합니다. 그 뒤에는 `SWTITLESTATUS`를 다시 실행합니다.
+
 숨김 CAD 또는 SCRIPT 자동화에서는 `BATCH`가 실행되면 안 됩니다. 검증 suite는 이 경우 `ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE`로 멈추고 후보와 INSERT를 그대로 보존하는지 확인합니다.
 
 `MANUAL`은 자동 생성 흐름이 `ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS`처럼 끝날 때 쓰는 복구 선택지입니다. `MANUAL`로 준비한 뒤 안내된 값으로 GstarCAD `GMTITLE` 한 장을 만들고, 삽입점은 긴 좌표를 직접 치지 말고 기존 도면틀 왼쪽 아래 끝점/스냅으로 지정합니다. 다시 `SWTITLECONVERT`를 실행하면 pending 마무리 단계가 먼저 실행됩니다.
@@ -242,13 +253,13 @@ Object move: OFF
 Object move: ON
 ```
 
-이 상태에서 `확인`을 누르면 안 됩니다. 실제 표시값을 `DR_A3_Outline`, `DR_titlea_3rd`, `Object move OFF`로 바꿀 수 있을 때만 진행하고, 불확실하면 `Esc`로 취소합니다. 취소하면 기존 쌍은 보존됩니다.
+이 상태에서 `확인`을 누르면 안 됩니다. 실제 표시값을 로그가 요구한 `DR_A*_Outline`, `DR_titlea_3rd`, `Object move OFF`로 바꿀 수 있을 때만 진행하고, 불확실하면 `Esc`로 취소합니다. 취소하면 기존 쌍은 보존됩니다.
 
 키보드로 바꾸는 순서:
 
 ```text
 용지 콤보에 포커스가 있을 때 Alt+Down
-DR_A3_Outline 선택
+로그가 요구한 DR_A*_Outline 선택
 Enter
 Tab
 Alt+Down
@@ -259,6 +270,8 @@ Space
 ```
 
 `Alt+M`은 객체 이동 체크박스로 포커스를 보내고, `Space`가 체크를 끕니다. 마지막 상태가 `Object move OFF`인지 눈으로 확인한 뒤에만 진행합니다.
+
+현재 기본 workcopy에서 첫 변환이면 로그가 요구하는 용지는 `DR_A2_Outline`입니다. A3 후보 교체 단계에 들어간 뒤에는 `DR_A3_Outline`이 나올 수 있습니다.
 
 현재 자동 선택을 기본으로 쓰지 않는 이유:
 

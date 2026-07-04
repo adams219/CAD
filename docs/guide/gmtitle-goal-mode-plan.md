@@ -334,6 +334,8 @@ MANUAL
 BATCH
   여러 장을 이어서 처리한다.
   단, 연속 처리 전에 OPEN으로 최소 1장 성공 증거를 먼저 확보한다.
+  각 GMTITLE 창 선택은 사람이 눈으로 확인한다.
+  ISO 기본값, Object move ON, 예상과 다른 DR 용지가 보이면 즉시 취소한다.
 
 Enter
   중단한다. 도면을 바꾸지 않는다.
@@ -478,6 +480,7 @@ OPEN 성공 뒤 BATCH로 여러 후보를 이어서 처리한다.
 OPEN이 `NO_INSERTS`로 반복되면 MANUAL prepare/finish 복구 흐름을 사용한다.
 각 GMTITLE 창의 DR 선택은 사람이 눈으로 확인한다.
 SCRIPT/숨김 CAD 자동화에서는 BATCH가 ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE로 멈추고 후보를 보존해야 한다.
+SWTITLECONVERT 자체도 SCRIPT/숨김 CAD 자동화에서는 ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE로 멈추고 원본/대상/INSERT/DBMOD를 보존해야 한다.
 ```
 
 승격 조건:
