@@ -41,7 +41,7 @@ SWTITLEVERSION
 같은 실수를 반복하지 않기 위해 CAD에서 명령을 치기 전에 아래 기준을 먼저 확인합니다.
 
 ```text
-GitHub 기준 커밋: 2d76a9b Use overlap-only GMTITLE frame normalization
+GitHub 기준 커밋: e738d2e Add GMTITLE main56 adoption guard
 현재 LSP 기준: 260704-target-overlap-adopt-main56-a4guard
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```
@@ -49,8 +49,8 @@ GitHub 기준 커밋: 2d76a9b Use overlap-only GMTITLE frame normalization
 주의:
 
 ```text
-main56-a4guard 변경은 아직 로컬 미커밋 상태일 수 있습니다.
-GitHub 화면이나 다른 PC에서 받은 코드만 보고 최신이라고 판단하지 말고, 실제 CAD의 SWTITLEVERSION을 우선 확인합니다.
+main56-a4guard 변경은 GitHub origin/codex/gm-title에 푸시되어 있습니다.
+그래도 다른 PC나 열린 CAD 세션이 예전 LSP를 들고 있을 수 있으므로, 실제 CAD의 SWTITLEVERSION을 우선 확인합니다.
 ```
 
 판단이 헷갈리면 먼저 아래 파일을 봅니다.
@@ -63,6 +63,23 @@ docs/history/gmtitle-requirement-completion-audit-2026-07-04.md
 ```
 
 열려 있는 CAD 도면이 저장 전 상태일 수 있으므로, 디스크 파일을 숨김 진단으로 다시 연 결과보다 현재 CAD에서 다시 실행한 `SWTITLESTATUS`/`SWTITLEVERIFY` 로그를 우선합니다.
+
+로그를 볼 때는 suffix를 먼저 확인합니다. fixture/test 로그와 실제 작업복사본 로그를 섞어 보면 판단이 틀어집니다.
+
+```text
+우선 증거:
+work/swtitle_actual_workcopy_status_main56_diagnostics.txt
+work/swcad_title_structure_diagnosis_last_actual_workcopy_main56_diagnostics.txt
+work/swcad_title_fast_status_last_actual_workcopy_main56_diagnostics.txt
+work/swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
+work/swtitle_final_completion_gate_status.txt
+
+주의:
+work/swcad_title_structure_diagnosis_last.txt
+work/swcad_title_verify_summary_last.txt
+```
+
+suffix가 없는 `*_last.txt`는 마지막으로 실행한 임의 테스트 DWG의 로그일 수 있습니다. 실제 업무 도면 상태 판단에는 `actual_workcopy` 또는 `final_completion_gate` suffix가 붙은 로그를 먼저 봅니다.
 
 현재 열린 세션과 디스크 파일 상태가 다르면, 먼저 열린 CAD에서 `SWTITLESTATUS`를 다시 실행해 최신 로그를 만듭니다.
 

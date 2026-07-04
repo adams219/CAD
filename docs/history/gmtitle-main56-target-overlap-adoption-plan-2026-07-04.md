@@ -53,9 +53,9 @@ git log --oneline --decorate -n 12 --all
 현재 기준:
 
 ```text
-GitHub origin/codex/gm-title 최신 커밋: 2d76a9b Use overlap-only GMTITLE frame normalization
-로컬 codex/gm-title HEAD: 2d76a9b Use overlap-only GMTITLE frame normalization
-main56 수정: 아직 로컬 미커밋 상태
+GitHub origin/codex/gm-title 최신 커밋: e738d2e Add GMTITLE main56 adoption guard
+로컬 codex/gm-title HEAD: e738d2e Add GMTITLE main56 adoption guard
+main56-a4guard 수정: GitHub에 푸시됨
 ```
 
 반드시 먼저 읽을 로컬 문서:
@@ -234,9 +234,9 @@ GitHub 원격 확인:
 
 ```text
 git fetch --prune origin
-origin/codex/gm-title = 2d76a9b Use overlap-only GMTITLE frame normalization
-로컬 codex/gm-title HEAD = 2d76a9b Use overlap-only GMTITLE frame normalization
-main56-a4guard 수정은 아직 로컬 미커밋 상태
+origin/codex/gm-title = e738d2e Add GMTITLE main56 adoption guard
+로컬 codex/gm-title HEAD = e738d2e Add GMTITLE main56 adoption guard
+main56-a4guard 수정은 GitHub에 푸시됨
 ```
 
 실제 CAD에서 반복 실수의 직접 원인 하나를 확인했다.

@@ -12,8 +12,8 @@
 
 ```text
 GitHub origin/main:          0121ae1 Clean up GMTITLE command surface
-GitHub origin/codex/gm-title: 2d76a9b Use overlap-only GMTITLE frame normalization
-로컬 HEAD:                   2d76a9b Use overlap-only GMTITLE frame normalization
+GitHub origin/codex/gm-title: e738d2e Add GMTITLE main56 adoption guard
+로컬 HEAD:                   e738d2e Add GMTITLE main56 adoption guard
 현재 브랜치:                 codex/gm-title
 현재 GMTITLE LSP 기준:       260704-target-overlap-adopt-main56-a4guard
 현재 loader 기준:            260704-4step-gmtitle-main56-a4guard
@@ -22,8 +22,8 @@ GitHub origin/codex/gm-title: 2d76a9b Use overlap-only GMTITLE frame normalizati
 중요한 점:
 
 ```text
-main56-a4guard 관련 LSP/문서/진단 수정은 아직 작업트리에 남아 있다.
-즉, GitHub origin/codex/gm-title는 2d76a9b까지이고, 현재 작업트리에는 그 이후의 로컬 미커밋 변경이 있다.
+main56-a4guard 관련 LSP/문서/진단 수정은 GitHub origin/codex/gm-title에 푸시되어 있다.
+현재 로컬 HEAD와 origin/codex/gm-title는 e738d2e에서 일치한다.
 GitHub main은 0121ae1이라 최신 GMTITLE 실험/보강 기준이 아니다.
 ```
 
@@ -32,7 +32,7 @@ GitHub main은 0121ae1이라 최신 GMTITLE 실험/보강 기준이 아니다.
 ```text
 1. GitHub 원격 기준 커밋 확인
 2. 로컬 HEAD 확인
-3. 로컬 미커밋 LSP/문서 변경 확인
+3. 로컬 작업트리 변경 여부 확인
 4. 실제 CAD에 로드된 SWTITLEVERSION 확인
 ```
 
@@ -41,7 +41,7 @@ GitHub 화면만 보고 최신 상태라고 판단하지 않는다. 반대로, �
 2026-07-04 추가 검증:
 
 ```text
-git fetch --prune origin 후 origin/codex/gm-title는 2d76a9b이다.
+git fetch --prune origin 후 origin/codex/gm-title는 e738d2e이다.
 전체 main56 verification suite는 통과했다.
 loader probe에서 swcad_load.lsp가 work 폴더 작업복사본에서도 src 모듈을 찾는 것을 확인했다.
 GstarCAD hidden loader/copy probe에서 대표 예전 명령은 모두 비활성화됐다.
@@ -93,7 +93,7 @@ SWTITLESTATUS
 
 ```text
 1. 원격/GitHub 기준: origin/main의 최신 커밋과 마지막 푸시 시점
-2. 로컬 기준: 현재 브랜치, 미커밋 파일, 현재 LSP 버전
+2. 로컬 기준: 현재 브랜치, 작업트리 변경 여부, 현재 LSP 버전
 3. CAD 기준: 열린 DWG 경로, SWTITLEVERSION, SWTITLESTATUS 결과
 4. 문서 기준: 이 계획 문서, main56 비교 문서, 요구사항 감사 문서의 결론
 ```
@@ -103,7 +103,7 @@ SWTITLESTATUS
 특히 다음 상황은 같은 실수를 반복할 위험 신호로 본다.
 
 ```text
-GitHub에는 2d76a9b까지만 있고 로컬에 미커밋 LSP/문서 변경이 있음
+GitHub origin/codex/gm-title와 로컬 HEAD가 다름
 CAD에는 예전 LSP가 로드되어 있음
 예전 공개 명령인 SWTITLEFASTSTATUS, SWTITLETRANSFERBOOTSTRAPFAST, SWTITLEA3A4NEXT 등이 아직 실행됨
 열린 DWG가 work 복사본이 아니라 Downloads 또는 원본 폴더 파일임

@@ -40,10 +40,10 @@ docs/history/gmtitle-history-gated-plan-2026-07-04.md
 repo: https://github.com/adams219/CAD.git
 branch: codex/gm-title
 origin/main, main: 0121ae1 Clean up GMTITLE command surface
-origin/codex/gm-title, local HEAD: 2d76a9b Use overlap-only GMTITLE frame normalization
+origin/codex/gm-title, local HEAD: e738d2e Add GMTITLE main56 adoption guard
 current GMTITLE LSP baseline: 260704-target-overlap-adopt-main56-a4guard
 current loader baseline: 260704-4step-gmtitle-main56-a4guard
-working tree: main56-a4guard 보강 변경은 아직 로컬 미커밋 상태
+working tree: main56-a4guard 보강 변경은 GitHub에 푸시됨
 ```
 
 반드시 반영할 이전 결론:
@@ -226,8 +226,8 @@ SWTITLESTATUS
 현재 기대값:
 
 ```text
-origin/codex/gm-title: 2d76a9b Use overlap-only GMTITLE frame normalization
-local HEAD: 2d76a9b Use overlap-only GMTITLE frame normalization
+origin/codex/gm-title: e738d2e Add GMTITLE main56 adoption guard
+local HEAD: e738d2e Add GMTITLE main56 adoption guard
 SWTITLEVERSION: 260704-target-overlap-adopt-main56-a4guard
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```

@@ -19,10 +19,9 @@ codex/gm-title
 주의:
 
 ```text
-2026-07-04 현재 GitHub origin/codex/gm-title 최신 커밋은 2d76a9b입니다.
-main56-a4guard LSP/문서/진단 보강은 아직 로컬 작업트리에 미커밋 상태로 남아 있습니다.
-따라서 commit/push 전 다른 PC에서 git pull만 하면 main56-a4guard가 없을 수 있습니다.
-다른 PC에서 바로 이어가려면 먼저 현재 PC에서 변경사항을 commit/push하거나, 현재 PC의 로컬 작업트리를 그대로 옮겨야 합니다.
+2026-07-04 현재 GitHub origin/codex/gm-title 최신 커밋은 e738d2e입니다.
+main56-a4guard LSP/문서/진단 보강은 GitHub에 푸시되어 있습니다.
+다른 PC에서 이어가려면 `codex/gm-title` 브랜치의 e738d2e 이후를 받은 뒤, CAD에서 `SWTITLEVERSION`으로 실제 로드 버전을 확인합니다.
 ```
 
 최신 커밋 확인:
@@ -73,7 +72,7 @@ SWTITLEVERSION
 260704-target-overlap-adopt-main56-a4guard
 ```
 
-다른 버전이면 변환하지 말고 다시 APPLOAD 합니다. 그래도 다른 버전이면 GitHub에 아직 최신 로컬 변경이 올라가지 않았거나, 다른 브랜치를 받은 상태일 수 있습니다.
+다른 버전이면 변환하지 말고 다시 APPLOAD 합니다. 그래도 다른 버전이면 다른 브랜치를 받았거나, 열린 CAD 세션이 예전 LSP를 유지하고 있을 수 있습니다.
 
 ## DWG 작업 위치
 
