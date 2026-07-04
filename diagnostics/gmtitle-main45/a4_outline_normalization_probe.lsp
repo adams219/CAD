@@ -196,6 +196,15 @@
           (setq result (append result (list (nth 0 rec))))
         )
       )
+      ((equal strategy "nested-direct-outside")
+        (if
+          (and
+            outside
+            (not (equal etype "INSERT"))
+          )
+          (setq result (append result (list (nth 0 rec))))
+        )
+      )
     )
   )
   result
@@ -359,7 +368,7 @@
                 )
                 (swtitle-a4norm-write-line handle "Rebuild result: skipped by strategy")
               )
-              (if (equal strategy "nested-outside")
+              (if (or (equal strategy "nested-outside") (equal strategy "nested-direct-outside"))
                 (swtitle-a4norm-rebuild-nested-outside handle before-records)
               )
               (setq after-records (swtitle-a4norm-direct-records frame))

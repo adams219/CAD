@@ -230,13 +230,23 @@ nested-outside probe:
   parent DR_A4_Outline을 통째로 지우는 대신,
   child block 내부에서 raw bbox를 키우는 객체만 분리할 수 있는지 확인한다.
 
+nested-direct-outside probe:
+  큰 child INSERT는 유지하고,
+  child block 내부 A4 바깥 객체와 parent에 직접 붙은 바깥 선/텍스트를 함께 비교한다.
+
+목적:
+  기존 none/huge-insert/direct-outside 실패 원인을 분리한다.
+  huge-insert는 실제 A4 틀까지 잃었고,
+  direct-outside는 parent 기준으로 child INSERT까지 제거해서 틀이 사라졌다.
+  따라서 child 내부 정리와 parent 바깥 객체 정리를 조합한 결과가 raw/effective bbox를 모두 통과하는지 확인한다.
+
 주의:
   아직 생산 변환 경로가 아니다.
   copied-DWG probe에서 safe=yes가 나오고, A4 effective/raw bbox가 모두 검증되기 전에는
   SWTITLEPREPARE/SWTITLECONVERT 기본 흐름에 넣지 않는다.
 
 실행법:
-  powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg" -Strategies nested-outside -WaitForGstarCADClose
+  powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg" -Strategies nested-outside,nested-direct-outside -WaitForGstarCADClose
 
 운영:
   이 명령은 visible GstarCAD 종료를 기다린 뒤 hidden copied-DWG probe를 실행한다.

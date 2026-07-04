@@ -206,7 +206,7 @@ function Write-A4FrameOnlyEvidenceSummary {
   }
 
   $normalizationSummary = @()
-  foreach ($strategy in @("none", "huge-insert", "direct-outside", "nested-outside")) {
+  foreach ($strategy in @("none", "huge-insert", "direct-outside", "nested-outside", "nested-direct-outside")) {
     $safeStrategy = $strategy -replace '[^A-Za-z0-9_-]', '_'
     $logPath = Join-Path $WorkDir ("swtitle_a4_outline_norm_{0}_260705.txt" -f $safeStrategy)
     if (Test-Path -LiteralPath $logPath) {
@@ -221,14 +221,14 @@ function Write-A4FrameOnlyEvidenceSummary {
     }
   }
   Write-Output ("  A4 normalization probes: {0}" -f ($normalizationSummary -join ", "))
-  if ($normalizationSummary -contains "nested-outside=not-run") {
+  if (($normalizationSummary -contains "nested-outside=not-run") -or ($normalizationSummary -contains "nested-direct-outside=not-run")) {
     $nestedProbeScript = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1"
     $nestedProbeSource = $script:LatestCadDwg
     if (-not $nestedProbeSource) {
       $nestedProbeSource = $SourceWorkCopyPath
     }
     Write-Output "  Next A4 investigation probe command:"
-    Write-Output ("    powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside -WaitForGstarCADClose" -f $nestedProbeScript, $nestedProbeSource)
+    Write-Output ("    powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside,nested-direct-outside -WaitForGstarCADClose" -f $nestedProbeScript, $nestedProbeSource)
     Write-Output "    Note: SourceWorkCopyPath is shown explicitly to avoid ambiguity; the wrapper also uses the latest CAD next-step DWG when SourceWorkCopyPath is omitted."
     if (-not (Test-Path -LiteralPath $nestedProbeSource)) {
       Write-Output "    Warning: the source DWG path above was read from the latest CAD log but does not exist from this shell. Confirm the open CAD DWG path before running."

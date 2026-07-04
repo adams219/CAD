@@ -127,8 +127,10 @@ direct-outside=no
 
 다음 조사 후보는 `nested-outside` probe입니다. `DR_A4_Outline` 전체가 아니라 그 안의 oversized child block 내부를 확인하는 단계이며, 아직 생산 변환 명령이 아닙니다.
 
+함께 비교할 후보는 `nested-direct-outside`입니다. 이 전략은 큰 child INSERT 자체는 유지하고, child 내부 A4 바깥 객체와 parent에 직접 붙은 바깥 선/텍스트를 함께 비교합니다. 이것도 아직 생산 변환 명령이 아니라 copied-DWG probe입니다.
+
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg" -Strategies nested-outside -WaitForGstarCADClose
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg" -Strategies nested-outside,nested-direct-outside -WaitForGstarCADClose
 ```
 
 이 명령은 visible GstarCAD가 닫힐 때까지 기다렸다가 복사본 probe를 실행합니다. 먼저 실행해 둔 뒤 CAD에서 작업복사본을 저장하고 GstarCAD를 종료하면 됩니다.

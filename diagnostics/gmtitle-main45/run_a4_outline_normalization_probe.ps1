@@ -1,7 +1,7 @@
 param(
   [string]$SourceWorkCopyPath,
 
-  [string[]]$Strategies = @("none", "huge-insert", "direct-outside"),
+  [string[]]$Strategies = @("none", "huge-insert", "direct-outside", "nested-outside", "nested-direct-outside"),
 
   [int]$TimeoutSeconds = 90,
 
