@@ -99,8 +99,8 @@
         handle
         (strcat "Loaded GMTITLE version: " (if (boundp '*swcad-title-scale-version*) *swcad-title-scale-version* "<gmtitle version missing>"))
       )
-      (swtitle-loader-probe-write-line handle "Expected loader version: 260704-4step-gmtitle-main56-a4guard")
-      (swtitle-loader-probe-write-line handle "Expected GMTITLE version: 260704-target-overlap-adopt-main56-a4guard")
+      (swtitle-loader-probe-write-line handle "Expected loader version: 260704-4step-gmtitle-main56-a4frameguard")
+      (swtitle-loader-probe-write-line handle "Expected GMTITLE version: 260704-target-overlap-adopt-main56-a4frameguard")
       (swtitle-loader-probe-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-loader-probe-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-loader-probe-command-line handle "c:SWTITLESTATUS")

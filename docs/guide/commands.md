@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260704-target-overlap-adopt-main56-a4guard
+260704-target-overlap-adopt-main56-a4frameguard
 ```
 
 ## GMTITLE 변환 명령

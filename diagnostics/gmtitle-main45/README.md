@@ -1,4 +1,4 @@
-﻿# GMTITLE main45 diagnostics
+# GMTITLE main45 diagnostics
 
 This folder contains tracked diagnostic helpers for the `main45` four-command GMTITLE workflow.
 

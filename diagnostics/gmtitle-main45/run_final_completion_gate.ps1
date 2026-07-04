@@ -61,7 +61,7 @@ Assert-LogContains `
   -Label "final completion status probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
     "Result: OK SWTITLESTATUS",
     "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_OK",
     "source-title-count: 0",

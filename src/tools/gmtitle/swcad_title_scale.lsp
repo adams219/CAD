@@ -31,7 +31,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main56-a4guard")
+(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main56-a4frameguard")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -3829,6 +3829,21 @@
   (swcad-title-target-frame-block-name-for-sheet sheet)
 )
 
+(defun swcad-title-a4-frame-only-outline-policy-blocked-p (/ source-frame frame-block)
+  (setq source-frame (car (swcad-title-frame-only-source-candidates)))
+  (setq frame-block
+    (if source-frame
+      (swcad-title-target-frame-block-name-for-sheet (nth 5 source-frame))
+      nil
+    )
+  )
+  (and
+    source-frame
+    (equal (swcad-title-normalized-sheet-size (nth 5 source-frame)) "A4")
+    (equal (strcase (swcad-title-string frame-block)) "DR_A4_OUTLINE")
+  )
+)
+
 (defun swcad-title-next-fast-target-frame-block (/ bootstrap-record)
   (if (> (swcad-title-source-title-count) 0)
     (progn
@@ -3993,6 +4008,7 @@
     ((> geometry-risk-count 0) "WARN_TARGET_FRAME_GEOMETRY_INVALID")
     ((> overlap-risk-count 0) "WARN_TARGET_FRAME_SELECTION_RISK")
     ((and (= source-count 0) (= frame-only-count 0)) "OK_NO_REMAINING_SOURCES")
+    ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-policy-blocked-p)) "WAITING_FOR_A4_FRAME_ONLY_OUTLINE_POLICY")
     ((not example-title) "WAITING_FOR_NATIVE_GMTITLE_EXEMPLAR")
     ((and missing-required (swcad-title-next-fast-target-ready-p)) "PARTIAL_READY_FOR_FAST_BATCH")
     (missing-required "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
@@ -4063,6 +4079,10 @@
     )
     ((equal status "WAITING_FOR_NATIVE_GMTITLE_EXEMPLAR")
       (swcad-title-princ-line "다음: SWTITLECONVERT를 실행하세요. 첫 native GMTITLE 단계를 내부에서 열거나 안내합니다.")
+    )
+    ((equal status "WAITING_FOR_A4_FRAME_ONLY_OUTLINE_POLICY")
+      (swcad-title-princ-line "다음: 표제란 없는 A4 시트는 원본에 표제란이 없으므로 SWTITLECONVERT를 반복하지 마세요.")
+      (swcad-title-princ-line "A4는 도면틀만 교체하는 경로를 구현/검증한 뒤 진행해야 합니다.")
     )
     ((equal status "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
       (swcad-title-princ-line "다음: SWTITLECONVERT를 실행해서 누락된 같은 크기의 native GMTITLE 기준 객체를 만들거나 안내받으세요.")
@@ -4203,6 +4223,11 @@
     )
     ((or (> source-count 0) (> frame-only-count 0))
       (cond
+        ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-policy-blocked-p))
+          (swcad-title-apply-result "WAITING_FOR_A4_FRAME_ONLY_OUTLINE_POLICY")
+          (swcad-title-princ-line "다음: 표제란 없는 A4 시트는 원본에 표제란이 없으므로 현재 GMTITLE 제목블록 생성 흐름을 반복하지 마세요.")
+          (swcad-title-princ-line "A4 도면틀만 교체하는 경로를 구현/검증한 뒤 진행해야 합니다.")
+        )
         ((not example-title)
           (swcad-title-apply-result "NEXT_CREATE_FIRST_NATIVE_GMTITLE")
           (swcad-title-princ-line "다음: SWTITLECONVERT를 실행하세요. 첫 native GMTITLE 단계를 내부에서 엽니다.")
@@ -4272,6 +4297,7 @@
       ((> geometry-risk-count 0) "NEXT_REVIEW_TARGET_FRAME_GEOMETRY")
       ((> overlap-risk-count 0) "NEXT_REVIEW_TARGET_FRAME_SELECTION")
       ((> a3a4-count 0) "NEXT_UPGRADE_A3_A4_NATIVE")
+      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-policy-blocked-p)) "WAITING_FOR_A4_FRAME_ONLY_OUTLINE_POLICY")
       ((or (> source-count 0) (> frame-only-count 0)) "NEXT_TRANSFER_REMAINING_SOURCE_SHEETS")
       (missing-target-sheets "NEXT_CREATE_MISSING_TARGET_SHEET")
       (T "NEXT_FINAL_VERIFY_AND_DOUBLE_CLICK")
@@ -4292,6 +4318,11 @@
       (if (> frame-only-count 0)
         (swcad-title-princ-line "Frame-only A4 sheets will be handled inside the convert flow after required native checks.")
       )
+    )
+    ((equal status "WAITING_FOR_A4_FRAME_ONLY_OUTLINE_POLICY")
+      (swcad-title-princ-line "다음 명령: 아직 없음")
+      (swcad-title-princ-line "표제란 없는 A4 시트는 원본에 표제란이 없으므로 현재 제목블록 생성 흐름을 반복하지 마세요.")
+      (swcad-title-princ-line "A4 도면틀만 교체하는 경로를 구현/검증한 뒤 진행해야 합니다.")
     )
     ((equal status "NEXT_FINAL_VERIFY_AND_DOUBLE_CLICK")
       (swcad-title-princ-line "다음 명령: SWTITLEVERIFY")
@@ -12964,6 +12995,18 @@
           nil
         )
       )
+      (if
+        (and
+          (equal (swcad-title-normalized-sheet-size source-sheet) "A4")
+          (swcad-title-native-target-title-name-p actual-title-name)
+          (swcad-title-frame-name-matches-p actual-frame-name "DR_A4_Outline")
+        )
+        (progn
+          (setq geometry-warning "표제란 없는 A4 원본에 없는 별도 제목블록이 생성됨")
+          (swcad-title-princ-line "A4 보호 중단: 원본 A4에는 표제란이 없는데 GMTITLE이 별도 제목블록을 만들었습니다.")
+          (swcad-title-princ-line "기존 A4 시트는 삭제하지 않습니다. 도면틀만 교체하는 A4 경로를 구현/검증한 뒤 진행하세요.")
+        )
+      )
       (setq values (swcad-title-frame-only-default-values source-frame))
       (setq residue-records (swcad-title-source-sheet-residue-records source-frame-bbox nil source-frame-ename))
       (setq residue-handles (swcad-title-residue-record-handles residue-records))
@@ -16468,6 +16511,7 @@
       ((> duplicate-pair-count 0) "SWTITLEPREPARE - 같은 위치에 겹친 GMTITLE target 쌍을 먼저 정리")
       ((or (> raw-count 0) (> geometry-count 0) (> overlap-count 0)) "SWTITLEPREPARE 또는 구조 점검 - 도면틀 선택 범위/크기/겹침 위험 먼저 확인")
       (contaminated "SWTITLEPREPARE - 오염 의심 대상 도면틀 정의 정규화")
+      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-policy-blocked-p)) "대기 - 표제란 없는 A4 도면틀만 교체 경로 구현/검증 필요")
       ((or (> source-count 0) (> frame-only-count 0)) "SWTITLECONVERT - 남은 원본 SolidWorks 시트 변환")
       (missing-required "SWTITLECONVERT - 누락된 대상 용지 크기의 native GMTITLE 생성")
       ((and (= source-frame-count 0) count-shortage-records) "SWTITLEVERIFY - 변환 기준 수량 대비 누락된 대상 도면틀 확인")
@@ -16543,6 +16587,10 @@
   (cond
     ((> a4-raw-count 0)
       (swcad-title-princ-line "A4 판단: 실제 선택 bbox가 보이는 A4보다 큽니다. bbox 검사를 통과하기 전에는 기존 A4를 삭제하지 않습니다.")
+    )
+    ((and (> frame-only-count 0) (swcad-title-a4-frame-only-outline-policy-blocked-p))
+      (swcad-title-princ-line "A4 판단: 표제란 없는 도면틀 시트가 남아 있지만, 원본에 없는 제목블록을 만들 수 있어 SWTITLECONVERT를 반복하지 않습니다.")
+      (swcad-title-princ-line "다음: A4 도면틀만 교체하는 경로를 구현/검증한 뒤 진행하세요.")
     )
     ((> frame-only-count 0)
       (swcad-title-princ-line "A4 판단: 표제란 없는 도면틀 시트가 남아 있습니다. SWTITLECONVERT가 표제란 없는 도면틀 흐름으로 처리합니다.")
@@ -16728,9 +16776,16 @@
             (swcad-title-abort-interactive-gmtitle-script-active
               "frame-only 시트의 첫 native GMTITLE은 GMTITLE 창에서 DR 용지 선택과 배치 옵션 확인이 필요합니다."
             )
-            (progn
-              (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 frame-only native 적용 단계를 실행합니다.")
-              (swcad-title-transfer-frame-only-apply)
+            (if (swcad-title-a4-frame-only-outline-policy-blocked-p)
+              (progn
+                (swcad-title-apply-result "WAITING_FOR_A4_FRAME_ONLY_OUTLINE_POLICY")
+                (swcad-title-princ-text "\n표제란 없는 A4 원본에는 표제란이 없으므로 현재 GMTITLE 제목블록 생성 흐름을 반복하지 않습니다.")
+                (swcad-title-princ-text "\nA4 도면틀만 교체하는 경로를 구현/검증한 뒤 진행해야 합니다.")
+              )
+              (progn
+                (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 frame-only native 적용 단계를 실행합니다.")
+                (swcad-title-transfer-frame-only-apply)
+              )
             )
           )
         )
@@ -17005,7 +17060,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main56-a4guard")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main56-a4frameguard")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)

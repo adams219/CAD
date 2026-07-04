@@ -80,8 +80,8 @@ Assert-LogContains `
   -Label "loader probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded loader version: 260704-4step-gmtitle-main56-a4guard",
-    "Loaded GMTITLE version: 260704-target-overlap-adopt-main56-a4guard",
+    "Loaded loader version: 260704-4step-gmtitle-main56-a4frameguard",
+    "Loaded GMTITLE version: 260704-target-overlap-adopt-main56-a4frameguard",
     "Command c:SWTITLESTATUS: yes",
     "Command c:SWTITLEPREPARE: yes",
     "Command c:SWTITLECONVERT: yes",
@@ -105,7 +105,7 @@ Assert-LogContains `
   -Label "current LSP copy compare probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
     "Command c:SWTITLESTATUS: yes",
     "Command c:SWTITLEPREPARE: yes",
     "Command c:SWTITLECONVERT: yes",
@@ -133,7 +133,7 @@ Assert-LogContains `
   -Label "actual work-copy status probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
     "Result: OK SWTITLESTATUS status=NEXT_CREATE_FIRST_NATIVE_GMTITLE",
     "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_FAIL",
     "source-title-count: 13",
@@ -212,7 +212,7 @@ Assert-LogContains `
   -Path $styleNormalizationLog `
   -Label "A2/A3/A4 style-normalization rebuild cleanup probe" `
   -Patterns @(
-    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
     "DR_A2_Outline: class=native-format-with-title-geometry",
     "DR_A3_Outline: class=native-format-with-title-geometry",
     "DR_A4_Outline: class=native-format-with-title-geometry",
@@ -234,7 +234,7 @@ Assert-LogContains `
   -Path $commandTextGuardLog `
   -Label "command-text guard comparison probe" `
   -Patterns @(
-    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
     "command-text-count-before: 1",
     "SWTITLESTATUS result: OK status=NEXT_REVIEW_ACCIDENTAL_COMMAND_TEXT",
     "structure-next-action: SWTITLEPREPARE",
@@ -254,7 +254,7 @@ Assert-LogContains `
   -Path $residueProtectionLog `
   -Label "sheet residue protection probe" `
   -Patterns @(
-    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
     "bottom-left logo line candidate: yes",
     "bottom-left real text preserved: yes",
     "upper small SW_NOTE balloon preserved: yes",
@@ -277,7 +277,7 @@ Assert-LogContains `
   -Path $embeddedPrepareLog `
   -Label "embedded-title prepare comparison probe" `
   -Patterns @(
-    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
     "DR_A2_Outline: class=native-format-with-title-geometry, embedded=4",
     "DR_A3_Outline: class=native-format-with-title-geometry, embedded=4",
     "DR_A4_Outline: class=native-format-with-title-geometry, embedded=4",
@@ -303,7 +303,7 @@ Assert-LogContains `
   -Path $duplicateTargetPairLog `
   -Label "duplicate target pair comparison probe" `
   -Patterns @(
-    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
     "Duplicate function present: yes",
     "Duplicate target pair count: 1",
     "Keep frame/title role:",
@@ -326,7 +326,7 @@ Assert-LogContains `
   -Path $adoptionGateLog `
   -Label "native adoption gate comparison probe" `
   -Patterns @(
-    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
     "Adoption function present: yes",
     "Status after transfer: ADOPTED_EXISTING_NATIVE_GMTITLE_TRANSFER",
     "Danger action: <none>",

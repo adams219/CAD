@@ -23,7 +23,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main56-a4guard
+260704-target-overlap-adopt-main56-a4frameguard
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 APPLOAD 합니다.
@@ -42,7 +42,7 @@ SWTITLEVERSION
 
 ```text
 GitHub 코드 기준: e738d2e Add GMTITLE main56 adoption guard 이상
-현재 LSP 기준: 260704-target-overlap-adopt-main56-a4guard
+현재 LSP 기준: 260704-target-overlap-adopt-main56-a4frameguard
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```
 

@@ -105,7 +105,7 @@
         (swtitle-diag45-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))
       )
       (swtitle-diag45-write-line handle (strcat "Loaded version: " version-value))
-      (swtitle-diag45-write-line handle "Expected version: 260704-target-overlap-adopt-main56-a4guard")
+      (swtitle-diag45-write-line handle "Expected version: 260704-target-overlap-adopt-main56-a4frameguard")
       (swtitle-diag45-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-diag45-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-diag45-write-line handle "Commands requested: SWTITLEVERSION, SWTITLESTATUS, SWTITLEVERIFY")
