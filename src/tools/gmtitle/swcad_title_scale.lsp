@@ -31,7 +31,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260704-manual-native-finish")
+(setq *swcad-title-scale-version* "260704-manual-native-finish-snap")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -16217,7 +16217,9 @@
       (swcad-title-princ-line (strcat "GMTITLE에서 선택할 용지/형식: " frame-block))
       (swcad-title-princ-line (strcat "GMTITLE에서 선택할 제목블록: " (swcad-title-target-title-block-name)))
       (swcad-title-princ-line "GMTITLE 옵션: Frame positioning ON, Object move OFF.")
-      (swcad-title-princ-line (strcat "GMTITLE이 삽입점을 물으면 다음 좌표를 입력하세요: " (swcad-title-point-string placement-point)))
+      (swcad-title-princ-line (strcat "GMTITLE 기준점은 기존 도면틀 왼쪽 아래입니다: " (swcad-title-point-string placement-point)))
+      (swcad-title-princ-line "긴 소수점 좌표를 직접 치지 말고, 가능하면 기존 도면틀 왼쪽 아래 끝점/스냅으로 지정하세요.")
+      (swcad-title-princ-line "마무리 단계에서 새 GMTITLE이 이 기준점과 맞는지 검사합니다.")
       (swcad-title-princ-line "native GMTITLE이 화면에 생성된 것이 보이면, 안내된 마무리/재시도 흐름을 위해 SWTITLECONVERT를 계속 실행하세요.")
       (swcad-title-princ-line "팁: 4단계 흐름의 SWTITLECONVERT를 사용하면 GMTITLE 창 이후 왼쪽 아래 점을 자동으로 보냅니다.")
       (swcad-title-apply-result "READY_MANUAL_NATIVE_GMTITLE_CREATE")
@@ -17667,7 +17669,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-manual-native-finish")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-manual-native-finish-snap")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)

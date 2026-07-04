@@ -10,7 +10,7 @@
 
 ```text
 LSP 기준:
-260704-manual-native-finish
+260704-manual-native-finish-snap
 
 작업 도면:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg
@@ -178,7 +178,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260704-manual-native-finish
+260704-manual-native-finish-snap
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...
@@ -230,8 +230,10 @@ OPEN
 
 MANUAL
   OPEN이 계속 새 GMTITLE 객체를 못 잡을 때 쓰는 복구 경로다.
-  이번 후보의 기존 값과 왼쪽 아래 삽입점을 저장한다.
-  GstarCAD GMTITLE로 안내된 한 장을 만든 뒤 SWTITLECONVERT를 다시 실행하면 마무리한다.
+  이번 후보의 기존 값과 왼쪽 아래 기준점을 저장한다.
+  GstarCAD GMTITLE로 안내된 한 장을 만든다.
+  삽입점은 긴 소수점 좌표를 직접 치지 말고 기존 도면틀 왼쪽 아래 끝점/스냅으로 지정한다.
+  그 뒤 SWTITLECONVERT를 다시 실행하면 마무리한다.
 
 BATCH
   여러 장을 이어서 처리한다.
@@ -283,7 +285,7 @@ A3/A4 native 교체 후보 수가 줄어든다.
 
 후보 수가 줄지 않으면 같은 명령을 반복하지 않는다. 최신 `swcad_title_native_frame_check_last.txt`와 `swcad_title_next_step_last.txt`를 보고 원인을 먼저 분류한다.
 
-특히 `ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS`가 반복되면, `OPEN` 자동 흐름이 GstarCAD가 만든 INSERT를 잡지 못한 것이다. 이때는 다음 후보에서 `MANUAL`을 선택해 pending prepare를 만들고, GstarCAD `GMTITLE`로 안내된 DR 용지/제목블록을 한 장 만든 뒤 `SWTITLECONVERT`를 다시 실행한다. 다시 실행된 `SWTITLECONVERT`는 일반 상태 분류보다 pending finish를 먼저 수행한다.
+특히 `ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS`가 반복되면, `OPEN` 자동 흐름이 GstarCAD가 만든 INSERT를 잡지 못한 것이다. 이때는 다음 후보에서 `MANUAL`을 선택해 pending prepare를 만들고, GstarCAD `GMTITLE`로 안내된 DR 용지/제목블록을 한 장 만든 뒤 `SWTITLECONVERT`를 다시 실행한다. 이때 삽입점은 긴 좌표를 치지 말고 기존 도면틀 왼쪽 아래 끝점/스냅으로 지정한다. 다시 실행된 `SWTITLECONVERT`는 일반 상태 분류보다 pending finish를 먼저 수행한다.
 
 ### 4단계: A4 frame-only 처리
 
@@ -479,7 +481,7 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 6. 변환이 끝나면 SWTITLESTATUS 실행
 7. A3/A4 native 교체 후보가 11에서 줄었는지 확인
 8. 후보 수가 줄지 않고 `NO_INSERTS`가 반복되면 다음에는 SWTITLECONVERT에서 MANUAL 선택
-9. MANUAL 안내값으로 GstarCAD GMTITLE 한 장 생성
+9. MANUAL 안내값으로 GstarCAD GMTITLE 한 장 생성, 삽입점은 기존 도면틀 왼쪽 아래 끝점/스냅 사용
 10. SWTITLECONVERT 재실행으로 pending finish 수행
 11. 줄었으면 같은 방식으로 다음 후보 진행
 12. A3/A4 후보가 0이 된 뒤 A4 frame-only 처리

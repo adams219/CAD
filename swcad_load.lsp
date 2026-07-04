@@ -5,7 +5,7 @@
 
 (vl-load-com)
 
-(setq *swcad-version* "260704-4step-gmtitle-manual-native-finish")
+(setq *swcad-version* "260704-4step-gmtitle-manual-native-finish-snap")
 
 (defun swcad-loader-source (/ src)
   (setq src nil)

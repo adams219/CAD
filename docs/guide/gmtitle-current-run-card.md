@@ -23,7 +23,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-manual-native-finish
+260704-manual-native-finish-snap
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 APPLOAD 합니다.
@@ -42,7 +42,7 @@ SWTITLEVERSION
 
 ```text
 로컬 코드 기준: main66 verify-next-priority 이상
-현재 LSP 기준: 260704-manual-native-finish
+현재 LSP 기준: 260704-manual-native-finish-snap
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```
 
@@ -90,7 +90,7 @@ old fixture/test suffix가 붙은 로그
 
 | 로그 문구 | 의미 | 다음 행동 |
 | --- | --- | --- |
-| `SWTITLEVERSION`이 `260704-manual-native-finish`가 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
+| `SWTITLEVERSION`이 `260704-manual-native-finish-snap`가 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
 | `자동화 판단: 명령줄 -GMTITLE/설정파일 자동 선택은 기본 OFF입니다.` | 현재는 GMTITLE 창 선택을 사람이 확인하는 안정 모드 | 정상. 화면 좌표 클릭이나 `-GMTITLE` 강제 자동화 금지 |
 | `NEXT_CREATE_FIRST_NATIVE_GMTITLE` | 아직 이 도면에 진짜 GMTITLE 기준 객체가 없음 | `SWTITLECONVERT`로 첫 native GMTITLE 1장 생성 |
 | `WARN_CLONED_GMTITLE_FRAME_NEEDS_NATIVE_UPGRADE` | 겉모양은 맞지만 도면틀이 복제 구조라 native 증거 부족 | `SWTITLECONVERT`로 다음 후보 1장만 native 교체 |
@@ -176,7 +176,7 @@ Enter = 중단, 도면 변경 없음
 
 `BATCH`는 명령 반복을 줄이는 기능입니다. GMTITLE 창 선택을 대신 해 주는 기능은 아니므로, 각 창에서 로그가 요구한 DR 용지/제목블록/옵션을 확인합니다.
 
-`MANUAL`은 자동 생성 흐름이 `ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS`처럼 끝날 때 쓰는 복구 선택지입니다. `MANUAL`로 준비한 뒤 안내된 값으로 GstarCAD `GMTITLE` 한 장을 만들고, 다시 `SWTITLECONVERT`를 실행하면 pending 마무리 단계가 먼저 실행됩니다.
+`MANUAL`은 자동 생성 흐름이 `ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS`처럼 끝날 때 쓰는 복구 선택지입니다. `MANUAL`로 준비한 뒤 안내된 값으로 GstarCAD `GMTITLE` 한 장을 만들고, 삽입점은 긴 좌표를 직접 치지 말고 기존 도면틀 왼쪽 아래 끝점/스냅으로 지정합니다. 다시 `SWTITLECONVERT`를 실행하면 pending 마무리 단계가 먼저 실행됩니다.
 
 상태가 최종 검증을 요구하면:
 
