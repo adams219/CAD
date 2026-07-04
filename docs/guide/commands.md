@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260704-target-overlap-adopt-main56-a4frameguard
+260704-target-overlap-adopt-main56-a4defrawguard
 ```
 
 ## GMTITLE 변환 명령
@@ -41,7 +41,7 @@ SWTITLEVERIFY
 
 | 명령 | 용도 | 도면 변경 |
 | --- | --- | --- |
-| `SWTITLESTATUS` | 현재 DWG 상태를 읽기 전용으로 진단하고 다음에 실행할 명령을 안내합니다. work 복사본 여부, 원본 시트 수, A2/A3/A4 예상 수량, 도면틀 정의 상태, A4 frame-only 상태, 겹친 GMTITLE target 쌍을 확인합니다. | 없음 |
+| `SWTITLESTATUS` | 현재 DWG 상태를 읽기 전용으로 진단하고 다음에 실행할 명령을 안내합니다. work 복사본 여부, 원본 시트 수, A2/A3/A4 예상 수량, 도면틀 정의 상태, 도면틀 정의 raw bbox 위험, A4 frame-only 상태, 겹친 GMTITLE target 쌍을 확인합니다. | 없음 |
 | `SWTITLEPREPARE` | 변환 전에 필요한 정규화를 수행합니다. 실수 명령어 텍스트, 도면틀 정의 내부 표제란 형상, 고아 GMTITLE 도면틀, 겹친 GMTITLE target 쌍 같은 후보를 먼저 보여주고 `YES` 확인 후 처리합니다. | 있음 |
 | `SWTITLECONVERT` | 상태에 맞는 변환 단계를 실행합니다. 첫 native GMTITLE 생성, 같은 크기 기준 객체 준비, 기존 native GMTITLE 채택, 남은 시트 변환, A3/A4 native 교체, A4 frame-only 처리를 이 명령 안에서 안내합니다. | 있음 |
 | `SWTITLEVERIFY` | 변환 결과를 읽기 전용으로 검증합니다. 남은 원본 객체, 중복/누락, native-like 상태, A2/A3/A4 수량, 최종 OK/WARN/FAIL을 확인합니다. | 없음 |
@@ -61,6 +61,8 @@ SWTITLEVERIFY     최종 검증 단계에서
 ```
 
 `SWTITLESTATUS`가 `SWTITLEPREPARE`를 안내하면 변환을 반복하지 말고 먼저 정규화합니다.
+
+`SWTITLESTATUS`가 `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX`를 안내하거나 `SWTITLECONVERT`가 `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK`로 멈추면, 변환을 반복하지 말고 도면틀 정의 복구/정규화 계획을 먼저 확인합니다.
 
 `SWTITLESTATUS`가 `SWTITLECONVERT`를 안내하면 변환을 실행합니다.
 

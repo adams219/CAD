@@ -23,7 +23,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main56-a4frameguard
+260704-target-overlap-adopt-main56-a4defrawguard
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 APPLOAD 합니다.
@@ -41,16 +41,16 @@ SWTITLEVERSION
 같은 실수를 반복하지 않기 위해 CAD에서 명령을 치기 전에 아래 기준을 먼저 확인합니다.
 
 ```text
-GitHub 코드 기준: e738d2e Add GMTITLE main56 adoption guard 이상
-현재 LSP 기준: 260704-target-overlap-adopt-main56-a4frameguard
+GitHub 코드 기준: 36183b2 Guard A4 frame-only GMTITLE flow 이상
+현재 LSP 기준: 260704-target-overlap-adopt-main56-a4defrawguard
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```
 
 주의:
 
 ```text
-main56-a4guard 변경은 GitHub origin/codex/gm-title에 푸시되어 있습니다.
-그래도 다른 PC나 열린 CAD 세션이 예전 LSP를 들고 있을 수 있으므로, 실제 CAD의 SWTITLEVERSION을 우선 확인합니다.
+a4defrawguard 기준에서는 A4 frame-only뿐 아니라 DR_A4_Outline 정의 raw bbox 위험도 먼저 막습니다.
+다른 PC나 열린 CAD 세션이 예전 LSP를 들고 있을 수 있으므로, 실제 CAD의 SWTITLEVERSION을 우선 확인합니다.
 ```
 
 판단이 헷갈리면 먼저 아래 파일을 봅니다.
@@ -113,6 +113,14 @@ SWTITLEPREPARE
 SWTITLESTATUS
 ```
 
+상태가 `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX`를 안내하거나 `SWTITLECONVERT`가 `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK`로 멈추면:
+
+```text
+SWTITLECONVERT 반복 금지
+SWTITLESTATUS 로그의 DR 도면틀 정의 raw bbox 위험 확인
+도면틀 정의 복구/정규화 계획 확인
+```
+
 상태가 변환을 요구하면:
 
 ```text
@@ -162,6 +170,7 @@ SWTITLECONVERT는 이미 같은 위치에 native GMTITLE 쌍이 있으면 새로
 DR_A3_Outline 안의 native-format title-like 형상은 그 자체만으로 삭제하지 않습니다.
 별도 DR_titlea_3rd와 실제로 겹치는 경우에만 정규화 후보로 봅니다.
 A4 frame-only 기준 객체가 없으면 빠른 일괄 변환에서 A4를 같이 처리하지 않습니다.
+DR_A4_Outline 정의 raw bbox가 A4보다 과도하게 크면 기존 A4를 삭제하지 않고 먼저 중단합니다.
 ```
 
 ## 완료 조건

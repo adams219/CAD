@@ -24,7 +24,7 @@ GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 
 현재 LSP 버전:
 
 ```text
-260704-target-overlap-adopt-main56-a4frameguard
+260704-target-overlap-adopt-main56-a4defrawguard
 ```
 
 현재 loader 버전은 `SWTITLEVERSION`에서 함께 확인합니다.
@@ -134,7 +134,10 @@ A4 원본은 표제란 없는 도면틀 시트일 수 있습니다.
 원본 A4에 표제란이 없으면 새 표제란을 억지로 만들지 않는다.
 같은 크기의 DR_A4_Outline 기준 객체로 도면틀만 교체한다.
 GstarCAD GMTITLE A4 선택 결과의 실제 bbox가 이상하면 기존 A4를 삭제하지 않는다.
+DR_A4_Outline block definition 자체의 raw bbox가 A4보다 과도하게 크면 변환을 시작하지 않는다.
 ```
+
+`SWTITLESTATUS`가 `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX`를 안내하거나 `SWTITLECONVERT`가 `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK`로 멈추면, 이는 실패가 아니라 기존 A4를 보호하기 위한 중단입니다.
 
 ## 검증 결과
 

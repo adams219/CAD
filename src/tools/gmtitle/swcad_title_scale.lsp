@@ -31,7 +31,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main56-a4frameguard")
+(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main56-a4defrawguard")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -1488,6 +1488,21 @@
   )
 )
 
+(defun swcad-title-bbox-union (a b)
+  (cond
+    ((not a) b)
+    ((not b) a)
+    (T
+      (list
+        (min (car a) (car b))
+        (min (cadr a) (cadr b))
+        (max (caddr a) (caddr b))
+        (max (cadddr a) (cadddr b))
+      )
+    )
+  )
+)
+
 (defun swcad-title-abs (value)
   (if (< value 0.0)
     (- 0.0 value)
@@ -2053,6 +2068,93 @@
 
 (defun swcad-title-frame-bbox-size-valid-p (frame-block bbox)
   (not (swcad-title-frame-bbox-size-warning-for-block frame-block bbox))
+)
+
+(defun swcad-title-block-definition-raw-bbox (block-name / block result item ename bbox)
+  (setq block (swcad-title-block-definition-object block-name))
+  (setq result nil)
+  (if block
+    (vlax-for item block
+      (setq ename (swcad-title-vla-object->ename item))
+      (if ename
+        (progn
+          (setq bbox (swcad-title-safe-bbox ename))
+          (if bbox
+            (setq result (swcad-title-bbox-union result bbox))
+          )
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-frame-definition-raw-bbox-risk-record (frame-name / bbox sheet dims actual-area expected-area ratio warning)
+  (setq bbox (swcad-title-block-definition-raw-bbox frame-name))
+  (setq sheet (swcad-title-sheet-size-from-block-name frame-name))
+  (setq dims (swcad-title-sheet-dimensions sheet))
+  (setq warning nil)
+  (if (and bbox dims)
+    (progn
+      (setq actual-area (max (swcad-title-bbox-area bbox) 1.0))
+      (setq expected-area (max (* (car dims) (cadr dims)) 1.0))
+      (setq ratio (/ actual-area expected-area))
+      (if (> ratio 1.6)
+        (setq warning
+          (strcat
+            "definition raw bbox is much larger than expected sheet; raw/expected area ratio="
+            (swcad-title-number-string ratio)
+            ", expected "
+            (swcad-title-number-string (car dims))
+            " x "
+            (swcad-title-number-string (cadr dims))
+            ", got "
+            (swcad-title-bbox-size-string bbox)
+          )
+        )
+      )
+    )
+  )
+  (if warning
+    (list frame-name bbox warning)
+    nil
+  )
+)
+
+(defun swcad-title-frame-definition-raw-bbox-risk-records (/ result frame-name record)
+  (setq result nil)
+  (foreach frame-name (swcad-title-frame-definition-check-candidates)
+    (setq record (swcad-title-frame-definition-raw-bbox-risk-record frame-name))
+    (if record
+      (setq result (append result (list record)))
+    )
+  )
+  result
+)
+
+(defun swcad-title-print-frame-definition-raw-bbox-risk-records (records / index record)
+  (swcad-title-princ-line "DR 도면틀 정의 raw bbox 위험:")
+  (if records
+    (progn
+      (setq index 1)
+      (foreach record records
+        (swcad-title-princ-line
+          (strcat
+            "  #"
+            (itoa index)
+            " frame-def="
+            (car record)
+            ", raw-bbox="
+            (swcad-title-bbox-string (cadr record))
+            ", 판단="
+            (caddr record)
+          )
+        )
+        (setq index (+ index 1))
+      )
+    )
+    (swcad-title-princ-line "  <없음>")
+  )
 )
 
 (defun swcad-title-transform-bbox-with-insert (bbox insert-ename / data ins sx sy rot ix iy x1 x2 y1 y2)
@@ -4099,13 +4201,15 @@
   (princ)
 )
 
-(defun swcad-title-next-step (/ summary source-count frame-only-count source-frame-count contaminated example-title frame-records geometry-risk-count overlap-risk-count selection-risk-count target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records missing-target-sheets missing-required-native a3a4-records a3a4-count style-records style-count command-text-count next-frame-block)
+(defun swcad-title-next-step (/ summary source-count frame-only-count source-frame-count contaminated definition-raw-risk-records definition-raw-risk-count example-title frame-records geometry-risk-count overlap-risk-count selection-risk-count target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records missing-target-sheets missing-required-native a3a4-records a3a4-count style-records style-count command-text-count next-frame-block)
   (swcad-title-open-next-step-log)
   (setq summary (swcad-title-fast-sheet-summary))
   (setq source-count (swcad-title-fast-summary-value summary "source-title-count"))
   (setq source-frame-count (swcad-title-fast-summary-value summary "source-frame-count"))
   (setq frame-only-count (swcad-title-fast-summary-value summary "frame-only-count"))
   (setq contaminated (swcad-title-contaminated-target-frame-blocks))
+  (setq definition-raw-risk-records (swcad-title-frame-definition-raw-bbox-risk-records))
+  (setq definition-raw-risk-count (length definition-raw-risk-records))
   (setq example-title (swcad-title-native-example-title))
   (setq frame-records (swcad-title-frame-records))
   (setq geometry-risk-count (swcad-title-target-frame-geometry-warning-count frame-records))
@@ -4155,6 +4259,7 @@
   (swcad-title-princ-line (strcat "A3/A4 native 교체 후보: " (itoa a3a4-count)))
   (swcad-title-princ-line (strcat "도면틀 스타일 정규화 필요 후보: " (itoa style-count)))
   (swcad-title-princ-line (strcat "실수 명령어 텍스트 후보: " (itoa command-text-count)))
+  (swcad-title-princ-line (strcat "도면틀 정의 raw bbox 위험: " (itoa definition-raw-risk-count)))
   (swcad-title-princ-line (strcat "선택/형상 위험 경고: " (itoa selection-risk-count)))
   (swcad-title-princ-line (strcat "오염 의심 대상 도면틀 정의: " (swcad-title-list-string contaminated)))
   (swcad-title-princ-line (strcat "native GMTITLE 제목블록 존재: " (swcad-title-native-example-description example-title)))
@@ -4183,6 +4288,13 @@
       (swcad-title-print-frame-style-normalization-records style-records)
       (swcad-title-princ-line "다음: SWTITLEPREPARE로 도면틀 스타일 정규화 후보를 확인하세요.")
       (swcad-title-princ-line "이 상태에서 SWTITLECONVERT를 반복하면 같은 중복 모양이 여러 장으로 복제될 수 있습니다.")
+    )
+    ((> definition-raw-risk-count 0)
+      (swcad-title-apply-result "NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX")
+      (swcad-title-princ-line "이유: DR 도면틀 정의 자체의 raw bbox가 예상 용지보다 과도하게 큽니다.")
+      (swcad-title-print-frame-definition-raw-bbox-risk-records definition-raw-risk-records)
+      (swcad-title-princ-line "다음: 현재 단계에서는 SWTITLECONVERT를 반복하지 말고, 정의 복구/정규화 설계를 먼저 확인하세요.")
+      (swcad-title-princ-line "기존 A4 도면틀은 raw bbox 검사를 통과하기 전까지 삭제하지 않습니다.")
     )
     ((> geometry-risk-count 0)
       (swcad-title-apply-result "NEXT_REVIEW_TARGET_FRAME_GEOMETRY")
@@ -6663,14 +6775,15 @@
   result
 )
 
-(defun swcad-title-print-frame-def-check-lines (/ frame-name exists children old-child-names bbox-warning-records contaminated)
+(defun swcad-title-print-frame-def-check-lines (/ frame-name exists children old-child-names bbox-warning-records raw-risk-record contaminated)
   (setq contaminated nil)
   (foreach frame-name (swcad-title-target-frame-block-candidates)
     (setq exists (swcad-title-block-exists-p frame-name))
     (setq children (if exists (swcad-title-block-child-insert-names frame-name) nil))
     (setq old-child-names (if exists (swcad-title-target-frame-block-source-like-children frame-name) nil))
     (setq bbox-warning-records (swcad-title-frame-bbox-warning-records-for-block frame-name))
-    (if (or old-child-names bbox-warning-records)
+    (setq raw-risk-record (if exists (swcad-title-frame-definition-raw-bbox-risk-record frame-name) nil))
+    (if (or old-child-names bbox-warning-records raw-risk-record)
       (setq contaminated T)
     )
     (swcad-title-princ-line
@@ -6685,8 +6798,20 @@
         (swcad-title-list-string old-child-names)
         ", bbox경고="
         (itoa (length bbox-warning-records))
+        ", 정의raw경고="
+        (if raw-risk-record "1" "0")
         ", 상태="
-        (if (or old-child-names bbox-warning-records) "오염의심" "정상")
+        (if (or old-child-names bbox-warning-records raw-risk-record) "오염의심" "정상")
+      )
+    )
+    (if raw-risk-record
+      (swcad-title-princ-line
+        (strcat
+          "    - 정의 raw bbox="
+          (swcad-title-bbox-string (cadr raw-risk-record))
+          ", 판단="
+          (caddr raw-risk-record)
+        )
       )
     )
     (foreach record bbox-warning-records
@@ -16440,7 +16565,7 @@
   )
 )
 
-(defun swcad-title-integrated-structure-diagnosis (/ summary source-count source-frame-count frame-only-count command-text-count embedded-records embedded-count a3-embedded-count a4-embedded-count style-records style-count a3-style-count a4-style-count frame-definition-records frame-definition-blockers frame-records raw-records raw-count a4-raw-count geometry-count overlap-count duplicate-pair-records duplicate-pair-count contaminated required-sheets target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records missing-required required-sheet record sheet next-action)
+(defun swcad-title-integrated-structure-diagnosis (/ summary source-count source-frame-count frame-only-count command-text-count embedded-records embedded-count a3-embedded-count a4-embedded-count style-records style-count a3-style-count a4-style-count frame-definition-records frame-definition-blockers definition-raw-risk-records definition-raw-risk-count a4-definition-raw-risk-count frame-records raw-records raw-count a4-raw-count geometry-count overlap-count duplicate-pair-records duplicate-pair-count contaminated required-sheets target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records missing-required required-sheet record sheet next-action)
   (swcad-title-open-structure-diagnosis-log)
   (setq summary (swcad-title-fast-sheet-summary))
   (setq source-count (swcad-title-fast-summary-value summary "source-title-count"))
@@ -16471,6 +16596,14 @@
   )
   (setq frame-definition-records (swcad-title-frame-definition-class-records))
   (setq frame-definition-blockers (swcad-title-frame-definition-blocking-records))
+  (setq definition-raw-risk-records (swcad-title-frame-definition-raw-bbox-risk-records))
+  (setq definition-raw-risk-count (length definition-raw-risk-records))
+  (setq a4-definition-raw-risk-count 0)
+  (foreach record definition-raw-risk-records
+    (if (equal (swcad-title-normalized-sheet-size (car record)) "A4")
+      (setq a4-definition-raw-risk-count (+ a4-definition-raw-risk-count 1))
+    )
+  )
   (setq frame-records (swcad-title-frame-records))
   (setq raw-records (swcad-title-target-frame-raw-selection-warning-records frame-records))
   (setq raw-count (length raw-records))
@@ -16508,6 +16641,7 @@
       ((> style-count 0) "SWTITLEPREPARE - 도면틀 스타일 정규화가 먼저 필요합니다.")
       ((> embedded-count 0) "SWTITLEPREPARE - 도면틀 정의 안의 표제란 형상을 먼저 정리")
       (frame-definition-blockers "SWTITLEPREPARE - 도면틀 정의 유형이 변환 전 정규화를 요구합니다.")
+      ((> definition-raw-risk-count 0) "SWTITLEPREPARE 또는 정의 복구 - 도면틀 정의 raw bbox 위험 먼저 확인")
       ((> duplicate-pair-count 0) "SWTITLEPREPARE - 같은 위치에 겹친 GMTITLE target 쌍을 먼저 정리")
       ((or (> raw-count 0) (> geometry-count 0) (> overlap-count 0)) "SWTITLEPREPARE 또는 구조 점검 - 도면틀 선택 범위/크기/겹침 위험 먼저 확인")
       (contaminated "SWTITLEPREPARE - 오염 의심 대상 도면틀 정의 정규화")
@@ -16543,6 +16677,7 @@
     )
   )
   (swcad-title-print-frame-definition-class-records frame-definition-records)
+  (swcad-title-print-frame-definition-raw-bbox-risk-records definition-raw-risk-records)
   (swcad-title-print-frame-style-normalization-records style-records)
   (swcad-title-princ-line (strcat "겹친 GMTITLE target 쌍 후보 수: " (itoa duplicate-pair-count)))
   (swcad-title-print-duplicate-target-pair-records duplicate-pair-records)
@@ -16552,6 +16687,10 @@
       (itoa raw-count)
       ", A4실제선택bbox="
       (itoa a4-raw-count)
+      ", 정의rawbbox="
+      (itoa definition-raw-risk-count)
+      ", A4정의rawbbox="
+      (itoa a4-definition-raw-risk-count)
       ", 크기경고="
       (itoa geometry-count)
       ", 겹침경고="
@@ -16585,6 +16724,9 @@
     )
   )
   (cond
+    ((> a4-definition-raw-risk-count 0)
+      (swcad-title-princ-line "A4 판단: DR_A4_Outline 정의 자체의 raw bbox가 A4보다 큽니다. 정의 복구/정규화 전에는 기존 A4를 삭제하지 않습니다.")
+    )
     ((> a4-raw-count 0)
       (swcad-title-princ-line "A4 판단: 실제 선택 bbox가 보이는 A4보다 큽니다. bbox 검사를 통과하기 전에는 기존 A4를 삭제하지 않습니다.")
     )
@@ -16702,7 +16844,7 @@
   (swcad-title-princ-text "\nGMTITLE 창이 열리면 로그가 요구한 DR_A*_Outline, DR_titlea_3rd, Frame positioning ON, Object move OFF를 눈으로 확인하세요.")
 )
 
-(defun swcad-title-integrated-convert (/ summary source-count frame-only-count command-text-records command-text-count a3a4-count style-records frame-definition-blockers old-batch-mode apply-result answer)
+(defun swcad-title-integrated-convert (/ summary source-count frame-only-count command-text-records command-text-count a3a4-count style-records frame-definition-blockers definition-raw-risk-records old-batch-mode apply-result answer)
   (swcad-title-integrated-command-header "SWTITLECONVERT" "변환 실행")
   (if (swcad-title-script-active-p)
     (swcad-title-abort-interactive-gmtitle-script-active
@@ -16717,6 +16859,7 @@
       (setq a3a4-count (length (swcad-title-a3a4-native-upgrade-candidate-records)))
       (setq style-records (swcad-title-frame-style-normalization-records))
       (setq frame-definition-blockers (swcad-title-frame-definition-blocking-records))
+      (setq definition-raw-risk-records (swcad-title-frame-definition-raw-bbox-risk-records))
       (swcad-title-print-fast-sheet-summary summary)
       (cond
         (command-text-records
@@ -16742,6 +16885,12 @@
           (swcad-title-princ-text "\n변환 전 도면틀 정의 정규화가 먼저 필요합니다.")
           (swcad-title-print-frame-definition-class-records frame-definition-blockers)
           (swcad-title-princ-text "\n다음: SWTITLEPREPARE를 실행하고, 후보가 맞으면 YES로 정리한 뒤 SWTITLESTATUS를 다시 확인하세요.")
+        )
+        (definition-raw-risk-records
+          (swcad-title-apply-result "ABORT_FRAME_DEFINITION_RAW_BBOX_RISK")
+          (swcad-title-princ-text "\n변환 전 도면틀 정의 raw bbox 위험을 먼저 확인해야 합니다.")
+          (swcad-title-print-frame-definition-raw-bbox-risk-records definition-raw-risk-records)
+          (swcad-title-princ-text "\n다음: SWTITLESTATUS 로그를 확인하고, 도면틀 정의 복구/정규화가 준비될 때까지 기존 A4를 삭제하지 마세요.")
         )
         ((> a3a4-count 0)
           (swcad-title-princ-text
@@ -17060,7 +17209,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main56-a4frameguard")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main56-a4defrawguard")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)

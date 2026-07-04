@@ -55,7 +55,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main56-a4frameguard
+260704-target-overlap-adopt-main56-a4defrawguard
 ```
 
 다른 버전이 나오면 변환하지 말고 최신 LSP를 다시 APPLOAD 하세요.
@@ -78,6 +78,7 @@ SWTITLESTATUS
 A2/A3/A4 예상 수량
 GMTITLE target 도면틀/제목블록 수량
 DR_A2/A3/A4_Outline 도면틀 정의 상태
+DR_A2/A3/A4_Outline 도면틀 정의 raw bbox 위험
 도면틀 안 내장 표제란 형상 후보
 A4 실제 선택 bbox 경고
 다음 권장 명령
@@ -98,6 +99,8 @@ target 제목블록: 0
 ```
 
 `SWTITLESTATUS`가 `SWTITLEPREPARE`를 안내하면 변환하지 말고 먼저 정규화합니다.
+
+`SWTITLESTATUS`가 `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX`를 안내하면 `SWTITLECONVERT`를 반복하지 않습니다. 이 경우 `DR_A4_Outline` 같은 도면틀 정의 자체의 선택 범위가 용지보다 과도하게 큰 상태이므로, 기존 A4를 삭제하기 전에 정의 복구/정규화 계획을 먼저 확인해야 합니다.
 
 ## 3. 필요한 경우 정규화
 
@@ -158,6 +161,7 @@ SWTITLECONVERT
 남은 시트 자동 복제/배치
 기존 SolidWorks 도면틀/표제란/잔여물 제거
 A3/A4 native 인식이 불확실한 쌍은 한 장씩 교체 안내
+A4 frame-only에서 도면틀 정의 raw bbox 위험이 있으면 변환 전 중단
 ```
 
 GMTITLE 창이 열리면 로그가 요구한 값만 선택합니다.
@@ -182,6 +186,14 @@ Object move ON 상태로 확인
 ```
 
 한 번 실행한 뒤에는 바로 다시 변환하지 말고 상태를 다시 봅니다.
+
+`SWTITLECONVERT`가 아래 결과로 멈추면 정상적인 보호 중단입니다.
+
+```text
+ABORT_FRAME_DEFINITION_RAW_BBOX_RISK
+```
+
+이 경우 GMTITLE 창을 다시 열거나 변환을 반복하지 않습니다.
 
 ```text
 SWTITLESTATUS
