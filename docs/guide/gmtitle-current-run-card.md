@@ -28,6 +28,24 @@ SWTITLEVERSION
 
 다른 버전이면 변환하지 말고 다시 APPLOAD 합니다.
 
+## 현재 작업복사본의 시작 상태
+
+현재 기준 work-copy는 아직 GMTITLE 대상 객체가 없는 변환 전 상태입니다.
+
+```text
+SWTITLESTATUS: NEXT_CREATE_FIRST_NATIVE_GMTITLE
+SWTITLEVERIFY: SWTITLEVERIFY_FINAL_FAIL
+원본 표제란/도면틀: 13 / 15
+표제란 없는 도면틀 시트: 2
+대상 도면틀/제목블록: 0 / 0
+필요 용지:
+  A2: 1
+  A3: 12
+  A4: 2
+```
+
+이 상태는 오류가 아닙니다. 다음 명령은 `SWTITLECONVERT`입니다.
+
 ## 반복 순서
 
 항상 상태부터 확인합니다.
@@ -106,4 +124,3 @@ target-sheet-counts:
 GMTITLE 표 편집창 열림
 도면 안 번호, 주석, BOM, 치수, 모델 형상 유지
 ```
-
