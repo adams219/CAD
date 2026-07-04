@@ -16,10 +16,12 @@ https://github.com/adams219/CAD.git
 codex/gm-title
 ```
 
-현재 기준 커밋:
+기준은 특정 커밋 번호가 아니라 `origin/codex/gm-title` 브랜치의 최신 상태입니다.
 
-```text
-316a134 Clarify GMTITLE run card start state
+최신 커밋 확인:
+
+```powershell
+git log --oneline -n 3
 ```
 
 ## 처음 받는 PC
@@ -151,4 +153,3 @@ docs\guide\gmtitle-current-run-card.md
 ```text
 docs\guide\gmtitle-cad-conversion-checklist.md
 ```
-
