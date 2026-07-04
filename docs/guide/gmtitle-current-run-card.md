@@ -332,6 +332,9 @@ Space
 ISO 제목블록 선택
 스크린샷 좌표 클릭
 긴 소수점 좌표 직접 입력
+CAD 명령줄에 긴 명령/파일 경로를 한 번에 붙여넣기
+_pasteclip 삽입점 대기 상태에서 다른 명령 입력
+활성 도면 탭이 목표 work 복사본인지 확인하지 않고 SWTITLECONVERT 실행
 SWTITLEFASTSTATUS
 SWTITLETRANSFERBOOTSTRAPFAST
 SWTITLETRANSFERFASTBATCH
