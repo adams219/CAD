@@ -144,6 +144,7 @@ Assert-LogContains `
     "frame-only-count: 2",
     "target-title-count: 0",
     "target-frame-count: 0",
+    "log-evidence-note-found: yes",
     "verify-source-priority-note-found: yes",
     "verify-a4-frame-only-first-note-found: no",
     "frame-definition-blockers: 0",

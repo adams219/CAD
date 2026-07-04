@@ -931,6 +931,21 @@
   )
 )
 
+(defun swcad-title-print-log-evidence-note ()
+  (swcad-title-princ-line
+    (strcat
+      "현재 DWG 파일: "
+      (swcad-title-current-dwg-full-path)
+    )
+  )
+  (swcad-title-princ-line
+    "로그 판단 기준: *_last.txt를 볼 때도 먼저 이 DWG 파일 경로가 현재 열린 work 복사본과 같은지 확인하세요."
+  )
+  (swcad-title-princ-line
+    "주의: suite/probe 실행 뒤에는 마지막 로그가 swtitle_*_probe*.dwg나 compare 전용 DWG를 가리킬 수 있습니다."
+  )
+)
+
 (defun swcad-title-string-prefix-p (prefix value)
   (and
     prefix
@@ -4352,6 +4367,7 @@
   (swcad-title-princ-line "----- SWTITLESTATUS 내부 다음 단계 안내(읽기 전용) -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-print-log-evidence-note)
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
   (swcad-title-princ-line (strcat "읽기 전용 도면: " (if (swcad-title-document-read-only-p) "예" "아니오")))
@@ -17195,6 +17211,7 @@
     )
   )
   (swcad-title-print-loaded-version)
+  (swcad-title-print-log-evidence-note)
   (swcad-title-print-current-dwg-save-status)
   (swcad-title-princ-text
     "\nSolidWorks DWG를 GMTITLE 구조로 바꾸는 4단계 통합 흐름입니다."
