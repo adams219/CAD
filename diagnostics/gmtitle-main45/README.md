@@ -123,7 +123,7 @@ work\swtitle_a4_outline_prepare_probe_260705.txt
 Expected safe result for the current installed `DR_A4_Outline` state:
 
 ```text
-Loaded version: 260705-save-state-warning
+Loaded version: 260705-a3-frame-guidance
 Before definition status: missing
 Prepare result: OK status=WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE
 After definition status: missing
@@ -399,6 +399,7 @@ docs/history/gmtitle-four-command-goal-audit-2026-07-04.md
 docs/history/gmtitle-main44-vs-main45-comparison-2026-07-04.md
 docs/history/gmtitle-automation-boundary-audit-2026-07-05.md
 docs/history/gmtitle-a3-frame-title-behavior-2026-07-05.md
+docs/history/gmtitle-a3-status-guidance-2026-07-05.md
 ```
 
 ## Safety Rules

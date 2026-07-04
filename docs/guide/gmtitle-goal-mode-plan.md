@@ -10,7 +10,7 @@
 
 ```text
 LSP 기준:
-260705-save-state-warning
+260705-a3-frame-guidance
 
 작업 도면:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg
@@ -261,7 +261,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260705-save-state-warning
+260705-a3-frame-guidance
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...

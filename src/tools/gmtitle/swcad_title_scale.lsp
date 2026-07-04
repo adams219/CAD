@@ -31,7 +31,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260705-save-state-warning")
+(setq *swcad-title-scale-version* "260705-a3-frame-guidance")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -17346,6 +17346,12 @@
   (swcad-title-princ-line (strcat "오염 의심 대상 도면틀 정의: " (swcad-title-list-string contaminated)))
   (swcad-title-princ-line (strcat "현재 필요한 대상 용지 누락: " (swcad-title-list-string missing-required)))
   (swcad-title-princ-line (strcat "A3/A4 native 교체 후보: " (itoa a3a4-count)))
+  (if (> (swcad-title-count-value "A3" target-sheet-counts) 0)
+    (progn
+      (swcad-title-princ-line "A3 도면틀 참고: DR_A3_Outline은 native GMTITLE에서도 INSERT/block 참조로 선택될 수 있습니다.")
+      (swcad-title-princ-line "A3 완료 판단은 도면틀 더블클릭이 아니라 DR_titlea_3rd 제목블록 더블클릭과 native 교체 후보 0개로 확인하세요.")
+    )
+  )
   (cond
     ((> a3-style-count 0)
       (swcad-title-princ-line "A3 판단: 도면틀 안 native 표제란 형상이 별도 DR_titlea_3rd와 겹칩니다. 변환 반복보다 SWTITLEPREPARE가 먼저입니다.")
@@ -17355,6 +17361,7 @@
     )
     ((> a3a4-count 0)
       (swcad-title-princ-line "A3 판단: native 교체 후보가 남아 있습니다. A4 frame-only보다 이 후보를 먼저 한 장씩 처리합니다.")
+      (swcad-title-princ-line "A3 판단 보충: 도면틀이 block처럼 보이는 현상 자체보다 clone/shared-native-link 후보가 남았는지가 실제 문제입니다.")
     )
     ((> (swcad-title-count-value "A3" target-sheet-counts) 0)
       (swcad-title-princ-line "A3 판단: 대상 도면틀은 존재합니다. 최종 성공은 DR_titlea_3rd 더블클릭 표 편집창으로 확인하세요.")
@@ -17909,7 +17916,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-save-state-warning")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-a3-frame-guidance")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)

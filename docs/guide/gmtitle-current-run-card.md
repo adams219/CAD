@@ -23,7 +23,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260705-save-state-warning
+260705-a3-frame-guidance
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 APPLOAD 합니다.
@@ -42,7 +42,7 @@ SWTITLEVERSION
 
 ```text
 로컬 코드 기준: 현재 브랜치 `codex/gm-title`
-현재 LSP 기준: 260705-save-state-warning
+현재 LSP 기준: 260705-a3-frame-guidance
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```
 
@@ -90,12 +90,13 @@ old fixture/test suffix가 붙은 로그
 
 | 로그 문구 | 의미 | 다음 행동 |
 | --- | --- | --- |
-| `SWTITLEVERSION`이 `260705-save-state-warning`이 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
+| `SWTITLEVERSION`이 `260705-a3-frame-guidance`가 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
 | `자동화 판단: 명령줄 -GMTITLE/설정파일 자동 선택은 기본 OFF입니다.` | 현재는 GMTITLE 창 선택을 사람이 확인하는 안정 모드 | 정상. 화면 좌표 클릭이나 `-GMTITLE` 강제 자동화 금지 |
 | `NEXT_CREATE_FIRST_NATIVE_GMTITLE` | 아직 이 도면에 진짜 GMTITLE 기준 객체가 없음 | `SWTITLECONVERT`로 첫 native GMTITLE 1장 생성 |
 | `WARN_CLONED_GMTITLE_FRAME_NEEDS_NATIVE_UPGRADE` | 겉모양은 맞지만 도면틀이 복제 구조라 native 증거 부족 | `SWTITLECONVERT`로 다음 후보 1장만 native 교체 |
 | `WARN_SHARED_NATIVE_GMTITLE_LINKS` | 여러 복제본이 같은 native link를 공유할 가능성 | 완료로 보지 않음. `SWTITLECONVERT`로 fresh native 교체 |
 | `WARN_A3_A4_TARGET_FRAME_NOT_NATIVE_LIKE` | A3/A4 도면틀이 GMTITLE처럼 보이지만 native-like 판정이 약함 | `native/복제 구조 비교 샘플`을 보고 clone/shared/geometry 중 원인 분류 |
+| `A3 도면틀 참고: DR_A3_Outline은 native GMTITLE에서도 INSERT/block 참조` | 도면틀이 블록처럼 선택되는 것 자체는 실패가 아님 | `DR_titlea_3rd` 제목블록 더블클릭과 `A3/A4 native 교체 후보: 0`으로 완료 판단 |
 | `WARN_TARGET_FRAME_SELECTION_RISK` | 겹친 도면틀 bbox 때문에 더블클릭/선택이 다른 객체를 잡을 수 있음 | `SWTITLEPREPARE` 가능 여부 확인 후 겹침 정리 |
 | `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX` | DR 도면틀 정의 자체 bbox가 위험함 | 변환 반복 금지. A3/A4 정의 문제 분석 |
 | `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK` | 도면 삭제 전에 위험을 감지하고 멈춤 | 정상 중단. 기존 A3/A4 삭제하지 말고 원인 분석 |
