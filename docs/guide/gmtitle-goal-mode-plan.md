@@ -70,6 +70,58 @@ Object move: OFF
 
 하나라도 다르면 `확인`을 누르지 않는다. 먼저 올바른 값으로 바꿀 수 있는지 확인하고, 불확실하면 취소한다.
 
+### 같은 날 추가 확인: 키보드 선택 경로
+
+같은 work 복사본에서 GMTITLE 창을 다시 열어 선택 방식도 비교했다.
+
+실패한 방식:
+
+```text
+UI Automation set_value로 용지 콤보 값을 DR_A3_Outline으로 직접 설정
+  -> 콤보가 읽기 전용이라 실패
+
+UI Automation Expand/DropDown secondary action
+  -> gcad.exe 요소에 secondary action이 없어 실패
+```
+
+성공한 방식:
+
+```text
+용지 콤보:
+  포커스가 용지 콤보에 있을 때 Alt+Down
+  목록에서 DR_A3_Outline이 보임
+  DR_A3_Outline 선택 후 Enter
+
+제목블록 콤보:
+  Tab으로 제목블록 콤보로 이동
+  Alt+Down
+  목록에서 DR_titlea_3rd가 보임
+  DR_titlea_3rd 선택 후 Enter
+
+객체 이동:
+  Alt+M으로 객체 이동 체크박스에 포커스 이동
+  Space로 Object move OFF 전환
+```
+
+확인된 최종 대화상자 상태:
+
+```text
+용지/도면틀: DR_A3_Outline
+제목블록: DR_titlea_3rd
+Frame positioning: ON
+Object move: OFF
+```
+
+아직 증명하지 못한 것:
+
+```text
+이 키보드 선택 경로로 확인까지 눌렀을 때 A3/A4 native 교체 후보 수가 실제로 줄어드는지
+SWTITLECONVERT의 삽입점 자동 입력과 finalize가 끝까지 이어지는지
+더블클릭이 GMTITLE 표 편집창으로 바뀌는지
+```
+
+따라서 이 경로는 "선택 자동화 후보"로는 유효하지만, 아직 "변환 완료 자동화"로 승격하지 않는다.
+
 ## 절대 기준
 
 아래 기준을 어기면 같은 실수를 반복하게 된다.

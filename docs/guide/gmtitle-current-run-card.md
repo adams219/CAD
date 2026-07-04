@@ -202,6 +202,22 @@ Object move: ON
 
 이 상태에서 `확인`을 누르면 안 됩니다. 실제 표시값을 `DR_A3_Outline`, `DR_titlea_3rd`, `Object move OFF`로 바꿀 수 있을 때만 진행하고, 불확실하면 `Esc`로 취소합니다. 취소하면 기존 쌍은 보존됩니다.
 
+키보드로 바꾸는 순서:
+
+```text
+용지 콤보에 포커스가 있을 때 Alt+Down
+DR_A3_Outline 선택
+Enter
+Tab
+Alt+Down
+DR_titlea_3rd 선택
+Enter
+Alt+M
+Space
+```
+
+`Alt+M`은 객체 이동 체크박스로 포커스를 보내고, `Space`가 체크를 끕니다. 마지막 상태가 `Object move OFF`인지 눈으로 확인한 뒤에만 진행합니다.
+
 현재 자동 선택을 기본으로 쓰지 않는 이유:
 
 ```text
