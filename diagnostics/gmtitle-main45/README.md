@@ -19,6 +19,26 @@ Expected result:
 Static preflight result: PASS
 ```
 
+## Goal Status
+
+Use `run_goal_status.ps1` when you are not sure what to run next. It does not open CAD or touch any DWG. It runs the static preflight, reports Git branch/commit, checks whether GstarCAD is open, checks the default work-copy path, and prints the next command.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_goal_status.ps1"
+```
+
+Typical result while GstarCAD is open:
+
+```text
+Static preflight: PASS
+GstarCAD: open
+Next action:
+  Save the visible GstarCAD work-copy DWG.
+  Close GstarCAD.
+  Run the full hidden suite.
+```
+
 ## Runner
 
 Use `run_readonly_probe.ps1` to run a GstarCAD Mechanical `/b` script against a copied work DWG and wait for a completion marker in the log.

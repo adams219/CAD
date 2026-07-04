@@ -185,6 +185,8 @@ If GstarCAD must stay open:
 
 ```text
 1. Run:
+   powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_goal_status.ps1
+2. Or run the static-only check:
    powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_static_preflight.ps1
-2. Do not run hidden CAD probes until GstarCAD is saved and closed.
+3. Do not run hidden CAD probes until GstarCAD is saved and closed.
 ```
