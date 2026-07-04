@@ -206,6 +206,7 @@ function Write-A4FrameOnlyEvidenceSummary {
   }
 
   $normalizationSummary = @()
+  $safeNormalizationStrategies = @()
   foreach ($strategy in @("none", "huge-insert", "direct-outside", "nested-outside", "nested-direct-outside")) {
     $safeStrategy = $strategy -replace '[^A-Za-z0-9_-]', '_'
     $logPath = Join-Path $WorkDir ("swtitle_a4_outline_norm_{0}_260705.txt" -f $safeStrategy)
@@ -216,11 +217,21 @@ function Write-A4FrameOnlyEvidenceSummary {
         $safe = "unknown"
       }
       $normalizationSummary += ("{0}={1}" -f $strategy, $safe)
+      if ($safe -eq "yes") {
+        $safeNormalizationStrategies += $strategy
+      }
     } else {
       $normalizationSummary += ("{0}=not-run" -f $strategy)
     }
   }
   Write-Output ("  A4 normalization probes: {0}" -f ($normalizationSummary -join ", "))
+  if ($safeNormalizationStrategies.Count -gt 0) {
+    Write-Output ("  A4 normalization decision: candidate safe probe result found ({0}). Do not promote it directly; inspect the copied-DWG log and then decide whether SWTITLEPREPARE can adopt that definition path." -f ($safeNormalizationStrategies -join ", "))
+  } elseif (($normalizationSummary -contains "nested-outside=no") -and ($normalizationSummary -contains "nested-direct-outside=no")) {
+    Write-Output "  A4 normalization decision: nested cleanup probes are both unsafe. Next investigation should compare against a real native A4 GMTITLE/frame definition instead of deleting more imported objects."
+  } elseif (($normalizationSummary -contains "nested-outside=not-run") -or ($normalizationSummary -contains "nested-direct-outside=not-run")) {
+    Write-Output "  A4 normalization decision: nested cleanup comparison is still missing. Run the copied-DWG probe before changing production conversion logic."
+  }
   if (($normalizationSummary -contains "nested-outside=not-run") -or ($normalizationSummary -contains "nested-direct-outside=not-run")) {
     $nestedProbeScript = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1"
     $nestedProbeSource = $script:LatestCadDwg
