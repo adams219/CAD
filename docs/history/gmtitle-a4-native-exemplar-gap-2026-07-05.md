@@ -73,9 +73,13 @@ target-sheet-counts:
 
 현재 디스크 작업복사본에서 A4 native exemplar probe를 실행했다.
 
+2026-07-05에 현재 LSP `260705-verify-source-priority-a4stepnote`로 다시 실행해 같은 결론을 확인했다.
+
 결과:
 
 ```text
+Loaded version: 260705-verify-source-priority-a4stepnote
+DBMOD before checks: 0
 Source frame-only count: 2
 Expected sheet counts:
   A2: 1
@@ -88,6 +92,7 @@ Definition exists: no
 Visible DR_A4_Outline frame inserts: 0
 Result: A4_NATIVE_EXEMPLAR_MISSING_DEFINITION
 No drawing data was saved.
+DBMOD after checks: 0
 ```
 
 판단:
@@ -164,4 +169,3 @@ A4는 아직 완료가 아니다.
 ```
 
 다음 구현은 A4 native scratch 기준 객체를 확보한 뒤, 그 구조를 설치 원본 import 결과와 비교하는 것이다.
-
