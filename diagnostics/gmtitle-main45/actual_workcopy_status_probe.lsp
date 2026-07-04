@@ -82,7 +82,7 @@
   )
 )
 
-(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note verify-summary-log verify-source-priority verify-a4-first)
+(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note structure-log a4-deferred-note verify-summary-log verify-source-priority verify-a4-first)
   (setq load-result
     (vl-catch-all-apply
       'load
@@ -125,7 +125,7 @@
         (swtitle-diag45-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))
       )
       (swtitle-diag45-write-line handle (strcat "Loaded version: " version-value))
-      (swtitle-diag45-write-line handle "Expected version: 260705-verify-source-priority-multidocguard")
+      (swtitle-diag45-write-line handle "Expected version: 260705-verify-source-priority-a4stepnote")
       (swtitle-diag45-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-diag45-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-diag45-write-line handle (strcat "DBMOD before commands: " (itoa (getvar "DBMOD"))))
@@ -186,6 +186,13 @@
               "사람 확인:"
             )
           )
+          (setq structure-log (swcad-title-work-log-path "swcad_title_structure_diagnosis_last.txt"))
+          (setq a4-deferred-note
+            (swtitle-diag45-file-contains-p
+              structure-log
+              "A4 판단 보충:"
+            )
+          )
           (setq verify-summary-log (swcad-title-work-log-path "swcad_title_verify_summary_last.txt"))
           (setq verify-source-priority
             (swtitle-diag45-file-contains-p
@@ -209,6 +216,8 @@
           (swtitle-diag45-write-line handle (strcat "  log-evidence-note-found: " (if log-evidence-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  automation-split-note-found: " (if automation-split-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  human-check-note-found: " (if human-check-note "yes" "no")))
+          (swtitle-diag45-write-line handle (strcat "  structure-log: " structure-log))
+          (swtitle-diag45-write-line handle (strcat "  a4-frame-only-deferred-note-found: " (if a4-deferred-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  verify-summary-log: " verify-summary-log))
           (swtitle-diag45-write-line handle (strcat "  verify-source-priority-note-found: " (if verify-source-priority "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  verify-a4-frame-only-first-note-found: " (if verify-a4-first "yes" "no")))

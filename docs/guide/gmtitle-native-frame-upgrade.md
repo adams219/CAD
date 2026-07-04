@@ -24,7 +24,7 @@ GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 
 현재 LSP 버전:
 
 ```text
-260705-verify-source-priority-multidocguard
+260705-verify-source-priority-a4stepnote
 ```
 
 현재 loader 버전은 `SWTITLEVERSION`에서 함께 확인합니다.

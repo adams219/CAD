@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260705-verify-source-priority-multidocguard
+260705-verify-source-priority-a4stepnote
 ```
 
 ## GMTITLE 변환 명령

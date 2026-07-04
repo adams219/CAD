@@ -100,7 +100,7 @@
         (strcat "Loaded GMTITLE version: " (if (boundp '*swcad-title-scale-version*) *swcad-title-scale-version* "<gmtitle version missing>"))
       )
       (swtitle-loader-probe-write-line handle "Expected loader version: 260705-4step-gmtitle-a4-outline-preflight")
-      (swtitle-loader-probe-write-line handle "Expected GMTITLE version: 260705-verify-source-priority-multidocguard")
+      (swtitle-loader-probe-write-line handle "Expected GMTITLE version: 260705-verify-source-priority-a4stepnote")
       (swtitle-loader-probe-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-loader-probe-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-loader-probe-command-line handle "c:SWTITLESTATUS")

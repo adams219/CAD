@@ -111,6 +111,7 @@ If `DBMOD` is not 0 and another computer or hidden probe should continue the wor
 For the saved pre-conversion work-copy, the probe should also prove that `SWTITLEVERIFY` does not tell the user to handle A4 frame-only sheets before the remaining SolidWorks source title/frame sheets:
 
 ```text
+a4-frame-only-deferred-note-found: yes
 verify-source-priority-note-found: yes
 verify-a4-frame-only-first-note-found: no
 ```
@@ -139,7 +140,7 @@ work\swtitle_a4_outline_prepare_probe_260705.txt
 Expected safe result for the current installed `DR_A4_Outline` state:
 
 ```text
-Loaded version: 260705-verify-source-priority-multidocguard
+Loaded version: 260705-verify-source-priority-a4stepnote
 Before definition status: missing
 Prepare result: OK status=WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE
 After definition status: missing
@@ -271,7 +272,7 @@ Expected result:
 
 ```text
 Loaded loader version: 260705-4step-gmtitle-a4-outline-preflight
-Loaded GMTITLE version: 260705-verify-source-priority-multidocguard
+Loaded GMTITLE version: 260705-verify-source-priority-a4stepnote
 Command c:SWTITLESTATUS: yes
 Command c:SWTITLEPREPARE: yes
 Command c:SWTITLECONVERT: yes
@@ -291,7 +292,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260705-verify-source-priority-multidocguard
+Loaded version: 260705-verify-source-priority-a4stepnote
 A3/A4 candidate count before SWTITLESTATUS: 1
 SWTITLESTATUS result: OK
 Status after SWTITLESTATUS: NEXT_UPGRADE_A3_A4_NATIVE
@@ -313,7 +314,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260705-verify-source-priority-multidocguard
+Loaded version: 260705-verify-source-priority-a4stepnote
 Script active: yes
 Status after batch: ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE
 Candidates before/after: 2/2
@@ -334,7 +335,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260705-verify-source-priority-multidocguard
+Loaded version: 260705-verify-source-priority-a4stepnote
 Script active before convert: yes
 Status after convert: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE
 Source titles before/after: 13/13
