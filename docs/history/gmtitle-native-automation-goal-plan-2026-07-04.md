@@ -658,3 +658,325 @@ SWTITLESTATUS
 ```
 
 이 계획은 `SWTITLECONVERT` 반복을 줄이기 위한 목표 계획이며, 현재 production 기본값을 즉시 바꾸라는 뜻은 아니다.
+
+## 목표모드 운영 계획 main62 이후
+
+이 절은 목표모드에서 같은 실수를 반복하지 않기 위한 실제 운영 기준이다.
+
+핵심 원칙:
+
+```text
+1. CAD에 로드된 LSP 버전이 증거의 출발점이다.
+2. 낡은 main58/main56 로그는 참고 기록일 뿐 main62 판단 증거가 아니다.
+3. 화면 모양보다 SWTITLESTATUS/SWTITLEVERIFY 로그를 우선한다.
+4. 새 공개 명령을 늘리지 않는다.
+5. 원본 DWG는 건드리지 않고 work 복사본만 변환한다.
+6. 복제 GMTITLE은 native GMTITLE로 간주하지 않는다.
+7. 완료는 SWTITLEVERIFY_FINAL_OK와 대표 더블클릭 확인 전까지 선언하지 않는다.
+```
+
+### Phase 0. 버전과 도면 상태 잠금
+
+목적:
+
+```text
+현재 열린 CAD 세션이 정말 최신 로직으로 판단하고 있는지 확인한다.
+```
+
+실행:
+
+```text
+APPLOAD
+C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp
+SWTITLEVERSION
+SWTITLESTATUS
+```
+
+통과 기준:
+
+```text
+SWTITLEVERSION:
+260704-target-overlap-adopt-main62-korean-guidance
+
+DWG 파일:
+C:\Users\DR-DESIGN\Documents\CAD tool\work\...
+
+작업 폴더 복사본:
+예
+```
+
+실패 시:
+
+```text
+SWTITLECONVERT 금지
+SWTITLEPREPARE 금지
+먼저 APPLOAD로 최신 swcad_load.lsp를 다시 로드
+그 다음 SWTITLEVERSION 재확인
+```
+
+현재 알려진 실패 예:
+
+```text
+SWTITLE LSP 버전: 260704-target-overlap-adopt-main58-a4outline
+```
+
+이 버전으로 생성된 로그는 `main62`의 한국어 안내, 구조 비교 샘플, 자동화 정책 판단이 빠져 있으므로 최종 판단에 쓰지 않는다.
+
+### Phase 1. 상태를 세 가지로 분류
+
+`SWTITLESTATUS` 결과는 먼저 아래 세 상태 중 하나로 분류한다.
+
+#### 상태 A. 첫 native GMTITLE 기준 객체가 없음
+
+대표 문구:
+
+```text
+NEXT_CREATE_FIRST_NATIVE_GMTITLE
+```
+
+의미:
+
+```text
+아직 이 도면에는 믿을 수 있는 GMTITLE 기준 객체가 없다.
+```
+
+다음:
+
+```text
+SWTITLECONVERT
+```
+
+GMTITLE 창에서 확인:
+
+```text
+로그가 요구한 DR_A*_Outline
+DR_titlea_3rd
+Frame positioning ON
+Object move OFF
+```
+
+#### 상태 B. 복제 A3/A4를 fresh native로 교체해야 함
+
+대표 문구:
+
+```text
+NEXT_UPGRADE_A3_A4_NATIVE
+WARN_CLONED_GMTITLE_FRAME_NEEDS_NATIVE_UPGRADE
+WARN_SHARED_NATIVE_GMTITLE_LINKS
+```
+
+의미:
+
+```text
+겉모양은 맞지만, 일부 A3/A4가 복제 구조이거나 native handle을 공유한다.
+GstarCAD가 더블클릭 시 항상 GMTITLE 표 편집창으로 볼 것이라는 증거가 부족하다.
+```
+
+다음:
+
+```text
+SWTITLECONVERT
+SWTITLESTATUS
+```
+
+반복 규칙:
+
+```text
+한 번에 후보 1장만 fresh native GMTITLE로 교체한다.
+각 회차 뒤 SWTITLESTATUS로 후보 수가 줄었는지 확인한다.
+후보 수가 줄지 않으면 반복하지 않고 원인 로그를 본다.
+```
+
+통과 기준:
+
+```text
+A3/A4 native 교체 후보: 0
+복제 쌍: 0
+native-link 공유 쌍: 0
+```
+
+#### 상태 C. A4 frame-only가 남음
+
+대표 문구:
+
+```text
+READY_FOR_A4_FRAME_ONLY_OUTLINE
+표제란 없는 A4 시트
+```
+
+의미:
+
+```text
+원본 A4에는 제목블록이 없고 도면틀만 있다.
+따라서 새 제목블록을 만들면 원본 구조와 달라진다.
+```
+
+다음:
+
+```text
+SWTITLECONVERT
+SWTITLESTATUS
+```
+
+통과 기준:
+
+```text
+A4 DR_A4_Outline 대상 도면틀 수량이 원본 기준 수량과 일치
+원본에 없던 DR_titlea_3rd 제목블록이 A4에 생기지 않음
+도면 내용이 이동하거나 삭제되지 않음
+```
+
+실패 예:
+
+```text
+DR_A4_Outline raw bbox 위험
+A4에 불필요한 제목블록 생성
+A4 원본 도면틀 삭제 후 새 도면틀 불일치
+```
+
+이 경우:
+
+```text
+변환 반복 금지
+SWTITLEVERIFY/SWTITLESTATUS 로그에서 A4 frame-only 진단 확인
+필요하면 작업복사본을 새로 만들어 다시 시작
+```
+
+### Phase 2. A3 중복 표제란 문제의 판단 순서
+
+A3는 단순히 "도면틀 안에 제목블록 모양이 보인다"는 이유로 삭제하면 안 된다.
+
+판단 순서:
+
+```text
+1. DR_A3_Outline 정의가 설치 원본 native-format 구조인지 확인
+2. 별도 DR_titlea_3rd insert가 같은 위치에 추가되어 실제 중복을 만드는지 확인
+3. SolidWorks 원본 또는 이전 변환 잔여물이 도면틀 정의 안으로 섞였는지 확인
+4. source-contaminated와 native-format-with-title-geometry를 구분
+5. 겹침이나 shared-native-link가 있으면 SWTITLECONVERT로 fresh native 교체
+```
+
+삭제 가능한 대상:
+
+```text
+SolidWorks 원본 도면틀
+SolidWorks 원본 표제란
+명령어 실수로 입력된 텍스트
+이미 교체된 non-native/clone target 쌍
+source-contaminated로 판정된 도면틀 정의 내부 잔여물
+```
+
+삭제 금지 대상:
+
+```text
+DR_A3_Outline 설치 원본 native-format 형상 자체
+도면 내부 번호
+주석
+BOM
+치수
+모델 형상
+좌표/눈금/외곽선
+```
+
+### Phase 3. 사람이 필요한 이유와 줄이는 방향
+
+현재 사람이 필요한 이유:
+
+```text
+GstarCAD native GMTITLE 생성은 LISP 복사만으로 완전히 재현되지 않는다.
+복제한 title/frame은 겉모양, 속성, 일부 xdata가 맞아도 shared-native-link-handle 문제가 생길 수 있다.
+명령줄 -GMTITLE 자동 선택은 과거에 일반 A3/A4 또는 ISO 흐름으로 잘못 간 이력이 있다.
+```
+
+따라서 현재 안정 기본값:
+
+```text
+사용자는 GMTITLE 창에서 용지/제목블록/옵션만 눈으로 확인한다.
+좌표 계산, 기존 값 복사, 이전 쌍 삭제, 후보 선정은 LSP가 한다.
+```
+
+줄일 수 있는 부분:
+
+```text
+소수점 좌표 직접 입력 제거
+스크린샷 좌표 클릭 제거
+다음 후보 선택 자동화
+잘못된 반복 명령 방지
+상태별 다음 명령 한국어 안내
+```
+
+아직 자동화하지 않는 부분:
+
+```text
+GMTITLE 창에서 DR_A*_Outline / DR_titlea_3rd 선택을 무조건 자동화
+GstarCAD native xdata를 추측으로 직접 작성
+복제 GMTITLE을 native로 간주
+```
+
+### Phase 4. 자동화 실험을 시작할 조건
+
+자동 `-GMTITLE` 또는 API 실험은 아래 조건이 충족될 때만 시작한다.
+
+```text
+main62 이상이 CAD에 로드됨
+work 복사본에서 실행 중
+현재 SWTITLESTATUS/SWTITLEVERIFY 로그가 최신임
+실패 시 새 INSERT를 되돌릴 수 있음
+A2/A3/A4 각각 대표 실패/성공 기준이 정해짐
+```
+
+실험 기록 항목:
+
+```text
+요청한 paper/frame
+실제 생성된 frame block
+실제 생성된 title block
+새 INSERT 개수
+native-like 여부
+shared-native-link 여부
+bbox 크기
+도면 내용 이동 여부
+SWTITLEVERIFY 결과 변화
+```
+
+기본 흐름 승격 조건:
+
+```text
+A2/A3/A4 모두 요청한 DR_A*_Outline과 DR_titlea_3rd를 안정 생성
+Object move 없이 도면 내용 유지
+실패 시 rollback 성공
+반복 3회 이상 결과 동일
+SWTITLEVERIFY_FINAL_OK로 이어짐
+```
+
+하나라도 실패하면:
+
+```text
+자동 선택은 opt-in 실험으로만 유지
+기본 흐름은 대화식 SWTITLECONVERT 유지
+```
+
+### Phase 5. 최종 완료 감사
+
+완료 선언 전 반드시 아래 항목을 현재 CAD 세션 기준으로 확인한다.
+
+```text
+SWTITLEVERSION = 260704-target-overlap-adopt-main62-korean-guidance 이상
+DWG 경로 = work 폴더 작업복사본
+SWTITLEVERIFY_FINAL_OK
+남은 원본 표제란 = 0
+남은 원본 도면틀 = 0
+frame-only 남은 수 = 0
+target A2 = 1
+target A3 = 12
+target A4 = 2
+복제 쌍 = 0
+shared-native-link 쌍 = 0
+겹친 target 쌍 = 0
+도면틀 raw bbox 위험 = 0
+대표 A2/A3 제목블록 더블클릭 = GMTITLE 표 편집창
+A4 frame-only = 제목블록 없이 도면틀만 정상
+빨간 네모로 표시했던 번호/주석/도면 내부 객체 유지
+```
+
+이 중 하나라도 증거가 없으면 목표 완료가 아니다.
