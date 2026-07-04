@@ -210,7 +210,7 @@ function Write-A4FrameOnlyEvidenceSummary {
   }
   Write-Output ("  A4 normalization probes: {0}" -f ($normalizationSummary -join ", "))
   if ($normalizationSummary -contains "nested-outside=not-run") {
-    Write-Output "  Next A4 investigation probe: save/close visible GstarCAD, then run run_a4_outline_normalization_probe.ps1 -Strategies nested-outside on a copied DWG."
+    Write-Output "  Next A4 investigation probe: run run_a4_outline_normalization_probe.ps1 -Strategies nested-outside -WaitForGstarCADClose, then save/close visible GstarCAD."
   }
 
   if ($script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") {

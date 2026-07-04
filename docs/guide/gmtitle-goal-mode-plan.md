@@ -221,6 +221,13 @@ nested-outside probe:
   아직 생산 변환 경로가 아니다.
   copied-DWG probe에서 safe=yes가 나오고, A4 effective/raw bbox가 모두 검증되기 전에는
   SWTITLEPREPARE/SWTITLECONVERT 기본 흐름에 넣지 않는다.
+
+실행법:
+  powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -Strategies nested-outside -WaitForGstarCADClose
+
+운영:
+  이 명령은 visible GstarCAD 종료를 기다린 뒤 hidden copied-DWG probe를 실행한다.
+  현재 CAD 작업복사본을 저장하고 GstarCAD를 닫은 뒤 결과 로그를 확인한다.
 ```
 
 따라서 이 상태에서의 실제 순서는 아래다.

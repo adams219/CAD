@@ -231,10 +231,11 @@ Optional nested-block investigation:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1" `
-  -Strategies nested-outside
+  -Strategies nested-outside `
+  -WaitForGstarCADClose
 ```
 
-This does not change the production conversion path. It is a copied-DWG probe for checking whether the oversized `도면 세로 A4 From_HYUN` child block inside `DR_A4_Outline` can be normalized without destroying the visible A4 outline.
+This does not change the production conversion path. It waits for visible GstarCAD to close, then runs a copied-DWG hidden probe for checking whether the oversized `도면 세로 A4 From_HYUN` child block inside `DR_A4_Outline` can be normalized without destroying the visible A4 outline.
 
 Current expected conclusion:
 

@@ -12,6 +12,7 @@ $loaderPath = Join-Path $repoRoot "swcad_load.lsp"
 $suitePath = Join-Path $PSScriptRoot "run_main45_verification_suite.ps1"
 $readmePath = Join-Path $PSScriptRoot "README.md"
 $a4NormProbePath = Join-Path $PSScriptRoot "a4_outline_normalization_probe.lsp"
+$a4NormProbeRunnerPath = Join-Path $PSScriptRoot "run_a4_outline_normalization_probe.ps1"
 $guidePaths = @(
   "docs\guide\commands.md",
   "docs\guide\gmtitle-cad-conversion-checklist.md",
@@ -155,6 +156,7 @@ $loaderText = Read-Text $loaderPath
 $suiteText = Read-Text $suitePath
 $readmeText = Read-Text $readmePath
 $a4NormProbeText = Read-Text $a4NormProbePath
+$a4NormProbeRunnerText = Read-Text $a4NormProbeRunnerPath
 
 Write-Output "===== GMTITLE static preflight ====="
 Write-Output ("Repo root: {0}" -f $repoRoot)
@@ -228,6 +230,7 @@ Assert-Contains -Text $suiteText -Needle "Assert-NoExistingGstarCAD" -Label "Sui
 Assert-Contains -Text $readmeText -Needle "-WaitForGstarCADClose" -Label "README waiting-mode guidance"
 Assert-Contains -Text $readmeText -Needle "A4 strict prepare guard" -Label "README A4 strict guard guidance"
 Assert-Contains -Text $a4NormProbeText -Needle "nested-outside" -Label "A4 nested normalization probe strategy"
+Assert-Contains -Text $a4NormProbeRunnerText -Needle "WaitForGstarCADClose" -Label "A4 normalization probe wait option"
 
 $suiteStepNumbers = @(
   [regex]::Matches($suiteText, 'Write-Output\s+"===== ([0-9]+)\. ') |
