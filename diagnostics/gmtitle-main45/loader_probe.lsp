@@ -101,6 +101,34 @@
       )
       (swtitle-loader-probe-write-line handle "Expected loader version: 260705-4step-gmtitle-a4-outline-preflight")
       (swtitle-loader-probe-write-line handle "Expected GMTITLE version: 260705-verify-source-priority-a4stepnote")
+      (swtitle-loader-probe-write-line
+        handle
+        (strcat
+          "Command-line -GMTITLE default enabled: "
+          (if
+            (and
+              (boundp '*swcad-title-allow-commandline-gmtitle*)
+              *swcad-title-allow-commandline-gmtitle*
+            )
+            "yes"
+            "no"
+          )
+        )
+      )
+      (swtitle-loader-probe-write-line
+        handle
+        (strcat
+          "SCRIPT command-line -GMTITLE enabled: "
+          (if
+            (and
+              (boundp '*swcad-title-allow-script-commandline-gmtitle*)
+              *swcad-title-allow-script-commandline-gmtitle*
+            )
+            "yes"
+            "no"
+          )
+        )
+      )
       (swtitle-loader-probe-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-loader-probe-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-loader-probe-command-line handle "c:SWTITLESTATUS")

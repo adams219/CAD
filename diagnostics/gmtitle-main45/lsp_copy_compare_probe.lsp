@@ -137,6 +137,34 @@
         (swtitle-copycmp-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))
       )
       (swtitle-copycmp-write-line handle (strcat "Loaded version: " version-value))
+      (swtitle-copycmp-write-line
+        handle
+        (strcat
+          "Command-line -GMTITLE default enabled: "
+          (if
+            (and
+              (boundp '*swcad-title-allow-commandline-gmtitle*)
+              *swcad-title-allow-commandline-gmtitle*
+            )
+            "yes"
+            "no"
+          )
+        )
+      )
+      (swtitle-copycmp-write-line
+        handle
+        (strcat
+          "SCRIPT command-line -GMTITLE enabled: "
+          (if
+            (and
+              (boundp '*swcad-title-allow-script-commandline-gmtitle*)
+              *swcad-title-allow-script-commandline-gmtitle*
+            )
+            "yes"
+            "no"
+          )
+        )
+      )
       (swtitle-copycmp-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-copycmp-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-copycmp-write-line handle "Runtime command presence, possibly affected by GstarCAD startup-loaded LSPs:")

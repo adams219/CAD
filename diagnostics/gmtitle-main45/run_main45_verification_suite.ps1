@@ -85,6 +85,8 @@ Assert-LogContains `
     "Load result: OK",
     "Loaded loader version: 260705-4step-gmtitle-a4-outline-preflight",
     "Loaded GMTITLE version: 260705-verify-source-priority-a4stepnote",
+    "Command-line -GMTITLE default enabled: no",
+    "SCRIPT command-line -GMTITLE enabled: no",
     "Command c:SWTITLESTATUS: yes",
     "Command c:SWTITLEPREPARE: yes",
     "Command c:SWTITLECONVERT: yes",
@@ -109,6 +111,8 @@ Assert-LogContains `
   -Patterns @(
     "Load result: OK",
     "Loaded version: 260705-verify-source-priority-a4stepnote",
+    "Command-line -GMTITLE default enabled: no",
+    "SCRIPT command-line -GMTITLE enabled: no",
     "Command c:SWTITLESTATUS: yes",
     "Command c:SWTITLEPREPARE: yes",
     "Command c:SWTITLECONVERT: yes",
