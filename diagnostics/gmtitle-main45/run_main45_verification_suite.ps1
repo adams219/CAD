@@ -1,7 +1,11 @@
 param(
   [string]$SourceWorkCopyPath,
 
-  [int]$TimeoutSeconds = 90
+  [int]$TimeoutSeconds = 90,
+
+  [switch]$WaitForGstarCADClose,
+
+  [int]$WaitForGstarCADCloseTimeoutSeconds = 600
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,6 +15,25 @@ $workDir = Join-Path $repoRoot "work"
 $compareDir = Join-Path $workDir "lsp_compare"
 
 function Assert-NoExistingGstarCAD {
+  param(
+    [switch]$Wait,
+
+    [int]$WaitTimeoutSeconds = 600
+  )
+
+  if ($Wait) {
+    $deadline = (Get-Date).AddSeconds($WaitTimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+      $existing = @(Get-Process -Name gcad -ErrorAction SilentlyContinue)
+      if ($existing.Count -eq 0) {
+        Write-Output "No existing GstarCAD process detected. Continuing verification suite."
+        return
+      }
+      Write-Output ("Waiting for GstarCAD to close before hidden probes... active PID(s): {0}" -f (($existing | ForEach-Object { $_.Id }) -join ", "))
+      Start-Sleep -Seconds 5
+    }
+  }
+
   $existingGstarCAD = @(Get-Process -Name gcad -ErrorAction SilentlyContinue)
   if ($existingGstarCAD.Count -gt 0) {
     $details = $existingGstarCAD |
@@ -23,6 +46,9 @@ The suite uses hidden /b probes, which are unreliable while a visible GstarCAD s
 
 Save the work-copy DWG, close GstarCAD, then rerun:
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_main45_verification_suite.ps1
+
+Or start the suite in waiting mode, save/close GstarCAD, and let it continue:
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_main45_verification_suite.ps1 -WaitForGstarCADClose
 
 Existing process:
 $details
@@ -61,7 +87,7 @@ if (-not $SourceWorkCopyPath) {
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
   throw "Source work-copy DWG not found: $SourceWorkCopyPath"
 }
-Assert-NoExistingGstarCAD
+Assert-NoExistingGstarCAD -Wait:$WaitForGstarCADClose -WaitTimeoutSeconds $WaitForGstarCADCloseTimeoutSeconds
 if (-not (Test-Path -LiteralPath $compareDir)) {
   New-Item -ItemType Directory -Path $compareDir | Out-Null
 }

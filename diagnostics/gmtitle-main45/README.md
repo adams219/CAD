@@ -45,6 +45,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_main45_verification_suite.ps1"
 ```
 
+If GstarCAD is still open, either save and close it first or start the suite in waiting mode:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_main45_verification_suite.ps1" `
+  -WaitForGstarCADClose
+```
+
+Waiting mode does not close GstarCAD. It waits for the user to save/close the visible session, then continues the hidden read-only probes.
+
 The suite also refreshes:
 
 ```text
@@ -55,7 +65,7 @@ from the current source LSP before running the compare-copy probe.
 
 The suite fails if expected log markers are missing. The checked markers include:
 
-The suite also fails before the first probe if `gcad.exe` is already running. Save the work-copy DWG and close GstarCAD first, otherwise hidden `/b` probes can attach to the visible session and never create their log.
+The suite also fails before the first probe if `gcad.exe` is already running and `-WaitForGstarCADClose` is not used. Save the work-copy DWG and close GstarCAD first, otherwise hidden `/b` probes can attach to the visible session and never create their log.
 
 ```text
 loaded main45 versions
