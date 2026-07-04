@@ -122,6 +122,46 @@ Runtime check completed: yes
 
 This is a safety pass, not a completed A4 conversion. It proves that the tool refuses the unsafe imported `DR_A4_Outline` definition and preserves the existing A4 source frames.
 
+## A4 Outline Normalization Probe
+
+Use `run_a4_outline_normalization_probe.ps1` to test whether simple `DR_A4_Outline` definition cleanup strategies can make the imported A4 outline safe for frame-only conversion.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1"
+```
+
+Default input:
+
+```text
+work\0000_A_DRP125 CP_ALL_260704_test.dwg
+```
+
+Default logs:
+
+```text
+work\swtitle_a4_outline_norm_none_260705.txt
+work\swtitle_a4_outline_norm_huge-insert_260705.txt
+work\swtitle_a4_outline_norm_direct-outside_260705.txt
+```
+
+Current expected conclusion:
+
+```text
+none: unsafe, raw bbox remains (0,0)-(872.26126377,302.7)
+huge-insert: unsafe, raw bbox improves but still does not match A4
+direct-outside: unsafe, deletes too much and leaves only POINT/TEXT remnants
+Normalization safe for A4 frame-only conversion: no
+```
+
+This is a negative probe. It proves that direct deletion-style normalization should not be promoted into `SWTITLEPREPARE` or `SWTITLECONVERT`.
+
+Durable conclusion:
+
+```text
+docs/history/gmtitle-a4-outline-normalization-probe-2026-07-05.md
+```
+
 ## Final Completion Gate
 
 After the interactive `SWTITLECONVERT` workflow has been completed in GstarCAD, use `run_final_completion_gate.ps1` to verify the converted work-copy DWG.
