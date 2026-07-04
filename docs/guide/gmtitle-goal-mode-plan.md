@@ -36,6 +36,34 @@ A4 도면틀에 원본에 없던 외부 선/글자 없음
 
 현재 로컬에서 GstarCAD가 열려 있으면 hidden verification suite는 일부러 실행하지 않는다. `/b` 스크립트가 기존 열린 CAD 세션으로 흘러가거나 명령 대기 상태 뒤에 멈출 수 있기 때문이다.
 
+2026-07-05 로컬 확인 결과, 열린 GstarCAD와 별개로 안전한 독립 hidden 인스턴스를 강제하는 옵션은 찾지 못했다.
+
+확인한 근거:
+
+```text
+GstarCAD Mechanical Help.pdf:
+  GMTITLE/Mechanical 기능 설명은 있으나 독립 instance 실행 옵션 근거 없음
+
+StartupConfig.xml:
+  startup/profile/support path 설정은 있으나 독립 hidden instance 옵션 근거 없음
+
+GstarCAD\gcad.ini:
+  update/help/cloud URL 수준 설정만 있고 instance 제어 옵션 없음
+
+GstarCAD 설치 폴더의 ini/xml/cfg/lsp/html 검색:
+  single/multiple/new/existing instance, command-line /b 독립 실행 관련 유효 근거 없음
+
+diagnostics\gmtitle-main45\run_readonly_probe.ps1:
+  열린 gcad.exe가 있으면 기본 중단
+  -AllowExistingGstarCAD는 실패 모드 디버깅 전용
+
+diagnostics\gmtitle-main45\run_main45_verification_suite.ps1:
+  열린 gcad.exe가 있으면 기본 중단
+  안전 경로는 -WaitForGstarCADClose 또는 사용자가 저장/종료 후 실행
+```
+
+따라서 목표모드의 공식 검증 경로는 "GstarCAD 저장/종료 후 hidden suite 실행"으로 고정한다. 열린 GstarCAD를 강제로 닫거나, 독립 실행이 된다고 가정하고 suite를 밀어붙이지 않는다.
+
 GstarCAD가 열려 있을 때 할 수 있는 일:
 
 ```text

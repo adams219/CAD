@@ -131,6 +131,24 @@ gcad.exe PID 10048
 
 The suite intentionally refuses to run while visible GstarCAD is open because hidden `/b` scripts can be routed to the existing session or stall behind an active command prompt.
 
+2026-07-05 independent-instance check:
+
+```text
+No documented local evidence was found for a safe option that forces GstarCAD Mechanical to start a fully independent hidden /b instance while another visible gcad.exe is already open.
+
+Checked:
+  - GstarCAD Mechanical Help.pdf keyword extraction
+  - StartupConfig.xml
+  - GstarCAD\gcad.ini
+  - GstarCAD installed ini/xml/cfg/lsp/html files, excluding license/privacy notices
+  - diagnostics\gmtitle-main45 hidden probe wrappers
+
+Conclusion:
+  Keep the fail-fast open-GstarCAD guard.
+  Use -WaitForGstarCADClose or save/close GstarCAD before hidden suite execution.
+  Treat -AllowExistingGstarCAD as deliberate debugging only, not the production verification path.
+```
+
 Use either:
 
 ```powershell
