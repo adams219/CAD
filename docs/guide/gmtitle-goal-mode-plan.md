@@ -10,56 +10,65 @@
 
 ```text
 LSP 기준:
-260705-a3-frame-guidance
+loader: 260705-4step-gmtitle-a4-outline-preflight
+gmtitle: 260705-verify-source-priority
 
 작업 도면:
-C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg
+C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
 
 SWTITLESTATUS 결과:
-NEXT_UPGRADE_A3_A4_NATIVE
+NEXT_CREATE_FIRST_NATIVE_GMTITLE
 
 SWTITLEVERIFY 결과:
 SWTITLEVERIFY_FINAL_FAIL
 
 현재 남은 핵심 문제:
-  A3/A4 native 교체 후보: 10
-  A4 대상 도면틀 누락: 필요 2, 현재 0
-  남은 원본 도면틀: 2
-  남은 원본 표제란: 0
+  원본 표제란 시트: 13
+  원본 도면틀: 15
+  표제란 없는 도면틀 시트: 2
+  대상 GMTITLE 제목블록: 0
+  대상 GMTITLE 도면틀: 0
+  예상 시트 수: A2 1, A3 12, A4 2
+  필요한 native 기준 객체: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline
 ```
 
-이 상태는 변환 완료가 아니다. A4가 누락되어 있어도, 현재 우선순위는 A3/A4 native 교체 후보를 먼저 줄이는 것이다.
+이 상태는 변환 전 기준이다. 지금은 A3/A4 후보를 바로 복제 처리하는 단계가 아니라, 먼저 실제 GstarCAD `GMTITLE`로 각 용지 크기의 native 기준 객체를 만들어야 한다.
 
 ## 현재 증거 기반 원인 판정
 
-2026-07-04 마지막 `SWTITLESTATUS`/`SWTITLEVERIFY` 로그 기준으로, 현재 작업복사본의 원인은 아래처럼 분리한다.
+2026-07-05 `run_main45_verification_suite.ps1` 기준으로, 현재 작업복사본의 원인은 아래처럼 분리한다.
 
 ```text
-A3 도면틀 정의 오염:
-  현재 주원인 아님
-  근거: DR_A3_Outline 정의 내부 표제란 형상 후보=0, 현재 분류=outline-only
+첫 native GMTITLE 기준 객체 부재:
+  현재 주원인
+  근거: target-title-count=0, target-frame-count=0, status=NEXT_CREATE_FIRST_NATIVE_GMTITLE
 
 A3/A4 native 인식 문제:
-  현재 주원인
-  근거: A3/A4 native 교체 후보=10, 복제 쌍=9, shared-native-link 쌍=1
+  아직 기본 workcopy에서는 시작 전
+  근거: A2/A3/A4 native 기준 객체가 모두 missing
 
 A4 frame-only 미처리:
-  남은 다음 문제
-  근거: 표제란 없는 도면틀 시트=2, A4 대상 도면틀 필요 2 / 현재 0
+  별도 주의 대상
+  근거: 표제란 없는 도면틀 시트=2, DR_A4_Outline raw bbox 안전성은 별도 검증 필요
+
+BATCH 자동화:
+  사람이 보는 CAD 화면에서만 반복 입력을 줄이는 보조 기능
+  근거: SCRIPT 실행 중에는 ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE로 멈추고 후보를 보존하는 probe 통과
 
 잔여물/삭제 위험:
-  현재 변환 반복을 막는 주경고는 아님
-  근거: 실수 명령어 텍스트 후보=0, raw bbox 위험=0, 선택/형상 위험=0
+  삭제 범위를 좁히는 보호 로직 검증됨
+  근거: sheet residue protection probe가 실제 주석, 작은 SW_NOTE, BOM-like insert 보존을 확인
 ```
 
 따라서 이 작업복사본에서 같은 실수를 피하려면 아래 순서를 지킨다.
 
 ```text
-1. A3 도면틀 정의를 삭제/정규화하려고 하지 않는다.
-2. SWTITLECONVERT로 다음 A3 복제/shared-link 후보 1장을 fresh native GMTITLE로 교체한다.
-3. SWTITLESTATUS로 후보 수가 줄었는지 확인한다.
-4. A3/A4 native 교체 후보가 0이 된 뒤 A4 frame-only를 처리한다.
-5. A4는 원본에 표제란이 없으므로 DR_titlea_3rd를 새로 만드는 흐름으로 가지 않는다.
+1. 먼저 SWTITLEVERSION / SWTITLESTATUS로 현재 workcopy와 LSP 버전을 확인한다.
+2. SWTITLECONVERT로 첫 native GMTITLE 기준 객체를 만든다. 현재 기본 workcopy의 첫 대상은 A2다.
+3. GMTITLE 창에서는 로그가 요구한 DR_A*_Outline, DR_titlea_3rd, Frame positioning ON, Object move OFF만 허용한다.
+4. 한 장이 끝나면 SWTITLESTATUS로 다음 missing exact-size native 기준 객체를 확인한다.
+5. 같은 선택값이 반복되는 구간에서만 BATCH를 쓰고, 숨김/SCRIPT 자동화에는 쓰지 않는다.
+6. A4는 원본에 표제란이 없으므로 A4 frame-only 단계에서 불필요한 DR_titlea_3rd가 생기면 중단한다.
 ```
 
 ## 2026-07-04 CAD 확인 결과
@@ -261,7 +270,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260705-a3-frame-guidance
+260705-verify-source-priority
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...
@@ -277,6 +286,10 @@ C:\Users\DR-DESIGN\Documents\CAD tool\work\...
 `SWTITLESTATUS` 결과를 보고 아래 중 하나로 분류한다.
 
 ```text
+NEXT_CREATE_FIRST_NATIVE_GMTITLE
+  -> 아직 이 도면 안에 실제 GstarCAD native GMTITLE 기준 객체가 없다.
+  -> 다음 명령은 SWTITLECONVERT.
+
 NEXT_UPGRADE_A3_A4_NATIVE
   -> A3/A4 복제 또는 shared-link 쌍을 fresh native GMTITLE로 교체해야 한다.
   -> 다음 명령은 SWTITLECONVERT.
@@ -464,6 +477,7 @@ SWTITLECONVERT 안의 OPEN/BATCH 흐름을 사용한다.
 OPEN 성공 뒤 BATCH로 여러 후보를 이어서 처리한다.
 OPEN이 `NO_INSERTS`로 반복되면 MANUAL prepare/finish 복구 흐름을 사용한다.
 각 GMTITLE 창의 DR 선택은 사람이 눈으로 확인한다.
+SCRIPT/숨김 CAD 자동화에서는 BATCH가 ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE로 멈추고 후보를 보존해야 한다.
 ```
 
 승격 조건:
@@ -554,6 +568,24 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 ## 다음 실제 작업
 
 현재 work 복사본 기준 다음 행동은 아래 순서다.
+
+```text
+1. APPLOAD로 C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp 로드
+2. SWTITLEVERSION으로 gmtitle 버전이 260705-verify-source-priority인지 확인
+3. SWTITLESTATUS로 현재 상태 확인
+4. 기본 workcopy라면 NEXT_CREATE_FIRST_NATIVE_GMTITLE인지 확인
+5. SWTITLECONVERT 실행
+6. 첫 GMTITLE 창에서 로그가 요구한 용지를 선택한다. 현재 기본 workcopy의 첫 대상은 DR_A2_Outline이다.
+7. 제목블록은 DR_titlea_3rd, Frame positioning은 ON, Object move는 OFF로 확인
+8. 변환이 끝나면 SWTITLESTATUS 실행
+9. 다음 missing exact-size native 기준 객체가 있으면 SWTITLECONVERT로 한 장씩 만든다.
+10. 같은 선택값이 반복되는 A3 후보 구간에서만 BATCH를 사용한다.
+11. BATCH도 각 GMTITLE 창 선택을 대신하지 않으므로 DR 용지/제목블록/옵션을 눈으로 확인한다.
+12. A4 frame-only 단계에서는 원본에 없는 DR_titlea_3rd가 생기면 중단한다.
+13. SWTITLEVERIFY_FINAL_OK와 대표 더블클릭 확인
+```
+
+과거 중간 workcopy에서 A3 후보만 남았던 경우에는 아래 순서가 적용됐다. 현재 기본 workcopy가 이 상태가 아니라면 그대로 따라 하지 않는다.
 
 ```text
 1. SWTITLEVERSION으로 현재 기준 버전 확인

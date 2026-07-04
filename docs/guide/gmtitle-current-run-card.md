@@ -23,7 +23,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260705-a3-frame-guidance
+260705-verify-source-priority
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 APPLOAD 합니다.
@@ -42,7 +42,7 @@ SWTITLEVERSION
 
 ```text
 로컬 코드 기준: 현재 브랜치 `codex/gm-title`
-현재 LSP 기준: 260705-a3-frame-guidance
+현재 LSP 기준: 260705-verify-source-priority
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```
 
@@ -90,7 +90,7 @@ old fixture/test suffix가 붙은 로그
 
 | 로그 문구 | 의미 | 다음 행동 |
 | --- | --- | --- |
-| `SWTITLEVERSION`이 `260705-a3-frame-guidance`가 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
+| `SWTITLEVERSION`이 `260705-verify-source-priority`가 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
 | `자동화 판단: 명령줄 -GMTITLE/설정파일 자동 선택은 기본 OFF입니다.` | 현재는 GMTITLE 창 선택을 사람이 확인하는 안정 모드 | 정상. 화면 좌표 클릭이나 `-GMTITLE` 강제 자동화 금지 |
 | `NEXT_CREATE_FIRST_NATIVE_GMTITLE` | 아직 이 도면에 진짜 GMTITLE 기준 객체가 없음 | `SWTITLECONVERT`로 첫 native GMTITLE 1장 생성 |
 | `WARN_CLONED_GMTITLE_FRAME_NEEDS_NATIVE_UPGRADE` | 겉모양은 맞지만 도면틀이 복제 구조라 native 증거 부족 | `SWTITLECONVERT`로 다음 후보 1장만 native 교체 |
@@ -114,29 +114,29 @@ native/복제 구조 비교 샘플:
 
 ## 현재 workcopy 기준
 
-2026-07-04 현재 마지막 CAD 로그 기준 작업복사본은 변환 중간 상태입니다.
+2026-07-05 숨김 CAD 검증 기준 기본 작업복사본은 아직 변환 전 상태입니다.
 
 ```text
-SWTITLESTATUS: NEXT_UPGRADE_A3_A4_NATIVE
+SWTITLESTATUS: NEXT_CREATE_FIRST_NATIVE_GMTITLE
 SWTITLEVERIFY: SWTITLEVERIFY_FINAL_FAIL
-남은 원본 표제란 시트: 0
-남은 원본 도면틀: 2
+남은 원본 표제란 시트: 13
+남은 원본 도면틀: 15
 표제란 없는 도면틀 시트: 2
-대상 도면틀/제목블록 쌍: 13
-A3/A4 native 교체 후보: 10
-A4 대상 도면틀 누락: 필요 2, 현재 0
+대상 도면틀/제목블록 쌍: 0
+필요한 용지 수: A2 1, A3 12, A4 2
+없는 native 기준 객체: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline
 ```
 
-현재 `SWTITLEVERIFY`도 같은 우선순위를 확인했습니다.
+현재 `SWTITLEVERIFY`도 완료가 아니라고 확인합니다.
 
 ```text
-다음: A4 누락이 있더라도 A3/A4 native 교체 후보가 먼저입니다.
-SWTITLESTATUS로 후보를 확인한 뒤 SWTITLECONVERT를 실행해 다음 A3/A4 후보를 처리하세요.
+다음: SWTITLECONVERT로 첫 native GMTITLE 기준 객체를 만드세요.
+현재 기본 workcopy의 첫 대상은 DR_A2_Outline / DR_titlea_3rd입니다.
 ```
 
-이 상태에서 다음 실제 CAD 명령은 `SWTITLECONVERT`입니다. A3/A4 native 교체 후보가 남아 있으므로 A4 frame-only보다 A3/A4 native 교체가 먼저 안내됩니다.
+이 상태에서 다음 실제 CAD 명령은 `SWTITLECONVERT`입니다. 첫 기준 객체를 만든 뒤 `SWTITLESTATUS`가 다음 필요한 용지 크기를 다시 안내합니다.
 
-현재 작업복사본의 중요한 판정:
+이전 중간 workcopy에서 확인된 중요한 판정은 아래와 같습니다. 현재 기본 workcopy가 아직 이 단계가 아니라면 참고 이력으로만 봅니다.
 
 ```text
 DR_A3_Outline 정의 내부 표제란 형상 후보: 0
@@ -144,7 +144,7 @@ DR_A3_Outline 현재 분류: outline-only
 A3/A4 native 교체 후보: 10
 ```
 
-따라서 이 작업복사본에서 다음 원인은 "A3 도면틀 정의 안의 표제란 오염"이 아니라 "복제/shared-link GMTITLE 쌍이 native-like로 증명되지 않은 상태"입니다. 이 상태에서는 도면틀 정의를 지우거나 정규화하려고 하지 말고, `SWTITLECONVERT`로 다음 A3 후보 1장을 fresh native GMTITLE로 교체하는 것이 맞습니다.
+따라서 A3 후보 단계까지 진행된 도면에서 다음 원인은 "A3 도면틀 정의 안의 표제란 오염"이 아니라 "복제/shared-link GMTITLE 쌍이 native-like로 증명되지 않은 상태"입니다. 이 상태에서는 도면틀 정의를 지우거나 정규화하려고 하지 말고, `SWTITLECONVERT`로 다음 A3 후보 1장을 fresh native GMTITLE로 교체하는 것이 맞습니다.
 
 2026-07-04 추가 CAD 검증:
 
@@ -212,6 +212,8 @@ Enter = 중단, 도면 변경 없음
 ```
 
 `BATCH`는 명령 반복을 줄이는 기능입니다. GMTITLE 창 선택을 대신 해 주는 기능은 아니므로, 각 창에서 로그가 요구한 DR 용지/제목블록/옵션을 확인합니다.
+
+숨김 CAD 또는 SCRIPT 자동화에서는 `BATCH`가 실행되면 안 됩니다. 검증 suite는 이 경우 `ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE`로 멈추고 후보와 INSERT를 그대로 보존하는지 확인합니다.
 
 `MANUAL`은 자동 생성 흐름이 `ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS`처럼 끝날 때 쓰는 복구 선택지입니다. `MANUAL`로 준비한 뒤 안내된 값으로 GstarCAD `GMTITLE` 한 장을 만들고, 삽입점은 긴 좌표를 직접 치지 말고 기존 도면틀 왼쪽 아래 끝점/스냅으로 지정합니다. 다시 `SWTITLECONVERT`를 실행하면 pending 마무리 단계가 먼저 실행됩니다.
 

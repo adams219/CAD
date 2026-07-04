@@ -70,6 +70,7 @@ $embeddedPrepareLog = Join-Path $workDir "swtitle_embedded_title_prepare_compare
 $duplicateTargetPairLog = Join-Path $workDir "swtitle_duplicate_target_pair_compare_current_main56_duplicate_target_pair.txt"
 $adoptionGateLog = Join-Path $workDir "swtitle_adoption_gate_compare_current_main56_adoption_gate.txt"
 $a3StatusGuidanceLog = Join-Path $workDir "swtitle_a3_status_guidance_probe.txt"
+$a3a4BatchGuardLog = Join-Path $workDir "swtitle_a3a4_batch_guard_probe.txt"
 
 Write-Output "===== 1. Loader probe ====="
 & (Join-Path $PSScriptRoot "run_loader_probe.ps1") `
@@ -356,6 +357,27 @@ Assert-LogContains `
     "A3 frame guidance note found: yes",
     "A3 native-candidate supplement found: yes",
     "A3 status guidance probe passed: yes",
+    "Runtime check completed: yes"
+  )
+
+Write-Output ""
+Write-Output "===== 12. A3/A4 batch guard probe ====="
+& (Join-Path $PSScriptRoot "run_a3a4_batch_guard_probe.ps1") `
+  -SourceWorkCopyPath $SourceWorkCopyPath `
+  -LogPath $a3a4BatchGuardLog `
+  -TimeoutSeconds $TimeoutSeconds
+Assert-LogContains `
+  -Path $a3a4BatchGuardLog `
+  -Label "A3/A4 batch guard probe" `
+  -Patterns @(
+    "Load result: OK",
+    "Loaded version: 260705-verify-source-priority",
+    "Script active: yes",
+    "Batch result: OK",
+    "Status after batch: ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE",
+    "Candidates before/after: 2/2",
+    "INSERT count before/after: 4/4",
+    "Batch guard preserved candidates: yes",
     "Runtime check completed: yes"
   )
 
