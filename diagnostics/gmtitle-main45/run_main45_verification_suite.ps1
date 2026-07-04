@@ -46,27 +46,29 @@ if (-not (Test-Path -LiteralPath $compareDir)) {
 }
 
 $sourceLsp = Join-Path $repoRoot "src\tools\gmtitle\swcad_title_scale.lsp"
-$compareLsp = Join-Path $compareDir "swcad_title_scale_current_main45_compare_copy.lsp"
+$compareLsp = Join-Path $compareDir "swcad_title_scale_current_main56_compare_copy.lsp"
 Copy-Item -LiteralPath $sourceLsp -Destination $compareLsp -Force
 
-Write-Output "===== GMTITLE main45 verification suite ====="
+Write-Output "===== GMTITLE main56 verification suite ====="
 Write-Output ("Repo root: {0}" -f $repoRoot)
 Write-Output ("Source work copy: {0}" -f $SourceWorkCopyPath)
 Write-Output ("Current LSP compare copy: {0}" -f $compareLsp)
 Write-Output ""
 
-$loaderLog = Join-Path $workDir "swtitle_loader_probe_main45_diagnostics.txt"
-$copyCompareLog = Join-Path $workDir "swtitle_lsp_copy_compare_current_main45.txt"
-$actualStatusLog = Join-Path $workDir "swtitle_actual_workcopy_status_main45_diagnostics.txt"
+$loaderLog = Join-Path $workDir "swtitle_loader_probe_main56_diagnostics.txt"
+$copyCompareLog = Join-Path $workDir "swtitle_lsp_copy_compare_current_main56.txt"
+$actualStatusLog = Join-Path $workDir "swtitle_actual_workcopy_status_main56_diagnostics.txt"
 $frameclassLogs = @(
   Join-Path $workDir "swtitle_frameclass_common_probe_mixed.txt"
   Join-Path $workDir "swtitle_frameclass_common_probe_all_contaminated.txt"
   Join-Path $workDir "swtitle_frameclass_common_probe_all_native.txt"
 )
-$styleNormalizationLog = Join-Path $workDir "swtitle_style_normalization_compare_current_main50_stylecmp_all_sizes_clean.txt"
-$commandTextGuardLog = Join-Path $workDir "swtitle_command_text_guard_compare_current_main50_command_text_guard.txt"
-$residueProtectionLog = Join-Path $workDir "swtitle_residue_protection_current_main50_residue_protection.txt"
-$embeddedPrepareLog = Join-Path $workDir "swtitle_embedded_title_prepare_compare_current_main50_embedded_prepare.txt"
+$styleNormalizationLog = Join-Path $workDir "swtitle_style_normalization_compare_current_main56_stylecmp_all_sizes_clean.txt"
+$commandTextGuardLog = Join-Path $workDir "swtitle_command_text_guard_compare_current_main56_command_text_guard.txt"
+$residueProtectionLog = Join-Path $workDir "swtitle_residue_protection_current_main56_residue_protection.txt"
+$embeddedPrepareLog = Join-Path $workDir "swtitle_embedded_title_prepare_compare_current_main56_embedded_prepare.txt"
+$duplicateTargetPairLog = Join-Path $workDir "swtitle_duplicate_target_pair_compare_current_main56_duplicate_target_pair.txt"
+$adoptionGateLog = Join-Path $workDir "swtitle_adoption_gate_compare_current_main56_adoption_gate.txt"
 
 Write-Output "===== 1. Loader probe ====="
 & (Join-Path $PSScriptRoot "run_loader_probe.ps1") `
@@ -78,8 +80,8 @@ Assert-LogContains `
   -Label "loader probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded loader version: 260704-4step-gmtitle-main50",
-    "Loaded GMTITLE version: 260704-overlap-only-main50",
+    "Loaded loader version: 260704-4step-gmtitle-main56-a4guard",
+    "Loaded GMTITLE version: 260704-target-overlap-adopt-main56-a4guard",
     "Command c:SWTITLESTATUS: yes",
     "Command c:SWTITLEPREPARE: yes",
     "Command c:SWTITLECONVERT: yes",
@@ -94,7 +96,7 @@ Write-Output ""
 Write-Output "===== 2. Current LSP copy compare probe ====="
 & (Join-Path $PSScriptRoot "run_lsp_copy_compare_probe.ps1") `
   -LspPath $compareLsp `
-  -Label "current_main45" `
+  -Label "current_main56" `
   -SourceWorkCopyPath $SourceWorkCopyPath `
   -LogPath $copyCompareLog `
   -TimeoutSeconds $TimeoutSeconds
@@ -103,7 +105,7 @@ Assert-LogContains `
   -Label "current LSP copy compare probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260704-overlap-only-main50",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
     "Command c:SWTITLESTATUS: yes",
     "Command c:SWTITLEPREPARE: yes",
     "Command c:SWTITLECONVERT: yes",
@@ -131,7 +133,7 @@ Assert-LogContains `
   -Label "actual work-copy status probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260704-overlap-only-main50",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
     "Result: OK SWTITLESTATUS status=NEXT_CREATE_FIRST_NATIVE_GMTITLE",
     "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_FAIL",
     "source-title-count: 13",
@@ -200,7 +202,7 @@ Write-Output ""
 Write-Output "===== 5. A2/A3/A4 style-normalization rebuild cleanup probe ====="
 & (Join-Path $PSScriptRoot "run_style_normalization_compare_probe.ps1") `
   -LspPath $sourceLsp `
-  -Label "current_main50_stylecmp_all_sizes_clean" `
+  -Label "current_main56_stylecmp_all_sizes_clean" `
   -SourceWorkCopyPath $SourceWorkCopyPath `
   -LogPath $styleNormalizationLog `
   -Sheets "A2,A3,A4" `
@@ -210,7 +212,7 @@ Assert-LogContains `
   -Path $styleNormalizationLog `
   -Label "A2/A3/A4 style-normalization rebuild cleanup probe" `
   -Patterns @(
-    "Loaded version: 260704-overlap-only-main50",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
     "DR_A2_Outline: class=native-format-with-title-geometry",
     "DR_A3_Outline: class=native-format-with-title-geometry",
     "DR_A4_Outline: class=native-format-with-title-geometry",
@@ -225,14 +227,14 @@ Write-Output ""
 Write-Output "===== 6. Command-text guard comparison probe ====="
 & (Join-Path $PSScriptRoot "run_command_text_guard_compare_probe.ps1") `
   -LspPath $sourceLsp `
-  -Label "current_main50_command_text_guard" `
+  -Label "current_main56_command_text_guard" `
   -LogPath $commandTextGuardLog `
   -TimeoutSeconds $TimeoutSeconds
 Assert-LogContains `
   -Path $commandTextGuardLog `
   -Label "command-text guard comparison probe" `
   -Patterns @(
-    "Loaded version: 260704-overlap-only-main50",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
     "command-text-count-before: 1",
     "SWTITLESTATUS result: OK status=NEXT_REVIEW_ACCIDENTAL_COMMAND_TEXT",
     "structure-next-action: SWTITLEPREPARE",
@@ -245,14 +247,14 @@ Write-Output ""
 Write-Output "===== 7. Sheet residue protection probe ====="
 & (Join-Path $PSScriptRoot "run_residue_protection_probe.ps1") `
   -LspPath $sourceLsp `
-  -Label "current_main50_residue_protection" `
+  -Label "current_main56_residue_protection" `
   -LogPath $residueProtectionLog `
   -TimeoutSeconds $TimeoutSeconds
 Assert-LogContains `
   -Path $residueProtectionLog `
   -Label "sheet residue protection probe" `
   -Patterns @(
-    "Loaded version: 260704-overlap-only-main50",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
     "bottom-left logo line candidate: yes",
     "bottom-left real text preserved: yes",
     "upper small SW_NOTE balloon preserved: yes",
@@ -267,7 +269,7 @@ Write-Output ""
 Write-Output "===== 8. Embedded-title prepare comparison probe ====="
 & (Join-Path $PSScriptRoot "run_embedded_title_prepare_compare_probe.ps1") `
   -LspPath $sourceLsp `
-  -Label "current_main50_embedded_prepare" `
+  -Label "current_main56_embedded_prepare" `
   -LogPath $embeddedPrepareLog `
   -RunClean `
   -TimeoutSeconds $TimeoutSeconds
@@ -275,7 +277,7 @@ Assert-LogContains `
   -Path $embeddedPrepareLog `
   -Label "embedded-title prepare comparison probe" `
   -Patterns @(
-    "Loaded version: 260704-overlap-only-main50",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
     "DR_A2_Outline: class=native-format-with-title-geometry, embedded=4",
     "DR_A3_Outline: class=native-format-with-title-geometry, embedded=4",
     "DR_A4_Outline: class=native-format-with-title-geometry, embedded=4",
@@ -289,5 +291,51 @@ Assert-LogContains `
   )
 
 Write-Output ""
+Write-Output ""
+Write-Output "===== 9. Duplicate target pair comparison probe ====="
+& (Join-Path $PSScriptRoot "run_duplicate_target_pair_compare_probe.ps1") `
+  -LspPath $sourceLsp `
+  -Label "current_main56_duplicate_target_pair" `
+  -SourceWorkCopyPath $SourceWorkCopyPath `
+  -LogPath $duplicateTargetPairLog `
+  -TimeoutSeconds $TimeoutSeconds
+Assert-LogContains `
+  -Path $duplicateTargetPairLog `
+  -Label "duplicate target pair comparison probe" `
+  -Patterns @(
+    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
+    "Duplicate function present: yes",
+    "Duplicate target pair count: 1",
+    "Keep frame/title role:",
+    "native-upgrade/native-upgrade",
+    "Discard frame/title role:",
+    "native-apply/native-apply",
+    "Duplicate target pair probe passed: yes",
+    "Runtime check completed: yes"
+  )
+
+Write-Output ""
+Write-Output "===== 10. Native adoption gate comparison probe ====="
+& (Join-Path $PSScriptRoot "run_adoption_gate_compare_probe.ps1") `
+  -LspPath $sourceLsp `
+  -Label "current_main56_adoption_gate" `
+  -SourceWorkCopyPath $SourceWorkCopyPath `
+  -LogPath $adoptionGateLog `
+  -TimeoutSeconds $TimeoutSeconds
+Assert-LogContains `
+  -Path $adoptionGateLog `
+  -Label "native adoption gate comparison probe" `
+  -Patterns @(
+    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
+    "Adoption function present: yes",
+    "Status after transfer: ADOPTED_EXISTING_NATIVE_GMTITLE_TRANSFER",
+    "Danger action: <none>",
+    "Source title count before/after: 1/0",
+    "Target title count before/after: 1/1",
+    "Adoption gate probe passed: yes",
+    "Runtime check completed: yes"
+  )
+
+Write-Output ""
 Write-Output "All expected log markers were verified."
-Write-Output "===== GMTITLE main45 verification suite complete ====="
+Write-Output "===== GMTITLE main56 verification suite complete ====="

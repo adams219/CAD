@@ -1,4 +1,4 @@
-﻿# GMTITLE native 도면틀 교체 참고
+# GMTITLE native 도면틀 교체 참고
 
 이 문서는 이전의 A3/A4 native 교체 실험을 현재 4단계 흐름 기준으로 정리한 참고 문서입니다.
 
@@ -19,21 +19,17 @@ GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 
 
 초기 preserve-copy 방식은 빠르게 여러 장을 만들 수 있었지만, 일부 복제본이 GMTITLE 표 편집창 대신 고급 속성 편집기로 열렸습니다. 그래서 A2/A3/A4 각각 같은 크기의 실제 native GMTITLE 기준 객체를 만들고, 신뢰하기 어려운 복제 쌍은 `SWTITLECONVERT` 안에서 한 장씩 native 교체하도록 방향을 잡았습니다.
 
-## 현재 main50 기준
+## 현재 main56 기준
 
 현재 LSP 버전:
 
 ```text
-260704-overlap-only-main50
+260704-target-overlap-adopt-main56-a4guard
 ```
 
-현재 loader 버전:
+현재 loader 버전은 `SWTITLEVERSION`에서 함께 확인합니다.
 
-```text
-260704-4step-gmtitle-main50
-```
-
-main50에서는 `DR_A2_Outline`, `DR_A3_Outline`, `DR_A4_Outline` 도면틀 정의를 먼저 검사합니다.
+main56에서는 `DR_A2_Outline`, `DR_A3_Outline`, `DR_A4_Outline` 도면틀 정의와 이미 생성된 GMTITLE target 쌍을 먼저 검사합니다.
 
 분류 기준:
 
@@ -114,7 +110,7 @@ DR_A3_Outline 도면틀 정의 안에 오른쪽 아래 표제란처럼 보이는
 여기에 별도 DR_titlea_3rd 제목블록이 겹치면 중복처럼 보인다.
 ```
 
-main50 해결 방향:
+main56 해결 방향:
 
 ```text
 SWTITLESTATUS가 먼저 후보를 보여준다.
@@ -122,6 +118,8 @@ SWTITLEPREPARE가 작업복사본에서만 실제 겹치는 도면틀 정의 내
 외곽선, 눈금, 좌표 표시는 보존한다.
 정상 DR_titlea_3rd 제목블록은 보존한다.
 별도 제목블록과 겹치지 않는 native-format 내부 형상은 일반 cleanup에서 제외한다.
+같은 위치에 이미 생성된 DR_A*_Outline + DR_titlea_3rd target 쌍이 2개 있으면 중복 target 쌍으로 따로 표시한다.
+SWTITLECONVERT는 같은 bbox에 기존 native GMTITLE 쌍이 있으면 새로 만들지 않고 그 쌍을 채택한다.
 ```
 
 ## A4 frame-only 문제
@@ -140,20 +138,26 @@ GstarCAD GMTITLE A4 선택 결과의 실제 bbox가 이상하면 기존 A4를 �
 
 ## 검증 결과
 
-2026-07-04 기준 전체 hidden GstarCAD 진단 suite는 통과했습니다.
+2026-07-04 기준 main56 진단은 통과했습니다.
 
 ```text
-diagnostics\gmtitle-main45\run_main45_verification_suite.ps1 -TimeoutSeconds 120
+work/swtitle_duplicate_target_pair_compare_main56.txt
+work/swtitle_adoption_gate_compare_main56.txt
+work/swtitle_command_text_guard_compare_main56_command_text_guard.txt
+work/swtitle_residue_protection_main56_residue_protection.txt
+work/swtitle_embedded_title_prepare_compare_main56_embedded_prepare.txt
 ```
 
 확인된 내용:
 
 ```text
-로더가 main50 LSP를 로드함
+main56 LSP와 테스트용 main56 복사본 해시 일치
 4개 공개 명령이 활성화됨
 예전 fast/bootstrap/frame-only/A3A4 명령은 공개 명령에서 비활성화됨
 A2/A3/A4 frame 정의 분류 probe 통과
 A2/A3/A4 overlap-only 정규화 probe 통과
+겹친 target 쌍 감지/유지/삭제 후보 선정 통과
+기존 native GMTITLE 채택 gate 통과
 명령어 텍스트 guard 통과
 실제 번호/주석/BOM류 잔여물 보호 probe 통과
 ```
@@ -161,15 +165,9 @@ A2/A3/A4 overlap-only 정규화 probe 통과
 핵심 proof:
 
 ```text
-DR_A2_Outline: class=native-format-with-title-geometry, embedded=4
-DR_A3_Outline: class=native-format-with-title-geometry, embedded=4
-DR_A4_Outline: class=native-format-with-title-geometry, embedded=4
-Cleanup records by frame:
-  <none>
-Structure next action: SWTITLECONVERT - 남은 원본 SolidWorks 시트 변환
-Cleanup result: OK
-Cleanup deleted count: 0
-Cleanup record count after clean: 0
+Duplicate target pair probe passed: yes
+Adoption gate probe passed: yes
+Danger action: <none>
 ```
 
 별도 `DR_titlea_3rd`가 실제로 겹치는 fixture에서는 style-normalization으로 후보를 잡고 정리합니다.

@@ -1,4 +1,4 @@
-;;; Tracked read-only loader probe for the main45 GMTITLE workflow.
+;;; Tracked read-only loader probe for the main56 GMTITLE workflow.
 ;;; The PowerShell wrapper sets SWCAD_TOOL_ROOT and SWCAD_LOADER_PROBE_LOG.
 ;;; This script does not save the drawing.
 
@@ -17,7 +17,7 @@
 (defun swtitle-loader-probe-log-path (/ log-path)
   (setq log-path (getenv "SWCAD_LOADER_PROBE_LOG"))
   (if (or (not log-path) (= (strlen log-path) 0))
-    (setq log-path (swtitle-loader-probe-path "work/swtitle_loader_probe_main45_diagnostics.txt"))
+    (setq log-path (swtitle-loader-probe-path "work/swtitle_loader_probe_main56_diagnostics.txt"))
   )
   (vl-string-translate "\\" "/" log-path)
 )
@@ -86,7 +86,7 @@
   (setq handle (open log-path "w"))
   (if handle
     (progn
-      (swtitle-loader-probe-write-line handle "SWCAD loader main45 read-only probe")
+      (swtitle-loader-probe-write-line handle "SWCAD loader main56 read-only probe")
       (if load-ok
         (swtitle-loader-probe-write-line handle "Load result: OK")
         (swtitle-loader-probe-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))
@@ -99,8 +99,8 @@
         handle
         (strcat "Loaded GMTITLE version: " (if (boundp '*swcad-title-scale-version*) *swcad-title-scale-version* "<gmtitle version missing>"))
       )
-      (swtitle-loader-probe-write-line handle "Expected loader version: 260704-4step-gmtitle-main50")
-      (swtitle-loader-probe-write-line handle "Expected GMTITLE version: 260704-overlap-only-main50")
+      (swtitle-loader-probe-write-line handle "Expected loader version: 260704-4step-gmtitle-main56-a4guard")
+      (swtitle-loader-probe-write-line handle "Expected GMTITLE version: 260704-target-overlap-adopt-main56-a4guard")
       (swtitle-loader-probe-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-loader-probe-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-loader-probe-command-line handle "c:SWTITLESTATUS")

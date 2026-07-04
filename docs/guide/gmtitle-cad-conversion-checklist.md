@@ -1,4 +1,4 @@
-﻿# GMTITLE 실제 CAD 변환 체크리스트
+# GMTITLE 실제 CAD 변환 체크리스트
 
 이 문서는 GstarCAD 화면에서 SolidWorks DWG 작업복사본을 GMTITLE 구조로 바꿀 때 따라가는 순서입니다.
 
@@ -55,7 +55,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-overlap-only-main50
+260704-target-overlap-adopt-main56-a4guard
 ```
 
 다른 버전이 나오면 변환하지 말고 최신 LSP를 다시 APPLOAD 하세요.
@@ -107,13 +107,14 @@ target 제목블록: 0
 SWTITLEPREPARE
 ```
 
-main50 기준 정규화 대상:
+main56 기준 정규화 대상:
 
 ```text
 source-contaminated 도면틀 정의
 별도 DR_titlea_3rd와 실제로 겹치는 native-format 도면틀 내부 표제란 형상
 실수로 도면에 들어간 명령어 TEXT/MTEXT
 제목블록 없는 고아 GMTITLE 도면틀
+같은 위치에 겹친 DR_A*_Outline + DR_titlea_3rd GMTITLE target 쌍
 ```
 
 보호 대상:
@@ -153,6 +154,7 @@ SWTITLECONVERT
 기존 SolidWorks 표제란 텍스트 추출
 시트 크기 자동 인식
 같은 크기 native 기준 객체 준비
+이미 같은 위치에 native GMTITLE 쌍이 있으면 새로 만들지 않고 채택
 남은 시트 자동 복제/배치
 기존 SolidWorks 도면틀/표제란/잔여물 제거
 A3/A4 native 인식이 불확실한 쌍은 한 장씩 교체 안내
@@ -220,6 +222,7 @@ target-sheet-counts:
 도면틀 내부 표제란 형상 후보: 0
 도면틀 스타일 정규화 후보: 0
 중복 표제란 없음
+같은 위치에 겹친 GMTITLE target 쌍: 0
 고아 도면틀 없음
 ```
 
@@ -229,11 +232,14 @@ target-sheet-counts:
 
 ## 현재 상태
 
-main50 코드와 진단 fixture는 통과했습니다.
+main56 코드와 진단 fixture는 통과했습니다.
 
 ```text
-diagnostics\gmtitle-main45\run_main45_verification_suite.ps1
-All expected log markers were verified.
+중복 target 쌍 감지/정리 probe: 통과
+기존 native GMTITLE 채택 gate probe: 통과
+명령어 텍스트 guard probe: 통과
+잔여물 보호 probe: 통과
+native-format title geometry 보호 probe: 통과
 ```
 
 하지만 실제 work-copy 변환은 아직 끝나지 않았습니다. final gate는 아직 실패하는 것이 정상입니다.

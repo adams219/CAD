@@ -8,30 +8,42 @@
 
 ## 현재 기준
 
-2026-07-04 확인 결과:
+2026-07-04 현재 확인 결과:
 
 ```text
-GitHub origin/main: 0121ae1 Clean up GMTITLE command surface
-로컬 HEAD:        0121ae1 Clean up GMTITLE command surface
-현재 브랜치:      codex/gm-title
-현재 LSP 기준:    260704-frame-definition-classification-main-45
-현재 LSP SHA256:  BB80F09CFDE8C083231D1106CEAF8C2A6DD83F40F8D8A59D30B295C5FD7A8AF8
+GitHub origin/main:          0121ae1 Clean up GMTITLE command surface
+GitHub origin/codex/gm-title: 2d76a9b Use overlap-only GMTITLE frame normalization
+로컬 HEAD:                   2d76a9b Use overlap-only GMTITLE frame normalization
+현재 브랜치:                 codex/gm-title
+현재 GMTITLE LSP 기준:       260704-target-overlap-adopt-main56-a4guard
+현재 loader 기준:            260704-4step-gmtitle-main56-a4guard
 ```
 
 중요한 점:
 
 ```text
-main45 관련 LSP/문서 수정은 아직 작업트리에 남아 있다.
-즉, GitHub main에는 아직 main45 최신 수정이 올라간 상태가 아니다.
+main56-a4guard 관련 LSP/문서/진단 수정은 아직 작업트리에 남아 있다.
+즉, GitHub origin/codex/gm-title는 2d76a9b까지이고, 현재 작업트리에는 그 이후의 로컬 미커밋 변경이 있다.
+GitHub main은 0121ae1이라 최신 GMTITLE 실험/보강 기준이 아니다.
 ```
 
-따라서 CAD 테스트와 문서 판단은 로컬 작업트리의 최신 LSP를 기준으로 해야 하며, GitHub 화면만 보고 최신 상태라고 판단하지 않는다.
+따라서 CAD 테스트와 문서 판단은 반드시 아래 순서로 맞춘다.
+
+```text
+1. GitHub 원격 기준 커밋 확인
+2. 로컬 HEAD 확인
+3. 로컬 미커밋 LSP/문서 변경 확인
+4. 실제 CAD에 로드된 SWTITLEVERSION 확인
+```
+
+GitHub 화면만 보고 최신 상태라고 판단하지 않는다. 반대로, 로컬에서만 성공한 내용을 GitHub에 올라간 완료 상태로 말하지도 않는다.
 
 2026-07-04 추가 검증:
 
 ```text
-git fetch --all --prune 후 origin/main은 여전히 0121ae1이다.
-현재 로컬 main45 LSP와 비교 복사본 해시는 서로 일치한다.
+git fetch --prune origin 후 origin/codex/gm-title는 2d76a9b이다.
+전체 main56 verification suite는 통과했다.
+loader probe에서 swcad_load.lsp가 work 폴더 작업복사본에서도 src 모듈을 찾는 것을 확인했다.
 GstarCAD hidden loader/copy probe에서 대표 예전 명령은 모두 비활성화됐다.
 ```
 
@@ -53,8 +65,8 @@ GMTITLE 관련 판단, 코드 수정, CAD 테스트를 시작하기 전에는 �
 
 ```text
 git status --short --branch
-git log --oneline --decorate -n 25
-git fetch --all --prune
+git fetch --prune origin
+git log --oneline --decorate -n 25 --all
 ```
 
 그 다음 CAD에서 아래를 확인한다.
@@ -67,10 +79,11 @@ SWTITLESTATUS
 확인해야 할 항목:
 
 - 현재 열린 DWG가 `C:\Users\DR-DESIGN\Documents\CAD tool\work` 안의 작업복사본인지
-- CAD에 로드된 LSP가 `260704-frame-definition-classification-main-45`인지
+- CAD에 로드된 LSP가 `260704-target-overlap-adopt-main56-a4guard`인지
 - `SWTITLESTATUS` 로그의 `DWG 파일:` 경로가 실제 열린 도면과 같은지
 - `DR_A2_Outline`, `DR_A3_Outline`, `DR_A4_Outline` 정의 유형이 `unknown / outline-only / native-format-with-title-geometry / source-contaminated` 중 무엇인지
 - 다음 권장 명령이 `SWTITLEPREPARE`, `SWTITLECONVERT`, `SWTITLEVERIFY` 중 무엇인지
+- 현재 열린 CAD 세션 상태와 디스크에서 다시 연 숨김 진단 결과가 다르면, 현재 CAD에서 새로 실행한 `SWTITLESTATUS`/`SWTITLEVERIFY` 로그를 우선할 것
 
 이 게이트를 통과하지 못하면 `SWTITLECONVERT`를 반복 실행하지 않는다.
 
@@ -82,7 +95,7 @@ SWTITLESTATUS
 1. 원격/GitHub 기준: origin/main의 최신 커밋과 마지막 푸시 시점
 2. 로컬 기준: 현재 브랜치, 미커밋 파일, 현재 LSP 버전
 3. CAD 기준: 열린 DWG 경로, SWTITLEVERSION, SWTITLESTATUS 결과
-4. 문서 기준: 이 계획 문서와 main45 검증 인덱스의 결론
+4. 문서 기준: 이 계획 문서, main56 비교 문서, 요구사항 감사 문서의 결론
 ```
 
 이 네 가지가 서로 맞지 않으면 구현을 진행하지 않는다.
@@ -90,13 +103,15 @@ SWTITLESTATUS
 특히 다음 상황은 같은 실수를 반복할 위험 신호로 본다.
 
 ```text
-GitHub에는 오래된 커밋만 있고 로컬에 미커밋 LSP가 있음
+GitHub에는 2d76a9b까지만 있고 로컬에 미커밋 LSP/문서 변경이 있음
 CAD에는 예전 LSP가 로드되어 있음
 예전 공개 명령인 SWTITLEFASTSTATUS, SWTITLETRANSFERBOOTSTRAPFAST, SWTITLEA3A4NEXT 등이 아직 실행됨
 열린 DWG가 work 복사본이 아니라 Downloads 또는 원본 폴더 파일임
 SWTITLESTATUS 없이 SWTITLECONVERT를 다시 누르려 함
 A3 내부 형상을 source 오염인지 native-format인지 구분하지 않고 삭제하려 함
 A4 frame-only 시트를 일반 표제란 시트처럼 처리하려 함
+GMTITLE 창에서 일반 A3/A4 또는 ISO 제목블록 기본값을 그대로 OK 하려 함
+GstarCAD 명령줄 입력에 붙여넣기 방식이 들어가 `_pasteclip`으로 오해될 수 있음
 ```
 
 이 위험 신호가 있으면 먼저 상태를 정리하고, 다음 조치를 문서나 로그에 남긴 뒤 진행한다.
@@ -159,6 +174,7 @@ GstarCAD가 파일 경로를 명령 인자로 안정적으로 처리하지 못�
 | `5ed90c1 Guard GMTITLE frame definition imports` | 변환 전 `DR_A*_Outline` 도면틀 정의 오염을 먼저 확인한다. |
 | `843e453 Verify preserve-copy GMTITLE A4 frame-only` | preserve-copy/clone은 속도 개선용일 뿐, 더블클릭 검증을 대체하지 못한다. |
 | `0121ae1 Clean up GMTITLE command surface` | 새 공개 명령을 계속 늘리지 않는다. 사용자 흐름은 네 명령으로 유지한다. |
+| `2d76a9b Use overlap-only GMTITLE frame normalization` | `DR_A3_Outline` 안에 title-like 형상이 있다는 이유만으로 삭제하지 않는다. 별도 `DR_titlea_3rd`와 실제 겹칠 때만 정규화 후보로 본다. |
 | `docs/investigations/gmtitle-main45-verification-index-2026-07-04.md` | 설치 원본 `DR_A3_Outline` 자체에 title-like 형상이 있을 수 있다. source-like child가 없으면 자동 삭제하지 않는다. |
 
 2026-07-04 실제 GstarCAD 화면 확인에서 추가로 확정한 금지 방향:
@@ -166,7 +182,7 @@ GstarCAD가 파일 경로를 명령 인자로 안정적으로 처리하지 못�
 - `SWTITLECONVERT` 내부 명령줄 `-GMTITLE` 자동 선택은 새 GMTITLE INSERT를 만들지 못했다.
 - 대화식 `GMTITLE` 창의 기본값은 `A3/A0`, `ISO 제목 블록 A`, `Object move ON`처럼 잘못 열릴 수 있다.
 - 키보드 자동 입력으로 `DR_A2_Outline`을 입력해도 정확히 선택되지 않고 다른 용지로 바뀔 수 있다.
-- 그래서 main44부터 명령줄 `-GMTITLE` 자동 선택은 기본으로 사용하지 않고, main45에서도 이 금지는 유지한다.
+- 그래서 main44부터 명령줄 `-GMTITLE` 자동 선택은 기본으로 사용하지 않고, main56-a4guard에서도 이 금지는 유지한다.
 - 따라서 GMTITLE 창의 용지/제목블록 선택은 자동 입력 결과를 믿지 말고 사용자가 눈으로 확인해야 한다.
 
 따라서 공개 사용자 명령은 계속 아래 네 개로 고정한다.

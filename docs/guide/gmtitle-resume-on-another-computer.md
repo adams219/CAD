@@ -1,8 +1,8 @@
-# GMTITLE 다른 컴퓨터에서 이어하기
+# GMTITLE 다른 컴퓨터에서 이어가기
 
-이 문서는 다른 PC에서 현재 GMTITLE 작업을 이어갈 때 보는 짧은 인수인계입니다.
+다른 PC에서 현재 GMTITLE 작업을 이어받을 때 확인할 기준 문서입니다.
 
-## 현재 Git 기준
+## Git 기준
 
 저장소:
 
@@ -16,17 +16,26 @@ https://github.com/adams219/CAD.git
 codex/gm-title
 ```
 
-기준은 특정 커밋 번호가 아니라 `origin/codex/gm-title` 브랜치의 최신 상태입니다.
+주의:
+
+```text
+2026-07-04 현재 GitHub origin/codex/gm-title 최신 커밋은 2d76a9b입니다.
+main56-a4guard LSP/문서/진단 보강은 아직 로컬 작업트리에 미커밋 상태로 남아 있습니다.
+따라서 commit/push 전 다른 PC에서 git pull만 하면 main56-a4guard가 없을 수 있습니다.
+다른 PC에서 바로 이어가려면 먼저 현재 PC에서 변경사항을 commit/push하거나, 현재 PC의 로컬 작업트리를 그대로 옮겨야 합니다.
+```
 
 최신 커밋 확인:
 
 ```powershell
-git log --oneline -n 3
+git fetch origin
+git log --oneline -n 3 --all
+git status --short --branch
 ```
 
 ## 처음 받는 PC
 
-문서 폴더에서 새로 받을 때:
+문서 폴더에 새로 받을 때:
 
 ```powershell
 cd "$env:USERPROFILE\Documents"
@@ -46,7 +55,7 @@ git pull
 
 ## GstarCAD에서 로드
 
-GstarCAD에서 `APPLOAD`를 실행한 뒤 아래 파일을 로드합니다.
+GstarCAD에서 `APPLOAD`를 실행하고 아래 파일을 로드합니다.
 
 ```text
 C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp
@@ -61,12 +70,12 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-overlap-only-main50
+260704-target-overlap-adopt-main56-a4guard
 ```
 
-다른 버전이면 변환하지 말고 다시 APPLOAD 합니다.
+다른 버전이면 변환하지 말고 다시 APPLOAD 합니다. 그래도 다른 버전이면 GitHub에 아직 최신 로컬 변경이 올라가지 않았거나, 다른 브랜치를 받은 상태일 수 있습니다.
 
-## 실제 DWG 작업 위치
+## DWG 작업 위치
 
 원본 DWG에서 바로 작업하지 말고 반드시 `work` 폴더의 복사본에서 진행합니다.
 
@@ -74,36 +83,28 @@ SWTITLEVERSION
 C:\Users\DR-DESIGN\Documents\CAD tool\work
 ```
 
-현재 기준 작업복사본은 변환 전 상태입니다.
+`Downloads` 원본 DWG나 실제 납품 원본에서 바로 실행하지 않습니다.
 
-```text
-SWTITLESTATUS: NEXT_CREATE_FIRST_NATIVE_GMTITLE
-SWTITLEVERIFY: SWTITLEVERIFY_FINAL_FAIL
-원본 표제란/도면틀: 13 / 15
-표제란 없는 도면틀 시트: 2
-대상 도면틀/제목블록: 0 / 0
-필요 용지:
-  A2: 1
-  A3: 12
-  A4: 2
-```
+## CAD 실행 순서
 
-이 상태는 오류가 아닙니다. 첫 변환이 아직 시작되지 않았다는 뜻입니다.
-
-## CAD에서 실행할 순서
+항상 상태부터 봅니다.
 
 ```text
 SWTITLESTATUS
-SWTITLECONVERT
-SWTITLESTATUS
 ```
 
-중간에 `SWTITLESTATUS`가 정규화를 안내하면:
+상태가 정규화를 요구하면:
 
 ```text
 SWTITLEPREPARE
 SWTITLESTATUS
+```
+
+상태가 변환을 요구하면:
+
+```text
 SWTITLECONVERT
+SWTITLESTATUS
 ```
 
 최종 검증:
@@ -123,6 +124,15 @@ Frame positioning: ON
 Object move: OFF
 ```
 
+## main56 주의점
+
+```text
+SWTITLESTATUS가 겹친 GMTITLE target 쌍을 표시하면 SWTITLECONVERT를 반복하지 않습니다.
+먼저 SWTITLEPREPARE로 정리합니다.
+같은 위치에 기존 native GMTITLE 쌍이 있으면 SWTITLECONVERT가 새로 만들지 않고 그 쌍을 채택합니다.
+DR_A3_Outline 안의 native-format title-like 형상은 그 자체만으로 삭제하지 않습니다.
+```
+
 ## 완료 기준
 
 아래가 모두 확인되기 전에는 완료가 아닙니다.
@@ -136,13 +146,14 @@ target-sheet-counts:
   A2: 1
   A3: 12
   A4: 2
+겹친 GMTITLE target 쌍: 0
 대표 A2/A3/A4 DR_titlea_3rd 더블클릭 시 GMTITLE 표 편집창 열림
 도면 안 번호, 주석, BOM, 치수, 모델 형상 유지
 ```
 
 ## 함께 볼 문서
 
-CAD 옆에 띄워둘 짧은 실행 카드:
+짧은 실행 카드:
 
 ```text
 docs\guide\gmtitle-current-run-card.md
@@ -152,4 +163,10 @@ docs\guide\gmtitle-current-run-card.md
 
 ```text
 docs\guide\gmtitle-cad-conversion-checklist.md
+```
+
+main56 계획:
+
+```text
+docs\history\gmtitle-main56-target-overlap-adoption-plan-2026-07-04.md
 ```

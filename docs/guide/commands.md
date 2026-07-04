@@ -1,4 +1,4 @@
-﻿# CAD Tool 명령어
+# CAD Tool 명령어
 
 이 문서는 사용자가 CAD 명령창에 직접 입력하는 공개 명령만 정리합니다.
 
@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260704-overlap-only-main50
+260704-target-overlap-adopt-main56-a4guard
 ```
 
 ## GMTITLE 변환 명령
@@ -41,9 +41,9 @@ SWTITLEVERIFY
 
 | 명령 | 용도 | 도면 변경 |
 | --- | --- | --- |
-| `SWTITLESTATUS` | 현재 DWG 상태를 읽기 전용으로 진단하고 다음에 실행할 명령을 안내합니다. work 복사본 여부, 원본 시트 수, A2/A3/A4 예상 수량, 도면틀 정의 상태, A4 frame-only 상태를 확인합니다. | 없음 |
-| `SWTITLEPREPARE` | 변환 전에 필요한 정규화를 수행합니다. 실수 명령어 텍스트, 도면틀 정의 내부 표제란 형상, 고아 GMTITLE 도면틀 같은 후보를 먼저 보여주고 `YES` 확인 후 처리합니다. | 있음 |
-| `SWTITLECONVERT` | 상태에 맞는 변환 단계를 실행합니다. 첫 native GMTITLE 생성, 같은 크기 기준 객체 준비, 남은 시트 변환, A3/A4 native 교체, A4 frame-only 처리를 이 명령 안에서 안내합니다. | 있음 |
+| `SWTITLESTATUS` | 현재 DWG 상태를 읽기 전용으로 진단하고 다음에 실행할 명령을 안내합니다. work 복사본 여부, 원본 시트 수, A2/A3/A4 예상 수량, 도면틀 정의 상태, A4 frame-only 상태, 겹친 GMTITLE target 쌍을 확인합니다. | 없음 |
+| `SWTITLEPREPARE` | 변환 전에 필요한 정규화를 수행합니다. 실수 명령어 텍스트, 도면틀 정의 내부 표제란 형상, 고아 GMTITLE 도면틀, 겹친 GMTITLE target 쌍 같은 후보를 먼저 보여주고 `YES` 확인 후 처리합니다. | 있음 |
+| `SWTITLECONVERT` | 상태에 맞는 변환 단계를 실행합니다. 첫 native GMTITLE 생성, 같은 크기 기준 객체 준비, 기존 native GMTITLE 채택, 남은 시트 변환, A3/A4 native 교체, A4 frame-only 처리를 이 명령 안에서 안내합니다. | 있음 |
 | `SWTITLEVERIFY` | 변환 결과를 읽기 전용으로 검증합니다. 남은 원본 객체, 중복/누락, native-like 상태, A2/A3/A4 수량, 최종 OK/WARN/FAIL을 확인합니다. | 없음 |
 
 ## 권장 실행 순서
@@ -119,6 +119,7 @@ C:\Users\DR-DESIGN\Documents\CAD tool\work
 | `swcad_title_frame_style_normalization_clean_last.txt` | 도면틀 스타일 정규화 로그 |
 | `swcad_title_transfer_apply_last.txt` | 첫 native GMTITLE 변환 단계 로그 |
 | `swcad_title_fast_status_last.txt` | 내부 빠른 변환 준비 상태 로그 |
+| `swcad_title_duplicate_target_pair_clean_last.txt` | 겹친 GMTITLE target 쌍 정리 로그 |
 | `swcad_title_verify_summary_last.txt` | `SWTITLEVERIFY` 최종 요약 |
 
 ## 완료 기준
@@ -134,6 +135,7 @@ target-sheet-counts:
   A2: 1
   A3: 12
   A4: 2
+겹친 GMTITLE target 쌍: 0
 대표 A2/A3/A4 DR_titlea_3rd 더블클릭 시 GMTITLE 표 편집창 열림
 도면 안 번호, 주석, BOM, 치수, 모델 형상 유지
 ```

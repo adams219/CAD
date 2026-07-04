@@ -39,8 +39,11 @@ docs/history/gmtitle-history-gated-plan-2026-07-04.md
 ```text
 repo: https://github.com/adams219/CAD.git
 branch: codex/gm-title
-origin/main, main, codex/gm-title: 0121ae1 Clean up GMTITLE command surface
-current LSP baseline: 260704-frame-definition-classification-main-45
+origin/main, main: 0121ae1 Clean up GMTITLE command surface
+origin/codex/gm-title, local HEAD: 2d76a9b Use overlap-only GMTITLE frame normalization
+current GMTITLE LSP baseline: 260704-target-overlap-adopt-main56-a4guard
+current loader baseline: 260704-4step-gmtitle-main56-a4guard
+working tree: main56-a4guard 보강 변경은 아직 로컬 미커밋 상태
 ```
 
 반드시 반영할 이전 결론:
@@ -48,6 +51,11 @@ current LSP baseline: 260704-frame-definition-classification-main-45
 - `0121ae1 Clean up GMTITLE command surface`
   - 실험용 공개 명령이 너무 많아져서 정리했다.
   - 따라서 A3 전용, A4 전용, 복구 전용 공개 명령을 다시 늘리지 않는다.
+
+- `2d76a9b Use overlap-only GMTITLE frame normalization`
+  - `DR_A3_Outline` 안에 title-like 형상이 있다는 이유만으로 삭제하지 않는다.
+  - 별도 `DR_titlea_3rd`와 실제로 겹치는 경우에만 정규화 후보로 본다.
+  - 도면틀 정의 문제와 변환 중 생긴 중복 target 쌍 문제를 분리한다.
 
 - `0bb4c9b Document GMTITLE first-native picker limits`
   - GMTITLE 창 선택은 화면 좌표 클릭이나 드롭다운 위치 의존 자동화로 안정화하기 어렵다.
@@ -203,13 +211,44 @@ decision: DELETE / KEEP / REVIEW
 
 ## 구현 단계
 
+### 0단계: GitHub/로컬/CAD 기준을 먼저 맞춘다
+
+코드 변경이나 CAD 조작 전에 아래를 먼저 확인한다.
+
+```text
+git status --short --branch
+git fetch --prune origin
+git log --oneline --decorate -n 25 --all
+SWTITLEVERSION
+SWTITLESTATUS
+```
+
+현재 기대값:
+
+```text
+origin/codex/gm-title: 2d76a9b Use overlap-only GMTITLE frame normalization
+local HEAD: 2d76a9b Use overlap-only GMTITLE frame normalization
+SWTITLEVERSION: 260704-target-overlap-adopt-main56-a4guard
+사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
+```
+
+아래 중 하나라도 맞지 않으면 변환을 진행하지 않는다.
+
+```text
+CAD에 예전 LSP가 로드됨
+열린 도면이 work 복사본이 아님
+현재 CAD 상태와 디스크 진단 결과가 서로 다른데 CAD 최신 로그를 만들지 않음
+SWTITLESTATUS 없이 SWTITLECONVERT를 반복 실행하려 함
+GMTITLE 창에서 일반 A3/A4 또는 ISO 제목블록을 그대로 OK 하려 함
+```
+
 ### 1단계: 현재 진단을 더 명확하게 정리
 
 코드 변경 전 확인:
 
 ```text
 git status --short
-git log --oneline --decorate -n 30
+git log --oneline --decorate -n 30 --all
 SWTITLEVERSION
 SWTITLESTATUS
 SWTITLEVERIFY

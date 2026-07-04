@@ -16,10 +16,10 @@ if (-not $SourceWorkCopyPath) {
   $SourceWorkCopyPath = Join-Path $repoRoot "work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg"
 }
 if (-not $ProbeDwgPath) {
-  $ProbeDwgPath = Join-Path $repoRoot "work\swtitle_loader_probe_main45_diagnostics.dwg"
+  $ProbeDwgPath = Join-Path $repoRoot "work\swtitle_loader_probe_main56_diagnostics.dwg"
 }
 if (-not $LogPath) {
-  $LogPath = Join-Path $repoRoot "work\swtitle_loader_probe_main45_diagnostics.txt"
+  $LogPath = Join-Path $repoRoot "work\swtitle_loader_probe_main56_diagnostics.txt"
 }
 
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
@@ -38,7 +38,7 @@ if (-not (Test-Path -LiteralPath $fixturePath)) {
   throw "Fixture LSP not found: $fixturePath"
 }
 
-$scriptPath = Join-Path $workDir "swtitle_loader_probe_main45_diagnostics.scr"
+$scriptPath = Join-Path $workDir "swtitle_loader_probe_main56_diagnostics.scr"
 $fixtureForLisp = ($fixturePath -replace "\\", "/")
 Set-Content -LiteralPath $scriptPath -Encoding ASCII -Value "(load `"$fixtureForLisp`")"
 

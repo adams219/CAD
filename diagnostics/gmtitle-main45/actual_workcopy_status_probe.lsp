@@ -85,7 +85,7 @@
   (setq requested-log-suffix
     (swtitle-diag45-env-or-default
       "SWCAD_ACTUAL_WORKCOPY_LOG_SUFFIX"
-      "_actual_workcopy_main45_diagnostics"
+      "_actual_workcopy_main56_diagnostics"
     )
   )
   (if load-ok
@@ -94,18 +94,18 @@
   (setq env-log-path (getenv "SWCAD_ACTUAL_WORKCOPY_STATUS_LOG"))
   (if (and env-log-path (> (strlen env-log-path) 0))
     (setq log-path (vl-string-translate "\\" "/" env-log-path))
-    (setq log-path (swtitle-diag45-path "work/swtitle_actual_workcopy_status_main45_diagnostics.txt"))
+    (setq log-path (swtitle-diag45-path "work/swtitle_actual_workcopy_status_main56_diagnostics.txt"))
   )
   (setq handle (open log-path "w"))
   (if handle
     (progn
-      (swtitle-diag45-write-line handle "SWTITLE main45 actual workcopy read-only status probe")
+      (swtitle-diag45-write-line handle "SWTITLE main56 actual workcopy read-only status probe")
       (if load-ok
         (swtitle-diag45-write-line handle "Load result: OK")
         (swtitle-diag45-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))
       )
       (swtitle-diag45-write-line handle (strcat "Loaded version: " version-value))
-      (swtitle-diag45-write-line handle "Expected version: 260704-overlap-only-main50")
+      (swtitle-diag45-write-line handle "Expected version: 260704-target-overlap-adopt-main56-a4guard")
       (swtitle-diag45-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-diag45-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-diag45-write-line handle "Commands requested: SWTITLEVERSION, SWTITLESTATUS, SWTITLEVERIFY")

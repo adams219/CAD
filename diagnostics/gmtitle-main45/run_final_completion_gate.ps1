@@ -46,7 +46,7 @@ $statusLogPath = Join-Path $workDir "swtitle_final_completion_gate_status.txt"
 $detailSuffix = "_final_completion_gate"
 $verifySummaryLogPath = Join-Path $workDir "swcad_title_verify_summary_last_final_completion_gate.txt"
 
-Write-Output "===== GMTITLE main45 final completion gate ====="
+Write-Output "===== GMTITLE main56 final completion gate ====="
 Write-Output ("Source work copy: {0}" -f $SourceWorkCopyPath)
 
 & (Join-Path $PSScriptRoot "run_actual_workcopy_status_probe.ps1") `
@@ -61,7 +61,7 @@ Assert-LogContains `
   -Label "final completion status probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260704-overlap-only-main50",
+    "Loaded version: 260704-target-overlap-adopt-main56-a4guard",
     "Result: OK SWTITLESTATUS",
     "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_OK",
     "source-title-count: 0",

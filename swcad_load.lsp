@@ -5,7 +5,7 @@
 
 (vl-load-com)
 
-(setq *swcad-version* "260704-4step-gmtitle-main50")
+(setq *swcad-version* "260704-4step-gmtitle-main56-a4guard")
 
 (defun swcad-loader-source (/ src)
   (setq src nil)
@@ -18,10 +18,37 @@
   src
 )
 
-(defun swcad-loader-root (/ src dir)
+(defun swcad-loader-root-valid-p (dir)
+  (and
+    dir
+    (findfile (strcat dir "/src/tools/gmtitle/swcad_title_scale.lsp"))
+  )
+)
+
+(defun swcad-loader-parent-dir (dir / clean)
+  (setq clean (if dir (vl-string-right-trim "\\/" dir) nil))
+  (if clean (vl-filename-directory clean) nil)
+)
+
+(defun swcad-loader-root (/ src dir dwg-dir dwg-parent user-root)
   (setq src (swcad-loader-source))
   (setq dir (if src (vl-filename-directory src) nil))
-  (if dir dir ".")
+  (setq dwg-dir (getvar "DWGPREFIX"))
+  (setq dwg-parent (swcad-loader-parent-dir dwg-dir))
+  (setq user-root
+    (if (getenv "USERPROFILE")
+      (strcat (getenv "USERPROFILE") "/Documents/CAD tool")
+      nil
+    )
+  )
+  (cond
+    ((swcad-loader-root-valid-p dir) dir)
+    ((swcad-loader-root-valid-p dwg-dir) dwg-dir)
+    ((swcad-loader-root-valid-p dwg-parent) dwg-parent)
+    ((swcad-loader-root-valid-p user-root) user-root)
+    (dir dir)
+    (T ".")
+  )
 )
 
 (setq *swcad-root* (swcad-loader-root))
