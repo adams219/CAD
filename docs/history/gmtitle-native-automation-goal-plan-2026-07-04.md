@@ -11,10 +11,10 @@ SolidWorks DWG를 GstarCAD Mechanical native GMTITLE 구조로 안정 변환한�
 현재 LSP 기준:
 
 ```text
-260704-target-overlap-adopt-main64-status-batch-guidance
+260704-target-overlap-adopt-main65-paperset-evidence
 ```
 
-main59/main60/main61/main62/main63/main64에서 추가한 것:
+main59/main60/main61/main62/main63/main64/main65에서 추가한 것:
 
 ```text
 SWTITLESTATUS 내부 native 도면틀 확인 로그에
@@ -24,6 +24,7 @@ main61에서는 구조 판단 요약의 권장 다음 명령이 A3/A4 native 교
 main62에서는 핵심 SWTITLESTATUS/SWTITLEVERIFY 안내와 로더 문구를 한국어로 정리해 CAD 명령창에서 다음 행동을 더 읽기 쉽게 했다.
 main63에서는 새 공개 명령을 만들지 않고 SWTITLECONVERT 안에서 A3/A4 native 교체용 OPEN/BATCH 선택지를 제공한다.
 main64에서는 SWTITLESTATUS의 다음 단계 안내도 OPEN/BATCH 흐름과 맞춰, 여러 후보를 반드시 한 장씩 명령 재입력해야 한다는 오해를 줄였다.
+main65에서는 PaperSet.ini/dat와 HKCU PAPERSET.GRX-66 레지스트리 조사를 근거로, 현재 확인된 로컬 설정에는 DR 용지/DR_titlea_3rd 기본 선택값을 고정하는 값이 없음을 로그에 남긴다.
 
 비교 항목:
   sheet / block / reason / role
@@ -62,7 +63,7 @@ SWTITLEVERSION
 SWSCALESCAN
 ```
 
-main64 정적 확인 결과, `src/tools/gmtitle/swcad_title_scale.lsp`의 public `defun c:` 명령은 위 6개뿐이다. 예전 transfer/fast/A3A4/frame-only/verify-all 명령은 `swcad-title-disable-legacy-public-commands` 목록에서 비활성화 대상으로 관리한다.
+main65 정적 확인 결과, `src/tools/gmtitle/swcad_title_scale.lsp`의 public `defun c:` 명령은 위 6개뿐이다. 예전 transfer/fast/A3A4/frame-only/verify-all 명령은 `swcad-title-disable-legacy-public-commands` 목록에서 비활성화 대상으로 관리한다.
 
 현재 파악한 구조:
 
@@ -346,7 +347,7 @@ C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_verify_summary_last.txt
 
 | 단계 | 통과 증거 | 실패 또는 보류 증거 | 다음 행동 |
 | --- | --- | --- | --- |
-| 로드 확인 | `SWTITLEVERSION`이 `260704-target-overlap-adopt-main64-status-batch-guidance` | 버전 다름, main64 문구 없음 | APPLOAD 다시 실행 |
+| 로드 확인 | `SWTITLEVERSION`이 `260704-target-overlap-adopt-main65-paperset-evidence` | 버전 다름, main65 문구 없음 | APPLOAD 다시 실행 |
 | 상태 진단 | `SWTITLESTATUS`가 현재 work 복사본 DWG 경로를 표시 | Downloads/원본 DWG, 오래된 `*_last.txt` | work 복사본 열고 상태 재실행 |
 | 구조 분류 | `native/복제 구조 비교 샘플:`과 `자동화 판단:` 출력 | 구조 비교 샘플 없음 | 현재 로그를 완료 증거로 쓰지 않음 |
 | 변환 가능 | 다음 행동이 `SWTITLECONVERT`로 명확히 안내됨 | raw bbox 위험, 선택 위험, shared link 경고 | 변환 반복 금지, 원인 분류 |
@@ -646,7 +647,7 @@ SWTITLESTATUS
 `SWTITLEVERSION`이 아래와 다르면 그 세션의 결과는 사용하지 않는다.
 
 ```text
-260704-target-overlap-adopt-main64-status-batch-guidance
+260704-target-overlap-adopt-main65-paperset-evidence
 ```
 
 우선순위:
@@ -661,7 +662,7 @@ SWTITLESTATUS
 
 이 계획은 `SWTITLECONVERT` 반복을 줄이기 위한 목표 계획이며, 현재 production 기본값을 즉시 바꾸라는 뜻은 아니다.
 
-## 목표모드 운영 계획 main64 이후
+## 목표모드 운영 계획 main65 이후
 
 이 절은 목표모드에서 같은 실수를 반복하지 않기 위한 실제 운영 기준이다.
 
@@ -669,12 +670,52 @@ SWTITLESTATUS
 
 ```text
 1. CAD에 로드된 LSP 버전이 증거의 출발점이다.
-2. 낡은 main58/main56/main63 이전 로그는 참고 기록일 뿐 main64 판단 증거가 아니다.
+2. 낡은 main58/main56/main64 이전 로그는 참고 기록일 뿐 main65 판단 증거가 아니다.
 3. 화면 모양보다 SWTITLESTATUS/SWTITLEVERIFY 로그를 우선한다.
 4. 새 공개 명령을 늘리지 않는다.
 5. 원본 DWG는 건드리지 않고 work 복사본만 변환한다.
 6. 복제 GMTITLE은 native GMTITLE로 간주하지 않는다.
 7. 완료는 SWTITLEVERIFY_FINAL_OK와 대표 더블클릭 확인 전까지 선언하지 않는다.
+```
+
+### 목표모드 세부 작업 분해
+
+목표모드에서는 "명령어를 하나 더 만든다"가 아니라 아래 작업 항목을 순서대로 좁힌다.
+
+| 작업 항목 | 확인할 질문 | 완료 증거 | 중단 조건 |
+| --- | --- | --- | --- |
+| 증거 잠금 | 지금 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION`이 main65 이상, DWG 경로가 `work` | 버전 불일치, Downloads/원본 DWG |
+| 구조 모델 | title과 frame이 각각 native인지, clone인지, shared-link인지 구분되는가 | `native/복제 구조 비교 샘플`, role/reason/native-like 로그 | 구조 비교 로그 없음 |
+| A3 문제 | A3의 제목블록 중복이 실제 중복인지, native 도면틀 내부 형상인지 구분됐는가 | A3별 frame/title 쌍, bbox, source-contaminated 판정 | DR_A3_Outline 원본 형상을 잔여물로 오판 |
+| A4 문제 | 원본 A4가 frame-only인지, 새 변환도 frame-only로 유지되는가 | A4 target frame 수량 일치, A4 title block 없음 | A4에 `DR_titlea_3rd`가 생김, A4 도면 삭제 |
+| 자동화 판단 | 사람이 선택해야 하는 단계와 LSP가 대신할 단계를 분리했는가 | 자동화 판단 로그, PaperSet 설정 조사 근거 | 화면 좌표 클릭, 설정 파일 추측 수정 |
+| 변환 실행 | 한 번 변환 뒤 후보 수가 실제로 줄었는가 | `SWTITLESTATUS`의 남은 후보/누락 수 감소 | 후보 수 변화 없음, raw bbox/선택 위험 |
+| 최종 감사 | 수량, 잔여물, native성, 더블클릭 동작이 모두 통과했는가 | `SWTITLEVERIFY_FINAL_OK`와 대표 더블클릭 확인 | 하나라도 증거 부족 |
+
+이 표에서 중단 조건이 나오면 같은 명령을 반복하지 않는다. 먼저 `SWTITLESTATUS`와 최신 `*_last.txt` 로그로 어떤 항목에서 막혔는지 분류한다.
+
+자동화는 아래 3단계로만 승격한다.
+
+```text
+1단계: 안내 자동화
+  - 현재 유지한다.
+  - 다음 후보, 필요한 DR 용지, DR_titlea_3rd, 옵션을 한국어로 안내한다.
+
+2단계: 배치 보조 자동화
+  - OPEN/BATCH로 명령 재입력을 줄인다.
+  - 단, GMTITLE 창의 DR 선택은 사용자가 눈으로 확인한다.
+
+3단계: native 생성 자동화
+  - 아직 기본값으로 쓰지 않는다.
+  - work 복사본에서 -GMTITLE/API가 A2/A3/A4 모두 같은 native INSERT/xdata를 만드는지 증명된 뒤에만 검토한다.
+```
+
+각 단계의 금지선:
+
+```text
+1단계에서 CAD 도면을 삭제하지 않는다.
+2단계에서 DR_A*_Outline/DR_titlea_3rd 선택을 추측하지 않는다.
+3단계에서 GstarCAD native xdata를 LISP가 직접 조작하지 않는다.
 ```
 
 ### Phase 0. 버전과 도면 상태 잠금
@@ -698,7 +739,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260704-target-overlap-adopt-main64-status-batch-guidance
+260704-target-overlap-adopt-main65-paperset-evidence
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...
@@ -722,7 +763,7 @@ SWTITLEPREPARE 금지
 SWTITLE LSP 버전: 260704-target-overlap-adopt-main58-a4outline
 ```
 
-이 버전으로 생성된 로그는 `main64`의 한국어 안내, 구조 비교 샘플, 자동화 정책 판단, A3/A4 OPEN/BATCH 선택지가 빠져 있으므로 최종 판단에 쓰지 않는다.
+이 버전으로 생성된 로그는 `main65`의 한국어 안내, 구조 비교 샘플, 자동화 정책 판단, A3/A4 OPEN/BATCH 선택지, PaperSet 설정 조사 근거가 빠져 있으므로 최종 판단에 쓰지 않는다.
 
 ### Phase 1. 상태를 세 가지로 분류
 
@@ -926,12 +967,34 @@ GstarCAD native xdata를 추측으로 직접 작성
 복제 GMTITLE을 native로 간주
 ```
 
+main65 로컬 설정 조사 결과:
+
+```text
+C:\Program Files\Gstarsoft\GstarCAD Mechanical 2024 Korean\MCADSetting\PaperSet.ini
+  [Common]
+  DrawWithBlock = 0
+
+C:\Program Files\Gstarsoft\GstarCAD Mechanical 2024 Korean\MCADSetting\PaperSet.dat
+  A0/A1/A2/A3/A4 및 확장 용지의 치수/여백 계열 목록
+  DR_A*_Outline 또는 DR_titlea_3rd 문자열 없음
+
+HKCU\Software\Gstarsoft\GstarMechStd\R24\ko-KR\Profiles\GstarMech2024Pro\Dialogs\PAPERSET.GRX-66
+  X/Y/Width/Height만 있음
+
+HKCU 검색 결과
+  DR_A3_Outline: 없음
+  DR_titlea_3rd: Recent File List의 직접 DWG 열기 기록만 있음
+```
+
+따라서 현재 확인된 로컬 설정만으로 GMTITLE 대화상자의 용지/제목블록을 DR_A*_Outline / DR_titlea_3rd로 고정하는 자동화는 증거 부족이다.
+다음 자동화 실험은 설정 파일 수정이 아니라, work 복사본에서 `-GMTITLE` 또는 내부 API가 실제로 어떤 INSERT/xdata를 만드는지 실패 복구 가능한 방식으로 검증해야 한다.
+
 ### Phase 4. 자동화 실험을 시작할 조건
 
 자동 `-GMTITLE` 또는 API 실험은 아래 조건이 충족될 때만 시작한다.
 
 ```text
-main64 이상이 CAD에 로드됨
+main65 이상이 CAD에 로드됨
 work 복사본에서 실행 중
 현재 SWTITLESTATUS/SWTITLEVERIFY 로그가 최신임
 실패 시 새 INSERT를 되돌릴 수 있음
@@ -974,7 +1037,7 @@ SWTITLEVERIFY_FINAL_OK로 이어짐
 완료 선언 전 반드시 아래 항목을 현재 CAD 세션 기준으로 확인한다.
 
 ```text
-SWTITLEVERSION = 260704-target-overlap-adopt-main64-status-batch-guidance 이상
+SWTITLEVERSION = 260704-target-overlap-adopt-main65-paperset-evidence 이상
 DWG 경로 = work 폴더 작업복사본
 SWTITLEVERIFY_FINAL_OK
 남은 원본 표제란 = 0

@@ -5,7 +5,7 @@
 
 (vl-load-com)
 
-(setq *swcad-version* "260704-4step-gmtitle-main64-status-batch-guidance")
+(setq *swcad-version* "260704-4step-gmtitle-main65-paperset-evidence")
 
 (defun swcad-loader-source (/ src)
   (setq src nil)

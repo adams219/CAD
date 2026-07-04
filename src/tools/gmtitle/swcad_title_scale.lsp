@@ -31,7 +31,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main64-status-batch-guidance")
+(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main65-paperset-evidence")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -4214,6 +4214,7 @@
     (progn
       (swcad-title-princ-line "자동화 판단: 명령줄 -GMTITLE/설정파일 자동 선택은 기본 OFF입니다.")
       (swcad-title-princ-line "자동화 판단: 로컬 조사상 paperset.grx가 native GMTITLE 구조를 만들며, DR 기본 선택값을 설정파일로 고정하는 근거는 아직 없습니다.")
+      (swcad-title-princ-line "자동화 판단: PaperSet.ini/dat는 용지 크기/DrawWithBlock 수준이고, HKCU PAPERSET.GRX-66은 대화상자 위치/크기만 확인됐습니다.")
       (swcad-title-princ-line "자동화 판단: GMTITLE 창이 열리면 DR_A*_Outline과 DR_titlea_3rd를 눈으로 확인하세요. 화면 좌표 클릭 자동화는 사용하지 않습니다.")
     )
   )
@@ -17633,7 +17634,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main64-status-batch-guidance")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main65-paperset-evidence")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)

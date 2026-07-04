@@ -19,12 +19,12 @@ GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 
 
 초기 preserve-copy 방식은 빠르게 여러 장을 만들 수 있었지만, 일부 복제본이 GMTITLE 표 편집창 대신 고급 속성 편집기로 열렸습니다. 그래서 A2/A3/A4 각각 같은 크기의 실제 native GMTITLE 기준 객체를 만들고, 신뢰하기 어려운 복제 쌍은 `SWTITLECONVERT` 안에서 한 장씩 native 교체하도록 방향을 잡았습니다.
 
-## 현재 main64 기준
+## 현재 main65 기준
 
 현재 LSP 버전:
 
 ```text
-260704-target-overlap-adopt-main64-status-batch-guidance
+260704-target-overlap-adopt-main65-paperset-evidence
 ```
 
 현재 loader 버전은 `SWTITLEVERSION`에서 함께 확인합니다.
