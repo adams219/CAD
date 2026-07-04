@@ -4,6 +4,78 @@
 
 목표는 명령어를 계속 늘리는 것이 아니다. 목표는 `SWTITLESTATUS`, `SWTITLEPREPARE`, `SWTITLECONVERT`, `SWTITLEVERIFY` 흐름 안에서 사람이 반복 선택하는 일을 줄이되, GstarCAD native GMTITLE 인식이 깨지지 않게 만드는 것이다.
 
+## 목표모드 운영 루프
+
+목표모드에서는 "다음 명령을 많이 실행"하는 것이 아니라, 아래 루프를 반복한다.
+
+```text
+1. 증거 잠금
+   현재 열린 DWG가 work 복사본인지, 최신 LSP인지, 로그가 현재 도면을 가리키는지 확인한다.
+
+2. 상태 분류
+   SWTITLESTATUS 결과를 보고 첫 native 부재, A3/A4 native 교체, A4 frame-only, 정규화/위험 상태 중 하나로 분류한다.
+
+3. 최소 변경
+   상태가 요구하는 명령 하나만 실행한다. 보통 SWTITLEPREPARE 또는 SWTITLECONVERT 중 하나다.
+
+4. 재검증
+   바로 SWTITLESTATUS 또는 SWTITLEVERIFY를 다시 실행해 수량, 후보 수, 경고 수가 실제로 바뀌었는지 확인한다.
+
+5. 중단 판단
+   후보 수가 줄지 않거나 raw bbox, A4 제목블록 생성, 도면 내부 객체 삭제 같은 위험이 보이면 같은 명령을 반복하지 않는다.
+
+6. 기록
+   왜 계속하는지, 왜 멈추는지, 어떤 로그가 근거인지 문서/최종 답변/커밋에 남긴다.
+```
+
+이 루프의 기준은 "모양이 그럴듯한가"가 아니라 "native GMTITLE 구조라는 증거가 늘었는가"다.
+
+### 역할 분담
+
+LSP가 맡는 일:
+
+```text
+시트 크기 탐지
+원본 표제란 값 추출
+DR_titlea_3rd 속성값 매핑
+왼쪽 아래 배치점 계산
+새 GMTITLE 결과 검사
+기존 SolidWorks 도면틀/표제란/허용된 잔여물 삭제
+SWTITLESTATUS/SWTITLEVERIFY 로그 출력
+```
+
+사람 또는 CAD 화면 확인이 아직 필요한 일:
+
+```text
+GMTITLE 창에서 로그가 요구한 DR_A*_Outline이 맞는지 확인
+제목블록이 DR_titlea_3rd인지 확인
+Frame positioning이 ON인지 확인
+Object move가 OFF인지 확인
+대표 제목블록 더블클릭 시 GMTITLE 표 편집창이 열리는지 확인
+```
+
+이 사람이 필요한 부분은 자동화가 불가능해서 남겨 둔 것이 아니다. 현재 증거상 GstarCAD가 기본값을 일반 A3/A4 또는 ISO 제목블록으로 열 수 있으므로, 잘못된 native 객체를 대량 생성하지 않기 위한 안전장치다.
+
+### 진행률 판단
+
+목표모드의 진행률은 아래 항목으로 본다.
+
+```text
+진행됨:
+  target title/frame 수가 기대 수량에 가까워짐
+  A3/A4 native 교체 후보가 줄어듦
+  clone/shared-link 경고가 줄어듦
+  frame-only A4가 제목블록 없이 도면틀만 남음
+  SWTITLEVERIFY_FINAL_OK에 가까워짐
+
+진행 아님:
+  도면 모양만 비슷해짐
+  새 명령어가 늘어남
+  같은 경고가 그대로인데 변환을 반복함
+  A4에 원본에 없던 제목블록이 생김
+  probe 로그를 실제 작업도면 로그로 착각함
+```
+
 ## 현재 기준 상태
 
 현재 믿을 수 있는 기준은 최신 CAD 로그와 work 복사본이다.
