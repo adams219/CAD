@@ -31,7 +31,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main63-guided-a3a4-batch")
+(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main64-status-batch-guidance")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -194,7 +194,7 @@
         ("NEXT_PREPARE_FRAME_STYLE_NORMALIZATION" . "도면틀 안 native 표제란 형상이 별도 제목블록과 겹쳐 정규화가 먼저 필요합니다.")
         ("NEXT_REVIEW_TARGET_FRAME_GEOMETRY" . "대상 도면틀의 크기나 선택 범위가 이상하므로 먼저 확인해야 합니다.")
         ("NEXT_REVIEW_TARGET_FRAME_SELECTION" . "도면틀 선택 범위가 겹치거나 너무 커서 더블클릭/편집 대상이 빗나갈 수 있습니다.")
-        ("NEXT_UPGRADE_A3_A4_NATIVE" . "복제된 A3/A4 GMTITLE을 한 장씩 실제 native GMTITLE로 교체해야 합니다.")
+        ("NEXT_UPGRADE_A3_A4_NATIVE" . "복제된 A3/A4 GMTITLE을 실제 native GMTITLE로 교체해야 합니다.")
         ("NEXT_CREATE_FIRST_NATIVE_GMTITLE" . "첫 실제 native GMTITLE 기준 객체를 하나 만들어야 합니다.")
         ("NEXT_CREATE_MISSING_NATIVE_EXEMPLAR" . "남은 용지 크기와 같은 native GMTITLE 기준 객체를 먼저 만들어야 합니다.")
         ("NEXT_RUN_FAST_BATCH" . "필요한 native 기준 객체가 준비됐으므로 남은 시트를 빠른 변환으로 처리할 수 있습니다.")
@@ -4439,7 +4439,9 @@
   (cond
     ((equal status "NEXT_UPGRADE_A3_A4_NATIVE")
       (swcad-title-princ-line "다음 명령: SWTITLECONVERT")
-      (swcad-title-princ-line (strcat "현재 표시된 A3/A4 native 교체 후보 " (itoa a3a4-count) "개 중 다음 1개를 내부에서 처리합니다."))
+      (swcad-title-princ-line (strcat "현재 표시된 A3/A4 native 교체 후보는 " (itoa a3a4-count) "개입니다."))
+      (swcad-title-princ-line "SWTITLECONVERT 안에서 OPEN은 다음 후보 1장, BATCH는 사용자가 입력한 수량만큼 이어서 처리합니다.")
+      (swcad-title-princ-line "BATCH를 써도 각 GMTITLE 창의 DR 용지/DR_titlea_3rd/Frame positioning ON/Object move OFF 확인은 사람이 해야 합니다.")
       (swcad-title-princ-line "이미 만들어진 A3/A4 GMTITLE 대상 쌍의 더블클릭 native 동작을 복구하는 단계입니다.")
       (if (> frame-only-count 0)
         (swcad-title-princ-line "표제란 없는 A4 원본 시트가 아직 남아 있습니다. 현재 native 교체가 끝난 뒤 처리합니다.")
@@ -17631,7 +17633,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main63-guided-a3a4-batch")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main64-status-batch-guidance")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)

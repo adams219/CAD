@@ -11,10 +11,10 @@ SolidWorks DWG를 GstarCAD Mechanical native GMTITLE 구조로 안정 변환한�
 현재 LSP 기준:
 
 ```text
-260704-target-overlap-adopt-main63-guided-a3a4-batch
+260704-target-overlap-adopt-main64-status-batch-guidance
 ```
 
-main59/main60/main61/main62/main63에서 추가한 것:
+main59/main60/main61/main62/main63/main64에서 추가한 것:
 
 ```text
 SWTITLESTATUS 내부 native 도면틀 확인 로그에
@@ -23,6 +23,7 @@ SWTITLESTATUS 내부 다음 단계/구조 판단 요약에 자동화 정책을 �
 main61에서는 구조 판단 요약의 권장 다음 명령이 A3/A4 native 교체 후보를 A4 frame-only보다 먼저 안내하도록 우선순위를 맞췄다.
 main62에서는 핵심 SWTITLESTATUS/SWTITLEVERIFY 안내와 로더 문구를 한국어로 정리해 CAD 명령창에서 다음 행동을 더 읽기 쉽게 했다.
 main63에서는 새 공개 명령을 만들지 않고 SWTITLECONVERT 안에서 A3/A4 native 교체용 OPEN/BATCH 선택지를 제공한다.
+main64에서는 SWTITLESTATUS의 다음 단계 안내도 OPEN/BATCH 흐름과 맞춰, 여러 후보를 반드시 한 장씩 명령 재입력해야 한다는 오해를 줄였다.
 
 비교 항목:
   sheet / block / reason / role
@@ -61,7 +62,7 @@ SWTITLEVERSION
 SWSCALESCAN
 ```
 
-main63 정적 확인 결과, `src/tools/gmtitle/swcad_title_scale.lsp`의 public `defun c:` 명령은 위 6개뿐이다. 예전 transfer/fast/A3A4/frame-only/verify-all 명령은 `swcad-title-disable-legacy-public-commands` 목록에서 비활성화 대상으로 관리한다.
+main64 정적 확인 결과, `src/tools/gmtitle/swcad_title_scale.lsp`의 public `defun c:` 명령은 위 6개뿐이다. 예전 transfer/fast/A3A4/frame-only/verify-all 명령은 `swcad-title-disable-legacy-public-commands` 목록에서 비활성화 대상으로 관리한다.
 
 현재 파악한 구조:
 
@@ -345,7 +346,7 @@ C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_verify_summary_last.txt
 
 | 단계 | 통과 증거 | 실패 또는 보류 증거 | 다음 행동 |
 | --- | --- | --- | --- |
-| 로드 확인 | `SWTITLEVERSION`이 `260704-target-overlap-adopt-main63-guided-a3a4-batch` | 버전 다름, main63 문구 없음 | APPLOAD 다시 실행 |
+| 로드 확인 | `SWTITLEVERSION`이 `260704-target-overlap-adopt-main64-status-batch-guidance` | 버전 다름, main64 문구 없음 | APPLOAD 다시 실행 |
 | 상태 진단 | `SWTITLESTATUS`가 현재 work 복사본 DWG 경로를 표시 | Downloads/원본 DWG, 오래된 `*_last.txt` | work 복사본 열고 상태 재실행 |
 | 구조 분류 | `native/복제 구조 비교 샘플:`과 `자동화 판단:` 출력 | 구조 비교 샘플 없음 | 현재 로그를 완료 증거로 쓰지 않음 |
 | 변환 가능 | 다음 행동이 `SWTITLECONVERT`로 명확히 안내됨 | raw bbox 위험, 선택 위험, shared link 경고 | 변환 반복 금지, 원인 분류 |
@@ -645,7 +646,7 @@ SWTITLESTATUS
 `SWTITLEVERSION`이 아래와 다르면 그 세션의 결과는 사용하지 않는다.
 
 ```text
-260704-target-overlap-adopt-main63-guided-a3a4-batch
+260704-target-overlap-adopt-main64-status-batch-guidance
 ```
 
 우선순위:
@@ -660,7 +661,7 @@ SWTITLESTATUS
 
 이 계획은 `SWTITLECONVERT` 반복을 줄이기 위한 목표 계획이며, 현재 production 기본값을 즉시 바꾸라는 뜻은 아니다.
 
-## 목표모드 운영 계획 main63 이후
+## 목표모드 운영 계획 main64 이후
 
 이 절은 목표모드에서 같은 실수를 반복하지 않기 위한 실제 운영 기준이다.
 
@@ -668,7 +669,7 @@ SWTITLESTATUS
 
 ```text
 1. CAD에 로드된 LSP 버전이 증거의 출발점이다.
-2. 낡은 main58/main56/main62 이전 로그는 참고 기록일 뿐 main63 판단 증거가 아니다.
+2. 낡은 main58/main56/main63 이전 로그는 참고 기록일 뿐 main64 판단 증거가 아니다.
 3. 화면 모양보다 SWTITLESTATUS/SWTITLEVERIFY 로그를 우선한다.
 4. 새 공개 명령을 늘리지 않는다.
 5. 원본 DWG는 건드리지 않고 work 복사본만 변환한다.
@@ -697,7 +698,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260704-target-overlap-adopt-main63-guided-a3a4-batch
+260704-target-overlap-adopt-main64-status-batch-guidance
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...
@@ -721,7 +722,7 @@ SWTITLEPREPARE 금지
 SWTITLE LSP 버전: 260704-target-overlap-adopt-main58-a4outline
 ```
 
-이 버전으로 생성된 로그는 `main63`의 한국어 안내, 구조 비교 샘플, 자동화 정책 판단, A3/A4 OPEN/BATCH 선택지가 빠져 있으므로 최종 판단에 쓰지 않는다.
+이 버전으로 생성된 로그는 `main64`의 한국어 안내, 구조 비교 샘플, 자동화 정책 판단, A3/A4 OPEN/BATCH 선택지가 빠져 있으므로 최종 판단에 쓰지 않는다.
 
 ### Phase 1. 상태를 세 가지로 분류
 
@@ -906,12 +907,13 @@ GstarCAD native GMTITLE 생성은 LISP 복사만으로 완전히 재현되지 �
 상태별 다음 명령 한국어 안내
 ```
 
-main63에서 실제로 줄인 부분:
+main63/main64에서 실제로 줄인 부분:
 
 ```text
 SWTITLECONVERT를 여러 번 다시 입력하는 반복을 줄이기 위해 A3/A4 native 교체 상태에서 OPEN/BATCH 선택지를 제공한다.
 OPEN은 기존처럼 다음 후보 1장만 처리한다.
 BATCH는 처리 수량을 입력받아 여러 후보를 이어서 처리한다.
+SWTITLESTATUS의 다음 단계 안내도 OPEN/BATCH 흐름을 직접 말한다.
 단, 각 GMTITLE 창의 DR_A*_Outline / DR_titlea_3rd / Frame positioning ON / Object move OFF 확인은 여전히 사람이 한다.
 선택값이 틀리거나 실패하면 새 INSERT를 제거하고 기존 쌍을 보존한 뒤 중단한다.
 ```
@@ -929,7 +931,7 @@ GstarCAD native xdata를 추측으로 직접 작성
 자동 `-GMTITLE` 또는 API 실험은 아래 조건이 충족될 때만 시작한다.
 
 ```text
-main63 이상이 CAD에 로드됨
+main64 이상이 CAD에 로드됨
 work 복사본에서 실행 중
 현재 SWTITLESTATUS/SWTITLEVERIFY 로그가 최신임
 실패 시 새 INSERT를 되돌릴 수 있음
@@ -972,7 +974,7 @@ SWTITLEVERIFY_FINAL_OK로 이어짐
 완료 선언 전 반드시 아래 항목을 현재 CAD 세션 기준으로 확인한다.
 
 ```text
-SWTITLEVERSION = 260704-target-overlap-adopt-main63-guided-a3a4-batch 이상
+SWTITLEVERSION = 260704-target-overlap-adopt-main64-status-batch-guidance 이상
 DWG 경로 = work 폴더 작업복사본
 SWTITLEVERIFY_FINAL_OK
 남은 원본 표제란 = 0

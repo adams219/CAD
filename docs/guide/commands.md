@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260704-target-overlap-adopt-main63-guided-a3a4-batch
+260704-target-overlap-adopt-main64-status-batch-guidance
 ```
 
 ## GMTITLE 변환 명령
