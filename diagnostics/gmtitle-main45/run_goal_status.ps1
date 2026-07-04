@@ -193,27 +193,24 @@ function Write-A4FrameOnlyEvidenceSummary {
     Write-Output "  Installed DR_A4_Outline prepare probe: <missing>"
   }
 
-  $normalizationLogs = @(
-    Get-ChildItem -LiteralPath $WorkDir -Filter "swtitle_a4_outline_norm_*_260705.txt" -ErrorAction SilentlyContinue |
-      Sort-Object Name
-  )
-  if ($normalizationLogs.Count -gt 0) {
-    $normalizationSummary = @()
-    foreach ($log in $normalizationLogs) {
-      $text = Read-TextWithFallback -Path $log.FullName
-      $strategy = Get-FirstRegexValue -Text $text -Pattern "^Strategy:\s*(.+)$"
+  $normalizationSummary = @()
+  foreach ($strategy in @("none", "huge-insert", "direct-outside", "nested-outside")) {
+    $safeStrategy = $strategy -replace '[^A-Za-z0-9_-]', '_'
+    $logPath = Join-Path $WorkDir ("swtitle_a4_outline_norm_{0}_260705.txt" -f $safeStrategy)
+    if (Test-Path -LiteralPath $logPath) {
+      $text = Read-TextWithFallback -Path $logPath
       $safe = Get-FirstRegexValue -Text $text -Pattern "^Normalization safe for A4 frame-only conversion:\s*(yes|no)"
-      if (-not $strategy) {
-        $strategy = $log.BaseName
-      }
       if (-not $safe) {
         $safe = "unknown"
       }
       $normalizationSummary += ("{0}={1}" -f $strategy, $safe)
+    } else {
+      $normalizationSummary += ("{0}=not-run" -f $strategy)
     }
-    Write-Output ("  A4 normalization probes: {0}" -f ($normalizationSummary -join ", "))
-  } else {
-    Write-Output "  A4 normalization probes: <missing>"
+  }
+  Write-Output ("  A4 normalization probes: {0}" -f ($normalizationSummary -join ", "))
+  if ($normalizationSummary -contains "nested-outside=not-run") {
+    Write-Output "  Next A4 investigation probe: save/close visible GstarCAD, then run run_a4_outline_normalization_probe.ps1 -Strategies nested-outside on a copied DWG."
   }
 
   if ($script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") {
