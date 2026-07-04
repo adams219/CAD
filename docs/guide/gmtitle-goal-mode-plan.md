@@ -83,7 +83,7 @@ Object move가 OFF인지 확인
 ```text
 LSP 기준:
 loader: 260705-4step-gmtitle-a4-outline-preflight
-gmtitle: 260705-verify-source-priority
+gmtitle: 260705-verify-source-priority-multidocguard
 
 작업 도면:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
@@ -124,7 +124,7 @@ work\swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
 ```text
 신뢰 가능:
   DWG 파일이 현재 열린 work 복사본과 같음
-  SWTITLE LSP 버전이 260705-verify-source-priority
+  SWTITLE LSP 버전이 260705-verify-source-priority-multidocguard
   방금 실행한 명령 결과임
 
 신뢰 보류:
@@ -178,7 +178,7 @@ BATCH 자동화:
 
 | 작업 단위 | 해결하려는 질문 | 통과 증거 | 통과 전 금지 |
 | --- | --- | --- | --- |
-| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260705-verify-source-priority`, `작업 폴더 복사본: 예` | `SWTITLECONVERT` 실행 |
+| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260705-verify-source-priority-multidocguard`, `작업 폴더 복사본: 예` | `SWTITLECONVERT` 실행 |
 | 첫 native 기준 객체 | 이 DWG 안에 실제 GMTITLE 쌍이 최소 1개 있는가 | `target-title-count > 0`, 같은 크기 `DR_A*_Outline` 기준 객체 존재 | clone/fast batch 완료 판단 |
 | A3/A4 native 교체 | 겉보기 복제본이 아니라 fresh native 쌍인가 | `A3/A4 native 교체 후보: 0`, clone/shared-link 경고 0 | 도면틀 더블클릭만 보고 성공 판정 |
 | A4 frame-only | 원본에 없는 제목블록 없이 도면틀만 교체됐는가 | `A4 도면틀-only 대상 수`와 예상 A4 수량 일치, 불필요한 `DR_titlea_3rd` 없음 | A4에 제목블록 생성 |
@@ -386,7 +386,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260705-verify-source-priority
+260705-verify-source-priority-multidocguard
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...
@@ -695,6 +695,7 @@ _pasteclip 상태가 보이면 ESC로 빠져나온 뒤 다시 시작한다.
 긴 명령이나 파일 경로를 한 번에 붙여넣지 않는다. CAD가 이를 _pasteclip 삽입으로 해석할 수 있다.
 work 복사본을 열 때도 제목 표시줄과 활성 도면 탭이 목표 DWG인지 다시 확인한다.
 여러 도면 탭이 열려 있으면 SWTITLESTATUS가 다른 탭에서 실행될 수 있으므로 변환 전 활성 탭을 확인한다.
+SWTITLEPREPARE/SWTITLECONVERT가 현재 활성 DWG를 보여주며 ACTIVE를 요구하면, 목표 work 복사본이 확실할 때만 ACTIVE를 입력한다. 아니면 Enter로 중단한다.
 APPLOAD, SWTITLEVERSION, SWTITLESTATUS로 버전을 먼저 확인한다.
 GMTITLE 창 선택이 불확실하면 진행하지 않고 ESC로 중단한다.
 ```
@@ -707,7 +708,7 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 
 ```text
 1. APPLOAD로 C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp 로드
-2. SWTITLEVERSION으로 gmtitle 버전이 260705-verify-source-priority인지 확인
+2. SWTITLEVERSION으로 gmtitle 버전이 260705-verify-source-priority-multidocguard인지 확인
 3. SWTITLESTATUS로 현재 상태 확인
 4. 기본 workcopy라면 NEXT_CREATE_FIRST_NATIVE_GMTITLE인지 확인
 5. SWTITLECONVERT 실행

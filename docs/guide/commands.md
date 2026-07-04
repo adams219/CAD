@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260705-verify-source-priority
+260705-verify-source-priority-multidocguard
 ```
 
 ## GMTITLE 변환 명령
@@ -38,6 +38,8 @@ SWTITLEPREPARE
 SWTITLECONVERT
 SWTITLEVERIFY
 ```
+
+여러 DWG 탭이 열려 있으면 `SWTITLEPREPARE`와 `SWTITLECONVERT`가 현재 활성 도면 경로를 먼저 보여줍니다. 목표 work 복사본이 맞을 때만 `ACTIVE`를 입력하고, 조금이라도 다르면 Enter로 중단한 뒤 올바른 탭을 활성화합니다.
 
 | 명령 | 용도 | 도면 변경 |
 | --- | --- | --- |

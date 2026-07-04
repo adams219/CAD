@@ -53,7 +53,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260705-verify-source-priority
+260705-verify-source-priority-multidocguard
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 APPLOAD 합니다.
@@ -72,7 +72,7 @@ SWTITLEVERSION
 
 ```text
 로컬 코드 기준: 현재 브랜치 `codex/gm-title`
-현재 LSP 기준: 260705-verify-source-priority
+현재 LSP 기준: 260705-verify-source-priority-multidocguard
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```
 
@@ -81,6 +81,7 @@ SWTITLEVERSION
 ```text
 a4outline 기준에서는 DR_A4_Outline 정의 raw bbox 위험을 먼저 막고, 위험이 사라진 뒤 표제란 없는 A4는 SWTITLECONVERT가 제목블록 없이 도면틀만 교체합니다.
 다른 PC나 열린 CAD 세션이 예전 LSP를 들고 있을 수 있으므로, 실제 CAD의 SWTITLEVERSION을 우선 확인합니다.
+여러 DWG 탭이 열려 있으면 SWTITLEPREPARE/SWTITLECONVERT가 현재 활성 DWG를 보여주고 ACTIVE 입력을 요구합니다. 목표 work 복사본이 아니면 Enter로 중단합니다.
 ```
 
 판단이 헷갈리면 먼저 아래 파일을 봅니다.
@@ -132,7 +133,8 @@ swtitle_*_probe*.dwg 또는 *_compare_*.dwg를 가리키는 로그
 
 | 로그 문구 | 의미 | 다음 행동 |
 | --- | --- | --- |
-| `SWTITLEVERSION`이 `260705-verify-source-priority`가 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
+| `SWTITLEVERSION`이 `260705-verify-source-priority-multidocguard`가 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
+| `ABORT_MULTIPLE_OPEN_DWGS` | 여러 도면 탭이 열려 있고 현재 활성 도면 확인을 하지 않음 | 목표 work 복사본 탭을 활성화한 뒤, 맞을 때만 `ACTIVE` 입력 |
 | `자동화 판단: 명령줄 -GMTITLE/설정파일 자동 선택은 기본 OFF입니다.` | 현재는 GMTITLE 창 선택을 사람이 확인하는 안정 모드 | 정상. 화면 좌표 클릭이나 `-GMTITLE` 강제 자동화 금지 |
 | `NEXT_CREATE_FIRST_NATIVE_GMTITLE` | 아직 이 도면에 진짜 GMTITLE 기준 객체가 없음 | `SWTITLECONVERT`로 첫 native GMTITLE 1장 생성 |
 | `WARN_CLONED_GMTITLE_FRAME_NEEDS_NATIVE_UPGRADE` | 겉모양은 맞지만 도면틀이 복제 구조라 native 증거 부족 | `SWTITLECONVERT`로 다음 후보 1장만 native 교체 |

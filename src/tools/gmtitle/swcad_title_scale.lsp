@@ -31,7 +31,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260705-verify-source-priority")
+(setq *swcad-title-scale-version* "260705-verify-source-priority-multidocguard")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -156,6 +156,7 @@
         ("STOP_NO_MORE_SOLIDWORKS_TITLE_SOURCE" . "남은 SolidWorks 원본 표제란 시트가 없습니다.")
         ("STOP_NO_MORE_FRAME_ONLY_SOURCE" . "남은 frame-only 시트가 없습니다.")
         ("ABORT_NOT_WORK_COPY" . "작업복사본이 아니어서 중단했습니다.")
+        ("ABORT_MULTIPLE_OPEN_DWGS" . "여러 도면이 열려 있어 현재 활성 도면 확인이 필요해 중단했습니다.")
         ("ABORT_READ_ONLY_DOCUMENT" . "읽기 전용 도면이라 중단했습니다.")
         ("ABORT_USER_CANCEL" . "사용자가 취소했습니다.")
         ("ABORT_EXISTING_GMTITLE_NOT_FOUND" . "필요한 GMTITLE 쌍을 찾지 못했습니다.")
@@ -972,6 +973,56 @@
       (if (swcad-title-current-dwg-in-work-p) "yes" "no")
     )
   )
+)
+
+(defun swcad-title-open-document-count (/ docs result)
+  (setq docs (vl-catch-all-apply 'vla-get-Documents (list (vlax-get-acad-object))))
+  (if (vl-catch-all-error-p docs)
+    1
+    (progn
+      (setq result (vl-catch-all-apply 'vla-get-Count (list docs)))
+      (if (or (vl-catch-all-error-p result) (not (numberp result)))
+        1
+        result
+      )
+    )
+  )
+)
+
+(defun swcad-title-active-dwg-confirmed-p (/ count answer)
+  (setq count (swcad-title-open-document-count))
+  (if (<= count 1)
+    T
+    (progn
+      (swcad-title-princ-line
+        (strcat
+          "여러 도면 탭 경고: 현재 열린 도면 수="
+          (itoa count)
+        )
+      )
+      (swcad-title-princ-line
+        (strcat
+          "현재 활성 DWG: "
+          (swcad-title-current-dwg-full-path)
+        )
+      )
+      (swcad-title-princ-line "SWTITLEPREPARE/SWTITLECONVERT는 현재 활성 탭의 도면을 변경할 수 있습니다.")
+      (setq answer
+        (getstring
+          T
+          "\n이 도면이 목표 work 복사본이면 ACTIVE를 입력하고, 아니면 Enter로 중단하세요: "
+        )
+      )
+      (equal (strcase answer) "ACTIVE")
+    )
+  )
+)
+
+(defun swcad-title-abort-multiple-open-dwgs ()
+  (swcad-title-apply-result "ABORT_MULTIPLE_OPEN_DWGS")
+  (swcad-title-princ-text "\n여러 도면이 열려 있어 현재 활성 도면 확인이 필요합니다.")
+  (swcad-title-princ-text (strcat "\n현재 활성 DWG: " (swcad-title-current-dwg-full-path)))
+  (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
 )
 
 (defun swcad-title-print-loaded-version ()
@@ -17443,7 +17494,8 @@
       (swcad-title-princ-text "\n먼저 SWTITLESTATUS로 상태만 확인한 뒤, CAD 명령줄에서 SWTITLEPREPARE를 직접 입력하세요.")
       (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
     )
-    (progn
+    (if (swcad-title-active-dwg-confirmed-p)
+      (progn
       (swcad-title-princ-text "\n작업복사본에서만 정리 명령을 실행합니다. 각 정리 단계는 후보를 보여주고 YES 확인을 받습니다.")
       (swcad-title-frame-def-check)
       (setq command-text-records (swcad-title-command-text-residue-records))
@@ -17519,6 +17571,8 @@
       (swcad-title-frame-def-check)
       (swcad-title-native-frame-completion-check)
       (swcad-title-princ-text "\nSWTITLEPREPARE 완료: 경고가 줄었는지 확인한 뒤 SWTITLESTATUS 또는 SWTITLECONVERT를 실행하세요.")
+      )
+      (swcad-title-abort-multiple-open-dwgs)
     )
   )
   (princ)
@@ -17540,7 +17594,8 @@
     (swcad-title-abort-interactive-gmtitle-script-active
       "SWTITLECONVERT는 도면을 변경할 수 있고 GMTITLE 창 선택이 필요할 수 있어 자동 실행에서는 진행하지 않습니다."
     )
-    (progn
+    (if (swcad-title-active-dwg-confirmed-p)
+      (progn
       (if *swcad-title-pending-manual-native-upgrade*
         (progn
           (swcad-title-princ-text "\n대기 중인 수동 native GMTITLE 교체 마무리 작업이 있습니다.")
@@ -17720,6 +17775,8 @@
       )
         )
       )
+      )
+      (swcad-title-abort-multiple-open-dwgs)
     )
   )
   (swcad-title-princ-text "\nSWTITLECONVERT 완료: 멈춤/경고가 있으면 SWTITLESTATUS를, 완료되면 SWTITLEVERIFY를 실행하세요.")
@@ -17951,7 +18008,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-verify-source-priority")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-verify-source-priority-multidocguard")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)

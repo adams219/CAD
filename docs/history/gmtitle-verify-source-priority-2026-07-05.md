@@ -30,7 +30,7 @@ target-frame-count: 0
 LSP 버전:
 
 ```text
-260705-verify-source-priority
+260705-verify-source-priority-multidocguard
 ```
 
 `SWTITLEVERIFY` 실패 안내에 다음 우선순위를 추가했다.
