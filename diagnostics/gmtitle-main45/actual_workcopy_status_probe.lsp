@@ -54,6 +54,26 @@
   )
 )
 
+(defun swtitle-diag45-file-contains-p (path pattern / file line found)
+  (setq found nil)
+  (if (and path (findfile path))
+    (progn
+      (setq file (open path "r"))
+      (if file
+        (progn
+          (while (and (not found) (setq line (read-line file)))
+            (if (vl-string-search pattern line)
+              (setq found T)
+            )
+          )
+          (close file)
+        )
+      )
+    )
+  )
+  found
+)
+
 (defun swtitle-diag45-env-or-default (name default / value)
   (setq value (getenv name))
   (if (or (not value) (= (strlen value) 0))
@@ -62,7 +82,7 @@
   )
 )
 
-(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count)
+(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count verify-summary-log verify-source-priority verify-a4-first)
   (setq load-result
     (vl-catch-all-apply
       'load
@@ -105,7 +125,7 @@
         (swtitle-diag45-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))
       )
       (swtitle-diag45-write-line handle (strcat "Loaded version: " version-value))
-      (swtitle-diag45-write-line handle "Expected version: 260705-a3-frame-guidance")
+      (swtitle-diag45-write-line handle "Expected version: 260705-verify-source-priority")
       (swtitle-diag45-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-diag45-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-diag45-write-line handle (strcat "DBMOD before commands: " (itoa (getvar "DBMOD"))))
@@ -134,12 +154,28 @@
           )
           (setq ok-verify (swtitle-diag45-run-command handle "SWTITLEVERIFY" 'c:SWTITLEVERIFY))
           (setq status-after-verify (swtitle-diag45-status-value))
+          (setq verify-summary-log (swcad-title-work-log-path "swcad_title_verify_summary_last.txt"))
+          (setq verify-source-priority
+            (swtitle-diag45-file-contains-p
+              verify-summary-log
+              "SOURCE_SHEETS_BEFORE_A4_FRAME_ONLY"
+            )
+          )
+          (setq verify-a4-first
+            (swtitle-diag45-file-contains-p
+              verify-summary-log
+              "A4_FRAME_ONLY_AFTER_SOURCES"
+            )
+          )
           (swtitle-diag45-write-line handle "Summary after SWTITLESTATUS:")
           (swtitle-diag45-write-line handle (strcat "  source-title-count: " (itoa source-count)))
           (swtitle-diag45-write-line handle (strcat "  source-frame-count: " (itoa source-frame-count)))
           (swtitle-diag45-write-line handle (strcat "  frame-only-count: " (itoa frame-only-count)))
           (swtitle-diag45-write-line handle (strcat "  target-title-count: " (itoa title-count)))
           (swtitle-diag45-write-line handle (strcat "  target-frame-count: " (itoa frame-count)))
+          (swtitle-diag45-write-line handle (strcat "  verify-summary-log: " verify-summary-log))
+          (swtitle-diag45-write-line handle (strcat "  verify-source-priority-note-found: " (if verify-source-priority "yes" "no")))
+          (swtitle-diag45-write-line handle (strcat "  verify-a4-frame-only-first-note-found: " (if verify-a4-first "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  frame-definition-blockers: " (itoa (length blockers))))
           (swtitle-diag45-write-line handle (strcat "  frame-embedded-cleanup-records: " (itoa (length embedded-records))))
           (swtitle-diag45-count-line handle "  expected-sheet-counts:" expected-counts)
