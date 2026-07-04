@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260704-target-overlap-adopt-main65-paperset-evidence
+260704-target-overlap-adopt-main66-verify-next-priority
 ```
 
 ## GMTITLE 변환 명령
