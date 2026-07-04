@@ -25,15 +25,16 @@ Use `run_main45_verification_suite.ps1` to run the standard read-only checks in 
 1. loader probe
 2. current LSP compare-copy probe
 3. actual work-copy status/verify probe
-4. common A2/A3/A4 frame-definition classification probe
-5. A2/A3/A4 style-normalization rebuild cleanup probe
-6. command-text guard comparison probe
-7. sheet residue protection probe
-8. embedded-title prepare copy-comparison probe
-9. duplicate target pair comparison probe
-10. native adoption gate comparison probe
-11. A3 status guidance probe
-12. A3/A4 batch guard probe
+4. SWTITLECONVERT script guard probe
+5. common A2/A3/A4 frame-definition classification probe
+6. A2/A3/A4 style-normalization rebuild cleanup probe
+7. command-text guard comparison probe
+8. sheet residue protection probe
+9. embedded-title prepare copy-comparison probe
+10. duplicate target pair comparison probe
+11. native adoption gate comparison probe
+12. A3 status guidance probe
+13. A3/A4 batch guard probe
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
@@ -57,6 +58,7 @@ representative legacy commands disabled
 actual work-copy source/target counts
 A2/A3/A4 expected sheet counts
 actual work-copy first native guidance: A2 -> DR_A2_Outline + DR_titlea_3rd
+SWTITLECONVERT script guard aborts in SCRIPT mode without changing source/target counts, INSERT count, or DBMOD
 mixed/all_contaminated/all_native frame-class PASS results
 A2/A3/A4 style-normalization record count 3 -> 0 after rebuild cleanup
 command-text guard blocks conversion before any stubbed conversion path
@@ -320,6 +322,32 @@ Batch guard preserved candidates: yes
 Runtime check completed: yes
 ```
 
+## SWTITLECONVERT Script Guard Probe
+
+Use `run_convert_script_guard_probe.ps1` to confirm that `/b` script automation cannot accidentally drive `SWTITLECONVERT` through the interactive GMTITLE dialog. The probe runs against a copied DWG and expects the command to abort before any drawing data changes.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_convert_script_guard_probe.ps1"
+```
+
+Expected result:
+
+```text
+Loaded version: 260705-verify-source-priority
+Script active before convert: yes
+Status after convert: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE
+Source titles before/after: 13/13
+Source frames before/after: 15/15
+Frame-only before/after: 2/2
+Target titles before/after: 0/0
+Target frames before/after: 0/0
+INSERT count before/after: 120/120
+DBMOD before/after: 0/0
+Convert script guard preserved drawing: yes
+Runtime check completed: yes
+```
+
 ## Synthetic Frame-Definition Classification Probe
 
 Use `run_frameclass_common_probe.ps1` to create synthetic `DR_A2_Outline`, `DR_A3_Outline`, and `DR_A4_Outline` block definitions inside copied probe DWGs. This verifies that the common `SWTITLEPREPARE` classification logic treats source contamination, native-format title-like geometry, and outline-only definitions differently without exposing sheet-specific public commands.
@@ -457,6 +485,7 @@ docs/history/gmtitle-main44-vs-main45-comparison-2026-07-04.md
 docs/history/gmtitle-automation-boundary-audit-2026-07-05.md
 docs/history/gmtitle-a3-frame-title-behavior-2026-07-05.md
 docs/history/gmtitle-a3-status-guidance-2026-07-05.md
+docs/history/gmtitle-convert-script-guard-2026-07-05.md
 ```
 
 ## Safety Rules
