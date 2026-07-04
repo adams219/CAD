@@ -5,7 +5,7 @@
 
 (vl-load-com)
 
-(setq *swcad-version* "260704-4step-gmtitle-main61-status-priority")
+(setq *swcad-version* "260704-4step-gmtitle-main62-korean-guidance")
 
 (defun swcad-loader-source (/ src)
   (setq src nil)
@@ -94,10 +94,10 @@
 ;;; The current production command set is kept intact until modular migration.
 (swcad-load-file "src/tools/gstarcad-dimstyle/gstarcad_dimstyle_keep_tolerance.lsp")
 
-(princ "\nSWCAD ready.")
-(princ "\nMain command: SWAUTO")
-(princ "\nHelp: SWHELP")
-(princ "\nGMTITLE workflow: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERT, SWTITLEVERIFY")
-(princ "\nGMTITLE note: old SWTITLE transfer/fast/A3A4/frame-only commands are disabled; use the workflow above.")
-(princ "\nLoaded LSP check: SWTITLEVERSION")
+(princ "\nSWCAD 준비 완료.")
+(princ "\n주 명령어: SWAUTO")
+(princ "\n도움말: SWHELP")
+(princ "\nGMTITLE 작업 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERT, SWTITLEVERIFY")
+(princ "\nGMTITLE 참고: 예전 SWTITLE transfer/fast/A3A4/frame-only 직접 명령은 사용하지 말고 위 4단계 흐름을 사용하세요.")
+(princ "\n로드된 LSP 확인: SWTITLEVERSION")
 (princ)
