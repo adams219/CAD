@@ -26,6 +26,8 @@ codex/gm-title
 Recent commits:
 
 ```text
+6d3eaae Add GMTITLE goal status helper
+091775b Document current GMTITLE goal audit
 6de3107 Expand GMTITLE static preflight coverage
 5cb1e5f Add static GMTITLE preflight checks
 48d05fa Allow GMTITLE suite to wait for GstarCAD close
@@ -161,6 +163,30 @@ Missing evidence:
 ```
 
 Until these are proven, do not mark the goal complete.
+
+## Completion Evidence Matrix
+
+Use this table before deciding that the active goal is complete.
+
+| Requirement | Required evidence | Current state |
+| --- | --- | --- |
+| Use a small stable command flow | Static preflight shows only `SWTITLESTATUS`, `SWTITLEPREPARE`, `SWTITLECONVERT`, `SWTITLEVERIFY`, `SWTITLEVERSION`, `SWSCALESCAN` are public | Proven by static preflight |
+| Distinguish cloned GMTITLE from native GMTITLE | `SWTITLESTATUS`/`SWTITLEVERIFY` report no clone/shared-link/native-upgrade candidates | Not proven on actual work-copy |
+| Preserve A2/A3/A4 sheet counts | Final verification reports target-sheet-counts A2=1, A3=12, A4=2 | Not proven |
+| Treat A4 frame-only safely | A4 target frames exist without unwanted `DR_titlea_3rd`, and raw bbox warnings are absent | Not proven |
+| Avoid dragging source-only A4 residue | `DR_A4_Outline` raw definition is safe or conversion is stopped before source deletion | Guard proven; final A4 conversion not proven |
+| Reduce repeated manual selection without breaking native behavior | Batch/interactive flow reduces candidates and representative title blocks still open GMTITLE table editor | Partially designed; final CAD evidence missing |
+| Complete actual work-copy conversion | `SWTITLEVERIFY_FINAL_OK` on the real `work` DWG | Missing |
+| Confirm real CAD behavior | Representative A2/A3 `DR_titlea_3rd` double-click opens the GMTITLE table editor; A4 frame-only has no title block | Missing |
+| Preserve drawing content | Visual/log check proves notes, balloons, BOM, dimensions, and model geometry remain | Missing |
+
+Current conclusion:
+
+```text
+The goal is still active.
+The implementation direction is documented and statically guarded.
+The decisive hidden suite and real CAD work-copy verification are still pending because GstarCAD is currently open.
+```
 
 ## Next Operator Sequence
 

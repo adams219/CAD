@@ -24,16 +24,33 @@ codex/gm-title
 최근 기준 커밋:
 
 ```text
-98a3415 Add A4 GMTITLE outline preflight
-a0e0241 Record successful GMTITLE A3 native upgrade
-91eeeb3 Align GMTITLE goal-mode guides with current state
+6d3eaae Add GMTITLE goal status helper
+091775b Document current GMTITLE goal audit
+6de3107 Expand GMTITLE static preflight coverage
+5cb1e5f Add static GMTITLE preflight checks
+48d05fa Allow GMTITLE suite to wait for GstarCAD close
+c0af34e Fail fast when full GMTITLE suite sees open GstarCAD
+5aab88d Fail fast when GstarCAD probe would reuse open session
+0200c4f Reject unsafe A4 outline raw bounds
 ```
 
 현재 LSP 기준 버전:
 
 ```text
-260705-a4-outline-preflight
+GMTITLE LSP: 260705-verify-source-priority-a4stepnote
+Loader: 260705-4step-gmtitle-a4-outline-preflight
 ```
+
+현재 검증 상태:
+
+```text
+정적 preflight: PASS
+GstarCAD: 열려 있음
+hidden verification suite: 아직 미실행/미통과
+목표 완료 여부: 미완료
+```
+
+GstarCAD가 열려 있는 동안에는 숨김 `/b` CAD suite를 실행하지 않는다. 열린 세션으로 명령이 흘러가거나 기존 명령 대기 상태 뒤에서 멈출 수 있기 때문이다. 이 경우에는 `diagnostics\gmtitle-main45\run_goal_status.ps1`와 `run_static_preflight.ps1`만 신뢰한다.
 
 ## 현재까지 확정된 사실
 

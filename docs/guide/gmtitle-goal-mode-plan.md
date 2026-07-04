@@ -4,6 +4,54 @@
 
 목표는 명령어를 계속 늘리는 것이 아니다. 목표는 `SWTITLESTATUS`, `SWTITLEPREPARE`, `SWTITLECONVERT`, `SWTITLEVERIFY` 흐름 안에서 사람이 반복 선택하는 일을 줄이되, GstarCAD native GMTITLE 인식이 깨지지 않게 만드는 것이다.
 
+## 현재 목표 진행판
+
+2026-07-05 현재 목표는 아직 완료가 아니다. 완료로 판단하려면 실제 work DWG에서 최종 검증까지 통과해야 한다.
+
+현재 증명된 것:
+
+```text
+브랜치: codex/gm-title
+작업트리: clean
+정적 preflight: PASS
+GMTITLE LSP 버전: 260705-verify-source-priority-a4stepnote
+loader 버전: 260705-4step-gmtitle-a4-outline-preflight
+공개 사용자 명령: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERT, SWTITLEVERIFY, SWTITLEVERSION, SWSCALESCAN
+A4 raw bbox guard: 있음
+SCRIPT/숨김 CAD interactive GMTITLE guard: 있음
+```
+
+아직 증명되지 않은 것:
+
+```text
+hidden verification suite 전체 통과
+실제 work DWG에서 SWTITLEVERIFY_FINAL_OK
+남은 SolidWorks 원본 표제란/도면틀 수 0
+target sheet counts A2=1, A3=12, A4=2
+A4 frame-only가 불필요한 DR_titlea_3rd 없이 처리됨
+대표 A2/A3 제목블록 더블클릭 시 GMTITLE 표 편집창
+A4 도면틀에 원본에 없던 외부 선/글자 없음
+도면 내부 번호, 주석, BOM, 치수, 모델 형상 보존
+```
+
+현재 로컬에서 GstarCAD가 열려 있으면 hidden verification suite는 일부러 실행하지 않는다. `/b` 스크립트가 기존 열린 CAD 세션으로 흘러가거나 명령 대기 상태 뒤에 멈출 수 있기 때문이다.
+
+GstarCAD가 열려 있을 때 할 수 있는 일:
+
+```text
+diagnostics\gmtitle-main45\run_goal_status.ps1 실행
+diagnostics\gmtitle-main45\run_static_preflight.ps1 실행
+문서/로그 기반 원인 분석
+```
+
+GstarCAD를 저장하고 닫은 뒤 해야 할 일:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_main45_verification_suite.ps1
+```
+
+이 suite가 통과해도 목표 완료는 아니다. 그 뒤 실제 work DWG를 GstarCAD에서 열고 `SWTITLEVERIFY_FINAL_OK`와 대표 더블클릭 확인까지 해야 한다.
+
 ## 목표모드 운영 루프
 
 목표모드에서는 "다음 명령을 많이 실행"하는 것이 아니라, 아래 루프를 반복한다.
