@@ -82,7 +82,7 @@
   )
 )
 
-(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count verify-summary-log verify-source-priority verify-a4-first)
+(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames first-native-guidance-ok verify-summary-log verify-source-priority verify-a4-first)
   (setq load-result
     (vl-catch-all-apply
       'load
@@ -144,6 +144,19 @@
           (setq target-counts (swcad-title-target-frame-sheet-counts))
           (setq blockers (swcad-title-frame-definition-blocking-records))
           (setq embedded-records (swcad-title-frame-embedded-title-records))
+          (setq bootstrap-record (swcad-title-next-bootstrap-selection-record))
+          (setq bootstrap-sheet (if bootstrap-record (car bootstrap-record) "<none>"))
+          (setq bootstrap-frame (if bootstrap-record (cadr bootstrap-record) "<none>"))
+          (setq bootstrap-title (if bootstrap-record (caddr bootstrap-record) "<none>"))
+          (setq missing-native-frames (swcad-title-missing-required-native-frame-blocks summary))
+          (setq first-native-guidance-ok
+            (and
+              (equal status-after-status "NEXT_CREATE_FIRST_NATIVE_GMTITLE")
+              (equal bootstrap-sheet "A2")
+              (equal bootstrap-frame "DR_A2_Outline")
+              (equal bootstrap-title "DR_titlea_3rd")
+            )
+          )
           (setq title-count (swcad-title-count-inserts-by-effective-name (swcad-title-target-title-block-name)))
           (setq frame-count
             (+
@@ -178,6 +191,16 @@
           (swtitle-diag45-write-line handle (strcat "  verify-a4-frame-only-first-note-found: " (if verify-a4-first "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  frame-definition-blockers: " (itoa (length blockers))))
           (swtitle-diag45-write-line handle (strcat "  frame-embedded-cleanup-records: " (itoa (length embedded-records))))
+          (swtitle-diag45-write-line handle (strcat "  next-bootstrap-source-sheet: " bootstrap-sheet))
+          (swtitle-diag45-write-line handle (strcat "  next-bootstrap-frame: " bootstrap-frame))
+          (swtitle-diag45-write-line handle (strcat "  next-bootstrap-title: " bootstrap-title))
+          (if missing-native-frames
+            (foreach frame-block missing-native-frames
+              (swtitle-diag45-write-line handle (strcat "  missing-native-frame: " frame-block))
+            )
+            (swtitle-diag45-write-line handle "  missing-native-frame: <none>")
+          )
+          (swtitle-diag45-write-line handle (strcat "  first-native-guidance-ok: " (if first-native-guidance-ok "yes" "no")))
           (swtitle-diag45-count-line handle "  expected-sheet-counts:" expected-counts)
           (swtitle-diag45-count-line handle "  target-sheet-counts:" target-counts)
           (swtitle-diag45-write-line handle (strcat "  status-after-status: " status-after-status))

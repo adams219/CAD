@@ -56,6 +56,7 @@ four workflow commands enabled
 representative legacy commands disabled
 actual work-copy source/target counts
 A2/A3/A4 expected sheet counts
+actual work-copy first native guidance: A2 -> DR_A2_Outline + DR_titlea_3rd
 mixed/all_contaminated/all_native frame-class PASS results
 A2/A3/A4 style-normalization record count 3 -> 0 after rebuild cleanup
 command-text guard blocks conversion before any stubbed conversion path
