@@ -81,6 +81,32 @@ old fixture/test suffix가 붙은 로그
 
 `*_last.txt`는 마지막으로 실행한 DWG의 로그입니다. 현재 열린 세션과 디스크 파일 상태가 다르면, 먼저 열린 CAD에서 `SWTITLESTATUS`를 다시 실행해 최신 로그를 만듭니다.
 
+## main60 로그 판독표
+
+`SWTITLESTATUS`나 `SWTITLEVERIFY`를 실행한 뒤에는 아래 기준으로만 다음 행동을 정합니다.
+
+| 로그 문구 | 의미 | 다음 행동 |
+| --- | --- | --- |
+| `SWTITLEVERSION`이 `260704-target-overlap-adopt-main60-automation-policy`가 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
+| `자동화 판단: 명령줄 -GMTITLE/설정파일 자동 선택은 기본 OFF입니다.` | 현재는 GMTITLE 창 선택을 사람이 확인하는 안정 모드 | 정상. 화면 좌표 클릭이나 `-GMTITLE` 강제 자동화 금지 |
+| `NEXT_CREATE_FIRST_NATIVE_GMTITLE` | 아직 이 도면에 진짜 GMTITLE 기준 객체가 없음 | `SWTITLECONVERT`로 첫 native GMTITLE 1장 생성 |
+| `WARN_CLONED_GMTITLE_FRAME_NEEDS_NATIVE_UPGRADE` | 겉모양은 맞지만 도면틀이 복제 구조라 native 증거 부족 | `SWTITLECONVERT`로 다음 후보 1장만 native 교체 |
+| `WARN_SHARED_NATIVE_GMTITLE_LINKS` | 여러 복제본이 같은 native link를 공유할 가능성 | 완료로 보지 않음. `SWTITLECONVERT`로 fresh native 교체 |
+| `WARN_A3_A4_TARGET_FRAME_NOT_NATIVE_LIKE` | A3/A4 도면틀이 GMTITLE처럼 보이지만 native-like 판정이 약함 | `native/복제 구조 비교 샘플`을 보고 clone/shared/geometry 중 원인 분류 |
+| `WARN_TARGET_FRAME_SELECTION_RISK` | 겹친 도면틀 bbox 때문에 더블클릭/선택이 다른 객체를 잡을 수 있음 | `SWTITLEPREPARE` 가능 여부 확인 후 겹침 정리 |
+| `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX` | DR 도면틀 정의 자체 bbox가 위험함 | 변환 반복 금지. A3/A4 정의 문제 분석 |
+| `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK` | 도면 삭제 전에 위험을 감지하고 멈춤 | 정상 중단. 기존 A3/A4 삭제하지 말고 원인 분석 |
+| `SWTITLEVERIFY_FINAL_OK` | 수량과 잔여물 기준 통과 | 대표 `DR_titlea_3rd` 더블클릭, A4 frame-only 형상 확인 |
+
+main60에서 유효한 로그에는 아래 문구가 같이 보여야 합니다.
+
+```text
+native/복제 구조 비교 샘플:
+자동화 판단:
+```
+
+이 문구가 없으면 현재 CAD가 낡은 LSP를 들고 있을 가능성이 높으므로, 그 로그로 결론을 내리지 않습니다.
+
 ## 현재 저장된 workcopy 기준
 
 현재 디스크에 저장된 기본 작업복사본은 아직 변환 전 상태입니다. final completion gate도 이 이유로 실패하는 것이 정상입니다.

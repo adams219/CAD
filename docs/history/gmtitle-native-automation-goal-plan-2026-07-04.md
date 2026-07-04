@@ -312,6 +312,7 @@ SWTITLEVERIFY
 CAD 명령줄의 현재 결과
 C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_fast_status_last.txt
 C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_native_frame_check_last.txt
+C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_structure_diagnosis_last.txt
 C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_verify_summary_last.txt
 실제 GstarCAD 화면에서 대표 제목블록 더블클릭 결과
 현재 로컬 git diff
@@ -324,6 +325,28 @@ C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_verify_summary_last.txt
 한 장의 제목블록만 GMTITLE 표 편집창으로 열리는 것
 복제된 객체에 SWTITLE marker가 붙어 있는 것
 이전 대화에서 성공했다고 기억하는 것
+```
+
+## 목표모드 체크포인트
+
+목표모드에서는 "지금 좋아 보인다"가 아니라 "다음 증거가 쌓였는가"로만 진행 상태를 판단한다.
+
+| 단계 | 통과 증거 | 실패 또는 보류 증거 | 다음 행동 |
+| --- | --- | --- | --- |
+| 로드 확인 | `SWTITLEVERSION`이 `260704-target-overlap-adopt-main60-automation-policy` | 버전 다름, main60 문구 없음 | APPLOAD 다시 실행 |
+| 상태 진단 | `SWTITLESTATUS`가 현재 work 복사본 DWG 경로를 표시 | Downloads/원본 DWG, 오래된 `*_last.txt` | work 복사본 열고 상태 재실행 |
+| 구조 분류 | `native/복제 구조 비교 샘플:`과 `자동화 판단:` 출력 | 구조 비교 샘플 없음 | 현재 로그를 완료 증거로 쓰지 않음 |
+| 변환 가능 | 다음 행동이 `SWTITLECONVERT`로 명확히 안내됨 | raw bbox 위험, 선택 위험, shared link 경고 | 변환 반복 금지, 원인 분류 |
+| A3 검증 | 제목블록은 GMTITLE 표 편집창, 도면틀은 native-like 쌍으로 판정 | 도면틀+표제란이 하나의 정의처럼 들어옴 | A3 frame definition/xdata 비교 |
+| A4 검증 | frame-only는 제목블록 없이 DR_A4_Outline만 남음 | 새 제목블록 생성, 용지 밖 객체 동반 | A4 frame-only 경로 중단 후 정의 확인 |
+| 최종 검증 | `SWTITLEVERIFY_FINAL_OK`와 대표 더블클릭 통과 | 원본 잔여물, clone/shared/native warning | 완료 금지, 해당 경고부터 해결 |
+
+각 턴에서 코드나 문서를 수정했다면 다음 순서로 마무리한다.
+
+```text
+git diff --check
+필요 시 LSP 괄호/문자열 균형 확인
+변경 이유와 남은 CAD 검증을 문서 또는 최종 답변에 기록
 ```
 
 ## 상태별 다음 행동
