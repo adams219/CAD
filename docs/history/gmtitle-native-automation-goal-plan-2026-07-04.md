@@ -11,15 +11,16 @@ SolidWorks DWG를 GstarCAD Mechanical native GMTITLE 구조로 안정 변환한�
 현재 LSP 기준:
 
 ```text
-260704-target-overlap-adopt-main60-automation-policy
+260704-target-overlap-adopt-main61-status-priority
 ```
 
-main59/main60에서 추가한 것:
+main59/main60/main61에서 추가한 것:
 
 ```text
 SWTITLESTATUS 내부 native 도면틀 확인 로그에
 첫 native-like 쌍과 첫 non-native 교체 후보의 구조 비교 샘플을 출력한다.
 SWTITLESTATUS 내부 다음 단계/구조 판단 요약에 자동화 정책을 출력한다.
+main61에서는 구조 판단 요약의 권장 다음 명령이 A3/A4 native 교체 후보를 A4 frame-only보다 먼저 안내하도록 우선순위를 맞췄다.
 
 비교 항목:
   sheet / block / reason / role
@@ -333,7 +334,7 @@ C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_verify_summary_last.txt
 
 | 단계 | 통과 증거 | 실패 또는 보류 증거 | 다음 행동 |
 | --- | --- | --- | --- |
-| 로드 확인 | `SWTITLEVERSION`이 `260704-target-overlap-adopt-main60-automation-policy` | 버전 다름, main60 문구 없음 | APPLOAD 다시 실행 |
+| 로드 확인 | `SWTITLEVERSION`이 `260704-target-overlap-adopt-main61-status-priority` | 버전 다름, main61 문구 없음 | APPLOAD 다시 실행 |
 | 상태 진단 | `SWTITLESTATUS`가 현재 work 복사본 DWG 경로를 표시 | Downloads/원본 DWG, 오래된 `*_last.txt` | work 복사본 열고 상태 재실행 |
 | 구조 분류 | `native/복제 구조 비교 샘플:`과 `자동화 판단:` 출력 | 구조 비교 샘플 없음 | 현재 로그를 완료 증거로 쓰지 않음 |
 | 변환 가능 | 다음 행동이 `SWTITLECONVERT`로 명확히 안내됨 | raw bbox 위험, 선택 위험, shared link 경고 | 변환 반복 금지, 원인 분류 |
@@ -610,7 +611,7 @@ A4 frame-only 2장 형상 검증 통과
 
 현재 목표의 다음 작업은 코드 수정이 아니라 구조 증거를 더 모으는 것이다.
 
-현재 `work` 폴더에 남아 있는 최신 로그는 참고용이다. 아래처럼 `main58-a4outline` 버전으로 찍힌 로그는 현재 `main60-automation-policy`에서 추가한 구조 비교 샘플과 자동화 정책 요약을 포함하지 않으므로, 목표 완료 증거로 사용하지 않는다.
+현재 `work` 폴더에 남아 있는 최신 로그는 참고용이다. 아래처럼 `main58-a4outline` 버전으로 찍힌 로그는 현재 `main61-status-priority`에서 추가/정리한 구조 비교 샘플, 자동화 정책 요약, 권장 다음 명령 우선순위를 포함하지 않으므로 목표 완료 증거로 사용하지 않는다.
 
 ```text
 work\swcad_title_native_frame_check_last.txt
@@ -633,7 +634,7 @@ SWTITLESTATUS
 `SWTITLEVERSION`이 아래와 다르면 그 세션의 결과는 사용하지 않는다.
 
 ```text
-260704-target-overlap-adopt-main60-automation-policy
+260704-target-overlap-adopt-main61-status-priority
 ```
 
 우선순위:

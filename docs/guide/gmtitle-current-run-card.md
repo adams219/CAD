@@ -23,7 +23,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main60-automation-policy
+260704-target-overlap-adopt-main61-status-priority
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 APPLOAD 합니다.
@@ -41,8 +41,8 @@ SWTITLEVERSION
 같은 실수를 반복하지 않기 위해 CAD에서 명령을 치기 전에 아래 기준을 먼저 확인합니다.
 
 ```text
-GitHub 코드 기준: 36183b2 Guard A4 frame-only GMTITLE flow 이상
-현재 LSP 기준: 260704-target-overlap-adopt-main60-automation-policy
+로컬 코드 기준: main61 status-priority 이상
+현재 LSP 기준: 260704-target-overlap-adopt-main61-status-priority
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```
 
@@ -81,13 +81,13 @@ old fixture/test suffix가 붙은 로그
 
 `*_last.txt`는 마지막으로 실행한 DWG의 로그입니다. 현재 열린 세션과 디스크 파일 상태가 다르면, 먼저 열린 CAD에서 `SWTITLESTATUS`를 다시 실행해 최신 로그를 만듭니다.
 
-## main60 로그 판독표
+## main61 로그 판독표
 
 `SWTITLESTATUS`나 `SWTITLEVERIFY`를 실행한 뒤에는 아래 기준으로만 다음 행동을 정합니다.
 
 | 로그 문구 | 의미 | 다음 행동 |
 | --- | --- | --- |
-| `SWTITLEVERSION`이 `260704-target-overlap-adopt-main60-automation-policy`가 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
+| `SWTITLEVERSION`이 `260704-target-overlap-adopt-main61-status-priority`가 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
 | `자동화 판단: 명령줄 -GMTITLE/설정파일 자동 선택은 기본 OFF입니다.` | 현재는 GMTITLE 창 선택을 사람이 확인하는 안정 모드 | 정상. 화면 좌표 클릭이나 `-GMTITLE` 강제 자동화 금지 |
 | `NEXT_CREATE_FIRST_NATIVE_GMTITLE` | 아직 이 도면에 진짜 GMTITLE 기준 객체가 없음 | `SWTITLECONVERT`로 첫 native GMTITLE 1장 생성 |
 | `WARN_CLONED_GMTITLE_FRAME_NEEDS_NATIVE_UPGRADE` | 겉모양은 맞지만 도면틀이 복제 구조라 native 증거 부족 | `SWTITLECONVERT`로 다음 후보 1장만 native 교체 |
@@ -98,7 +98,7 @@ old fixture/test suffix가 붙은 로그
 | `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK` | 도면 삭제 전에 위험을 감지하고 멈춤 | 정상 중단. 기존 A3/A4 삭제하지 말고 원인 분석 |
 | `SWTITLEVERIFY_FINAL_OK` | 수량과 잔여물 기준 통과 | 대표 `DR_titlea_3rd` 더블클릭, A4 frame-only 형상 확인 |
 
-main60에서 유효한 로그에는 아래 문구가 같이 보여야 합니다.
+main61에서 유효한 로그에는 아래 문구가 같이 보여야 합니다.
 
 ```text
 native/복제 구조 비교 샘플:
