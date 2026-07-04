@@ -4,6 +4,21 @@ This folder contains tracked diagnostic helpers for the `main45` four-command GM
 
 The detailed runtime fixtures and generated logs are kept under `work/` during local testing, but `work/*.lsp`, `work/*.scr`, `work/*.ps1`, and `work/*.txt` are ignored by Git. Keep durable conclusions in `docs/` and reusable runner helpers here.
 
+## Static Preflight
+
+Use `run_static_preflight.ps1` when GstarCAD is still open or before running the hidden CAD suite. It does not open CAD or touch any DWG. It checks Lisp balance, expected loader/GMTITLE versions, public command surface, A4 raw-bbox guards, script guards, and suite/documentation guard markers.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_static_preflight.ps1"
+```
+
+Expected result:
+
+```text
+Static preflight result: PASS
+```
+
 ## Runner
 
 Use `run_readonly_probe.ps1` to run a GstarCAD Mechanical `/b` script against a copied work DWG and wait for a completion marker in the log.
@@ -63,9 +78,9 @@ work\lsp_compare\swcad_title_scale_current_main45_compare_copy.lsp
 
 from the current source LSP before running the compare-copy probe.
 
-The suite fails if expected log markers are missing. The checked markers include:
-
 The suite also fails before the first probe if `gcad.exe` is already running and `-WaitForGstarCADClose` is not used. Save the work-copy DWG and close GstarCAD first, otherwise hidden `/b` probes can attach to the visible session and never create their log.
+
+The suite fails if expected log markers are missing. The checked markers include:
 
 ```text
 loaded main45 versions
