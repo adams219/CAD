@@ -162,6 +162,48 @@ Durable conclusion:
 docs/history/gmtitle-a4-outline-normalization-probe-2026-07-05.md
 ```
 
+## A4 Native Exemplar Probe
+
+Use `run_a4_native_exemplar_probe.ps1` to check whether a copied DWG already contains a usable native or native-like A4 `DR_A4_Outline` exemplar.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"
+```
+
+Default input:
+
+```text
+work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
+```
+
+Default log:
+
+```text
+work\swtitle_a4_native_exemplar_probe_260705.txt
+```
+
+Current expected result for the saved default work copy:
+
+```text
+A4 outline definition status: missing
+Definition exists: no
+Visible DR_A4_Outline frame inserts: 0
+Result: A4_NATIVE_EXEMPLAR_MISSING_DEFINITION
+```
+
+This probe is useful after manually creating or saving a scratch/native A4 GMTITLE sheet. A usable result must show a clean A4 definition, no geometry/raw-selection warning, and:
+
+```text
+Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON
+```
+
+Durable conclusion:
+
+```text
+docs/history/gmtitle-a4-native-exemplar-gap-2026-07-05.md
+```
+
 ## Final Completion Gate
 
 After the interactive `SWTITLECONVERT` workflow has been completed in GstarCAD, use `run_final_completion_gate.ps1` to verify the converted work-copy DWG.
