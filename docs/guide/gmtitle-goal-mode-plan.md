@@ -22,7 +22,7 @@ SWTITLEVERIFY 결과:
 SWTITLEVERIFY_FINAL_FAIL
 
 현재 남은 핵심 문제:
-  A3/A4 native 교체 후보: 11
+  A3/A4 native 교체 후보: 10
   A4 대상 도면틀 누락: 필요 2, 현재 0
   남은 원본 도면틀: 2
   남은 원본 표제란: 0
@@ -41,7 +41,7 @@ A3 도면틀 정의 오염:
 
 A3/A4 native 인식 문제:
   현재 주원인
-  근거: A3/A4 native 교체 후보=11, 복제 쌍=10, shared-native-link 쌍=1
+  근거: A3/A4 native 교체 후보=10, 복제 쌍=9, shared-native-link 쌍=1
 
 A4 frame-only 미처리:
   남은 다음 문제
@@ -153,6 +153,57 @@ SWTITLECONVERT의 삽입점 자동 입력과 finalize가 끝까지 이어지는�
 ```
 
 따라서 이 경로는 "선택 자동화 후보"로는 유효하지만, 아직 "변환 완료 자동화"로 승격하지 않는다.
+
+### 같은 날 추가 확인: OPEN 경로 1장 실제 성공
+
+같은 work 복사본에서 `SWTITLECONVERT -> OPEN`을 끝까지 진행했다.
+
+GMTITLE 창에서 확인한 값:
+
+```text
+용지/도면틀: DR_A3_Outline
+제목블록: DR_titlea_3rd
+Frame positioning: ON
+Object move: OFF
+```
+
+결과 로그:
+
+```text
+UPGRADED_CLONE_TO_NATIVE_GMTITLE
+Native GMTITLE aligned to 복제d frame location: moved=0, dx=0, dy=0
+복사한 속성 수: 11
+기존 복제 제목블록 삭제: 예
+기존 복제 도면틀 삭제: 예
+Remaining A3/A4 native 교체 후보: 10
+```
+
+`SWTITLESTATUS` 재확인:
+
+```text
+A3/A4 native 교체 후보: 10
+A3 native-like 대상 도면틀 수: 2
+A3 복제 대상 도면틀 수: 9
+native-link 공유 쌍: 1
+```
+
+이 확인으로 증명된 것:
+
+```text
+OPEN 방식은 최소 1장의 A3 복제 GMTITLE을 fresh native GMTITLE로 교체할 수 있다.
+LSP가 왼쪽 아래 배치점을 자동 입력했고, 위치 이동값은 dx=0, dy=0이었다.
+제목블록 속성 11개가 복사됐다.
+기존 복제 title/frame 쌍이 삭제됐다.
+```
+
+아직 증명하지 못한 것:
+
+```text
+남은 A3 후보 10개 전체가 같은 방식으로 모두 처리되는지
+대표 A3 제목블록 더블클릭이 GMTITLE 표 편집창으로 열리는지
+A4 frame-only 2장이 제목블록 없이 DR_A4_Outline만으로 안전하게 처리되는지
+SWTITLEVERIFY_FINAL_OK가 나오는지
+```
 
 ## 절대 기준
 

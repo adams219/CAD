@@ -122,7 +122,7 @@ SWTITLEVERIFY: SWTITLEVERIFY_FINAL_FAIL
 남은 원본 도면틀: 2
 표제란 없는 도면틀 시트: 2
 대상 도면틀/제목블록 쌍: 13
-A3/A4 native 교체 후보: 11
+A3/A4 native 교체 후보: 10
 A4 대상 도면틀 누락: 필요 2, 현재 0
 ```
 
@@ -140,10 +140,36 @@ SWTITLESTATUS로 후보를 확인한 뒤 SWTITLECONVERT를 실행해 다음 A3/A
 ```text
 DR_A3_Outline 정의 내부 표제란 형상 후보: 0
 DR_A3_Outline 현재 분류: outline-only
-A3/A4 native 교체 후보: 11
+A3/A4 native 교체 후보: 10
 ```
 
 따라서 이 작업복사본에서 다음 원인은 "A3 도면틀 정의 안의 표제란 오염"이 아니라 "복제/shared-link GMTITLE 쌍이 native-like로 증명되지 않은 상태"입니다. 이 상태에서는 도면틀 정의를 지우거나 정규화하려고 하지 말고, `SWTITLECONVERT`로 다음 A3 후보 1장을 fresh native GMTITLE로 교체하는 것이 맞습니다.
+
+2026-07-04 추가 CAD 검증:
+
+```text
+SWTITLECONVERT
+OPEN
+GMTITLE 창에서 DR_A3_Outline / DR_titlea_3rd 선택
+Frame positioning ON
+Object move OFF
+확인
+SWTITLESTATUS
+```
+
+검증 결과:
+
+```text
+결과: UPGRADED_CLONE_TO_NATIVE_GMTITLE
+Native GMTITLE aligned to 복제d frame location: moved=0, dx=0, dy=0
+복사한 속성 수: 11
+기존 복제 제목블록 삭제: 예
+기존 복제 도면틀 삭제: 예
+A3/A4 native 교체 후보: 11 -> 10
+A3 native-like 대상 도면틀 수: 1 -> 2
+```
+
+따라서 `OPEN` 경로는 최소 1장에 대해 실제 교체 성공이 확인됐습니다. 아직 완료는 아니며, 같은 방식으로 남은 후보 10개를 처리해야 합니다. 각 GMTITLE 창에서는 여전히 선택값을 눈으로 확인합니다.
 
 ## 기본 순서
 

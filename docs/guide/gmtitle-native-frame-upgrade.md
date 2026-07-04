@@ -203,11 +203,11 @@ expected-sheet-counts:
   A2: 1
   A3: 12
   A4: 2
-A3/A4 native 교체 후보: 11
+A3/A4 native 교체 후보: 10
 A4 대상 도면틀 누락: 필요 2, 현재 0
 ```
 
-이 실패는 코드 실패가 아니라 실제 work-copy가 변환 중간 상태라는 뜻입니다. A2와 A3 target은 보이지만, A3 중 11개는 복제/shared-link라 native-like로 증명되지 않았고 A4 frame-only target은 아직 없습니다.
+이 실패는 코드 실패가 아니라 실제 work-copy가 변환 중간 상태라는 뜻입니다. A2와 A3 target은 보이지만, A3 중 10개는 복제/shared-link라 native-like로 증명되지 않았고 A4 frame-only target은 아직 없습니다.
 
 ## 완료 기준
 

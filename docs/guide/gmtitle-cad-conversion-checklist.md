@@ -106,7 +106,7 @@ NEXT_UPGRADE_A3_A4_NATIVE
 원본 도면틀: 2
 표제란 없는 도면틀 시트: 2
 target 도면틀/제목블록 쌍: 13
-A3/A4 native 교체 후보: 11
+A3/A4 native 교체 후보: 10
 A4 대상 도면틀 누락: 필요 2, 현재 0
 ```
 
