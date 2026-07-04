@@ -26,6 +26,106 @@ function Invoke-GitText {
   return "<git unavailable>"
 }
 
+function Read-TextWithFallback {
+  param([string]$Path)
+
+  $bytes = [System.IO.File]::ReadAllBytes($Path)
+  $encodings = @(
+    [System.Text.Encoding]::GetEncoding(949),
+    [System.Text.UTF8Encoding]::new($true, $true),
+    [System.Text.Encoding]::Unicode
+  )
+
+  foreach ($encoding in $encodings) {
+    try {
+      return $encoding.GetString($bytes)
+    } catch {
+    }
+  }
+
+  return [System.Text.Encoding]::Default.GetString($bytes)
+}
+
+function Get-FirstRegexValue {
+  param(
+    [string]$Text,
+    [string]$Pattern
+  )
+
+  $match = [regex]::Match($Text, $Pattern, [System.Text.RegularExpressions.RegexOptions]::Multiline)
+  if ($match.Success -and $match.Groups.Count -gt 1) {
+    return $match.Groups[1].Value.Trim()
+  }
+  return $null
+}
+
+function Write-LatestCadLogSummary {
+  param([string]$WorkDir)
+
+  $nextStepLog = Join-Path $WorkDir "swcad_title_next_step_last.txt"
+  if (-not (Test-Path -LiteralPath $nextStepLog)) {
+    Write-Output "Latest CAD next-step log: <missing>"
+    return
+  }
+
+  $item = Get-Item -LiteralPath $nextStepLog
+  $text = Read-TextWithFallback -Path $nextStepLog
+  $lines = $text -split "\r?\n"
+
+  $dwg = $null
+  foreach ($line in $lines) {
+    if ($line -match "^DWG[^:]*:\s*(.+)$") {
+      $dwg = $Matches[1].Trim()
+      break
+    }
+  }
+
+  $statusCode = Get-FirstRegexValue `
+    -Text $text `
+    -Pattern "(NEXT_[A-Z0-9_]+|WARN_[A-Z0-9_]+|FAIL_[A-Z0-9_]+|SWTITLEVERIFY_FINAL_[A-Z]+)"
+
+  $recommended = $null
+  if ($statusCode -match "^NEXT_PREPARE") {
+    $recommended = "SWTITLEPREPARE"
+  } elseif ($statusCode -match "^NEXT_.*GMTITLE|^NEXT_.*CONVERT|^NEXT_UPGRADE") {
+    $recommended = "SWTITLECONVERT"
+  } elseif ($statusCode -match "^SWTITLEVERIFY_FINAL_FAIL") {
+    $recommended = "SWTITLESTATUS"
+  }
+
+  $visibleCounts = @()
+  foreach ($sheet in @("A2", "A3", "A4")) {
+    foreach ($line in $lines) {
+      if ($line -match ("^\s*{0}:\s*(\d+)\s*$" -f $sheet)) {
+        $visibleCounts += ("{0}={1}" -f $sheet, $Matches[1])
+        break
+      }
+    }
+  }
+
+  $missingLines = @()
+  foreach ($line in $lines) {
+    if ($line -match "^\s*A[0-4]:\D+\d+,\D+\d+") {
+      $missingLines += $line.Trim()
+    }
+  }
+
+  Write-Output "Latest CAD next-step log:"
+  Write-Output ("  Path: {0}" -f $nextStepLog)
+  Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
+  if ($dwg) { Write-Output ("  DWG: {0}" -f $dwg) }
+  if ($statusCode) { Write-Output ("  Status code: {0}" -f $statusCode) }
+  if ($visibleCounts.Count -gt 0) {
+    Write-Output ("  Sheet-count lines mentioned: {0}" -f ($visibleCounts -join ", "))
+  }
+  if ($missingLines.Count -gt 0) {
+    Write-Output ("  Missing target frame count lines: {0}" -f ($missingLines -join " | "))
+  }
+  if ($recommended) {
+    Write-Output ("  Recommended next command: {0}" -f $recommended)
+  }
+}
+
 Write-Output "===== GMTITLE goal status ====="
 Write-Output ("Repo root: {0}" -f $repoRoot)
 Write-Output ("Branch: {0}" -f (Invoke-GitText @("branch", "--show-current")))
@@ -74,6 +174,9 @@ if (Test-Path -LiteralPath $SourceWorkCopyPath) {
 }
 Write-Output ("Default work-copy: {0}" -f $SourceWorkCopyPath)
 Write-Output ("Default work-copy exists: {0}" -f $workCopyExists)
+
+Write-Output ""
+Write-LatestCadLogSummary -WorkDir (Join-Path $repoRoot "work")
 
 Write-Output ""
 Write-Output "Next action:"

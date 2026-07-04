@@ -206,6 +206,44 @@ The implementation direction is documented and statically guarded.
 The decisive hidden suite and real CAD work-copy verification are still pending because GstarCAD is currently open.
 ```
 
+## Latest Interactive CAD Evidence
+
+The latest visible-CAD `SWTITLESTATUS` next-step log is:
+
+```text
+work\swcad_title_next_step_last.txt
+LastWriteTime: 2026-07-05 07:26:26 KST
+DWG: C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg
+Status: NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION
+```
+
+This is not the same filename as the default hidden-suite source work-copy. Treat it as the latest visible CAD session evidence only after confirming the currently open GstarCAD drawing path matches it.
+
+Latest visible-CAD state from that log:
+
+```text
+Remaining source title sheets: 0
+Remaining source frames: 2
+Remaining frame-only sheets: 2
+Visible target frames:
+  A2: 1
+  A3: 12
+Missing target frames:
+  A4: need 2, current 0
+A3/A4 native replacement candidates: 0
+Recommended next CAD command: SWTITLEPREPARE
+```
+
+Meaning:
+
+```text
+A2/A3 conversion has advanced beyond the old pre-conversion baseline.
+A3 native-like target frames are complete in the latest visible CAD log.
+The remaining live issue is A4 frame-only handling.
+Before converting/deleting the old A4 frames, SWTITLEPREPARE must prepare and validate DR_A4_Outline.
+The overall goal is still incomplete until SWTITLEVERIFY_FINAL_OK and representative CAD checks are proven.
+```
+
 ## Next Operator Sequence
 
 If continuing on this machine:
