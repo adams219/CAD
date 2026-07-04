@@ -30,6 +30,38 @@ SWTITLEVERIFY_FINAL_FAIL
 
 이 상태는 변환 완료가 아니다. A4가 누락되어 있어도, 현재 우선순위는 A3/A4 native 교체 후보를 먼저 줄이는 것이다.
 
+## 현재 증거 기반 원인 판정
+
+2026-07-04 마지막 `SWTITLESTATUS`/`SWTITLEVERIFY` 로그 기준으로, 현재 작업복사본의 원인은 아래처럼 분리한다.
+
+```text
+A3 도면틀 정의 오염:
+  현재 주원인 아님
+  근거: DR_A3_Outline 정의 내부 표제란 형상 후보=0, 현재 분류=outline-only
+
+A3/A4 native 인식 문제:
+  현재 주원인
+  근거: A3/A4 native 교체 후보=11, 복제 쌍=10, shared-native-link 쌍=1
+
+A4 frame-only 미처리:
+  남은 다음 문제
+  근거: 표제란 없는 도면틀 시트=2, A4 대상 도면틀 필요 2 / 현재 0
+
+잔여물/삭제 위험:
+  현재 변환 반복을 막는 주경고는 아님
+  근거: 실수 명령어 텍스트 후보=0, raw bbox 위험=0, 선택/형상 위험=0
+```
+
+따라서 이 작업복사본에서 같은 실수를 피하려면 아래 순서를 지킨다.
+
+```text
+1. A3 도면틀 정의를 삭제/정규화하려고 하지 않는다.
+2. SWTITLECONVERT로 다음 A3 복제/shared-link 후보 1장을 fresh native GMTITLE로 교체한다.
+3. SWTITLESTATUS로 후보 수가 줄었는지 확인한다.
+4. A3/A4 native 교체 후보가 0이 된 뒤 A4 frame-only를 처리한다.
+5. A4는 원본에 표제란이 없으므로 DR_titlea_3rd를 새로 만드는 흐름으로 가지 않는다.
+```
+
 ## 2026-07-04 CAD 확인 결과
 
 `SWTITLECONVERT`에서 `OPEN`을 선택해 A3 후보 1장을 열어 보니, GMTITLE 창의 실제 기본값이 기대값과 달랐다.
@@ -473,7 +505,7 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 현재 work 복사본 기준 다음 행동은 아래 순서다.
 
 ```text
-1. SWTITLEVERSION으로 main66 이상 확인
+1. SWTITLEVERSION으로 현재 기준 버전 확인
 2. SWTITLESTATUS로 현재 후보 수 확인
 3. SWTITLECONVERT 실행
 4. OPEN 선택

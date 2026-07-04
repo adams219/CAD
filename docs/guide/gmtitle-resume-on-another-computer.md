@@ -19,7 +19,7 @@ codex/gm-title
 주의:
 
 ```text
-2026-07-04 현재 로컬 작업 기준은 main66 verify-next-priority입니다.
+2026-07-04 현재 로컬 작업 기준은 `260704-manual-native-finish-snap`입니다.
 현재 로컬 브랜치는 GitHub보다 앞선 커밋이 있을 수 있으므로, 다른 PC에서 이어가기 전에 이 브랜치가 GitHub에 push됐는지 확인합니다.
 다른 PC에서는 `codex/gm-title` 브랜치를 받은 뒤, CAD에서 `SWTITLEVERSION`으로 실제 로드 버전을 확인합니다.
 ```
@@ -69,7 +69,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main66-verify-next-priority
+260704-manual-native-finish-snap
 ```
 
 다른 버전이면 변환하지 말고 다시 APPLOAD 합니다. 그래도 다른 버전이면 다른 브랜치를 받았거나, 열린 CAD 세션이 예전 LSP를 유지하고 있을 수 있습니다.
@@ -123,7 +123,7 @@ Frame positioning: ON
 Object move: OFF
 ```
 
-## main66 주의점
+## 현재 기준 주의점
 
 ```text
 SWTITLESTATUS가 겹친 GMTITLE target 쌍을 표시하면 SWTITLECONVERT를 반복하지 않습니다.

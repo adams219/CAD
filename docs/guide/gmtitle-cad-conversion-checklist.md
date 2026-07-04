@@ -55,7 +55,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main66-verify-next-priority
+260704-manual-native-finish-snap
 ```
 
 다른 버전이 나오면 변환하지 말고 최신 LSP를 다시 APPLOAD 하세요.
@@ -84,7 +84,7 @@ A4 실제 선택 bbox 경고
 다음 권장 명령
 ```
 
-현재 기준 작업복사본의 변환 전 정상 상태는 대략 다음입니다.
+새 작업복사본의 변환 전 정상 상태는 대략 다음입니다.
 
 ```text
 NEXT_CREATE_FIRST_NATIVE_GMTITLE
@@ -98,11 +98,25 @@ target 도면틀: 0
 target 제목블록: 0
 ```
 
+2026-07-04 현재 이어서 작업 중인 `0000_A_DRP125 CP_ALL_260704_test.dwg`는 이미 변환 중간 상태입니다.
+
+```text
+NEXT_UPGRADE_A3_A4_NATIVE
+원본 표제란 시트: 0
+원본 도면틀: 2
+표제란 없는 도면틀 시트: 2
+target 도면틀/제목블록 쌍: 13
+A3/A4 native 교체 후보: 11
+A4 대상 도면틀 누락: 필요 2, 현재 0
+```
+
+이 중간 상태에서는 A3 도면틀 정의를 정리하는 것이 아니라, `SWTITLECONVERT`로 A3 복제/shared-link 후보를 fresh native GMTITLE로 한 장씩 교체하는 것이 우선입니다.
+
 `SWTITLESTATUS`가 `SWTITLEPREPARE`를 안내하면 변환하지 말고 먼저 정규화합니다.
 
 `SWTITLESTATUS`가 `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX`를 안내하면 `SWTITLECONVERT`를 반복하지 않습니다. 이 경우 `DR_A4_Outline` 같은 도면틀 정의 자체의 선택 범위가 용지보다 과도하게 큰 상태이므로, 기존 A4를 삭제하기 전에 정의 복구/정규화 계획을 먼저 확인해야 합니다.
 
-현재 main66 기준에서는 `SWTITLEPREPARE`가 사용 중이 아닌 `DR_A*_Outline` 정의의 raw bbox 위험을 복구 후보로 처리합니다. 이미 도면에 삽입되어 사용 중인 정의는 native link와 위치를 보호하기 위해 자동 교체하지 않고 로그에 남깁니다.
+현재 기준에서는 `SWTITLEPREPARE`가 사용 중이 아닌 `DR_A*_Outline` 정의의 raw bbox 위험을 복구 후보로 처리합니다. 이미 도면에 삽입되어 사용 중인 정의는 native link와 위치를 보호하기 위해 자동 교체하지 않고 로그에 남깁니다.
 
 ## 3. 필요한 경우 정규화
 
@@ -112,7 +126,7 @@ target 제목블록: 0
 SWTITLEPREPARE
 ```
 
-현재 main66 기준 정규화 대상:
+현재 기준 정규화 대상:
 
 ```text
 source-contaminated 도면틀 정의

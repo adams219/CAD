@@ -41,7 +41,7 @@ SWTITLEVERSION
 같은 실수를 반복하지 않기 위해 CAD에서 명령을 치기 전에 아래 기준을 먼저 확인합니다.
 
 ```text
-로컬 코드 기준: main66 verify-next-priority 이상
+로컬 코드 기준: 현재 브랜치 `codex/gm-title`
 현재 LSP 기준: 260704-manual-native-finish-snap
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```
@@ -84,7 +84,7 @@ old fixture/test suffix가 붙은 로그
 
 `*_last.txt`는 마지막으로 실행한 DWG의 로그입니다. 현재 열린 세션과 디스크 파일 상태가 다르면, 먼저 열린 CAD에서 `SWTITLESTATUS`를 다시 실행해 최신 로그를 만듭니다.
 
-## main66 로그 판독표
+## 현재 로그 판독표
 
 `SWTITLESTATUS`나 `SWTITLEVERIFY`를 실행한 뒤에는 아래 기준으로만 다음 행동을 정합니다.
 
@@ -102,7 +102,7 @@ old fixture/test suffix가 붙은 로그
 | `SWTITLEVERIFY_FINAL_FAIL`와 `A3/A4 native 교체 필요 쌍`이 같이 나옴 | A4 누락이 있어도 A3/A4 native 교체가 먼저임 | `SWTITLESTATUS` 후 `SWTITLECONVERT`로 A3/A4 후보 처리 |
 | `SWTITLEVERIFY_FINAL_OK` | 수량과 잔여물 기준 통과 | 대표 `DR_titlea_3rd` 더블클릭, A4 frame-only 형상 확인 |
 
-main66에서 유효한 로그에는 아래 문구가 같이 보여야 합니다.
+현재 유효한 로그에는 아래 문구가 같이 보여야 합니다.
 
 ```text
 native/복제 구조 비교 샘플:
@@ -126,7 +126,7 @@ A3/A4 native 교체 후보: 11
 A4 대상 도면틀 누락: 필요 2, 현재 0
 ```
 
-main66에서 `SWTITLEVERIFY`도 같은 우선순위를 확인했습니다.
+현재 `SWTITLEVERIFY`도 같은 우선순위를 확인했습니다.
 
 ```text
 다음: A4 누락이 있더라도 A3/A4 native 교체 후보가 먼저입니다.
@@ -134,6 +134,16 @@ SWTITLESTATUS로 후보를 확인한 뒤 SWTITLECONVERT를 실행해 다음 A3/A
 ```
 
 이 상태에서 다음 실제 CAD 명령은 `SWTITLECONVERT`입니다. A3/A4 native 교체 후보가 남아 있으므로 A4 frame-only보다 A3/A4 native 교체가 먼저 안내됩니다.
+
+현재 작업복사본의 중요한 판정:
+
+```text
+DR_A3_Outline 정의 내부 표제란 형상 후보: 0
+DR_A3_Outline 현재 분류: outline-only
+A3/A4 native 교체 후보: 11
+```
+
+따라서 이 작업복사본에서 다음 원인은 "A3 도면틀 정의 안의 표제란 오염"이 아니라 "복제/shared-link GMTITLE 쌍이 native-like로 증명되지 않은 상태"입니다. 이 상태에서는 도면틀 정의를 지우거나 정규화하려고 하지 말고, `SWTITLECONVERT`로 다음 A3 후보 1장을 fresh native GMTITLE로 교체하는 것이 맞습니다.
 
 ## 기본 순서
 

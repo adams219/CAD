@@ -19,12 +19,12 @@ GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 
 
 초기 preserve-copy 방식은 빠르게 여러 장을 만들 수 있었지만, 일부 복제본이 GMTITLE 표 편집창 대신 고급 속성 편집기로 열렸습니다. 그래서 A2/A3/A4 각각 같은 크기의 실제 native GMTITLE 기준 객체를 만들고, 신뢰하기 어려운 복제 쌍은 `SWTITLECONVERT` 안에서 한 장씩 native 교체하도록 방향을 잡았습니다.
 
-## 현재 main66 기준
+## 현재 기준
 
 현재 LSP 버전:
 
 ```text
-260704-target-overlap-adopt-main66-verify-next-priority
+260704-manual-native-finish-snap
 ```
 
 현재 loader 버전은 `SWTITLEVERSION`에서 함께 확인합니다.
@@ -192,20 +192,22 @@ Style-normalization record count after clean: 0
 최종 gate 결과:
 
 ```text
-SWTITLESTATUS: NEXT_CREATE_FIRST_NATIVE_GMTITLE
+SWTITLESTATUS: NEXT_UPGRADE_A3_A4_NATIVE
 SWTITLEVERIFY: SWTITLEVERIFY_FINAL_FAIL
-source-title-count: 13
-source-frame-count: 15
+source-title-count: 0
+source-frame-count: 2
 frame-only-count: 2
-target-title-count: 0
-target-frame-count: 0
+target-title-count: 13
+target-frame-count: 13
 expected-sheet-counts:
   A2: 1
   A3: 12
   A4: 2
+A3/A4 native 교체 후보: 11
+A4 대상 도면틀 누락: 필요 2, 현재 0
 ```
 
-이 실패는 코드 실패가 아니라 실제 work-copy에 아직 GMTITLE 대상 객체가 없다는 뜻입니다.
+이 실패는 코드 실패가 아니라 실제 work-copy가 변환 중간 상태라는 뜻입니다. A2와 A3 target은 보이지만, A3 중 11개는 복제/shared-link라 native-like로 증명되지 않았고 A4 frame-only target은 아직 없습니다.
 
 ## 완료 기준
 
