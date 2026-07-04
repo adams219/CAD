@@ -223,7 +223,7 @@ nested-outside probe:
   SWTITLEPREPARE/SWTITLECONVERT 기본 흐름에 넣지 않는다.
 
 실행법:
-  powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -Strategies nested-outside -WaitForGstarCADClose
+  powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg" -Strategies nested-outside -WaitForGstarCADClose
 
 운영:
   이 명령은 visible GstarCAD 종료를 기다린 뒤 hidden copied-DWG probe를 실행한다.

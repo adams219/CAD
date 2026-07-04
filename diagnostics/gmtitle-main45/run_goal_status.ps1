@@ -210,7 +210,16 @@ function Write-A4FrameOnlyEvidenceSummary {
   }
   Write-Output ("  A4 normalization probes: {0}" -f ($normalizationSummary -join ", "))
   if ($normalizationSummary -contains "nested-outside=not-run") {
-    Write-Output "  Next A4 investigation probe: run run_a4_outline_normalization_probe.ps1 -Strategies nested-outside -WaitForGstarCADClose, then save/close visible GstarCAD."
+    $nestedProbeScript = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1"
+    $nestedProbeSource = $script:LatestCadDwg
+    if (-not $nestedProbeSource) {
+      $nestedProbeSource = $SourceWorkCopyPath
+    }
+    Write-Output "  Next A4 investigation probe command:"
+    Write-Output ("    powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside -WaitForGstarCADClose" -f $nestedProbeScript, $nestedProbeSource)
+    if (-not (Test-Path -LiteralPath $nestedProbeSource)) {
+      Write-Output "    Warning: the source DWG path above was read from the latest CAD log but does not exist from this shell. Confirm the open CAD DWG path before running."
+    }
   }
 
   if ($script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") {
