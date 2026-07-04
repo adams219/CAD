@@ -189,6 +189,23 @@ A4 원본은 표제란 없는 도면틀-only이므로, DR_titlea_3rd를 새로 �
 DR_A4_Outline 정의가 raw bbox 위험 없이 준비되기 전에는 기존 A4를 삭제하지 않는다.
 ```
 
+현재 probe 결론:
+
+```text
+설치 원본 DR_A4_Outline import:
+  보이는 A4 effective bbox는 (0,0)-(210,297)
+  실제 CAD raw selection bbox는 (0,0)-(872.26126377,302.7)
+  결과: WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE
+
+A4 definition normalization probe:
+  none: unsafe
+  huge-insert: unsafe
+  direct-outside: unsafe
+```
+
+따라서 현재까지 검증된 범위에서는 "틀 밖 객체만 지우면 된다"는 단순 정규화 전략을 채택하지 않는다.
+`SWTITLEPREPARE`가 같은 WARN을 반환하면 변환을 반복하지 말고, A4 정의를 native 방식으로 다시 만들 수 있는지 또는 검증 가능한 outline-only 정의를 별도 설계할지 판단한다.
+
 따라서 이 상태에서의 실제 순서는 아래다.
 
 ```text

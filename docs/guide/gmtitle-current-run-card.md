@@ -92,6 +92,26 @@ SWTITLESTATUS
 `SWTITLEPREPARE` 뒤에는 반드시 `SWTITLESTATUS`를 다시 실행합니다.
 그 결과가 `SWTITLECONVERT`를 안내하면 그때 변환을 진행하고, `WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`가 나오면 멈춥니다.
 
+현재 probe 기준으로는 설치 원본 `DR_A4_Outline`이 strict A4 raw bbox 검사를 통과하지 못할 가능성이 큽니다.
+
+```text
+prepare probe:
+WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE
+
+보이는 A4 범위:
+(0, 0) - (210, 297)
+
+실제 CAD 선택 raw 범위:
+(0, 0) - (872.26126377, 302.7)
+
+정규화 probe:
+none=no
+huge-insert=no
+direct-outside=no
+```
+
+즉 `SWTITLEPREPARE`가 같은 경고로 멈추면 정상적인 안전 중단입니다. 이때는 변환을 반복하지 말고 A4 도면틀 정의 전략을 다시 봅니다.
+
 ### 기본 작업복사본 초기 상태
 
 2026-07-05 검증 suite 기준, 기본 작업복사본은 아직 변환 전 상태입니다.

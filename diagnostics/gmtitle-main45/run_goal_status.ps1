@@ -64,6 +64,20 @@ function Get-FirstRegexValue {
   return $null
 }
 
+function Get-FirstMatchingLine {
+  param(
+    [string]$Text,
+    [string]$Pattern
+  )
+
+  foreach ($line in ($Text -split "\r?\n")) {
+    if ($line -match $Pattern) {
+      return $line.Trim()
+    }
+  }
+  return $null
+}
+
 function Write-LatestCadLogSummary {
   param([string]$WorkDir)
 
@@ -135,6 +149,79 @@ function Write-LatestCadLogSummary {
   $script:LatestCadRecommendedCommand = $recommended
 }
 
+function Write-A4FrameOnlyEvidenceSummary {
+  param([string]$WorkDir)
+
+  Write-Output "A4 frame-only evidence:"
+
+  $frameDefLog = Join-Path $WorkDir "swcad_title_frame_def_check_last.txt"
+  if (Test-Path -LiteralPath $frameDefLog) {
+    $frameDefText = Read-TextWithFallback -Path $frameDefLog
+    $a4FrameDefLine = Get-FirstMatchingLine `
+      -Text $frameDefText `
+      -Pattern "DR_A4_Outline:"
+    if ($a4FrameDefLine) {
+      Write-Output ("  Current frame definition: {0}" -f $a4FrameDefLine)
+    }
+  } else {
+    Write-Output "  Current frame definition: <frame definition log missing>"
+  }
+
+  $prepareProbeLog = Join-Path $WorkDir "swtitle_a4_outline_prepare_probe_260705.txt"
+  if (Test-Path -LiteralPath $prepareProbeLog) {
+    $prepareProbeText = Read-TextWithFallback -Path $prepareProbeLog
+    $prepareResult = Get-FirstMatchingLine `
+      -Text $prepareProbeText `
+      -Pattern "^Prepare result:"
+    $rawWarning = Get-FirstMatchingLine `
+      -Text $prepareProbeText `
+      -Pattern "raw/effective area ratio|raw-bbox|raw-"
+    $afterDefinition = Get-FirstMatchingLine `
+      -Text $prepareProbeText `
+      -Pattern "^After definition status:"
+
+    if ($prepareResult) {
+      Write-Output ("  Installed DR_A4_Outline prepare probe: {0}" -f $prepareResult)
+    }
+    if ($rawWarning) {
+      Write-Output ("  A4 raw-selection warning: {0}" -f $rawWarning)
+    }
+    if ($afterDefinition) {
+      Write-Output ("  A4 definition after unsafe probe: {0}" -f $afterDefinition)
+    }
+  } else {
+    Write-Output "  Installed DR_A4_Outline prepare probe: <missing>"
+  }
+
+  $normalizationLogs = @(
+    Get-ChildItem -LiteralPath $WorkDir -Filter "swtitle_a4_outline_norm_*_260705.txt" -ErrorAction SilentlyContinue |
+      Sort-Object Name
+  )
+  if ($normalizationLogs.Count -gt 0) {
+    $normalizationSummary = @()
+    foreach ($log in $normalizationLogs) {
+      $text = Read-TextWithFallback -Path $log.FullName
+      $strategy = Get-FirstRegexValue -Text $text -Pattern "^Strategy:\s*(.+)$"
+      $safe = Get-FirstRegexValue -Text $text -Pattern "^Normalization safe for A4 frame-only conversion:\s*(yes|no)"
+      if (-not $strategy) {
+        $strategy = $log.BaseName
+      }
+      if (-not $safe) {
+        $safe = "unknown"
+      }
+      $normalizationSummary += ("{0}={1}" -f $strategy, $safe)
+    }
+    Write-Output ("  A4 normalization probes: {0}" -f ($normalizationSummary -join ", "))
+  } else {
+    Write-Output "  A4 normalization probes: <missing>"
+  }
+
+  if ($script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") {
+    Write-Output "  Interpretation: current CAD still needs SWTITLEPREPARE for live evidence, but known probes expect the installed DR_A4_Outline to fail the strict A4 raw-bbox guard."
+    Write-Output "  If SWTITLEPREPARE returns WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE, do not repeat SWTITLECONVERT; continue with the A4 definition strategy investigation."
+  }
+}
+
 Write-Output "===== GMTITLE goal status ====="
 Write-Output ("Repo root: {0}" -f $repoRoot)
 Write-Output ("Branch: {0}" -f (Invoke-GitText @("branch", "--show-current")))
@@ -186,6 +273,9 @@ Write-Output ("Default work-copy exists: {0}" -f $workCopyExists)
 
 Write-Output ""
 Write-LatestCadLogSummary -WorkDir (Join-Path $repoRoot "work")
+
+Write-Output ""
+Write-A4FrameOnlyEvidenceSummary -WorkDir (Join-Path $repoRoot "work")
 
 Write-Output ""
 Write-Output "Next action:"
