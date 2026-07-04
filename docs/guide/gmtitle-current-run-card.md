@@ -77,7 +77,8 @@ C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg
 NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION
 
 의미:
-A2/A3 쪽 변환은 많이 진행됐고, 현재는 A4 frame-only 도면틀 정의를 준비/검증해야 함
+A2 1장과 A3 12장은 최신 native-frame 로그에서 native-like로 잡혔고,
+현재는 A4 frame-only 도면틀 정의를 준비/검증해야 함
 
 다음 명령:
 SWTITLEPREPARE
@@ -88,6 +89,18 @@ SWTITLESTATUS
 
 이 상태에서는 `SWTITLECONVERT`를 반복하지 않습니다.
 먼저 `SWTITLEPREPARE`가 A4 도면틀 정의를 안전하게 만들 수 있는지 확인해야 합니다.
+
+A3 참고:
+
+```text
+최신 swcad_title_native_frame_check_last.txt 기준:
+  A3 native-like frame/title pairs: 12
+  A3/A4 native-like 완료: 12 / 12
+  non-native-like record scan: 0
+
+DR_A3_Outline 도면틀 자체는 native GMTITLE에서도 INSERT/block 참조로 보일 수 있습니다.
+A3 성공 여부는 도면틀 더블클릭이 아니라 짝 DR_titlea_3rd 제목블록 더블클릭 표 편집창으로 확인합니다.
+```
 
 `SWTITLEPREPARE` 뒤에는 반드시 `SWTITLESTATUS`를 다시 실행합니다.
 그 결과가 `SWTITLECONVERT`를 안내하면 그때 변환을 진행하고, `WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`가 나오면 멈춥니다.

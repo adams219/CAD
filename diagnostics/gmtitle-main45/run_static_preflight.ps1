@@ -13,6 +13,7 @@ $suitePath = Join-Path $PSScriptRoot "run_main45_verification_suite.ps1"
 $readmePath = Join-Path $PSScriptRoot "README.md"
 $a4NormProbePath = Join-Path $PSScriptRoot "a4_outline_normalization_probe.lsp"
 $a4NormProbeRunnerPath = Join-Path $PSScriptRoot "run_a4_outline_normalization_probe.ps1"
+$goalStatusPath = Join-Path $PSScriptRoot "run_goal_status.ps1"
 $guidePaths = @(
   "docs\guide\commands.md",
   "docs\guide\gmtitle-cad-conversion-checklist.md",
@@ -157,6 +158,7 @@ $suiteText = Read-Text $suitePath
 $readmeText = Read-Text $readmePath
 $a4NormProbeText = Read-Text $a4NormProbePath
 $a4NormProbeRunnerText = Read-Text $a4NormProbeRunnerPath
+$goalStatusText = Read-Text $goalStatusPath
 
 Write-Output "===== GMTITLE static preflight ====="
 Write-Output ("Repo root: {0}" -f $repoRoot)
@@ -232,6 +234,7 @@ Assert-Contains -Text $readmeText -Needle "A4 strict prepare guard" -Label "READ
 Assert-Contains -Text $a4NormProbeText -Needle "nested-outside" -Label "A4 nested normalization probe strategy"
 Assert-Contains -Text $a4NormProbeRunnerText -Needle "WaitForGstarCADClose" -Label "A4 normalization probe wait option"
 Assert-Contains -Text $a4NormProbeRunnerText -Needle "Get-LatestCadDwgFromNextStepLog" -Label "A4 normalization latest-DWG default"
+Assert-Contains -Text $goalStatusText -Needle "Write-NativeFrameProgressSummary" -Label "Goal status native-frame progress summary"
 
 $suiteStepNumbers = @(
   [regex]::Matches($suiteText, 'Write-Output\s+"===== ([0-9]+)\. ') |

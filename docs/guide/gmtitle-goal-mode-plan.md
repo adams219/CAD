@@ -183,10 +183,23 @@ SWTITLEPREPARE
 이 상태의 해석:
 
 ```text
-A2/A3 변환은 최신 CAD 세션에서 상당 부분 진행됐다.
+A2 1장과 A3 12장은 최신 native-frame 로그에서 native-like로 잡힌다.
 현재 남은 핵심은 A4 frame-only 도면틀 정의 준비/검증이다.
 A4 원본은 표제란 없는 도면틀-only이므로, DR_titlea_3rd를 새로 만들면 안 된다.
 DR_A4_Outline 정의가 raw bbox 위험 없이 준비되기 전에는 기존 A4를 삭제하지 않는다.
+```
+
+A3 판단 기준:
+
+```text
+최신 swcad_title_native_frame_check_last.txt:
+  A3 native-like frame/title pairs found: 12
+  A3/A4 native-like 완료: 12 / 12
+  Non-native-like records found by record scan: 0
+
+DR_A3_Outline 도면틀은 native GMTITLE에서도 INSERT/block 참조로 선택될 수 있다.
+따라서 A3 완료 판단은 도면틀 더블클릭이 아니라
+짝 DR_titlea_3rd 제목블록 더블클릭 표 편집창과 native-like 후보 0개 여부로 한다.
 ```
 
 현재 probe 결론:

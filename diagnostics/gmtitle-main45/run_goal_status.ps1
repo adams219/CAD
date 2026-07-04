@@ -4,9 +4,21 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
-$staticPreflight = Join-Path $PSScriptRoot "run_static_preflight.ps1"
-$suite = Join-Path $PSScriptRoot "run_main45_verification_suite.ps1"
+$scriptRepoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
+$gitRepoRoot = $null
+try {
+  $gitRepoRoot = ((& git -C (Get-Location).Path rev-parse --show-toplevel 2>$null) | Select-Object -First 1).Trim()
+} catch {
+  $gitRepoRoot = $null
+}
+if ($gitRepoRoot -and (Test-Path -LiteralPath $gitRepoRoot)) {
+  $repoRoot = (Resolve-Path -LiteralPath $gitRepoRoot).Path
+} else {
+  $repoRoot = $scriptRepoRoot
+}
+$diagnosticsDir = Join-Path $repoRoot "diagnostics\gmtitle-main45"
+$staticPreflight = Join-Path $diagnosticsDir "run_static_preflight.ps1"
+$suite = Join-Path $diagnosticsDir "run_main45_verification_suite.ps1"
 $runCard = Join-Path $repoRoot "docs\guide\gmtitle-current-run-card.md"
 $goalPlan = Join-Path $repoRoot "docs\guide\gmtitle-goal-mode-plan.md"
 $script:LatestCadDwg = $null
@@ -229,6 +241,44 @@ function Write-A4FrameOnlyEvidenceSummary {
   }
 }
 
+function Write-NativeFrameProgressSummary {
+  param([string]$WorkDir)
+
+  $nativeFrameLog = Join-Path $WorkDir "swcad_title_native_frame_check_last.txt"
+  if (-not (Test-Path -LiteralPath $nativeFrameLog)) {
+    Write-Output "Native frame progress: <native frame check log missing>"
+    return
+  }
+
+  $item = Get-Item -LiteralPath $nativeFrameLog
+  $text = Read-TextWithFallback -Path $nativeFrameLog
+  $dwg = Get-FirstRegexValue -Text $text -Pattern "^DWG[^:]*:\s*(.+)$"
+  $result = Get-FirstMatchingLine -Text $text -Pattern "WARN_|OK_|FAIL_|SWTITLEVERIFY_FINAL_"
+  $completion = Get-FirstMatchingLine -Text $text -Pattern "^A3/A4 native-like"
+  $a3NativeLikeCount = [regex]::Matches($text, "sheet=A3,.*native-like=yes").Count
+  $a4NativeLikeCount = [regex]::Matches($text, "sheet=A4,.*native-like=yes").Count
+  $untrustedCount = [regex]::Matches($text, "native-like=no").Count
+  $a4Missing = [regex]::IsMatch($text, "(?m)^\s*-\s*A4\s*$")
+
+  Write-Output "Native frame progress from latest CAD log:"
+  Write-Output ("  Path: {0}" -f $nativeFrameLog)
+  Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
+  if ($dwg) { Write-Output ("  DWG: {0}" -f $dwg) }
+  Write-Output ("  A3 native-like frame/title pairs found: {0}" -f $a3NativeLikeCount)
+  Write-Output ("  A4 native-like frame/title pairs found: {0}" -f $a4NativeLikeCount)
+  Write-Output ("  A4 target frame still missing: {0}" -f ($(if ($a4Missing) { "yes" } else { "no" })))
+  if ($completion) { Write-Output ("  {0}" -f $completion) }
+  Write-Output ("  Non-native-like records found by record scan: {0}" -f $untrustedCount)
+  if ($result) { Write-Output ("  {0}" -f $result) }
+
+  if ($a3NativeLikeCount -gt 0 -and $untrustedCount -eq 0) {
+    Write-Output "  Interpretation: A3 is no longer the main blocker in the latest CAD evidence. DR_A*_Outline frames still select as INSERT/block references; check the paired DR_titlea_3rd title block for the GMTITLE table editor."
+  }
+  if ($a4Missing) {
+    Write-Output "  Interpretation: A4 remains the active blocker. It is frame-only, so the next safe step is DR_A4_Outline definition prepare/validation, not repeating title conversion."
+  }
+}
+
 Write-Output "===== GMTITLE goal status ====="
 Write-Output ("Repo root: {0}" -f $repoRoot)
 Write-Output ("Branch: {0}" -f (Invoke-GitText @("branch", "--show-current")))
@@ -280,6 +330,9 @@ Write-Output ("Default work-copy exists: {0}" -f $workCopyExists)
 
 Write-Output ""
 Write-LatestCadLogSummary -WorkDir (Join-Path $repoRoot "work")
+
+Write-Output ""
+Write-NativeFrameProgressSummary -WorkDir (Join-Path $repoRoot "work")
 
 Write-Output ""
 Write-A4FrameOnlyEvidenceSummary -WorkDir (Join-Path $repoRoot "work")
