@@ -19,9 +19,9 @@ codex/gm-title
 주의:
 
 ```text
-2026-07-04 현재 GitHub origin/codex/gm-title 최신 커밋은 e738d2e입니다.
+2026-07-04 현재 필요한 GitHub 코드 기준은 e738d2e 이상입니다.
 main56-a4guard LSP/문서/진단 보강은 GitHub에 푸시되어 있습니다.
-다른 PC에서 이어가려면 `codex/gm-title` 브랜치의 e738d2e 이후를 받은 뒤, CAD에서 `SWTITLEVERSION`으로 실제 로드 버전을 확인합니다.
+다른 PC에서 이어가려면 `codex/gm-title` 브랜치에서 `Add GMTITLE main56 adoption guard` 커밋 또는 그 이후 커밋을 받은 뒤, CAD에서 `SWTITLEVERSION`으로 실제 로드 버전을 확인합니다.
 ```
 
 최신 커밋 확인:

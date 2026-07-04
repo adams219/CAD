@@ -41,7 +41,7 @@ SWTITLEVERSION
 같은 실수를 반복하지 않기 위해 CAD에서 명령을 치기 전에 아래 기준을 먼저 확인합니다.
 
 ```text
-GitHub 기준 커밋: e738d2e Add GMTITLE main56 adoption guard
+GitHub 코드 기준: e738d2e Add GMTITLE main56 adoption guard 이상
 현재 LSP 기준: 260704-target-overlap-adopt-main56-a4guard
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```

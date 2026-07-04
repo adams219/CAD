@@ -12,8 +12,8 @@
 
 ```text
 GitHub origin/main:          0121ae1 Clean up GMTITLE command surface
-GitHub origin/codex/gm-title: e738d2e Add GMTITLE main56 adoption guard
-로컬 HEAD:                   e738d2e Add GMTITLE main56 adoption guard
+GitHub origin/codex/gm-title: e738d2e Add GMTITLE main56 adoption guard 이상
+로컬 HEAD:                   origin/codex/gm-title와 일치해야 함
 현재 브랜치:                 codex/gm-title
 현재 GMTITLE LSP 기준:       260704-target-overlap-adopt-main56-a4guard
 현재 loader 기준:            260704-4step-gmtitle-main56-a4guard
@@ -23,7 +23,7 @@ GitHub origin/codex/gm-title: e738d2e Add GMTITLE main56 adoption guard
 
 ```text
 main56-a4guard 관련 LSP/문서/진단 수정은 GitHub origin/codex/gm-title에 푸시되어 있다.
-현재 로컬 HEAD와 origin/codex/gm-title는 e738d2e에서 일치한다.
+현재 로컬 HEAD와 origin/codex/gm-title가 일치해야 한다.
 GitHub main은 0121ae1이라 최신 GMTITLE 실험/보강 기준이 아니다.
 ```
 
@@ -41,7 +41,7 @@ GitHub 화면만 보고 최신 상태라고 판단하지 않는다. 반대로, �
 2026-07-04 추가 검증:
 
 ```text
-git fetch --prune origin 후 origin/codex/gm-title는 e738d2e이다.
+git fetch --prune origin 후 origin/codex/gm-title는 e738d2e 이상이어야 한다.
 전체 main56 verification suite는 통과했다.
 loader probe에서 swcad_load.lsp가 work 폴더 작업복사본에서도 src 모듈을 찾는 것을 확인했다.
 GstarCAD hidden loader/copy probe에서 대표 예전 명령은 모두 비활성화됐다.

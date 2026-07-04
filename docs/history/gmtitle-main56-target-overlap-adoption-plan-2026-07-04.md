@@ -53,8 +53,8 @@ git log --oneline --decorate -n 12 --all
 현재 기준:
 
 ```text
-GitHub origin/codex/gm-title 최신 커밋: e738d2e Add GMTITLE main56 adoption guard
-로컬 codex/gm-title HEAD: e738d2e Add GMTITLE main56 adoption guard
+GitHub origin/codex/gm-title 코드 기준: e738d2e Add GMTITLE main56 adoption guard 이상
+로컬 codex/gm-title HEAD: origin/codex/gm-title와 일치해야 함
 main56-a4guard 수정: GitHub에 푸시됨
 ```
 
@@ -234,8 +234,8 @@ GitHub 원격 확인:
 
 ```text
 git fetch --prune origin
-origin/codex/gm-title = e738d2e Add GMTITLE main56 adoption guard
-로컬 codex/gm-title HEAD = e738d2e Add GMTITLE main56 adoption guard
+origin/codex/gm-title = e738d2e Add GMTITLE main56 adoption guard 이상
+로컬 codex/gm-title HEAD = origin/codex/gm-title와 일치해야 함
 main56-a4guard 수정은 GitHub에 푸시됨
 ```
 
