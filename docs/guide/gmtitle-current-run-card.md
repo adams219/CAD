@@ -56,6 +56,7 @@ a4outline 기준에서는 DR_A4_Outline 정의 raw bbox 위험을 먼저 막고,
 판단이 헷갈리면 먼저 아래 파일을 봅니다.
 
 ```text
+docs/guide/gmtitle-goal-mode-plan.md
 docs/history/gmtitle-native-automation-goal-plan-2026-07-04.md
 docs/history/gmtitle-history-gated-plan-2026-07-04.md
 docs/history/gmtitle-main56-target-overlap-adoption-plan-2026-07-04.md
@@ -63,7 +64,7 @@ docs/investigations/gmtitle-main55-vs-main56-duplicate-target-pair-comparison-20
 docs/history/gmtitle-requirement-completion-audit-2026-07-04.md
 ```
 
-특히 목표모드에서 이어갈 때는 `gmtitle-native-automation-goal-plan-2026-07-04.md`의 "목표모드 세부 작업 분해" 표를 먼저 봅니다. 그 표의 중단 조건에 걸리면 같은 명령을 반복하지 않고, 최신 `SWTITLESTATUS` 로그로 원인을 다시 분류합니다.
+특히 목표모드에서 이어갈 때는 `docs/guide/gmtitle-goal-mode-plan.md`를 먼저 봅니다. 그 문서의 중단 규칙에 걸리면 같은 명령을 반복하지 않고, 최신 `SWTITLESTATUS` 로그로 원인을 다시 분류합니다.
 
 열려 있는 CAD 도면이 저장 전 상태일 수 있으므로, 디스크 파일을 숨김 진단으로 다시 연 결과보다 현재 CAD에서 다시 실행한 `SWTITLESTATUS`/`SWTITLEVERIFY` 로그를 우선합니다.
 
