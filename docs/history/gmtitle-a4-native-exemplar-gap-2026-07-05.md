@@ -169,3 +169,34 @@ A4는 아직 완료가 아니다.
 ```
 
 다음 구현은 A4 native scratch 기준 객체를 확보한 뒤, 그 구조를 설치 원본 import 결과와 비교하는 것이다.
+
+## 2026-07-05 추가 확인: raw bbox가 A4 밖으로 나가는 정의는 실패 처리
+
+저장된 기본 작업복사본에서는 `DR_A4_Outline` 정의가 처음에는 없었다.
+
+`SWTITLEPREPARE`가 설치 원본에서 `DR_A4_Outline`을 가져오면 겉보기 effective bbox는 A4처럼 보일 수 있지만, direct block definition 안에는 A4 바깥 객체가 포함될 수 있었다.
+
+확인된 예:
+
+```text
+Direct DR_A4_Outline definition records:
+  INSERT block=도면 세로 A4 From_HYUN bbox=(0,0)-(210,297)
+  LINE bbox=(216.25210777,255.85503315)-(266.25210777,255.85503315) OUTSIDE_A4
+  LINE bbox=(216.25210777,242.67132656)-(266.25210777,242.67132656) OUTSIDE_A4
+  TEXT bbox=(200.9,287.3)-(248.3,292.7) OUTSIDE_A4
+  TEXT bbox=(210.9,297.3)-(264.9,302.7) OUTSIDE_A4
+Definition raw bbox: (0,0)-(266.25210777,302.7)
+Test insert effective bbox: (0,0)-(210,297)
+```
+
+이 상태를 `ready`로 처리하면 사용자가 지적한 것처럼 원본 A4에는 없던 선/글자가 변환 후 같이 딸려올 수 있다.
+
+따라서 production LSP는 A4 frame-only용 `DR_A4_Outline`에 대해 추가 조건을 갖는다.
+
+```text
+raw definition bbox가 (0,0)-(210,297) 근처를 벗어나면 raw-bbox-risk
+SWTITLEPREPARE는 WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE로 중단
+기존 A4 원본 도면틀은 삭제하지 않음
+```
+
+이 기준은 `diagnostics/gmtitle-main45/run_main45_verification_suite.ps1`의 `A4 outline strict prepare guard probe`에 포함했다.

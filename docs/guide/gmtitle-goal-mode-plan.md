@@ -507,11 +507,14 @@ A3/A4 native 교체 후보가 0이 된 뒤 A4를 처리한다.
 
 A4는 원본에 표제란이 없는 시트가 있을 수 있다. 따라서 A4에 `DR_titlea_3rd`가 생기면 성공이 아니라 잘못된 추가일 수 있다.
 
+A4는 보이는 도면틀 크기만 보지 않는다. `DR_A4_Outline` 블록 정의의 raw bbox가 `(0,0)-(210,297)` 근처를 벗어나면, 겉보기 effective bbox가 A4처럼 보여도 실패로 본다. 이 경우 원본 A4에는 없던 선/글자가 변환 후 같이 딸려올 수 있으므로 `SWTITLEPREPARE`가 `WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`로 멈추는 것이 정상이다.
+
 기대 결과:
 
 ```text
 DR_A4_Outline 도면틀이 필요한 수량만큼 생김
 A4 위치에 불필요한 DR_titlea_3rd 제목블록이 생기지 않음
+DR_A4_Outline raw definition bbox가 A4 범위 안에 있음
 기존 A4 도면 내용이나 빈 도면틀이 삭제되지 않음
 도면 밖의 이상한 선/블록이 딸려오지 않음
 ```

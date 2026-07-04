@@ -173,10 +173,11 @@ A4 원본은 표제란 없는 도면틀-only 시트일 수 있습니다.
 DR_A4_Outline 도면틀만 원본 A4 위치/크기에 맞음
 불필요한 DR_titlea_3rd 제목블록 없음
 A4 target 수량: 2
+DR_A4_Outline raw definition bbox가 (0,0)-(210,297) 근처를 벗어나지 않음
 기존 A4 내용 삭제 없음
 ```
 
-A4에서 `DR_titlea_3rd`가 생기면 멈추고 로그를 봅니다.
+A4에서 `DR_titlea_3rd`가 생기거나 `WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`가 나오면 멈추고 로그를 봅니다. 이 경고는 실패라기보다 원본 A4를 지키기 위해 변환을 중단했다는 뜻입니다.
 
 ## 로그를 볼 때 우선순위
 

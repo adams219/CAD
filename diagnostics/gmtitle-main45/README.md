@@ -18,6 +18,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 
 The script starts GstarCAD hidden, waits for `Runtime check completed:` by default, prints the log, then stops GstarCAD if it is still running.
 
+If a hidden probe starts a `gcad.exe` PID but no log file is created, check whether another visible GstarCAD session is already open. In that state GstarCAD can route `/b` automation through the existing instance or wait behind an active command prompt, so the probe may never load its `.scr` file. Do not kill the user's visible CAD session automatically; save/close it intentionally, then rerun the probe.
+
 ## Main45 Verification Suite
 
 Use `run_main45_verification_suite.ps1` to run the standard read-only checks in one command:
@@ -26,16 +28,17 @@ Use `run_main45_verification_suite.ps1` to run the standard read-only checks in 
 2. current LSP compare-copy probe
 3. actual work-copy status/verify probe
 4. A4 native exemplar gap probe
-5. SWTITLECONVERT script guard probe
-6. common A2/A3/A4 frame-definition classification probe
-7. A2/A3/A4 style-normalization rebuild cleanup probe
-8. command-text guard comparison probe
-9. sheet residue protection probe
-10. embedded-title prepare copy-comparison probe
-11. duplicate target pair comparison probe
-12. native adoption gate comparison probe
-13. A3 status guidance probe
-14. A3/A4 batch guard probe
+5. A4 outline strict prepare guard probe
+6. SWTITLECONVERT script guard probe
+7. common A2/A3/A4 frame-definition classification probe
+8. A2/A3/A4 style-normalization rebuild cleanup probe
+9. command-text guard comparison probe
+10. sheet residue protection probe
+11. embedded-title prepare copy-comparison probe
+12. duplicate target pair comparison probe
+13. native adoption gate comparison probe
+14. A3 status guidance probe
+15. A3/A4 batch guard probe
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
@@ -60,6 +63,7 @@ actual work-copy source/target counts
 A2/A3/A4 expected sheet counts
 actual work-copy first native guidance: A2 -> DR_A2_Outline + DR_titlea_3rd
 A4 native exemplar gap: saved default work-copy has two frame-only sources but no DR_A4_Outline definition or target insert yet
+A4 strict prepare guard: imported DR_A4_Outline definitions whose raw bbox extends outside (0,0)-(210,297) are rejected and the original A4 source frames remain
 SWTITLECONVERT script guard aborts in SCRIPT mode without changing source/target counts, INSERT count, or DBMOD
 mixed/all_contaminated/all_native frame-class PASS results
 A2/A3/A4 style-normalization record count 3 -> 0 after rebuild cleanup
