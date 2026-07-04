@@ -31,7 +31,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main66-verify-next-priority")
+(setq *swcad-title-scale-version* "260704-manual-native-finish")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -472,7 +472,7 @@
           ("Do not press OK unless the dialog shows the DR paper and DR_titlea_3rd." . "DR 용지와 DR_titlea_3rd가 보이지 않으면 OK를 누르지 마세요.")
           ("Dialog selection required:" . "GMTITLE 창에서 필요한 선택:")
           ("Prepared next target:" . "준비된 다음 대상:")
-          ("User did not type OPEN, so GMTITLE was not opened." . "OPEN을 입력하지 않아 GMTITLE 창을 열지 않았습니다.")
+          ("User did not type OPEN, so GMTITLE was not opened." . "OPEN, MANUAL, BATCH를 입력하지 않아 GMTITLE 창을 열지 않았습니다.")
           ("Upgrade target:" . "교체 대상:")
           ("Existing GMTITLE title to replace:" . "교체할 기존 GMTITLE 제목블록:")
           ("Existing GMTITLE frame to replace:" . "교체할 기존 GMTITLE 도면틀:")
@@ -799,7 +799,7 @@
           ("This step upgrades only one sheet." . "이 단계는 한 시트만 교체합니다.")
           ("The GMTITLE dialog may still open with ordinary A3/A4 or ISO title defaults." . "GMTITLE 창이 일반 A3/A4 또는 ISO 제목블록 기본값으로 열릴 수 있습니다.")
           ("Do not press OK unless the dialog shows the DR paper and DR_titlea_3rd." . "창에 DR 용지와 DR_titlea_3rd가 표시되지 않으면 OK를 누르지 마세요.")
-          ("User did not type OPEN, so GMTITLE was not opened." . "OPEN을 입력하지 않아 GMTITLE을 열지 않았습니다.")
+          ("User did not type OPEN, so GMTITLE was not opened." . "OPEN, MANUAL, BATCH를 입력하지 않아 GMTITLE을 열지 않았습니다.")
           ("A3/A4 batch native upgrade is limited to Documents/CAD tool/work copies." . "A3/A4 일괄 native 교체는 Documents/CAD tool/work 안의 복사본에서만 실행합니다.")
           ("If the dialog still shows ISO paper/title values, cancel it. Confirming ISO values will not fix GMPOWEREDIT behavior." . "창이 여전히 ISO 용지/제목블록 값을 보이면 취소하세요. ISO 값을 확인해도 GMPOWEREDIT 동작은 고쳐지지 않습니다.")
           ("Remaining candidates after the stopped sheet:" . "중단된 시트 뒤에 남은 후보:")
@@ -16514,13 +16514,14 @@
           ", Frame positioning=ON, Object move=OFF."
         )
       )
-      (swcad-title-princ-line "OPEN은 다음 후보 1장만 처리합니다. BATCH는 수량을 입력받고 GMTITLE 창을 여러 번 이어서 열 수 있습니다.")
+      (swcad-title-princ-line "OPEN은 다음 후보 1장만 처리합니다. MANUAL은 자동 흐름이 GMTITLE 생성 객체를 놓칠 때 준비/마무리 방식으로 복구합니다.")
+      (swcad-title-princ-line "BATCH는 수량을 입력받고 GMTITLE 창을 여러 번 이어서 열 수 있습니다.")
       (swcad-title-princ-line "BATCH 중에도 각 GMTITLE 창에서 DR 용지/DR_titlea_3rd/옵션을 반드시 눈으로 확인하세요.")
       (swcad-title-princ-line "처리 후에는 SWTITLESTATUS를 다시 실행하세요. native 교체가 필요한 A3/A4 대상 쌍이 0이 될 때까지 진행합니다.")
       (setq answer
         (getstring
           T
-          "\n이 한 장의 GMTITLE 창을 열려면 OPEN, 여러 장을 이어서 처리하려면 BATCH, 안전하게 중단하려면 Enter를 누르세요: "
+          "\n이 한 장의 GMTITLE 창을 열려면 OPEN, 수동 생성 후 마무리하려면 MANUAL, 여러 장을 이어서 처리하려면 BATCH, 안전하게 중단하려면 Enter를 누르세요: "
         )
       )
       (cond
@@ -16541,6 +16542,11 @@
               (princ)
             )
           )
+        )
+        ((= (strcase answer) "MANUAL")
+          (swcad-title-princ-line "A3/A4 MANUAL 복구 모드로 전환합니다.")
+          (swcad-title-princ-line "이번 실행은 대상/값/삽입점만 저장합니다. GMTITLE로 안내된 한 장을 만든 뒤 SWTITLECONVERT를 다시 실행하면 마무리합니다.")
+          (swcad-title-upgrade-native-a3a4-prepare)
         )
         ((= (strcase answer) "BATCH")
           (swcad-title-princ-line "A3/A4 BATCH 모드로 전환합니다. 실패하거나 선택값이 맞지 않으면 기존 쌍을 보존하고 중단합니다.")
@@ -16569,7 +16575,7 @@
             )
           )
           (swcad-title-apply-result "ABORT_NATIVE_UPGRADE_USER")
-          (swcad-title-princ-line "OPEN 또는 BATCH를 입력하지 않아 GMTITLE 창을 열지 않았습니다.")
+          (swcad-title-princ-line "OPEN, MANUAL, BATCH를 입력하지 않아 GMTITLE 창을 열지 않았습니다.")
           (swcad-title-princ-line "도면 데이터는 변경하지 않았습니다.")
           (swcad-title-close-log)
         )
@@ -17270,17 +17276,24 @@
       "SWTITLECONVERT는 도면을 변경할 수 있고 GMTITLE 창 선택이 필요할 수 있어 자동 실행에서는 진행하지 않습니다."
     )
     (progn
-      (setq summary (swcad-title-fast-sheet-summary))
-      (setq source-count (swcad-title-fast-summary-value summary "source-title-count"))
-      (setq frame-only-count (swcad-title-fast-summary-value summary "frame-only-count"))
-      (setq command-text-records (swcad-title-command-text-residue-records))
-      (setq command-text-count (length command-text-records))
-      (setq a3a4-count (length (swcad-title-a3a4-native-upgrade-candidate-records)))
-      (setq style-records (swcad-title-frame-style-normalization-records))
-      (setq frame-definition-blockers (swcad-title-frame-definition-blocking-records))
-      (setq definition-raw-risk-records (swcad-title-frame-definition-raw-bbox-risk-records))
-      (swcad-title-print-fast-sheet-summary summary)
-      (cond
+      (if *swcad-title-pending-manual-native-upgrade*
+        (progn
+          (swcad-title-princ-text "\n대기 중인 수동 native GMTITLE 교체 마무리 작업이 있습니다.")
+          (swcad-title-princ-text "\n방금 GMTITLE로 만든 한 장을 검사해서 값 복사, 기존 쌍 삭제, native marker 설정을 진행합니다.")
+          (swcad-title-upgrade-native-a3a4-finish)
+        )
+        (progn
+          (setq summary (swcad-title-fast-sheet-summary))
+          (setq source-count (swcad-title-fast-summary-value summary "source-title-count"))
+          (setq frame-only-count (swcad-title-fast-summary-value summary "frame-only-count"))
+          (setq command-text-records (swcad-title-command-text-residue-records))
+          (setq command-text-count (length command-text-records))
+          (setq a3a4-count (length (swcad-title-a3a4-native-upgrade-candidate-records)))
+          (setq style-records (swcad-title-frame-style-normalization-records))
+          (setq frame-definition-blockers (swcad-title-frame-definition-blocking-records))
+          (setq definition-raw-risk-records (swcad-title-frame-definition-raw-bbox-risk-records))
+          (swcad-title-print-fast-sheet-summary summary)
+          (cond
         (command-text-records
           (swcad-title-apply-result "ABORT_REVIEW_ACCIDENTAL_COMMAND_TEXT_FIRST")
           (swcad-title-princ-text
@@ -17429,6 +17442,8 @@
               )
             )
           )
+        )
+      )
         )
       )
     )
@@ -17652,7 +17667,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main66-verify-next-priority")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-manual-native-finish")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)

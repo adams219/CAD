@@ -5,7 +5,7 @@
 
 (vl-load-com)
 
-(setq *swcad-version* "260704-4step-gmtitle-main66-verify-next-priority")
+(setq *swcad-version* "260704-4step-gmtitle-manual-native-finish")
 
 (defun swcad-loader-source (/ src)
   (setq src nil)

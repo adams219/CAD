@@ -10,7 +10,7 @@
 
 ```text
 LSP 기준:
-260704-target-overlap-adopt-main66-verify-next-priority
+260704-manual-native-finish
 
 작업 도면:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg
@@ -178,7 +178,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260704-target-overlap-adopt-main66-verify-next-priority
+260704-manual-native-finish
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...
@@ -227,6 +227,11 @@ SWTITLECONVERT
 ```text
 OPEN
   다음 후보 1장만 처리한다.
+
+MANUAL
+  OPEN이 계속 새 GMTITLE 객체를 못 잡을 때 쓰는 복구 경로다.
+  이번 후보의 기존 값과 왼쪽 아래 삽입점을 저장한다.
+  GstarCAD GMTITLE로 안내된 한 장을 만든 뒤 SWTITLECONVERT를 다시 실행하면 마무리한다.
 
 BATCH
   여러 장을 이어서 처리한다.
@@ -277,6 +282,8 @@ A3/A4 native 교체 후보 수가 줄어든다.
 ```
 
 후보 수가 줄지 않으면 같은 명령을 반복하지 않는다. 최신 `swcad_title_native_frame_check_last.txt`와 `swcad_title_next_step_last.txt`를 보고 원인을 먼저 분류한다.
+
+특히 `ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS`가 반복되면, `OPEN` 자동 흐름이 GstarCAD가 만든 INSERT를 잡지 못한 것이다. 이때는 다음 후보에서 `MANUAL`을 선택해 pending prepare를 만들고, GstarCAD `GMTITLE`로 안내된 DR 용지/제목블록을 한 장 만든 뒤 `SWTITLECONVERT`를 다시 실행한다. 다시 실행된 `SWTITLECONVERT`는 일반 상태 분류보다 pending finish를 먼저 수행한다.
 
 ### 4단계: A4 frame-only 처리
 
@@ -370,6 +377,7 @@ SWTITLECONVERT가 좌표 계산과 기존 값 복사를 처리한다.
 ```text
 SWTITLECONVERT 안의 OPEN/BATCH 흐름을 사용한다.
 OPEN 성공 뒤 BATCH로 여러 후보를 이어서 처리한다.
+OPEN이 `NO_INSERTS`로 반복되면 MANUAL prepare/finish 복구 흐름을 사용한다.
 각 GMTITLE 창의 DR 선택은 사람이 눈으로 확인한다.
 ```
 
@@ -470,9 +478,12 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 5. GMTITLE 창에서 DR_A3_Outline / DR_titlea_3rd / Frame positioning ON / Object move OFF 확인
 6. 변환이 끝나면 SWTITLESTATUS 실행
 7. A3/A4 native 교체 후보가 11에서 줄었는지 확인
-8. 줄었으면 같은 방식으로 다음 후보 진행
-9. A3/A4 후보가 0이 된 뒤 A4 frame-only 처리
-10. SWTITLEVERIFY_FINAL_OK와 대표 더블클릭 확인
+8. 후보 수가 줄지 않고 `NO_INSERTS`가 반복되면 다음에는 SWTITLECONVERT에서 MANUAL 선택
+9. MANUAL 안내값으로 GstarCAD GMTITLE 한 장 생성
+10. SWTITLECONVERT 재실행으로 pending finish 수행
+11. 줄었으면 같은 방식으로 다음 후보 진행
+12. A3/A4 후보가 0이 된 뒤 A4 frame-only 처리
+13. SWTITLEVERIFY_FINAL_OK와 대표 더블클릭 확인
 ```
 
 이 순서에서 한 단계라도 증거가 맞지 않으면 다음 단계로 가지 않는다.

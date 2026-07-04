@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260704-target-overlap-adopt-main66-verify-next-priority
+260704-manual-native-finish
 ```
 
 ## GMTITLE 변환 명령
@@ -60,11 +60,14 @@ docs/history/gmtitle-native-automation-goal-plan-2026-07-04.md
 
 ```text
 OPEN  = 다음 후보 1장만 처리
+MANUAL = OPEN이 계속 새 GMTITLE 객체를 못 잡을 때, 대상/값/삽입점을 저장한 뒤 수동 생성 후 SWTITLECONVERT 재실행으로 마무리
 BATCH = 처리 수량을 입력하고 여러 후보를 이어서 처리
 Enter = 중단, 도면 변경 없음
 ```
 
 `BATCH`도 GMTITLE 창 선택을 완전 자동화하지는 않습니다. 각 창에서 `DR_A*_Outline`, `DR_titlea_3rd`, `Frame positioning ON`, `Object move OFF`를 사람이 확인해야 합니다. 선택값이 틀리거나 실패하면 기존 쌍을 보존하고 중단합니다.
+
+`MANUAL`은 새 공개 명령이 아니라 `SWTITLECONVERT` 안의 복구 선택지입니다. `MANUAL`을 입력하면 이번 후보의 기존 제목블록 값과 왼쪽 아래 삽입점을 저장합니다. 그 다음 GstarCAD `GMTITLE`로 안내된 DR 용지/제목블록을 한 장 만든 뒤 `SWTITLECONVERT`를 다시 실행하면, 방금 만든 GMTITLE을 검사해서 값 복사와 기존 복제 쌍 삭제를 마무리합니다.
 
 ## 권장 실행 순서
 
