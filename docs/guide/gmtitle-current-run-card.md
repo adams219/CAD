@@ -23,7 +23,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main62-korean-guidance
+260704-target-overlap-adopt-main63-guided-a3a4-batch
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 APPLOAD 합니다.
@@ -41,8 +41,8 @@ SWTITLEVERSION
 같은 실수를 반복하지 않기 위해 CAD에서 명령을 치기 전에 아래 기준을 먼저 확인합니다.
 
 ```text
-로컬 코드 기준: main62 korean-guidance 이상
-현재 LSP 기준: 260704-target-overlap-adopt-main62-korean-guidance
+로컬 코드 기준: main63 guided-a3a4-batch 이상
+현재 LSP 기준: 260704-target-overlap-adopt-main63-guided-a3a4-batch
 사용자용 명령: SWTITLESTATUS / SWTITLEPREPARE / SWTITLECONVERT / SWTITLEVERIFY
 ```
 
@@ -81,13 +81,13 @@ old fixture/test suffix가 붙은 로그
 
 `*_last.txt`는 마지막으로 실행한 DWG의 로그입니다. 현재 열린 세션과 디스크 파일 상태가 다르면, 먼저 열린 CAD에서 `SWTITLESTATUS`를 다시 실행해 최신 로그를 만듭니다.
 
-## main62 로그 판독표
+## main63 로그 판독표
 
 `SWTITLESTATUS`나 `SWTITLEVERIFY`를 실행한 뒤에는 아래 기준으로만 다음 행동을 정합니다.
 
 | 로그 문구 | 의미 | 다음 행동 |
 | --- | --- | --- |
-| `SWTITLEVERSION`이 `260704-target-overlap-adopt-main62-korean-guidance`가 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
+| `SWTITLEVERSION`이 `260704-target-overlap-adopt-main63-guided-a3a4-batch`가 아님 | 열린 CAD 세션이 예전 LSP를 사용 중 | 변환 금지. `APPLOAD`로 `swcad_load.lsp` 다시 로드 |
 | `자동화 판단: 명령줄 -GMTITLE/설정파일 자동 선택은 기본 OFF입니다.` | 현재는 GMTITLE 창 선택을 사람이 확인하는 안정 모드 | 정상. 화면 좌표 클릭이나 `-GMTITLE` 강제 자동화 금지 |
 | `NEXT_CREATE_FIRST_NATIVE_GMTITLE` | 아직 이 도면에 진짜 GMTITLE 기준 객체가 없음 | `SWTITLECONVERT`로 첫 native GMTITLE 1장 생성 |
 | `WARN_CLONED_GMTITLE_FRAME_NEEDS_NATIVE_UPGRADE` | 겉모양은 맞지만 도면틀이 복제 구조라 native 증거 부족 | `SWTITLECONVERT`로 다음 후보 1장만 native 교체 |
@@ -98,7 +98,7 @@ old fixture/test suffix가 붙은 로그
 | `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK` | 도면 삭제 전에 위험을 감지하고 멈춤 | 정상 중단. 기존 A3/A4 삭제하지 말고 원인 분석 |
 | `SWTITLEVERIFY_FINAL_OK` | 수량과 잔여물 기준 통과 | 대표 `DR_titlea_3rd` 더블클릭, A4 frame-only 형상 확인 |
 
-main62에서 유효한 로그에는 아래 문구가 같이 보여야 합니다.
+main63에서 유효한 로그에는 아래 문구가 같이 보여야 합니다.
 
 ```text
 native/복제 구조 비교 샘플:
@@ -107,20 +107,22 @@ native/복제 구조 비교 샘플:
 
 이 문구가 없으면 현재 CAD가 낡은 LSP를 들고 있을 가능성이 높으므로, 그 로그로 결론을 내리지 않습니다.
 
-## 현재 저장된 workcopy 기준
+## 현재 workcopy 기준
 
-현재 디스크에 저장된 기본 작업복사본은 아직 변환 전 상태입니다. final completion gate도 이 이유로 실패하는 것이 정상입니다.
+2026-07-04 현재 마지막 CAD 로그 기준 작업복사본은 변환 중간 상태입니다.
 
 ```text
-SWTITLESTATUS: NEXT_CREATE_FIRST_NATIVE_GMTITLE
+SWTITLESTATUS: NEXT_UPGRADE_A3_A4_NATIVE
 SWTITLEVERIFY: SWTITLEVERIFY_FINAL_FAIL
-원본 표제란 시트: 13
-원본 도면틀: 15
+남은 원본 표제란 시트: 0
+남은 원본 도면틀: 2
 표제란 없는 도면틀 시트: 2
-target 도면틀/제목블록: 0 / 0
+대상 도면틀/제목블록 쌍: 13
+A3/A4 native 교체 후보: 11
+A4 대상 도면틀 누락: 필요 2, 현재 0
 ```
 
-이 상태에서 다음 실제 CAD 명령은 `SWTITLECONVERT`입니다.
+이 상태에서 다음 실제 CAD 명령은 `SWTITLECONVERT`입니다. A3/A4 native 교체 후보가 남아 있으므로 A4 frame-only보다 A3/A4 native 교체가 먼저 안내됩니다.
 
 ## 기본 순서
 
@@ -151,6 +153,16 @@ SWTITLESTATUS 로그의 DR 도면틀 정의 raw bbox 위험 확인
 SWTITLECONVERT
 SWTITLESTATUS
 ```
+
+A3/A4 native 교체 후보가 여러 개 남아 있으면 `SWTITLECONVERT`가 선택지를 묻습니다.
+
+```text
+OPEN  = 다음 후보 1장만 처리
+BATCH = 처리 수량을 입력하고 여러 후보를 이어서 처리
+Enter = 중단, 도면 변경 없음
+```
+
+`BATCH`는 명령 반복을 줄이는 기능입니다. GMTITLE 창 선택을 대신 해 주는 기능은 아니므로, 각 창에서 로그가 요구한 DR 용지/제목블록/옵션을 확인합니다.
 
 상태가 최종 검증을 요구하면:
 

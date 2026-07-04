@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260704-target-overlap-adopt-main62-korean-guidance
+260704-target-overlap-adopt-main63-guided-a3a4-batch
 ```
 
 ## GMTITLE 변환 명령
@@ -55,6 +55,16 @@ docs/history/gmtitle-native-automation-goal-plan-2026-07-04.md
 ```
 
 현재 기본값에서는 명령줄 `-GMTITLE` 자동 선택을 사용하지 않습니다. 이전 CAD 이력에서 일반 A3/A4 또는 ISO 제목블록으로 잘못 흐르는 사례가 있었기 때문입니다. 자동화는 별도 work 복사본에서 검증된 뒤에만 기본 흐름에 넣습니다.
+
+현재 `SWTITLECONVERT`는 A3/A4 native 교체 후보가 여러 개일 때 새 공개 명령을 만들지 않고 같은 명령 안에서 선택지를 제공합니다.
+
+```text
+OPEN  = 다음 후보 1장만 처리
+BATCH = 처리 수량을 입력하고 여러 후보를 이어서 처리
+Enter = 중단, 도면 변경 없음
+```
+
+`BATCH`도 GMTITLE 창 선택을 완전 자동화하지는 않습니다. 각 창에서 `DR_A*_Outline`, `DR_titlea_3rd`, `Frame positioning ON`, `Object move OFF`를 사람이 확인해야 합니다. 선택값이 틀리거나 실패하면 기존 쌍을 보존하고 중단합니다.
 
 ## 권장 실행 순서
 

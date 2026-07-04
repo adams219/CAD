@@ -55,7 +55,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-target-overlap-adopt-main62-korean-guidance
+260704-target-overlap-adopt-main63-guided-a3a4-batch
 ```
 
 다른 버전이 나오면 변환하지 말고 최신 LSP를 다시 APPLOAD 하세요.
@@ -102,7 +102,7 @@ target 제목블록: 0
 
 `SWTITLESTATUS`가 `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX`를 안내하면 `SWTITLECONVERT`를 반복하지 않습니다. 이 경우 `DR_A4_Outline` 같은 도면틀 정의 자체의 선택 범위가 용지보다 과도하게 큰 상태이므로, 기존 A4를 삭제하기 전에 정의 복구/정규화 계획을 먼저 확인해야 합니다.
 
-현재 main62 기준에서는 `SWTITLEPREPARE`가 사용 중이 아닌 `DR_A*_Outline` 정의의 raw bbox 위험을 복구 후보로 처리합니다. 이미 도면에 삽입되어 사용 중인 정의는 native link와 위치를 보호하기 위해 자동 교체하지 않고 로그에 남깁니다.
+현재 main63 기준에서는 `SWTITLEPREPARE`가 사용 중이 아닌 `DR_A*_Outline` 정의의 raw bbox 위험을 복구 후보로 처리합니다. 이미 도면에 삽입되어 사용 중인 정의는 native link와 위치를 보호하기 위해 자동 교체하지 않고 로그에 남깁니다.
 
 ## 3. 필요한 경우 정규화
 
@@ -112,7 +112,7 @@ target 제목블록: 0
 SWTITLEPREPARE
 ```
 
-현재 main62 기준 정규화 대상:
+현재 main63 기준 정규화 대상:
 
 ```text
 source-contaminated 도면틀 정의

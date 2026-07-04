@@ -31,7 +31,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main62-korean-guidance")
+(setq *swcad-title-scale-version* "260704-target-overlap-adopt-main63-guided-a3a4-batch")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -16469,8 +16469,9 @@
   (princ)
 )
 
-(defun swcad-title-upgrade-native-a3a4-next (/ records pair frame-block sheet reason answer old-skip result)
+(defun swcad-title-upgrade-native-a3a4-next (/ records total pair frame-block sheet reason answer old-skip result)
   (setq records (swcad-title-a3a4-native-upgrade-candidate-records))
+  (setq total (length records))
   (setq pair (if records (car records) nil))
   (if pair
     (progn
@@ -16491,7 +16492,14 @@
           reason
         )
       )
-      (swcad-title-princ-line "이 단계는 한 번에 한 시트만 교체합니다.")
+      (swcad-title-princ-line
+        (strcat
+          "현재 A3/A4 native 교체 후보는 "
+          (itoa total)
+          "개입니다."
+        )
+      )
+      (swcad-title-princ-line "기본은 한 번에 한 시트만 교체합니다. 여러 장을 이어서 처리하려면 BATCH를 사용할 수 있습니다.")
       (swcad-title-princ-line "GMTITLE 창은 여전히 일반 A3/A4 또는 ISO 제목블록 기본값으로 열릴 수 있습니다.")
       (swcad-title-princ-line "창에 DR 용지와 DR_titlea_3rd가 표시되지 않으면 OK를 누르지 마세요.")
       (swcad-title-princ-line
@@ -16503,14 +16511,39 @@
           ", Frame positioning=ON, Object move=OFF."
         )
       )
-      (swcad-title-princ-line "이 명령이 성공하면 SWTITLESTATUS를 다시 실행하세요. native 교체가 필요한 A3/A4 대상 쌍이 0이 될 때까지 SWTITLECONVERT를 반복합니다.")
+      (swcad-title-princ-line "OPEN은 다음 후보 1장만 처리합니다. BATCH는 수량을 입력받고 GMTITLE 창을 여러 번 이어서 열 수 있습니다.")
+      (swcad-title-princ-line "BATCH 중에도 각 GMTITLE 창에서 DR 용지/DR_titlea_3rd/옵션을 반드시 눈으로 확인하세요.")
+      (swcad-title-princ-line "처리 후에는 SWTITLESTATUS를 다시 실행하세요. native 교체가 필요한 A3/A4 대상 쌍이 0이 될 때까지 진행합니다.")
       (setq answer
         (getstring
           T
-          "\n이 한 장의 GMTITLE 창을 열려면 OPEN을 입력하세요. 안전하게 중단하려면 Enter를 누르세요: "
+          "\n이 한 장의 GMTITLE 창을 열려면 OPEN, 여러 장을 이어서 처리하려면 BATCH, 안전하게 중단하려면 Enter를 누르세요: "
         )
       )
-      (if (/= (strcase answer) "OPEN")
+      (cond
+        ((= (strcase answer) "OPEN")
+          (setq *swcad-title-native-upgrade-selected-pair* pair)
+          (setq old-skip *swcad-title-skip-native-upgrade-confirmation*)
+          (setq *swcad-title-skip-native-upgrade-confirmation* T)
+          (setq result (vl-catch-all-apply 'swcad-title-upgrade-native-one nil))
+          (setq *swcad-title-skip-native-upgrade-confirmation* old-skip)
+          (if (vl-catch-all-error-p result)
+            (progn
+              (swcad-title-princ-line
+                (strcat
+                  "SWTITLECONVERT A3/A4 native replacement error: "
+                  (vl-catch-all-error-message result)
+                )
+              )
+              (princ)
+            )
+          )
+        )
+        ((= (strcase answer) "BATCH")
+          (swcad-title-princ-line "A3/A4 BATCH 모드로 전환합니다. 실패하거나 선택값이 맞지 않으면 기존 쌍을 보존하고 중단합니다.")
+          (swcad-title-upgrade-native-a3a4-batch-manual)
+        )
+        (T
         (progn
           (swcad-title-open-native-upgrade-log)
           (swcad-title-princ-line "----- SWTITLECONVERT A3/A4 한 장 native 교체 사전 확인 -----")
@@ -16533,27 +16566,10 @@
             )
           )
           (swcad-title-apply-result "ABORT_NATIVE_UPGRADE_USER")
-          (swcad-title-princ-line "OPEN을 입력하지 않아 GMTITLE 창을 열지 않았습니다.")
+          (swcad-title-princ-line "OPEN 또는 BATCH를 입력하지 않아 GMTITLE 창을 열지 않았습니다.")
           (swcad-title-princ-line "도면 데이터는 변경하지 않았습니다.")
           (swcad-title-close-log)
         )
-        (progn
-          (setq *swcad-title-native-upgrade-selected-pair* pair)
-          (setq old-skip *swcad-title-skip-native-upgrade-confirmation*)
-          (setq *swcad-title-skip-native-upgrade-confirmation* T)
-          (setq result (vl-catch-all-apply 'swcad-title-upgrade-native-one nil))
-          (setq *swcad-title-skip-native-upgrade-confirmation* old-skip)
-          (if (vl-catch-all-error-p result)
-            (progn
-              (swcad-title-princ-line
-                (strcat
-                  "SWTITLECONVERT A3/A4 native replacement error: "
-                  (vl-catch-all-error-message result)
-                )
-              )
-              (princ)
-            )
-          )
         )
       )
     )
@@ -17305,7 +17321,7 @@
               "A3/A4 native 교체는 GMTITLE 창의 용지/제목블록 선택을 사람이 확인해야 합니다."
             )
             (progn
-              (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 A3/A4 native 교체 단계를 한 장만 안전하게 실행합니다.")
+              (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 A3/A4 native 교체 단계를 안내합니다. OPEN은 1장, BATCH는 여러 장 연속 처리입니다.")
               (swcad-title-upgrade-native-a3a4-next)
             )
           )
@@ -17615,7 +17631,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main62-korean-guidance")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-target-overlap-adopt-main63-guided-a3a4-batch")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)

@@ -5,7 +5,7 @@
 
 (vl-load-com)
 
-(setq *swcad-version* "260704-4step-gmtitle-main62-korean-guidance")
+(setq *swcad-version* "260704-4step-gmtitle-main63-guided-a3a4-batch")
 
 (defun swcad-loader-source (/ src)
   (setq src nil)
