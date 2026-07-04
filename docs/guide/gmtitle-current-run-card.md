@@ -245,6 +245,8 @@ Frame positioning: ON
 Object move: OFF
 ```
 
+명령창에는 `GMTITLE 선택 카드:`가 다시 표시됩니다. 그 카드의 용지/도면틀, 제목블록, 왼쪽 아래 배치점, 취소 조건을 보고 진행합니다.
+
 2026-07-04 실제 CAD 확인에서는 A3 native 교체 중 GMTITLE 창 기본값이 아래처럼 잘못 떴습니다.
 
 ```text

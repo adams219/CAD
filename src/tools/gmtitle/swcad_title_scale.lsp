@@ -11181,20 +11181,9 @@
   )
 )
 
-(defun swcad-title-run-native-gmtitle (frame-block placement-point / before-handles new-enames title-ename frame-ename guard prompt placement-used old-osmode old-dynmode current-new-enames)
-  (setq before-handles (swcad-title-insert-handle-list))
-  (setq *swcad-title-last-native-gmtitle-abort-reason* nil)
-  (setq *swcad-title-last-native-gmtitle-placement-used* nil)
-  (swcad-title-princ-line
-    (strcat
-      "native GMTITLE을 시작합니다. GMTITLE 창에서 "
-      (swcad-title-string frame-block)
-      " 용지와 "
-      (swcad-title-target-title-block-name)
-      " 제목블록을 선택한 뒤 확인하세요."
-    )
-  )
-  (swcad-title-princ-line (strcat "  용지/형식: " (swcad-title-string frame-block)))
+(defun swcad-title-print-gmtitle-dialog-selection-card (frame-block placement-point)
+  (swcad-title-princ-line "GMTITLE 선택 카드:")
+  (swcad-title-princ-line (strcat "  용지/도면틀: " (swcad-title-string frame-block)))
   (swcad-title-princ-line (strcat "  제목블록: " (swcad-title-target-title-block-name)))
   (swcad-title-princ-line "  켜둘 옵션: Frame positioning")
   (swcad-title-princ-line "  꺼둘 옵션: Object move")
@@ -11212,6 +11201,23 @@
     )
     (swcad-title-princ-line "  가능하면 기본 배치를 유지하세요. 이 LSP가 이후 GMTITLE 쌍을 정렬합니다.")
   )
+  (swcad-title-princ-line "  취소 조건: ISO 용지, ISO 제목블록, Object move ON, 예상과 다른 DR 용지가 보이면 확인하지 말고 취소하세요.")
+)
+
+(defun swcad-title-run-native-gmtitle (frame-block placement-point / before-handles new-enames title-ename frame-ename guard prompt placement-used old-osmode old-dynmode current-new-enames)
+  (setq before-handles (swcad-title-insert-handle-list))
+  (setq *swcad-title-last-native-gmtitle-abort-reason* nil)
+  (setq *swcad-title-last-native-gmtitle-placement-used* nil)
+  (swcad-title-princ-line
+    (strcat
+      "native GMTITLE을 시작합니다. GMTITLE 창에서 "
+      (swcad-title-string frame-block)
+      " 용지와 "
+      (swcad-title-target-title-block-name)
+      " 제목블록을 선택한 뒤 확인하세요."
+    )
+  )
+  (swcad-title-print-gmtitle-dialog-selection-card frame-block placement-point)
   (swcad-title-princ-line "  참고: 현재 테스트 기준으로 첫 native GMTITLE의 명령줄 자동 선택은 안정적으로 사용할 수 없습니다.")
   (swcad-title-princ-line "이 명령은 FILEDIA와 CMDDIA를 변경하지 않습니다.")
   (setq old-osmode (swcad-title-safe-getvar "OSMODE"))
