@@ -10,6 +10,26 @@ $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
 $workDir = Join-Path $repoRoot "work"
 $compareDir = Join-Path $workDir "lsp_compare"
 
+function Assert-NoExistingGstarCAD {
+  $existingGstarCAD = @(Get-Process -Name gcad -ErrorAction SilentlyContinue)
+  if ($existingGstarCAD.Count -gt 0) {
+    $details = $existingGstarCAD |
+      Select-Object Id, ProcessName, MainWindowTitle, StartTime |
+      Format-Table -AutoSize |
+      Out-String
+    throw @"
+Existing GstarCAD process detected before the verification suite.
+The suite uses hidden /b probes, which are unreliable while a visible GstarCAD session is open.
+
+Save the work-copy DWG, close GstarCAD, then rerun:
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_main45_verification_suite.ps1
+
+Existing process:
+$details
+"@
+  }
+}
+
 function Assert-LogContains {
   param(
     [Parameter(Mandatory = $true)]
@@ -41,6 +61,7 @@ if (-not $SourceWorkCopyPath) {
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
   throw "Source work-copy DWG not found: $SourceWorkCopyPath"
 }
+Assert-NoExistingGstarCAD
 if (-not (Test-Path -LiteralPath $compareDir)) {
   New-Item -ItemType Directory -Path $compareDir | Out-Null
 }

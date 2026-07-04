@@ -55,6 +55,8 @@ from the current source LSP before running the compare-copy probe.
 
 The suite fails if expected log markers are missing. The checked markers include:
 
+The suite also fails before the first probe if `gcad.exe` is already running. Save the work-copy DWG and close GstarCAD first, otherwise hidden `/b` probes can attach to the visible session and never create their log.
+
 ```text
 loaded main45 versions
 four workflow commands enabled
