@@ -69,6 +69,7 @@ $residueProtectionLog = Join-Path $workDir "swtitle_residue_protection_current_m
 $embeddedPrepareLog = Join-Path $workDir "swtitle_embedded_title_prepare_compare_current_main56_embedded_prepare.txt"
 $duplicateTargetPairLog = Join-Path $workDir "swtitle_duplicate_target_pair_compare_current_main56_duplicate_target_pair.txt"
 $adoptionGateLog = Join-Path $workDir "swtitle_adoption_gate_compare_current_main56_adoption_gate.txt"
+$a3StatusGuidanceLog = Join-Path $workDir "swtitle_a3_status_guidance_probe.txt"
 
 Write-Output "===== 1. Loader probe ====="
 & (Join-Path $PSScriptRoot "run_loader_probe.ps1") `
@@ -80,8 +81,8 @@ Assert-LogContains `
   -Label "loader probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded loader version: 260704-4step-gmtitle-main56-a4frameguard",
-    "Loaded GMTITLE version: 260704-target-overlap-adopt-main56-a4frameguard",
+    "Loaded loader version: 260705-4step-gmtitle-a4-outline-preflight",
+    "Loaded GMTITLE version: 260705-a3-frame-guidance",
     "Command c:SWTITLESTATUS: yes",
     "Command c:SWTITLEPREPARE: yes",
     "Command c:SWTITLECONVERT: yes",
@@ -105,7 +106,7 @@ Assert-LogContains `
   -Label "current LSP copy compare probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
+    "Loaded version: 260705-a3-frame-guidance",
     "Command c:SWTITLESTATUS: yes",
     "Command c:SWTITLEPREPARE: yes",
     "Command c:SWTITLECONVERT: yes",
@@ -133,7 +134,7 @@ Assert-LogContains `
   -Label "actual work-copy status probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
+    "Loaded version: 260705-a3-frame-guidance",
     "Result: OK SWTITLESTATUS status=NEXT_CREATE_FIRST_NATIVE_GMTITLE",
     "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_FAIL",
     "source-title-count: 13",
@@ -212,7 +213,7 @@ Assert-LogContains `
   -Path $styleNormalizationLog `
   -Label "A2/A3/A4 style-normalization rebuild cleanup probe" `
   -Patterns @(
-    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
+    "Loaded version: 260705-a3-frame-guidance",
     "DR_A2_Outline: class=native-format-with-title-geometry",
     "DR_A3_Outline: class=native-format-with-title-geometry",
     "DR_A4_Outline: class=native-format-with-title-geometry",
@@ -234,7 +235,7 @@ Assert-LogContains `
   -Path $commandTextGuardLog `
   -Label "command-text guard comparison probe" `
   -Patterns @(
-    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
+    "Loaded version: 260705-a3-frame-guidance",
     "command-text-count-before: 1",
     "SWTITLESTATUS result: OK status=NEXT_REVIEW_ACCIDENTAL_COMMAND_TEXT",
     "structure-next-action: SWTITLEPREPARE",
@@ -254,7 +255,7 @@ Assert-LogContains `
   -Path $residueProtectionLog `
   -Label "sheet residue protection probe" `
   -Patterns @(
-    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
+    "Loaded version: 260705-a3-frame-guidance",
     "bottom-left logo line candidate: yes",
     "bottom-left real text preserved: yes",
     "upper small SW_NOTE balloon preserved: yes",
@@ -277,7 +278,7 @@ Assert-LogContains `
   -Path $embeddedPrepareLog `
   -Label "embedded-title prepare comparison probe" `
   -Patterns @(
-    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
+    "Loaded version: 260705-a3-frame-guidance",
     "DR_A2_Outline: class=native-format-with-title-geometry, embedded=4",
     "DR_A3_Outline: class=native-format-with-title-geometry, embedded=4",
     "DR_A4_Outline: class=native-format-with-title-geometry, embedded=4",
@@ -303,7 +304,7 @@ Assert-LogContains `
   -Path $duplicateTargetPairLog `
   -Label "duplicate target pair comparison probe" `
   -Patterns @(
-    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
+    "Loaded version: 260705-a3-frame-guidance",
     "Duplicate function present: yes",
     "Duplicate target pair count: 1",
     "Keep frame/title role:",
@@ -326,13 +327,33 @@ Assert-LogContains `
   -Path $adoptionGateLog `
   -Label "native adoption gate comparison probe" `
   -Patterns @(
-    "Loaded version: 260704-target-overlap-adopt-main56-a4frameguard",
+    "Loaded version: 260705-a3-frame-guidance",
     "Adoption function present: yes",
     "Status after transfer: ADOPTED_EXISTING_NATIVE_GMTITLE_TRANSFER",
     "Danger action: <none>",
     "Source title count before/after: 1/0",
     "Target title count before/after: 1/1",
     "Adoption gate probe passed: yes",
+    "Runtime check completed: yes"
+  )
+
+Write-Output ""
+Write-Output "===== 11. A3 status guidance probe ====="
+& (Join-Path $PSScriptRoot "run_a3_status_guidance_probe.ps1") `
+  -SourceWorkCopyPath $SourceWorkCopyPath `
+  -LogPath $a3StatusGuidanceLog `
+  -TimeoutSeconds $TimeoutSeconds
+Assert-LogContains `
+  -Path $a3StatusGuidanceLog `
+  -Label "A3 status guidance probe" `
+  -Patterns @(
+    "Loaded version: 260705-a3-frame-guidance",
+    "A3/A4 candidate count before SWTITLESTATUS: 1",
+    "SWTITLESTATUS result: OK",
+    "Status after SWTITLESTATUS: NEXT_UPGRADE_A3_A4_NATIVE",
+    "A3 frame guidance note found: yes",
+    "A3 native-candidate supplement found: yes",
+    "A3 status guidance probe passed: yes",
     "Runtime check completed: yes"
   )
 

@@ -81,7 +81,41 @@ SWTITLESTATUS/SWTITLEVERIFY 실행 성공
 기존 변환 전 진단 결과 유지
 ```
 
-## 다음 확인
+## A3 target fixture 검증
+
+A3 target이 있는 상태도 별도 synthetic probe로 확인했다.
+
+실행:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_a3_status_guidance_probe.ps1"
+```
+
+이 probe는 복사본 DWG에서 모든 INSERT를 지운 뒤, 합성 `DR_A3_Outline` + `DR_titlea_3rd` 쌍 1개를 만들고 role을 `clone`으로 표시한다.
+
+결과:
+
+```text
+Loaded version: 260705-a3-frame-guidance
+A3/A4 candidate count before SWTITLESTATUS: 1
+SWTITLESTATUS result: OK
+Status after SWTITLESTATUS: NEXT_UPGRADE_A3_A4_NATIVE
+A3 frame guidance note found: yes
+A3 native-candidate supplement found: yes
+A3 status guidance probe passed: yes
+Runtime check completed: yes
+```
+
+생성된 구조 판단 로그에는 다음 문구가 실제로 출력됐다.
+
+```text
+A3 도면틀 참고: DR_A3_Outline은 native GMTITLE에서도 INSERT/block 참조로 선택될 수 있습니다.
+A3 완료 판단은 도면틀 더블클릭이 아니라 DR_titlea_3rd 제목블록 더블클릭과 native 교체 후보 0개로 확인하세요.
+A3 판단 보충: 도면틀이 block처럼 보이는 현상 자체보다 복제/shared-native-link 후보가 남았는지가 실제 문제입니다.
+```
+
+## 다음 실제 CAD 확인
 
 A3 target이 이미 있는 CAD 세션 또는 변환 중간 workcopy에서 `SWTITLESTATUS`를 실행하면 새 A3 안내가 출력되어야 한다.
 

@@ -30,6 +30,7 @@ Use `run_main45_verification_suite.ps1` to run the standard read-only checks in 
 6. command-text guard comparison probe
 7. sheet residue protection probe
 8. embedded-title prepare copy-comparison probe
+9. A3 status guidance probe
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
@@ -57,6 +58,7 @@ A2/A3/A4 style-normalization record count 3 -> 0 after rebuild cleanup
 command-text guard blocks conversion before any stubbed conversion path
 sheet residue protection keeps real text, small SW_NOTE balloons, and BOM-like inserts
 embedded-title prepare comparison proves the plan copy routes native-format title geometry to SWTITLEPREPARE before conversion
+A3 status guidance probe proves SWTITLESTATUS explains that DR_A3_Outline remains an INSERT/block reference and clone/shared-link candidates are the real unfinished condition
 ```
 
 ## Actual Work-Copy Status Probe
@@ -254,12 +256,34 @@ work\swtitle_loader_probe_main45_diagnostics.txt
 Expected result:
 
 ```text
-Loaded loader version: 260704-4step-gmtitle-main50
-Loaded GMTITLE version: 260704-overlap-only-main50
+Loaded loader version: 260705-4step-gmtitle-a4-outline-preflight
+Loaded GMTITLE version: 260705-a3-frame-guidance
 Command c:SWTITLESTATUS: yes
 Command c:SWTITLEPREPARE: yes
 Command c:SWTITLECONVERT: yes
 Command c:SWTITLEVERIFY: yes
+Runtime check completed: yes
+```
+
+## A3 Status Guidance Probe
+
+Use `run_a3_status_guidance_probe.ps1` to create a synthetic copied-DWG fixture with one `DR_A3_Outline` + `DR_titlea_3rd` target pair marked as a clone. It verifies that `SWTITLESTATUS` prints the A3 guidance that avoids confusing normal frame block selection with the real clone/shared-link unfinished state.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_a3_status_guidance_probe.ps1"
+```
+
+Expected result:
+
+```text
+Loaded version: 260705-a3-frame-guidance
+A3/A4 candidate count before SWTITLESTATUS: 1
+SWTITLESTATUS result: OK
+Status after SWTITLESTATUS: NEXT_UPGRADE_A3_A4_NATIVE
+A3 frame guidance note found: yes
+A3 native-candidate supplement found: yes
+A3 status guidance probe passed: yes
 Runtime check completed: yes
 ```
 
