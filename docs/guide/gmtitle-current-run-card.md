@@ -158,9 +158,10 @@ native/복제 구조 비교 샘플:
 
 ## 현재 workcopy 기준
 
-2026-07-05 숨김 CAD 검증 기준 기본 작업복사본은 아직 변환 전 상태입니다.
+2026-07-05 숨김 CAD 완료 게이트 기준 기본 작업복사본은 아직 변환 전 상태입니다.
 
 ```text
+SWTITLE LSP 버전: 260705-verify-source-priority-a4stepnote
 SWTITLESTATUS: NEXT_CREATE_FIRST_NATIVE_GMTITLE
 SWTITLEVERIFY: SWTITLEVERIFY_FINAL_FAIL
 남은 원본 표제란 시트: 13
@@ -169,6 +170,7 @@ SWTITLEVERIFY: SWTITLEVERIFY_FINAL_FAIL
 대상 도면틀/제목블록 쌍: 0
 필요한 용지 수: A2 1, A3 12, A4 2
 없는 native 기준 객체: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline
+a4-frame-only-deferred-note-found: yes
 ```
 
 현재 `SWTITLEVERIFY`도 완료가 아니라고 확인합니다.
