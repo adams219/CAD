@@ -7,6 +7,9 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
 $staticPreflight = Join-Path $PSScriptRoot "run_static_preflight.ps1"
 $suite = Join-Path $PSScriptRoot "run_main45_verification_suite.ps1"
+$script:LatestCadDwg = $null
+$script:LatestCadStatusCode = $null
+$script:LatestCadRecommendedCommand = $null
 
 if (-not $SourceWorkCopyPath) {
   $SourceWorkCopyPath = Join-Path $repoRoot "work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg"
@@ -124,6 +127,10 @@ function Write-LatestCadLogSummary {
   if ($recommended) {
     Write-Output ("  Recommended next command: {0}" -f $recommended)
   }
+
+  $script:LatestCadDwg = $dwg
+  $script:LatestCadStatusCode = $statusCode
+  $script:LatestCadRecommendedCommand = $recommended
 }
 
 Write-Output "===== GMTITLE goal status ====="
@@ -181,9 +188,17 @@ Write-LatestCadLogSummary -WorkDir (Join-Path $repoRoot "work")
 Write-Output ""
 Write-Output "Next action:"
 if ($existingGstarCAD.Count -gt 0) {
-  Write-Output "  1. Save the visible GstarCAD work-copy DWG."
-  Write-Output "  2. Close GstarCAD."
-  Write-Output "  3. Run the full hidden suite:"
+  if ($script:LatestCadRecommendedCommand) {
+    Write-Output "  Visible CAD continuation:"
+    Write-Output ("    1. Confirm the open GstarCAD drawing matches: {0}" -f $script:LatestCadDwg)
+    Write-Output ("    2. Run in GstarCAD: {0}" -f $script:LatestCadRecommendedCommand)
+    Write-Output "    3. Run SWTITLESTATUS again and confirm the A4 missing count changes or a new warning explains why it stopped."
+    Write-Output ""
+    Write-Output "  Hidden suite verification path:"
+  }
+  Write-Output "    1. Save the visible GstarCAD work-copy DWG."
+  Write-Output "    2. Close GstarCAD."
+  Write-Output "    3. Run the full hidden suite:"
   Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f $suite)
   Write-Output "  Or start the suite in waiting mode first:"
   Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -WaitForGstarCADClose" -f $suite)
