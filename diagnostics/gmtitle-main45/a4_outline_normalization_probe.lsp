@@ -95,6 +95,26 @@
   result
 )
 
+(defun swtitle-a4norm-insert-child-names (records / result rec child)
+  (setq result nil)
+  (foreach rec records
+    (if (equal (nth 1 rec) "INSERT")
+      (progn
+        (setq child (nth 3 rec))
+        (if
+          (and
+            child
+            (> (strlen child) 0)
+            (not (member child result))
+          )
+          (setq result (append result (list child)))
+        )
+      )
+    )
+  )
+  result
+)
+
 (defun swtitle-a4norm-print-records (handle label records / index rec)
   (swtitle-a4norm-write-line handle label)
   (if records
@@ -130,6 +150,30 @@
   )
 )
 
+(defun swtitle-a4norm-print-nested-records (handle label records / children child child-records)
+  (swtitle-a4norm-write-line handle label)
+  (setq children (swtitle-a4norm-insert-child-names records))
+  (if children
+    (foreach child children
+      (if (swcad-title-block-exists-p child)
+        (progn
+          (setq child-records (swtitle-a4norm-direct-records child))
+          (swtitle-a4norm-print-records
+            handle
+            (strcat "  Nested child block " child " records:")
+            child-records
+          )
+        )
+        (swtitle-a4norm-write-line
+          handle
+          (strcat "  Nested child block " child " records: <definition missing>")
+        )
+      )
+    )
+    (swtitle-a4norm-write-line handle "  <no direct INSERT children>")
+  )
+)
+
 (defun swtitle-a4norm-skip-handles (strategy records / result rec etype outside area expected-area)
   (setq result nil)
   (setq expected-area (* 210.0 297.0))
@@ -155,6 +199,62 @@
     )
   )
   result
+)
+
+(defun swtitle-a4norm-rebuild-nested-outside (handle records / children child child-records skip-handles rebuild)
+  (setq children (swtitle-a4norm-insert-child-names records))
+  (if children
+    (foreach child children
+      (if (swcad-title-block-exists-p child)
+        (progn
+          (setq child-records (swtitle-a4norm-direct-records child))
+          (setq skip-handles (swtitle-a4norm-skip-handles "direct-outside" child-records))
+          (swtitle-a4norm-write-line
+            handle
+            (strcat
+              "Nested child "
+              child
+              " direct-outside skip handles: "
+              (swcad-title-list-string skip-handles)
+            )
+          )
+          (if skip-handles
+            (progn
+              (setq rebuild (swcad-title-rebuild-block-definition-skipping-handles child skip-handles))
+              (swtitle-a4norm-write-line
+                handle
+                (strcat
+                  "Nested child "
+                  child
+                  " rebuild result: ok="
+                  (if (car rebuild) "yes" "no")
+                  ", backup="
+                  (cadr rebuild)
+                  ", copied="
+                  (itoa (nth 2 rebuild))
+                  ", skipped="
+                  (itoa (nth 3 rebuild))
+                  ", retargeted="
+                  (itoa (nth 4 rebuild))
+                  ", failed="
+                  (itoa (nth 5 rebuild))
+                )
+              )
+            )
+            (swtitle-a4norm-write-line
+              handle
+              (strcat "Nested child " child " rebuild result: skipped, no outside handles")
+            )
+          )
+        )
+        (swtitle-a4norm-write-line
+          handle
+          (strcat "Nested child " child " rebuild result: skipped, definition missing")
+        )
+      )
+    )
+    (swtitle-a4norm-write-line handle "Nested rebuild result: skipped, no direct INSERT children")
+  )
 )
 
 (defun swtitle-a4norm-print-measure (handle label frame-name / def-raw def-risk test raw effective geometry raw-warning strict-warning)
@@ -232,6 +332,7 @@
             (progn
               (setq before-records (swtitle-a4norm-direct-records frame))
               (swtitle-a4norm-print-records handle "Before direct DR_A4_Outline records:" before-records)
+              (swtitle-a4norm-print-nested-records handle "Before nested DR_A4_Outline child records:" before-records)
               (swtitle-a4norm-print-measure handle "Before" frame)
               (setq skip-handles (swtitle-a4norm-skip-handles strategy before-records))
               (swtitle-a4norm-write-line handle (strcat "Skip handles: " (swcad-title-list-string skip-handles)))
@@ -258,8 +359,12 @@
                 )
                 (swtitle-a4norm-write-line handle "Rebuild result: skipped by strategy")
               )
+              (if (equal strategy "nested-outside")
+                (swtitle-a4norm-rebuild-nested-outside handle before-records)
+              )
               (setq after-records (swtitle-a4norm-direct-records frame))
               (swtitle-a4norm-print-records handle "After direct DR_A4_Outline records:" after-records)
+              (swtitle-a4norm-print-nested-records handle "After nested DR_A4_Outline child records:" after-records)
               (setq after-measure (swtitle-a4norm-print-measure handle "After" frame))
               (setq safe-p
                 (and

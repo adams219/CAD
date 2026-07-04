@@ -112,6 +112,8 @@ direct-outside=no
 
 즉 `SWTITLEPREPARE`가 같은 경고로 멈추면 정상적인 안전 중단입니다. 이때는 변환을 반복하지 말고 A4 도면틀 정의 전략을 다시 봅니다.
 
+다음 조사 후보는 `nested-outside` probe입니다. `DR_A4_Outline` 전체가 아니라 그 안의 oversized child block 내부를 확인하는 단계이며, 아직 생산 변환 명령이 아닙니다.
+
 ### 기본 작업복사본 초기 상태
 
 2026-07-05 검증 suite 기준, 기본 작업복사본은 아직 변환 전 상태입니다.

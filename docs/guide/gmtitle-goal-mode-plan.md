@@ -206,6 +206,23 @@ A4 definition normalization probe:
 따라서 현재까지 검증된 범위에서는 "틀 밖 객체만 지우면 된다"는 단순 정규화 전략을 채택하지 않는다.
 `SWTITLEPREPARE`가 같은 WARN을 반환하면 변환을 반복하지 말고, A4 정의를 native 방식으로 다시 만들 수 있는지 또는 검증 가능한 outline-only 정의를 별도 설계할지 판단한다.
 
+다음 조사 후보:
+
+```text
+nested-outside probe:
+  DR_A4_Outline 직접 하위 객체 중 oversized INSERT인
+  "도면 세로 A4 From_HYUN" 내부를 별도로 출력한다.
+
+목적:
+  parent DR_A4_Outline을 통째로 지우는 대신,
+  child block 내부에서 raw bbox를 키우는 객체만 분리할 수 있는지 확인한다.
+
+주의:
+  아직 생산 변환 경로가 아니다.
+  copied-DWG probe에서 safe=yes가 나오고, A4 effective/raw bbox가 모두 검증되기 전에는
+  SWTITLEPREPARE/SWTITLECONVERT 기본 흐름에 넣지 않는다.
+```
+
 따라서 이 상태에서의 실제 순서는 아래다.
 
 ```text

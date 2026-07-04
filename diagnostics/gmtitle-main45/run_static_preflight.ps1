@@ -11,6 +11,7 @@ $mainLspPath = Join-Path $repoRoot "src\tools\gmtitle\swcad_title_scale.lsp"
 $loaderPath = Join-Path $repoRoot "swcad_load.lsp"
 $suitePath = Join-Path $PSScriptRoot "run_main45_verification_suite.ps1"
 $readmePath = Join-Path $PSScriptRoot "README.md"
+$a4NormProbePath = Join-Path $PSScriptRoot "a4_outline_normalization_probe.lsp"
 $guidePaths = @(
   "docs\guide\commands.md",
   "docs\guide\gmtitle-cad-conversion-checklist.md",
@@ -153,12 +154,14 @@ $mainText = Read-Text $mainLspPath
 $loaderText = Read-Text $loaderPath
 $suiteText = Read-Text $suitePath
 $readmeText = Read-Text $readmePath
+$a4NormProbeText = Read-Text $a4NormProbePath
 
 Write-Output "===== GMTITLE static preflight ====="
 Write-Output ("Repo root: {0}" -f $repoRoot)
 
 Test-LispBalance -Text $mainText -Label "swcad_title_scale.lsp"
 Test-LispBalance -Text $loaderText -Label "swcad_load.lsp"
+Test-LispBalance -Text $a4NormProbeText -Label "a4_outline_normalization_probe.lsp"
 
 $gmtitleVersion = Get-VersionValue -Text $mainText -VariableName "*swcad-title-scale-version*"
 if ($gmtitleVersion -eq $ExpectedGmtitleVersion) {
@@ -224,6 +227,7 @@ Assert-Contains -Text $suiteText -Needle "WaitForGstarCADClose" -Label "Suite Gs
 Assert-Contains -Text $suiteText -Needle "Assert-NoExistingGstarCAD" -Label "Suite open-GstarCAD preflight"
 Assert-Contains -Text $readmeText -Needle "-WaitForGstarCADClose" -Label "README waiting-mode guidance"
 Assert-Contains -Text $readmeText -Needle "A4 strict prepare guard" -Label "README A4 strict guard guidance"
+Assert-Contains -Text $a4NormProbeText -Needle "nested-outside" -Label "A4 nested normalization probe strategy"
 
 $suiteStepNumbers = @(
   [regex]::Matches($suiteText, 'Write-Output\s+"===== ([0-9]+)\. ') |

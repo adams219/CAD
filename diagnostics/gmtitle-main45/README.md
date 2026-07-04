@@ -226,12 +226,23 @@ work\swtitle_a4_outline_norm_huge-insert_260705.txt
 work\swtitle_a4_outline_norm_direct-outside_260705.txt
 ```
 
+Optional nested-block investigation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1" `
+  -Strategies nested-outside
+```
+
+This does not change the production conversion path. It is a copied-DWG probe for checking whether the oversized `도면 세로 A4 From_HYUN` child block inside `DR_A4_Outline` can be normalized without destroying the visible A4 outline.
+
 Current expected conclusion:
 
 ```text
 none: unsafe, raw bbox remains (0,0)-(872.26126377,302.7)
 huge-insert: unsafe, raw bbox improves but still does not match A4
 direct-outside: unsafe, deletes too much and leaves only POINT/TEXT remnants
+nested-outside: investigation candidate, not yet promoted
 Normalization safe for A4 frame-only conversion: no
 ```
 

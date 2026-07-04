@@ -33,6 +33,26 @@ work/swtitle_a4_outline_norm_huge-insert_260705.txt
 work/swtitle_a4_outline_norm_direct-outside_260705.txt
 ```
 
+2026-07-05 추가 조사 후보:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -Strategies nested-outside
+```
+
+이 후보는 기본 실행에 포함하지 않는다. 목적은 `DR_A4_Outline` 직접 하위의 oversized INSERT인 `도면 세로 A4 From_HYUN` 내부를 확인하고, parent를 통째로 제거하지 않고 child 내부에서 raw bbox를 키우는 객체를 분리할 수 있는지 검증하는 것이다.
+
+이 후보가 통과하려면 최소한 아래가 필요하다.
+
+```text
+After test effective bbox: (0, 0) - (210, 297) 근처
+After test raw bbox: (0, 0) - (210, 297) 근처
+After raw selection warning: <none>
+After strict A4 raw match warning: <none>
+Normalization safe for A4 frame-only conversion: yes
+```
+
+이 증거가 나오기 전에는 `nested-outside`를 `SWTITLEPREPARE` 또는 `SWTITLECONVERT` 생산 흐름에 넣지 않는다.
+
 ## 테스트한 전략
 
 ### 1. none
@@ -146,4 +166,3 @@ target sheet counts: A2=1, A3=12, A4=2
 A2/A3 대표 제목블록 더블클릭 시 GMTITLE 표 편집창
 A4 frame-only는 제목블록 없이 DR_A4_Outline만 정상 bbox로 존재
 ```
-
