@@ -18,7 +18,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 
 The script starts GstarCAD hidden, waits for `Runtime check completed:` by default, prints the log, then stops GstarCAD if it is still running.
 
-If a hidden probe starts a `gcad.exe` PID but no log file is created, check whether another visible GstarCAD session is already open. In that state GstarCAD can route `/b` automation through the existing instance or wait behind an active command prompt, so the probe may never load its `.scr` file. Do not kill the user's visible CAD session automatically; save/close it intentionally, then rerun the probe.
+The runner now fails fast if another `gcad.exe` process is already open. In that state GstarCAD can route `/b` automation through the existing instance or wait behind an active command prompt, so the probe may never load its `.scr` file. Do not kill the user's visible CAD session automatically; save/close it intentionally, then rerun the probe. Use `-AllowExistingGstarCAD` only for deliberate debugging of that failure mode.
 
 ## Main45 Verification Suite
 

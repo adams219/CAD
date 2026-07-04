@@ -10,7 +10,9 @@ param(
 
   [string]$CompletionPattern = "Runtime check completed:",
 
-  [int]$TimeoutSeconds = 75
+  [int]$TimeoutSeconds = 75,
+
+  [switch]$AllowExistingGstarCAD
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,6 +26,24 @@ if (-not (Test-Path -LiteralPath $DwgPath)) {
 }
 if (-not (Test-Path -LiteralPath $ScriptPath)) {
   throw "SCR not found: $ScriptPath"
+}
+
+$existingGstarCAD = @(Get-Process -Name gcad -ErrorAction SilentlyContinue)
+if (($existingGstarCAD.Count -gt 0) -and (-not $AllowExistingGstarCAD)) {
+  $details = $existingGstarCAD |
+    Select-Object Id, ProcessName, MainWindowTitle, StartTime |
+    Format-Table -AutoSize |
+    Out-String
+  throw @"
+Existing GstarCAD process detected before hidden probe startup.
+Hidden /b probes are unreliable while a visible GstarCAD session is open because GstarCAD can route the script to the existing instance or wait behind an active command prompt.
+
+Save the work-copy DWG, close GstarCAD, then rerun the probe.
+
+Existing process:
+$details
+Use -AllowExistingGstarCAD only for deliberate debugging.
+"@
 }
 
 Remove-Item -LiteralPath $LogPath -Force -ErrorAction SilentlyContinue
