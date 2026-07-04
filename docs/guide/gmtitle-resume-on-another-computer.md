@@ -61,7 +61,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-plan-frame-prepare-main-49
+260704-overlap-only-main50
 ```
 
 다른 버전이면 변환하지 말고 다시 APPLOAD 합니다.

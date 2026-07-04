@@ -61,7 +61,7 @@ Assert-LogContains `
   -Label "final completion status probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260704-plan-frame-prepare-main-49",
+    "Loaded version: 260704-overlap-only-main50",
     "Result: OK SWTITLESTATUS",
     "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_OK",
     "source-title-count: 0",

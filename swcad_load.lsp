@@ -5,7 +5,7 @@
 
 (vl-load-com)
 
-(setq *swcad-version* "260704-4step-gmtitle-main49")
+(setq *swcad-version* "260704-4step-gmtitle-main50")
 
 (defun swcad-loader-source (/ src)
   (setq src nil)

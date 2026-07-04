@@ -127,8 +127,8 @@ work\swtitle_loader_probe_main45_diagnostics.txt
 Expected result:
 
 ```text
-Loaded loader version: 260704-4step-gmtitle-main49
-Loaded GMTITLE version: 260704-plan-frame-prepare-main-49
+Loaded loader version: 260704-4step-gmtitle-main50
+Loaded GMTITLE version: 260704-overlap-only-main50
 Command c:SWTITLESTATUS: yes
 Command c:SWTITLEPREPARE: yes
 Command c:SWTITLECONVERT: yes
@@ -168,7 +168,7 @@ Use `run_style_normalization_compare_probe.ps1` with `-Sheets "A2,A3,A4" -RunCle
 powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_style_normalization_compare_probe.ps1" `
   -LspPath "src\tools\gmtitle\swcad_title_scale.lsp" `
-  -Label "current_main49_stylecmp_all_sizes_clean" `
+  -Label "current_main50_stylecmp_all_sizes_clean" `
   -Sheets "A2,A3,A4" `
   -RunClean
 ```
@@ -216,7 +216,7 @@ Use `run_residue_protection_probe.ps1` to verify that cleanup candidates stay na
 powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_residue_protection_probe.ps1" `
   -LspPath "src\tools\gmtitle\swcad_title_scale.lsp" `
-  -Label "current_main49_residue_protection"
+  -Label "current_main50_residue_protection"
 ```
 
 Expected result:
@@ -234,45 +234,32 @@ Runtime check completed: yes
 
 ## Embedded-Title Prepare Copy Comparison Probe
 
-Use `run_embedded_title_prepare_compare_probe.ps1` to compare the current LSP with a plan copy for the A3/A4 problem where a `DR_A*_Outline` frame definition already contains title-like geometry before a separate `DR_titlea_3rd` title block exists.
+Use `run_embedded_title_prepare_compare_probe.ps1` to verify that native-format title-like geometry inside a `DR_A*_Outline` frame definition is not treated as cleanup by itself.
 
-Current main49:
+Current main50:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_embedded_title_prepare_compare_probe.ps1" `
   -LspPath "src\tools\gmtitle\swcad_title_scale.lsp" `
-  -Label "current_main49_embedded_prepare"
-```
-
-Plan copy:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File `
-  "diagnostics\gmtitle-main45\run_embedded_title_prepare_compare_probe.ps1" `
-  -LspPath "work\lsp_compare\swcad_title_scale_plan_frame_prepare_compare.lsp" `
-  -Label "plan_frame_prepare_compare" `
+  -Label "current_main50_embedded_prepare" `
   -RunClean
 ```
 
-Expected comparison:
+Expected result:
 
 ```text
-current main49:
-  Cleanup records by frame: <none>
-  Structure next action: SWTITLECONVERT
-
-plan copy:
-  Cleanup records by frame: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline
-  Structure next action: SWTITLEPREPARE
-  Cleanup deleted count: 12
-  Cleanup record count after clean: 0
+Cleanup records by frame: <none>
+All embedded title-like records by frame: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline
+Structure next action: SWTITLECONVERT
+Cleanup deleted count: 0
+Cleanup record count after clean: 0
 ```
 
 Durable conclusion:
 
 ```text
-docs/investigations/gmtitle-plan-frame-prepare-copy-comparison-2026-07-04.md
+docs/investigations/gmtitle-overlap-only-copy-comparison-2026-07-04.md
 ```
 
 ## Current Evidence Index

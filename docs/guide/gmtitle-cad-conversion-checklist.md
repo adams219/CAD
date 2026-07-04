@@ -55,7 +55,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260704-plan-frame-prepare-main-49
+260704-overlap-only-main50
 ```
 
 다른 버전이 나오면 변환하지 말고 최신 LSP를 다시 APPLOAD 하세요.
@@ -107,11 +107,11 @@ target 제목블록: 0
 SWTITLEPREPARE
 ```
 
-main49 기준 정규화 대상:
+main50 기준 정규화 대상:
 
 ```text
 source-contaminated 도면틀 정의
-native-format-with-title-geometry 도면틀 내부 표제란 형상
+별도 DR_titlea_3rd와 실제로 겹치는 native-format 도면틀 내부 표제란 형상
 실수로 도면에 들어간 명령어 TEXT/MTEXT
 제목블록 없는 고아 GMTITLE 도면틀
 ```
@@ -229,7 +229,7 @@ target-sheet-counts:
 
 ## 현재 상태
 
-main49 코드와 진단 fixture는 통과했습니다.
+main50 코드와 진단 fixture는 통과했습니다.
 
 ```text
 diagnostics\gmtitle-main45\run_main45_verification_suite.ps1

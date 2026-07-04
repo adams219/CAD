@@ -19,21 +19,21 @@ GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 
 
 초기 preserve-copy 방식은 빠르게 여러 장을 만들 수 있었지만, 일부 복제본이 GMTITLE 표 편집창 대신 고급 속성 편집기로 열렸습니다. 그래서 A2/A3/A4 각각 같은 크기의 실제 native GMTITLE 기준 객체를 만들고, 신뢰하기 어려운 복제 쌍은 `SWTITLECONVERT` 안에서 한 장씩 native 교체하도록 방향을 잡았습니다.
 
-## 현재 main49 기준
+## 현재 main50 기준
 
 현재 LSP 버전:
 
 ```text
-260704-plan-frame-prepare-main-49
+260704-overlap-only-main50
 ```
 
 현재 loader 버전:
 
 ```text
-260704-4step-gmtitle-main49
+260704-4step-gmtitle-main50
 ```
 
-main49에서는 `DR_A2_Outline`, `DR_A3_Outline`, `DR_A4_Outline` 도면틀 정의를 먼저 검사합니다.
+main50에서는 `DR_A2_Outline`, `DR_A3_Outline`, `DR_A4_Outline` 도면틀 정의를 먼저 검사합니다.
 
 분류 기준:
 
@@ -47,11 +47,13 @@ unknown
 중요한 변경:
 
 ```text
-native-format-with-title-geometry
 source-contaminated
+native-format-with-title-geometry + 별도 DR_titlea_3rd 실제 겹침
 ```
 
-위 두 상태는 변환 전에 `SWTITLEPREPARE` 정리 후보로 봅니다.
+위 상태만 변환 전에 `SWTITLEPREPARE` 정리/정규화 후보로 봅니다.
+
+`native-format-with-title-geometry` 자체는 설치 원본 A3처럼 정상 native 형상일 수 있으므로 일반 삭제 후보로 보지 않습니다.
 
 즉 A3에서 도면틀 안에 표제란처럼 보이는 형상이 들어 있어 별도 `DR_titlea_3rd`와 겹칠 수 있으면, `SWTITLECONVERT`를 반복하지 않고 먼저 `SWTITLEPREPARE`로 정규화합니다.
 
@@ -112,13 +114,14 @@ DR_A3_Outline 도면틀 정의 안에 오른쪽 아래 표제란처럼 보이는
 여기에 별도 DR_titlea_3rd 제목블록이 겹치면 중복처럼 보인다.
 ```
 
-main49 해결 방향:
+main50 해결 방향:
 
 ```text
 SWTITLESTATUS가 먼저 후보를 보여준다.
-SWTITLEPREPARE가 작업복사본에서만 도면틀 정의 내부 표제란 형상을 정리한다.
+SWTITLEPREPARE가 작업복사본에서만 실제 겹치는 도면틀 정의 내부 표제란 형상을 정규화한다.
 외곽선, 눈금, 좌표 표시는 보존한다.
 정상 DR_titlea_3rd 제목블록은 보존한다.
+별도 제목블록과 겹치지 않는 native-format 내부 형상은 일반 cleanup에서 제외한다.
 ```
 
 ## A4 frame-only 문제
@@ -146,11 +149,11 @@ diagnostics\gmtitle-main45\run_main45_verification_suite.ps1 -TimeoutSeconds 120
 확인된 내용:
 
 ```text
-로더가 main49 LSP를 로드함
+로더가 main50 LSP를 로드함
 4개 공개 명령이 활성화됨
 예전 fast/bootstrap/frame-only/A3A4 명령은 공개 명령에서 비활성화됨
 A2/A3/A4 frame 정의 분류 probe 통과
-A2/A3/A4 내장 표제란 형상 정리 probe 통과
+A2/A3/A4 overlap-only 정규화 probe 통과
 명령어 텍스트 guard 통과
 실제 번호/주석/BOM류 잔여물 보호 probe 통과
 ```
@@ -162,13 +165,19 @@ DR_A2_Outline: class=native-format-with-title-geometry, embedded=4
 DR_A3_Outline: class=native-format-with-title-geometry, embedded=4
 DR_A4_Outline: class=native-format-with-title-geometry, embedded=4
 Cleanup records by frame:
-  DR_A2_Outline: 4
-  DR_A3_Outline: 4
-  DR_A4_Outline: 4
-Structure next action: SWTITLEPREPARE
+  <none>
+Structure next action: SWTITLECONVERT - 남은 원본 SolidWorks 시트 변환
 Cleanup result: OK
-Cleanup deleted count: 12
+Cleanup deleted count: 0
 Cleanup record count after clean: 0
+```
+
+별도 `DR_titlea_3rd`가 실제로 겹치는 fixture에서는 style-normalization으로 후보를 잡고 정리합니다.
+
+```text
+Style-normalization record count: 3
+Style-normalization deleted count: 12
+Style-normalization record count after clean: 0
 ```
 
 ## 아직 완료가 아닌 이유

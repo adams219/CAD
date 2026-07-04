@@ -1,5 +1,6 @@
 ;;; Tracked synthetic frame-definition classification probe for main45.
-;;; The PowerShell wrapper sets SWCAD_TOOL_ROOT and SWCAD_FRAMECLASS_SCENARIO.
+;;; The PowerShell wrapper sets SWCAD_TOOL_ROOT, SWCAD_FRAMECLASS_SCENARIO,
+;;; and optionally SWCAD_FRAMECLASS_LSP.
 ;;; This script creates synthetic DR_A2/A3/A4 block definitions in a copied DWG.
 ;;; It does not save the drawing.
 
@@ -13,6 +14,14 @@
 
 (defun swtitle-frameclass-path (relative)
   (strcat (swtitle-frameclass-root) "/" relative)
+)
+
+(defun swtitle-frameclass-env-path (name fallback / value)
+  (setq value (getenv name))
+  (if (or (not value) (= (strlen value) 0))
+    (setq value fallback)
+  )
+  (vl-string-translate "\\" "/" value)
 )
 
 (defun swtitle-frameclass-write-line (handle text)
@@ -233,7 +242,7 @@
       (if (not (equal (swtitle-frameclass-class classes "DR_A4_Outline") "source-contaminated")) (setq pass nil))
       (if (/= (length blockers) 1) (setq pass nil))
       (if (not (assoc "DR_A4_Outline" cleanup-counts)) (setq pass nil))
-      (if (not (assoc "DR_A3_Outline" cleanup-counts)) (setq pass nil))
+      (if (assoc "DR_A3_Outline" cleanup-counts) (setq pass nil))
     )
     ((equal scenario "ALL_CONTAMINATED")
       (foreach frame '("DR_A2_Outline" "DR_A3_Outline" "DR_A4_Outline")
@@ -245,7 +254,7 @@
     ((equal scenario "ALL_NATIVE")
       (foreach frame '("DR_A2_Outline" "DR_A3_Outline" "DR_A4_Outline")
         (if (not (equal (swtitle-frameclass-class classes frame) "native-format-with-title-geometry")) (setq pass nil))
-        (if (not (assoc frame cleanup-counts)) (setq pass nil))
+        (if (assoc frame cleanup-counts) (setq pass nil))
       )
       (if (/= (length blockers) 0) (setq pass nil))
     )
@@ -253,12 +262,18 @@
   pass
 )
 
-(defun swtitle-frameclass-main (/ scenario log-path handle load-result load-ok version-value frame mode created records classes blockers cleanup-records cleanup-counts all-embedded all-embedded-counts pass)
+(defun swtitle-frameclass-main (/ scenario lsp-path log-path handle load-result load-ok version-value frame mode created records classes blockers cleanup-records cleanup-counts all-embedded all-embedded-counts pass)
   (setq scenario (swtitle-frameclass-scenario))
+  (setq lsp-path
+    (swtitle-frameclass-env-path
+      "SWCAD_FRAMECLASS_LSP"
+      (swtitle-frameclass-path "src/tools/gmtitle/swcad_title_scale.lsp")
+    )
+  )
   (setq load-result
     (vl-catch-all-apply
       'load
-      (list (swtitle-frameclass-path "src/tools/gmtitle/swcad_title_scale.lsp"))
+      (list lsp-path)
     )
   )
   (setq load-ok (not (vl-catch-all-error-p load-result)))
@@ -282,6 +297,7 @@
     (progn
       (swtitle-frameclass-write-line handle "SWTITLE main45 synthetic common frame-definition probe")
       (swtitle-frameclass-write-line handle (strcat "Scenario: " scenario))
+      (swtitle-frameclass-write-line handle (strcat "LSP path: " lsp-path))
       (if load-ok
         (swtitle-frameclass-write-line handle "Load result: OK")
         (swtitle-frameclass-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))

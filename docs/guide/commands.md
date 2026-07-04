@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260704-plan-frame-prepare-main-49
+260704-overlap-only-main50
 ```
 
 ## GMTITLE 변환 명령

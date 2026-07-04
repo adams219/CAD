@@ -31,7 +31,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260704-plan-frame-prepare-main-49")
+(setq *swcad-title-scale-version* "260704-overlap-only-main50")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -6245,7 +6245,7 @@
   (foreach frame-name (swcad-title-frame-definition-check-candidates)
     (setq class-record (swcad-title-frame-definition-class-record frame-name))
     (setq class (cadr class-record))
-    (if (member class '("source-contaminated" "native-format-with-title-geometry"))
+    (if (member class '("source-contaminated"))
       (setq result
         (append
           result
@@ -16364,7 +16364,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-plan-frame-prepare-main-49")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260704-overlap-only-main50")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)

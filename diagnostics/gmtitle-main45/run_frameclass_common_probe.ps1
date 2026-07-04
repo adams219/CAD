@@ -1,4 +1,6 @@
 param(
+  [string]$LspPath,
+
   [string]$SourceWorkCopyPath,
 
   [string]$ProbeDwgDirectory,
@@ -22,6 +24,11 @@ if (-not $ProbeDwgDirectory) {
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
   throw "Source work-copy DWG not found: $SourceWorkCopyPath"
 }
+if ($LspPath) {
+  $resolvedLspPath = (Resolve-Path -LiteralPath $LspPath).Path
+} else {
+  $resolvedLspPath = Join-Path $repoRoot "src\tools\gmtitle\swcad_title_scale.lsp"
+}
 if (-not (Test-Path -LiteralPath $ProbeDwgDirectory)) {
   New-Item -ItemType Directory -Path $ProbeDwgDirectory | Out-Null
 }
@@ -36,6 +43,7 @@ $fixtureForLisp = ($fixturePath -replace "\\", "/")
 Set-Content -LiteralPath $scriptPath -Encoding ASCII -Value "(load `"$fixtureForLisp`")"
 
 $env:SWCAD_TOOL_ROOT = $repoRoot
+$env:SWCAD_FRAMECLASS_LSP = $resolvedLspPath
 
 foreach ($scenario in $Scenarios) {
   $safeScenario = ($scenario.ToLowerInvariant() -replace "[^a-z0-9_]", "_")
