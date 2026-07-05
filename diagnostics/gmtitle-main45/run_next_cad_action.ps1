@@ -1,7 +1,11 @@
 ﻿param(
   [string]$SourceWorkCopyPath,
 
-  [string]$DirectProbeLogPath
+  [string]$DirectProbeLogPath,
+
+  [switch]$AutoRefreshDirectProbe,
+
+  [int]$AutoRefreshTimeoutSeconds = 90
 )
 
 $ErrorActionPreference = "Stop"
@@ -113,6 +117,35 @@ function Write-AfterStatusRefresh {
   Write-Output "변환/정리 후:"
   Write-Output "  SWTITLESTATUS"
   Write-Output "  작업복사본을 저장하고 GstarCAD를 닫은 뒤 direct probe를 갱신하세요."
+  Write-Output "  또는 이 카드를 -AutoRefreshDirectProbe 옵션으로 다시 실행하세요."
+}
+
+function Write-DirectProbeRefreshCommand {
+  Write-Output "다음:"
+  Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"))
+  Write-Output "또는:"
+  Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -AutoRefreshDirectProbe" -f $PSCommandPath)
+}
+
+function Invoke-DirectProbeRefresh {
+  if (-not $AutoRefreshDirectProbe) {
+    return $false
+  }
+
+  Write-Output ""
+  Write-Output "Direct probe 자동 갱신을 시작합니다."
+  Write-Output "주의: GstarCAD가 열려 있으면 hidden probe가 중단될 수 있습니다. 저장 후 GstarCAD를 닫은 상태에서 사용하세요."
+  try {
+    & (Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1") `
+      -SourceWorkCopyPath $SourceWorkCopyPath `
+      -LogPath $DirectProbeLogPath `
+      -TimeoutSeconds $AutoRefreshTimeoutSeconds | Write-Output
+  } catch {
+    Write-Output "Result: AUTO_REFRESH_DIRECT_PROBE_FAILED"
+    Write-Output ("이유: {0}" -f $_.Exception.Message)
+    exit 1
+  }
+  return $true
 }
 
 function Write-StatusBasedAction {
@@ -266,53 +299,70 @@ if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
 }
 $sourceItem = Get-Item -LiteralPath $SourceWorkCopyPath
 
-if (-not (Test-Path -LiteralPath $DirectProbeLogPath)) {
-  Write-Output "실제 작업복사본 direct probe: 없음"
-  Write-Output "Result: REFRESH_DIRECT_PROBE_FIRST"
-  Write-Output "다음:"
-  Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"))
-  exit 0
-}
+$refreshAttempted = $false
+while ($true) {
+  if (-not (Test-Path -LiteralPath $DirectProbeLogPath)) {
+    Write-Output "실제 작업복사본 direct probe: 없음"
+    if ($AutoRefreshDirectProbe -and (-not $refreshAttempted)) {
+      $refreshAttempted = $true
+      [void](Invoke-DirectProbeRefresh)
+      continue
+    }
+    Write-Output "Result: REFRESH_DIRECT_PROBE_FIRST"
+    Write-DirectProbeRefreshCommand
+    exit 0
+  }
 
-$probeItem = Get-Item -LiteralPath $DirectProbeLogPath
-$probeText = Read-TextWithFallback -Path $DirectProbeLogPath
-$probeDwg = Get-FirstRegexValue -Text $probeText -Pattern "^DWG[^:]*:\s*(.+)$"
-$statusAfterStatus = Get-FirstRegexValue -Text $probeText -Pattern "^\s*status-after-status:\s*(\S+)"
-$statusAfterVerify = Get-FirstRegexValue -Text $probeText -Pattern "^\s*status-after-verify:\s*(\S+)"
-$nextFrame = Get-FirstRegexValue -Text $probeText -Pattern "^\s*next-bootstrap-frame:\s*(\S+)"
-$nextTitle = Get-FirstRegexValue -Text $probeText -Pattern "^\s*next-bootstrap-title:\s*(\S+)"
-$dbmodAfter = Get-FirstRegexValue -Text $probeText -Pattern "^\s*dbmod-after-commands:\s*(\d+)"
-$targetTitleCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*target-title-count:\s*(\d+)"
-$targetFrameCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*target-frame-count:\s*(\d+)"
-$trusted = Test-SamePath -Left $probeDwg -Right $SourceWorkCopyPath
-$probeStale = $sourceItem.LastWriteTimeUtc -gt $probeItem.LastWriteTimeUtc.AddSeconds(2)
+  $probeItem = Get-Item -LiteralPath $DirectProbeLogPath
+  $probeText = Read-TextWithFallback -Path $DirectProbeLogPath
+  $probeDwg = Get-FirstRegexValue -Text $probeText -Pattern "^DWG[^:]*:\s*(.+)$"
+  $statusAfterStatus = Get-FirstRegexValue -Text $probeText -Pattern "^\s*status-after-status:\s*(\S+)"
+  $statusAfterVerify = Get-FirstRegexValue -Text $probeText -Pattern "^\s*status-after-verify:\s*(\S+)"
+  $nextFrame = Get-FirstRegexValue -Text $probeText -Pattern "^\s*next-bootstrap-frame:\s*(\S+)"
+  $nextTitle = Get-FirstRegexValue -Text $probeText -Pattern "^\s*next-bootstrap-title:\s*(\S+)"
+  $dbmodAfter = Get-FirstRegexValue -Text $probeText -Pattern "^\s*dbmod-after-commands:\s*(\d+)"
+  $targetTitleCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*target-title-count:\s*(\d+)"
+  $targetFrameCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*target-frame-count:\s*(\d+)"
+  $trusted = Test-SamePath -Left $probeDwg -Right $SourceWorkCopyPath
+  $probeStale = $sourceItem.LastWriteTimeUtc -gt $probeItem.LastWriteTimeUtc.AddSeconds(2)
 
-Write-Output ("Direct probe 로그: {0}" -f $DirectProbeLogPath)
-Write-Output ("Direct probe 시간: {0}" -f $probeItem.LastWriteTime)
-Write-Output ("작업복사본 저장 시간: {0}" -f $sourceItem.LastWriteTime)
-if ($probeDwg) { Write-Output ("Direct probe DWG: {0}" -f $probeDwg) }
-Write-Output ("Direct probe 신뢰 가능: {0}" -f ($(if ($trusted) { "예" } else { "아니오" })))
-Write-Output ("Direct probe 최신 상태: {0}" -f ($(if ($probeStale) { "아니오" } else { "예" })))
-if ($statusAfterStatus) { Write-Output ("현재 저장 상태: {0}" -f $statusAfterStatus) }
-if ($statusAfterVerify) { Write-Output ("검증 상태: {0}" -f $statusAfterVerify) }
-if ($targetTitleCount) { Write-Output ("대상 제목블록 수: {0}" -f $targetTitleCount) }
-if ($targetFrameCount) { Write-Output ("대상 도면틀 수: {0}" -f $targetFrameCount) }
-if ($dbmodAfter) { Write-Output ("Direct probe 뒤 DBMOD: {0}" -f $dbmodAfter) }
+  Write-Output ("Direct probe 로그: {0}" -f $DirectProbeLogPath)
+  Write-Output ("Direct probe 시간: {0}" -f $probeItem.LastWriteTime)
+  Write-Output ("작업복사본 저장 시간: {0}" -f $sourceItem.LastWriteTime)
+  if ($probeDwg) { Write-Output ("Direct probe DWG: {0}" -f $probeDwg) }
+  Write-Output ("Direct probe 신뢰 가능: {0}" -f ($(if ($trusted) { "예" } else { "아니오" })))
+  Write-Output ("Direct probe 최신 상태: {0}" -f ($(if ($probeStale) { "아니오" } else { "예" })))
+  if ($statusAfterStatus) { Write-Output ("현재 저장 상태: {0}" -f $statusAfterStatus) }
+  if ($statusAfterVerify) { Write-Output ("검증 상태: {0}" -f $statusAfterVerify) }
+  if ($targetTitleCount) { Write-Output ("대상 제목블록 수: {0}" -f $targetTitleCount) }
+  if ($targetFrameCount) { Write-Output ("대상 도면틀 수: {0}" -f $targetFrameCount) }
+  if ($dbmodAfter) { Write-Output ("Direct probe 뒤 DBMOD: {0}" -f $dbmodAfter) }
 
-if (-not $trusted) {
-  Write-Output "Result: REFRESH_DIRECT_PROBE_FIRST"
-  Write-Output "이유: direct probe 로그가 대상 작업복사본의 로그가 아닙니다."
-  Write-Output "다음:"
-  Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"))
-  exit 0
-}
+  if (-not $trusted) {
+    if ($AutoRefreshDirectProbe -and (-not $refreshAttempted)) {
+      $refreshAttempted = $true
+      [void](Invoke-DirectProbeRefresh)
+      continue
+    }
+    Write-Output "Result: REFRESH_DIRECT_PROBE_FIRST"
+    Write-Output "이유: direct probe 로그가 대상 작업복사본의 로그가 아닙니다."
+    Write-DirectProbeRefreshCommand
+    exit 0
+  }
 
-if ($probeStale) {
-  Write-Output "Result: REFRESH_DIRECT_PROBE_FIRST"
-  Write-Output "이유: 작업복사본이 direct probe 로그보다 최신입니다."
-  Write-Output "다음:"
-  Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"))
-  exit 0
+  if ($probeStale) {
+    if ($AutoRefreshDirectProbe -and (-not $refreshAttempted)) {
+      $refreshAttempted = $true
+      [void](Invoke-DirectProbeRefresh)
+      continue
+    }
+    Write-Output "Result: REFRESH_DIRECT_PROBE_FIRST"
+    Write-Output "이유: 작업복사본이 direct probe 로그보다 최신입니다."
+    Write-DirectProbeRefreshCommand
+    exit 0
+  }
+
+  break
 }
 
 if ($dbmodAfter -and $dbmodAfter -ne "0") {

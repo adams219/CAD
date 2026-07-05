@@ -202,10 +202,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 
 작업복사본 DWG의 저장 시간이 direct probe 로그보다 최신이면 짧은 카드는 다음 명령을 안내하지 않고 먼저 direct probe 갱신을 요구합니다. CAD에서 변환하고 저장한 뒤 예전 로그를 보고 같은 명령을 반복하는 실수를 막기 위한 장치입니다.
 
+GstarCAD를 저장 후 닫은 상태라면 짧은 카드에 `-AutoRefreshDirectProbe`를 붙여 direct probe 갱신과 다음 행동 판단을 한 번에 할 수 있습니다. GstarCAD가 열려 있으면 hidden probe가 중단될 수 있으므로, 이 옵션은 닫힌 상태에서만 사용합니다.
+
 짧은 CAD 실행 카드:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_next_cad_action.ps1
+```
+
+자동 갱신까지 함께 실행:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_next_cad_action.ps1 -AutoRefreshDirectProbe
 ```
 
 CAD 화면 옆에서 다음 명령, GMTITLE 선택값, 즉시 중단 조건, 바로 확인할 명령만 보고 싶을 때 이 카드를 사용합니다.
