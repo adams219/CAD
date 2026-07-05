@@ -323,8 +323,17 @@ Result: A4_NATIVE_EXEMPLAR_MISSING_DEFINITION
 This probe is useful after manually creating or saving a scratch/native A4 GMTITLE sheet. A usable result must show a clean A4 definition, no geometry/raw-selection warning, and:
 
 ```text
+Native GMTITLE A4 pair evidence: yes
 Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON
 ```
+
+If a scratch DWG contains only a clean-looking `DR_A4_Outline` frame but no nearby `DR_titlea_3rd` with native GMTITLE link evidence, the probe reports:
+
+```text
+Result: A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR
+```
+
+That failure is intentional. A frame-only production result must not create a new title block, but the separate scratch comparison sample must still prove that the `DR_A4_Outline` came from a native GMTITLE structure rather than from an arbitrary block definition.
 
 The scratch/native A4 sheet is only for comparison. It may include `DR_titlea_3rd` if native GMTITLE creates one, but production A4 frame-only conversion must still not create a title block that was not present in the source.
 

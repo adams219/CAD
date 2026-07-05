@@ -260,9 +260,12 @@ nested-direct-outside probe:
   Definition strict A4 warning: <none>
   Definition test insert geometry warning: <none>
   Definition test insert raw selection warning: <none>
+  Native GMTITLE A4 pair evidence: yes
   Visible DR_A4_Outline frame inserts: 1 이상
   Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON
 ```
+
+`DR_A4_Outline` 프레임만 안전해 보여도 native link가 있는 `DR_titlea_3rd` 쌍이 없으면 비교 기준으로 인정하지 않는다. 이 경우 `A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR`가 정상 중단이다.
 
 따라서 이 상태에서의 실제 순서는 아래다.
 

@@ -202,8 +202,17 @@ Definition exists: yes
 Definition strict A4 warning: <none>
 Definition test insert geometry warning: <none>
 Definition test insert raw selection warning: <none>
+Native GMTITLE A4 pair evidence: yes
 Visible DR_A4_Outline frame inserts: 1 이상
 Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON
+```
+
+2026-07-05 추가 보강:
+
+```text
+DR_A4_Outline 프레임만 깨끗한 경우는 충분한 증거가 아니다.
+scratch 비교 샘플은 nearby DR_titlea_3rd 제목블록이 있고, 그 제목블록에 native GMTITLE link evidence가 있어야 한다.
+이 증거가 없으면 Result: A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR 로 중단한다.
 ```
 
 이 결과가 나오기 전까지는 A4 frame-only 자동 삭제/교체를 production 흐름에 넣지 않는다.

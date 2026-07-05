@@ -216,7 +216,107 @@
   (list (length frames) warning-count)
 )
 
-(defun swtitle-a4native-run (/ log-path handle load-result load-ok frame-name summary target-counts definition-status definition-safe frame-result frame-count frame-warning-count result)
+(defun swtitle-a4native-native-pair-evidence (frame-name / frame-records titles result title title-bbox frame-record frame-ename frame-block frame-bbox title-role frame-role kinds pair-trusted target)
+  (setq target (strcase (swcad-title-string frame-name)))
+  (setq frame-records (swcad-title-frame-records))
+  (setq titles
+    (vl-sort
+      (swcad-title-inserts-by-effective-name (swcad-title-target-title-block-name))
+      '(lambda (a b)
+        (< (swcad-title-bbox-min-x a) (swcad-title-bbox-min-x b))
+      )
+    )
+  )
+  (setq result nil)
+  (foreach title titles
+    (if
+      (and
+        (not result)
+        (swcad-title-usable-native-example-title-p title)
+      )
+      (progn
+        (setq title-bbox (swcad-title-safe-bbox title))
+        (setq frame-record (if title-bbox (swcad-title-nearest-frame-record-for-block title-bbox frame-records frame-name) nil))
+        (setq frame-ename (if frame-record (car frame-record) nil))
+        (setq frame-block (if frame-record (cadr frame-record) ""))
+        (setq frame-bbox (if frame-record (cadddr frame-record) nil))
+        (setq title-role (swcad-title-exemplar-role title))
+        (setq frame-role (if frame-ename (swcad-title-exemplar-role frame-ename) ""))
+        (setq kinds (swcad-title-native-link-target-kinds title))
+        (setq pair-trusted
+          (if frame-ename
+            (swcad-title-trusted-native-exemplar-pair-p title frame-ename frame-name)
+            nil
+          )
+        )
+        (if
+          (and
+            frame-ename
+            frame-bbox
+            (equal (strcase (swcad-title-string frame-block)) target)
+          )
+          (setq result
+            (list title frame-ename frame-block title-bbox frame-bbox kinds title-role frame-role pair-trusted)
+          )
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swtitle-a4native-print-native-pair-evidence (handle frame-name / evidence title frame frame-block title-bbox frame-bbox kinds title-role frame-role pair-trusted title-handle frame-handle geometry raw-warning status)
+  (setq evidence (swtitle-a4native-native-pair-evidence frame-name))
+  (if evidence
+    (progn
+      (setq title (nth 0 evidence))
+      (setq frame (nth 1 evidence))
+      (setq frame-block (nth 2 evidence))
+      (setq title-bbox (nth 3 evidence))
+      (setq frame-bbox (nth 4 evidence))
+      (setq kinds (nth 5 evidence))
+      (setq title-role (nth 6 evidence))
+      (setq frame-role (nth 7 evidence))
+      (setq pair-trusted (nth 8 evidence))
+      (setq title-handle (swcad-title-string (swcad-title-dxf-value (entget title '("*")) 5)))
+      (setq frame-handle (swcad-title-string (swcad-title-dxf-value (entget frame '("*")) 5)))
+      (setq geometry (swcad-title-frame-bbox-size-warning-for-block frame-block frame-bbox))
+      (setq raw-warning (swcad-title-frame-reference-raw-selection-warning frame frame-block frame-bbox))
+      (swtitle-a4native-write-line handle "Native GMTITLE A4 pair evidence: yes")
+      (swtitle-a4native-write-line
+        handle
+        (strcat
+          "  title="
+          title-handle
+          ", frame="
+          frame-handle
+          ", frame-block="
+          frame-block
+          ", title-role="
+          (if (> (strlen title-role) 0) title-role "<none>")
+          ", frame-role="
+          (if (> (strlen frame-role) 0) frame-role "<none>")
+          ", trusted-marker="
+          (if pair-trusted "yes" "no")
+        )
+      )
+      (swtitle-a4native-write-line handle (strcat "  title native link target kinds: " (swcad-title-list-string kinds)))
+      (swtitle-a4native-write-line handle (strcat "  title bbox: " (swcad-title-bbox-string title-bbox)))
+      (swtitle-a4native-write-line handle (strcat "  frame bbox: " (swcad-title-bbox-string frame-bbox)))
+      (swtitle-a4native-write-line handle (strcat "  frame geometry warning: " (if geometry geometry "<none>")))
+      (swtitle-a4native-write-line handle (strcat "  frame raw selection warning: " (if raw-warning raw-warning "<none>")))
+      (setq status (if (or geometry raw-warning) "warning" "ready"))
+    )
+    (progn
+      (swtitle-a4native-write-line handle "Native GMTITLE A4 pair evidence: no")
+      (swtitle-a4native-write-line handle "  A clean DR_A4_Outline frame alone is not enough; a nearby DR_titlea_3rd with native GMTITLE link evidence is required for this scratch comparison.")
+      (setq status "missing")
+    )
+  )
+  status
+)
+
+(defun swtitle-a4native-run (/ log-path handle load-result load-ok frame-name summary target-counts definition-status definition-safe frame-result frame-count frame-warning-count native-pair-status result)
   (setq log-path (getenv "SWCAD_A4_NATIVE_LOG"))
   (if (or (not log-path) (= (strlen log-path) 0))
     (setq log-path (swtitle-a4native-path "work/swtitle_a4_native_exemplar_probe_260705.txt"))
@@ -257,12 +357,15 @@
           (setq frame-result (swtitle-a4native-print-frame-inserts handle frame-name))
           (setq frame-count (car frame-result))
           (setq frame-warning-count (cadr frame-result))
+          (setq native-pair-status (swtitle-a4native-print-native-pair-evidence handle frame-name))
           (setq result
             (cond
               ((not (swcad-title-block-exists-p frame-name)) "A4_NATIVE_EXEMPLAR_MISSING_DEFINITION")
               ((not definition-safe) "A4_NATIVE_EXEMPLAR_UNSAFE_DEFINITION")
               ((= frame-count 0) "A4_NATIVE_EXEMPLAR_MISSING_FRAME_INSERT")
               ((> frame-warning-count 0) "A4_NATIVE_EXEMPLAR_FRAME_WARNING")
+              ((equal native-pair-status "missing") "A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR")
+              ((equal native-pair-status "warning") "A4_NATIVE_EXEMPLAR_NATIVE_PAIR_WARNING")
               (T "A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON")
             )
           )

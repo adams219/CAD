@@ -155,7 +155,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 ```text
 현재 work DWG에 더 많은 삭제/정규화를 시도하지 않습니다.
 실제 native A4 비교가 READY로 나오기 전에는 A4 frame-only production 변환을 연결하지 않습니다.
-READY 조건은 A4 definition warning/raw selection warning이 모두 <none>이고 Result가 A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON인 상태입니다.
+READY 조건은 A4 definition warning/raw selection warning이 모두 <none>이고, `Native GMTITLE A4 pair evidence: yes`와 `Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON`가 함께 나오는 상태입니다.
+`DR_A4_Outline`만 있고 native link가 있는 `DR_titlea_3rd` 쌍이 없으면 `A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR`가 정상 중단입니다.
 ```
 
 설정값을 다시 확인해야 할 때:

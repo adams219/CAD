@@ -13,6 +13,7 @@ $suitePath = Join-Path $PSScriptRoot "run_main45_verification_suite.ps1"
 $readmePath = Join-Path $PSScriptRoot "README.md"
 $a4NormProbePath = Join-Path $PSScriptRoot "a4_outline_normalization_probe.lsp"
 $a4NormProbeRunnerPath = Join-Path $PSScriptRoot "run_a4_outline_normalization_probe.ps1"
+$a4NativeProbeFixturePath = Join-Path $PSScriptRoot "a4_native_exemplar_probe.lsp"
 $a4NativeProbeRunnerPath = Join-Path $PSScriptRoot "run_a4_native_exemplar_probe.ps1"
 $selectionConfigProbePath = Join-Path $PSScriptRoot "run_gmtitle_selection_config_probe.ps1"
 $goalStatusPath = Join-Path $PSScriptRoot "run_goal_status.ps1"
@@ -160,6 +161,7 @@ $suiteText = Read-Text $suitePath
 $readmeText = Read-Text $readmePath
 $a4NormProbeText = Read-Text $a4NormProbePath
 $a4NormProbeRunnerText = Read-Text $a4NormProbeRunnerPath
+$a4NativeProbeFixtureText = Read-Text $a4NativeProbeFixturePath
 $a4NativeProbeRunnerText = Read-Text $a4NativeProbeRunnerPath
 $selectionConfigProbeText = Read-Text $selectionConfigProbePath
 $goalStatusText = Read-Text $goalStatusPath
@@ -241,6 +243,8 @@ Assert-Contains -Text $a4NormProbeText -Needle "nested-outside" -Label "A4 neste
 Assert-Contains -Text $a4NormProbeText -Needle "nested-direct-outside" -Label "A4 nested plus parent normalization probe strategy"
 Assert-Contains -Text $a4NormProbeRunnerText -Needle "WaitForGstarCADClose" -Label "A4 normalization probe wait option"
 Assert-Contains -Text $a4NormProbeRunnerText -Needle "Get-LatestCadDwgFromNextStepLog" -Label "A4 normalization latest-DWG default"
+Assert-Contains -Text $a4NativeProbeFixtureText -Needle "A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR" -Label "A4 native exemplar requires native pair evidence"
+Assert-Contains -Text $a4NativeProbeFixtureText -Needle "Native GMTITLE A4 pair evidence" -Label "A4 native exemplar logs native pair evidence"
 Assert-Contains -Text $a4NativeProbeRunnerText -Needle "A4_NATIVE_EXEMPLAR_REQUIRES_SOURCEWORKCOPYPATH" -Label "A4 native exemplar explicit source guard"
 Assert-Contains -Text $selectionConfigProbeText -Needle "GMTITLE_SELECTION_CONFIG_NOT_FOUND" -Label "Selection config probe negative result"
 Assert-Contains -Text $selectionConfigProbeText -Needle "Direct GMTITLE may still reuse an internal/current command state" -Label "Selection config probe direct-GMTITLE warning"
