@@ -548,6 +548,8 @@ Assert-Contains -Text $goalStatusText -Needle "run_gmtitle_selection_config_prob
 Assert-Contains -Text $goalStatusText -Needle "Direct actual work-copy probe" -Label "Goal status direct actual work-copy probe summary"
 Assert-Contains -Text $goalStatusText -Needle "loaded-version:" -Label "Goal status direct-probe loaded version output"
 Assert-Contains -Text $goalStatusText -Needle "manual-forecast-log-note-found:" -Label "Goal status direct-probe manual forecast evidence"
+Assert-Contains -Text $goalStatusText -Needle "not an A4 blocker yet" -Label "Goal status first-native before A4 interpretation"
+Assert-Contains -Text $goalStatusText -Needle "target title/frame counts 0/0" -Label "Goal status target-zero first-native interpretation"
 Assert-Contains -Text $goalStatusText -Needle "GstarCAD /b script smoke probe" -Label "Goal status GstarCAD /b script smoke summary"
 Assert-Contains -Text $goalStatusText -Needle "WindowStyle=Minimized" -Label "Goal status minimized smoke probe guidance"
 

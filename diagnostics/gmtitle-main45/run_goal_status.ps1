@@ -39,6 +39,8 @@ $script:DirectWorkcopyStatusCode = $null
 $script:DirectWorkcopyVerifyStatus = $null
 $script:DirectWorkcopyNextFrame = $null
 $script:DirectWorkcopyNextTitle = $null
+$script:DirectWorkcopyTargetTitleCount = $null
+$script:DirectWorkcopyTargetFrameCount = $null
 
 if (-not $SourceWorkCopyPath) {
   $SourceWorkCopyPath = Join-Path $repoRoot "work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg"
@@ -318,6 +320,8 @@ function Write-DirectActualWorkcopyProbeSummary {
     $script:DirectWorkcopyVerifyStatus = $statusAfterVerify
     $script:DirectWorkcopyNextFrame = $nextFrame
     $script:DirectWorkcopyNextTitle = $nextTitle
+    $script:DirectWorkcopyTargetTitleCount = $targetTitleCount
+    $script:DirectWorkcopyTargetFrameCount = $targetFrameCount
   }
 }
 
@@ -581,6 +585,15 @@ function Write-NativeFrameProgressSummary {
 
   if ($a3NativeLikeCount -gt 0 -and $untrustedCount -eq 0) {
     Write-Output "  Interpretation: A3 is no longer the main blocker in the latest CAD evidence. DR_A*_Outline frames still select as INSERT/block references; check the paired DR_titlea_3rd title block for the GMTITLE table editor."
+  }
+  if (
+    $script:DirectWorkcopyProbeTrusted -and
+    ($script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") -and
+    ($script:DirectWorkcopyTargetTitleCount -eq "0") -and
+    ($script:DirectWorkcopyTargetFrameCount -eq "0")
+  ) {
+    Write-Output "  Interpretation: not an A4 blocker yet. The trusted direct work-copy probe still has target title/frame counts 0/0, so the next real action is the first native GMTITLE, not A4 frame-only cleanup."
+    return
   }
   if ($a4Missing) {
     Write-Output "  Interpretation: A4 remains the active blocker. It is frame-only, so the next safe step is DR_A4_Outline definition prepare/validation, not repeating title conversion."
