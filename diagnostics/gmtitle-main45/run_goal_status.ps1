@@ -386,7 +386,11 @@ function Write-A4FrameOnlyEvidenceSummary {
     Write-Output ("  A4 normalization decision: candidate safe probe result found ({0}). Do not promote it directly; inspect the copied-DWG log and then decide whether SWTITLEPREPARE can adopt that definition path." -f ($safeNormalizationStrategies -join ", "))
   } elseif (($normalizationSummary -contains "nested-outside=no") -and ($normalizationSummary -contains "nested-direct-outside=no")) {
     $script:A4NestedProbeUnsafe = $true
-    Write-Output "  A4 normalization decision: nested cleanup probes are both unsafe. Next investigation should compare against a real native A4 GMTITLE/frame definition instead of deleting more imported objects."
+    if ($script:A4PrepareProbeReadyWithNativeOutside) {
+      Write-Output "  A4 normalization decision: historical nested cleanup probes are both unsafe, but this is superseded by the official native outside marker policy."
+    } else {
+      Write-Output "  A4 normalization decision: nested cleanup probes are both unsafe. Next investigation should compare against a real native A4 GMTITLE/frame definition instead of deleting more imported objects."
+    }
   } elseif (($normalizationSummary -contains "nested-outside=not-run") -or ($normalizationSummary -contains "nested-direct-outside=not-run")) {
     $script:A4NestedProbeMissing = $true
     Write-Output "  A4 normalization decision: nested cleanup comparison is still missing. Run the copied-DWG probe before changing production conversion logic."
@@ -440,7 +444,11 @@ function Write-A4FrameOnlyEvidenceSummary {
       Write-Output ("  A4 native exemplar raw-selection warning: {0}" -f $rawSelectionLine)
     }
     if ($script:A4NativeExemplarMinorOutside) {
-      Write-Output "  A4 native exemplar decision: native A4 itself carries small outside marker geometry. Do not treat exact (0,0)-(210,297) raw bbox mismatch as proof of contamination by itself; production still needs an explicit keep/crop/tolerate decision before changing A4 frame-only conversion."
+      if ($script:A4PrepareProbeReadyWithNativeOutside) {
+        Write-Output "  A4 native exemplar decision: official native outside markers are tolerated when effective A4 geometry and raw-selection checks pass."
+      } else {
+        Write-Output "  A4 native exemplar decision: native A4 itself carries small outside marker geometry. Do not treat exact (0,0)-(210,297) raw bbox mismatch as proof of contamination by itself; production still needs an explicit keep/crop/tolerate decision before changing A4 frame-only conversion."
+      }
     }
   } else {
     Write-Output "  A4 native exemplar probe result: <not-run>"

@@ -277,6 +277,8 @@ Assert-Contains -Text $readmeText -Needle "screenshot-coordinate ribbon clicks a
 Assert-Contains -Text $readmeText -Needle "AppData text marker scan is advisory" -Label "README AppData advisory scan guidance"
 Assert-Contains -Text $goalStatusText -Needle "Write-NativeFrameProgressSummary" -Label "Goal status native-frame progress summary"
 Assert-Contains -Text $goalStatusText -Needle "A4 normalization decision" -Label "Goal status A4 normalization decision guidance"
+Assert-Contains -Text $goalStatusText -Needle "superseded by the official native outside marker policy" -Label "Goal status A4 superseded normalization guidance"
+Assert-Contains -Text $goalStatusText -Needle "official native outside markers are tolerated when effective A4 geometry and raw-selection checks pass" -Label "Goal status A4 adopted outside marker policy"
 Assert-Contains -Text $goalStatusText -Needle "A4 investigation continuation" -Label "Goal status A4 nested probe continuation guidance"
 Assert-Contains -Text $goalStatusText -Needle "A4 normalization candidate review" -Label "Goal status A4 safe-candidate review guidance"
 Assert-Contains -Text $goalStatusText -Needle "A4 native comparison investigation" -Label "Goal status A4 unsafe-nested fallback guidance"
