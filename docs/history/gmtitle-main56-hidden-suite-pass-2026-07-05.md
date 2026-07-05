@@ -2,21 +2,22 @@
 
 ## 최신 검증
 
-2026-07-05 23:27 KST 기준으로 `diagnostics\gmtitle-main45\run_main45_verification_suite.ps1`를 다시 실행했고, 전체 hidden verification suite가 통과했다.
+2026-07-06 00:23 KST 기준으로 `diagnostics\gmtitle-main45\run_main45_verification_suite.ps1 -TimeoutSeconds 180`를 다시 실행했고, 전체 hidden verification suite가 통과했다.
 
-이번 재검증은 커밋 `4d5955b Clarify native batch safety guidance` 이후에 실행했다. 목적은 A3/A4 native 교체 단계에서 추가한 BATCH 안전 안내가 기존 변환 guard, A4 frame-only 경로, native 인식 검증을 깨지 않는지 확인하는 것이었다.
+이번 재검증은 커밋 `5a75f86 Record GMTITLE suite failure reason` 이후에 실행했다. 목적은 A3/A4 native 교체 단계의 BATCH 안전 안내, 자동화 경계 안내, suite 실패 원인 요약 보강이 기존 변환 guard, A4 frame-only 경로, native 인식 검증을 깨지 않는지 확인하는 것이었다.
 
 ## 실행 조건
 
 ```text
 브랜치: codex/gm-title
-기준 커밋: 4d5955b Clarify native batch safety guidance
+기준 커밋: 5a75f86 Record GMTITLE suite failure reason
 GstarCAD: closed
 Source work copy:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
 Probe window style: Minimized
 GMTITLE LSP version: 260705-convertnext-main-workflow
 Loader version: 260705-4step-gmtitle-a4-outline-preflight
+Timeout seconds: 180
 ```
 
 ## 통과 결과
@@ -67,6 +68,16 @@ missing-native-frame: DR_A4_Outline
 ```
 
 즉 suite PASS는 구현 방향과 guard가 깨지지 않았다는 증거이지, 실제 작업복사본 변환 완료 증거는 아니다.
+
+최신 suite 요약 파일:
+
+```text
+work\main56_verification_suite_last_run.txt
+Result: PASS
+Generated: 2026-07-06 00:23:06 +09:00
+```
+
+이 파일은 실패 시 `FAILED_BEFORE_PASS`와 실패 원인/명령을 남기고, 성공 시에만 `PASS`로 덮어쓴다.
 
 ## 이번 재검증에서 특히 확인한 점
 

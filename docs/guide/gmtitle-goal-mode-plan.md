@@ -14,7 +14,7 @@
 브랜치: codex/gm-title
 작업트리: clean
 정적 preflight: PASS
-hidden verification suite: PASS (2026-07-05 19:52, all expected log markers verified)
+hidden verification suite: PASS (2026-07-06 00:23, all expected log markers verified)
 GstarCAD /b script smoke probe: PASS
 GMTITLE LSP 버전: 260705-convertnext-main-workflow
 loader 버전: 260705-4step-gmtitle-a4-outline-preflight

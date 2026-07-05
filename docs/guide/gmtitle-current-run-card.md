@@ -271,7 +271,7 @@ SWTITLECONVERTNEXT
 
 ## Hidden Suite 검증 상태
 
-2026-07-05 19:52 기준 `run_main45_verification_suite.ps1`는 PASS입니다.
+2026-07-06 00:23 기준 `run_main45_verification_suite.ps1 -TimeoutSeconds 180`는 PASS입니다.
 
 ```text
 no-CAD next-action card probe: PASS
