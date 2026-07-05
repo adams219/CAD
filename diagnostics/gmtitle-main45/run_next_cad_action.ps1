@@ -233,6 +233,57 @@ function Write-SuiteLastRunSummary {
   }
 }
 
+function Write-FinalCompletionGateSummary {
+  $gateLog = Join-Path (Join-Path $displayRepoRoot "work") "swtitle_final_completion_gate_status.txt"
+  Write-Output ""
+  Write-Output "최근 final completion gate 요약:"
+  if (-not (Test-Path -LiteralPath $gateLog)) {
+    Write-Output "  상태: 없음"
+    Write-Output "  참고: 실제 work DWG 완료 여부는 SWTITLEVERIFY_FINAL_OK와 대표 더블클릭 확인 전까지 증명되지 않습니다."
+    return
+  }
+
+  $item = Get-Item -LiteralPath $gateLog
+  $text = Read-TextWithFallback -Path $gateLog
+  $loadedVersion = Get-FirstRegexValue -Text $text -Pattern "^Loaded version:\s*(.+)$"
+  $statusAfterStatus = Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-status:\s*(\S+)"
+  $statusAfterVerify = Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-verify:\s*(\S+)"
+  $sourceTitleCount = Get-FirstRegexValue -Text $text -Pattern "^\s*source-title-count:\s*(\d+)"
+  $sourceFrameCount = Get-FirstRegexValue -Text $text -Pattern "^\s*source-frame-count:\s*(\d+)"
+  $frameOnlyCount = Get-FirstRegexValue -Text $text -Pattern "^\s*frame-only-count:\s*(\d+)"
+  $targetTitleCount = Get-FirstRegexValue -Text $text -Pattern "^\s*target-title-count:\s*(\d+)"
+  $targetFrameCount = Get-FirstRegexValue -Text $text -Pattern "^\s*target-frame-count:\s*(\d+)"
+  $nextFrame = Get-FirstRegexValue -Text $text -Pattern "^\s*next-bootstrap-frame:\s*(\S+)"
+  $nextTitle = Get-FirstRegexValue -Text $text -Pattern "^\s*next-bootstrap-title:\s*(\S+)"
+  $dbmodAfter = Get-FirstRegexValue -Text $text -Pattern "^\s*dbmod-after-commands:\s*(\d+)"
+  $runtimeDone = Get-FirstRegexValue -Text $text -Pattern "^Runtime check completed:\s*(\S+)"
+  $gateResult = if ($statusAfterVerify -eq "SWTITLEVERIFY_FINAL_OK") { "PASS" } elseif ($statusAfterVerify) { "FAIL" } else { "UNKNOWN" }
+
+  Write-Output ("  로그: {0}" -f $gateLog)
+  Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
+  if ($loadedVersion) { Write-Output ("  LSP 버전: {0}" -f $loadedVersion) }
+  Write-Output ("  결과: {0}" -f $gateResult)
+  if ($statusAfterStatus) { Write-Output ("  SWTITLESTATUS: {0}" -f $statusAfterStatus) }
+  if ($statusAfterVerify) { Write-Output ("  SWTITLEVERIFY: {0}" -f $statusAfterVerify) }
+  if ($sourceTitleCount -or $sourceFrameCount -or $frameOnlyCount) {
+    Write-Output ("  남은 원본: 표제란 {0}, 도면틀 {1}, frame-only {2}" -f ($(if ($sourceTitleCount) { $sourceTitleCount } else { "?" })), ($(if ($sourceFrameCount) { $sourceFrameCount } else { "?" })), ($(if ($frameOnlyCount) { $frameOnlyCount } else { "?" })))
+  }
+  if ($targetTitleCount -or $targetFrameCount) {
+    Write-Output ("  대상 GMTITLE: 제목블록 {0}, 도면틀 {1}" -f ($(if ($targetTitleCount) { $targetTitleCount } else { "?" })), ($(if ($targetFrameCount) { $targetFrameCount } else { "?" })))
+  }
+  if ($nextFrame -or $nextTitle) {
+    Write-Output ("  다음 native GMTITLE: {0} / {1}" -f ($(if ($nextFrame) { $nextFrame } else { "?" })), ($(if ($nextTitle) { $nextTitle } else { "?" })))
+  }
+  if ($dbmodAfter) { Write-Output ("  DBMOD after probe: {0}" -f $dbmodAfter) }
+  if ($runtimeDone) { Write-Output ("  Runtime check completed: {0}" -f $runtimeDone) }
+
+  if ($gateResult -eq "PASS") {
+    Write-Output "  의미: 자동 완료 게이트는 통과했습니다. 그래도 대표 A2/A3 제목블록 더블클릭 확인은 따로 필요합니다."
+  } else {
+    Write-Output "  의미: 실제 작업복사본 완료 증거가 아직 없습니다. 아래 다음 CAD 작업을 계속 진행하세요."
+  }
+}
+
 function Write-ManualLoadStep {
   $expectedVersion = Get-ExpectedGmtitleVersion
   Write-Output "수동 GstarCAD 단계:"
@@ -629,6 +680,7 @@ if (-not (Test-SamePath -Left $displayRepoRoot -Right $repoRoot)) {
 }
 Write-Output ("대상 작업복사본: {0}" -f $SourceWorkCopyPath)
 Write-SuiteLastRunSummary
+Write-FinalCompletionGateSummary
 
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
   Write-Output "Result: BLOCKED_WORKCOPY_MISSING"
