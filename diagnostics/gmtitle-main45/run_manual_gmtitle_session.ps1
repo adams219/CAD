@@ -116,7 +116,11 @@ function Invoke-ChildPowerShellCapture {
 
   Write-Step ""
   Write-Step ("----- {0} -----" -f $Label)
-  Write-Step ("Command: {0}" -f (Get-QuotedCommandPreview -Parts (@($powershellExe) + $fullArgs)))
+  if ($SuppressChildOutput) {
+    Write-Step "긴 PowerShell 실행 명령줄은 -Compact 때문에 숨겼습니다."
+  } else {
+    Write-Step ("Command: {0}" -f (Get-QuotedCommandPreview -Parts (@($powershellExe) + $fullArgs)))
+  }
 
   $rawOutput = & $powershellExe @fullArgs 2>&1
   $exitCode = $LASTEXITCODE
@@ -239,21 +243,27 @@ function Assert-GstarCADRunningBeforeManualStep {
   Write-Step ("수동 단계 전에 확인된 GstarCAD 프로세스: {0}" -f (($existing | ForEach-Object { $_.Id }) -join ", "))
 }
 
-Write-Step "===== GMTITLE 수동 visible-CAD 세션 ====="
-Write-Step ("저장소 루트: {0}" -f $repoRoot)
-Write-Step ("대상 작업복사본: {0}" -f $SourceWorkCopyPath)
-Write-Step "목적: 작업복사본을 열고 사용자가 GMTITLE 한 장만 처리한 뒤, GstarCAD가 닫히면 다음 작업 카드를 다시 갱신합니다."
-Write-Step "안전: 이 스크립트는 SWTITLECONVERTNEXT를 대신 실행하지 않고, GMTITLE 창을 클릭하지 않고, DWG를 저장하지 않습니다."
-Write-Step "사전확인: 건너뛰지 않으면 visible CAD를 열기 전에 다음 작업 카드를 갱신하고, 저장된 DWG가 변환 가능한 상태가 아니면 멈춥니다."
-Write-Step "PreflightOnly: -PreflightOnly를 붙이면 CAD를 열지 않고 현재 변환 카드와 짧은 GMTITLE 선택 요약만 출력합니다."
-Write-Step "Compact: -Compact를 붙이면 긴 다음 작업 카드 본문은 숨기고 짧은 요약만 보여줍니다."
-Write-Step "CAD에서 입력할 명령:"
-Write-Step "  APPLOAD"
-Write-Step ("  {0}" -f (Join-Path $repoRoot "swcad_load.lsp"))
-Write-Step "  SWTITLEVERSION"
-Write-Step "  SWTITLESTATUS"
-Write-Step "  SWTITLECONVERTNEXT"
-Write-Step "GMTITLE 한 장을 끝낸 뒤: 작업복사본 DWG를 저장하고 GstarCAD를 닫으세요. 그 다음 이 스크립트가 후속 점검을 실행합니다."
+if ($Compact) {
+  Write-Step "===== GMTITLE 짧은 수동 선택 카드 ====="
+  Write-Step ("대상 작업복사본: {0}" -f $SourceWorkCopyPath)
+  Write-Step "안전: 이 화면은 CAD를 클릭하지 않고 저장된 DWG 상태만 갱신해 다음 한 장의 선택값을 보여줍니다."
+} else {
+  Write-Step "===== GMTITLE 수동 visible-CAD 세션 ====="
+  Write-Step ("저장소 루트: {0}" -f $repoRoot)
+  Write-Step ("대상 작업복사본: {0}" -f $SourceWorkCopyPath)
+  Write-Step "목적: 작업복사본을 열고 사용자가 GMTITLE 한 장만 처리한 뒤, GstarCAD가 닫히면 다음 작업 카드를 다시 갱신합니다."
+  Write-Step "안전: 이 스크립트는 SWTITLECONVERTNEXT를 대신 실행하지 않고, GMTITLE 창을 클릭하지 않고, DWG를 저장하지 않습니다."
+  Write-Step "사전확인: 건너뛰지 않으면 visible CAD를 열기 전에 다음 작업 카드를 갱신하고, 저장된 DWG가 변환 가능한 상태가 아니면 멈춥니다."
+  Write-Step "PreflightOnly: -PreflightOnly를 붙이면 CAD를 열지 않고 현재 변환 카드와 짧은 GMTITLE 선택 요약만 출력합니다."
+  Write-Step "Compact: -Compact를 붙이면 긴 다음 작업 카드 본문은 숨기고 짧은 요약만 보여줍니다."
+  Write-Step "CAD에서 입력할 명령:"
+  Write-Step "  APPLOAD"
+  Write-Step ("  {0}" -f (Join-Path $repoRoot "swcad_load.lsp"))
+  Write-Step "  SWTITLEVERSION"
+  Write-Step "  SWTITLESTATUS"
+  Write-Step "  SWTITLECONVERTNEXT"
+  Write-Step "GMTITLE 한 장을 끝낸 뒤: 작업복사본 DWG를 저장하고 GstarCAD를 닫으세요. 그 다음 이 스크립트가 후속 점검을 실행합니다."
+}
 
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
   Write-Step "Result: BLOCKED_WORKCOPY_MISSING"
