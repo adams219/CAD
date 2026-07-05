@@ -80,6 +80,39 @@ function Get-AllRegexValues {
   return @($values)
 }
 
+function Get-CountFromProbeSection {
+  param(
+    [string]$Text,
+    [string]$SectionLabel,
+    [string]$Key
+  )
+
+  $inSection = $false
+  foreach ($line in ($Text -split "\r?\n")) {
+    $trimmed = $line.Trim()
+    if (-not $inSection) {
+      if ($trimmed -eq $SectionLabel) {
+        $inSection = $true
+      }
+      continue
+    }
+
+    if ($trimmed -eq "" -or $trimmed -eq "<none>") {
+      continue
+    }
+    if ($trimmed -match "^([A-Za-z0-9_-]+):\s*(\d+)$") {
+      if ($Matches[1] -eq $Key) {
+        return $Matches[2]
+      }
+      continue
+    }
+    if ($trimmed -match ":") {
+      break
+    }
+  }
+  return $null
+}
+
 function Test-SamePath {
   param(
     [string]$Left,
@@ -148,20 +181,26 @@ function Write-ManualSelectionForecast {
 
   $sourceTitleCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*source-title-count:\s*(\d+)"
   $frameOnlyCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*frame-only-count:\s*(\d+)"
+  $expectedA2 = Get-CountFromProbeSection -Text $ProbeText -SectionLabel "expected-sheet-counts:" -Key "A2"
+  $expectedA3 = Get-CountFromProbeSection -Text $ProbeText -SectionLabel "expected-sheet-counts:" -Key "A3"
+  $expectedA4 = Get-CountFromProbeSection -Text $ProbeText -SectionLabel "expected-sheet-counts:" -Key "A4"
   $missingFrames = @(Get-AllRegexValues -Text $ProbeText -Pattern "^\s*missing-native-frame:\s*(DR_A[0-4]_Outline)")
   $hasA3Missing = $missingFrames -contains "DR_A3_Outline"
   $hasA4Missing = $missingFrames -contains "DR_A4_Outline"
 
   Write-Output ""
   Write-Output "예상 수동 GMTITLE 확인량:"
+  if ($expectedA2 -or $expectedA3 -or $expectedA4) {
+    Write-Output ("  - 저장된 시트 수량: A2 {0}장, A3 {1}장, A4 {2}장" -f ($(if ($expectedA2) { $expectedA2 } else { "?" })), ($(if ($expectedA3) { $expectedA3 } else { "?" })), ($(if ($expectedA4) { $expectedA4 } else { "?" })))
+  }
   switch -Regex ($StatusCode) {
     "^NEXT_CREATE_FIRST_NATIVE_GMTITLE$" {
       Write-Output ("  - 지금 필요한 확인: {0} / {1} 1회" -f ($(if ($FrameName) { $FrameName } else { "DR_A2_Outline" })), ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" })))
       if ($hasA3Missing) {
-        Write-Output "  - 이후 예상: A3 첫 native 기준 객체 1회가 추가로 필요할 수 있습니다."
+        Write-Output ("  - 이후 예상: A3 {0}장을 처리하기 위한 첫 native 기준 객체 1회가 추가로 필요할 수 있습니다." -f ($(if ($expectedA3) { $expectedA3 } else { "여러" })))
       }
       if (($frameOnlyCount -as [int]) -gt 0 -or $hasA4Missing) {
-        Write-Output "  - A4 frame-only는 제목블록 생성 대상이 아닙니다. 검증된 DR_A4_Outline 도면틀-only 경로로 처리합니다."
+        Write-Output ("  - A4 frame-only {0}장은 제목블록 생성 대상이 아닙니다. 검증된 DR_A4_Outline 도면틀-only 경로로 처리합니다." -f ($(if ($frameOnlyCount) { $frameOnlyCount } else { "해당" })))
       }
       Write-Output "  - 좌표 입력, 값 복사, 기존 원본 정리는 SWTITLECONVERT가 자동 처리합니다."
       return

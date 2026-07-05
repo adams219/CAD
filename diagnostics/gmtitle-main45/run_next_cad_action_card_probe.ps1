@@ -53,8 +53,17 @@ function Write-FakeLog {
     "DWG: $DwgPath",
     "status-after-status: $Status",
     "status-after-verify: $VerifyStatus",
+    "source-title-count: 13",
+    "frame-only-count: 2",
     "next-bootstrap-frame: $Frame",
     "next-bootstrap-title: $Title",
+    "missing-native-frame: DR_A2_Outline",
+    "missing-native-frame: DR_A3_Outline",
+    "missing-native-frame: DR_A4_Outline",
+    "expected-sheet-counts:",
+    "  A2: 1",
+    "  A3: 12",
+    "  A4: 2",
     "target-title-count: 1",
     "target-frame-count: 1",
     "dbmod-after-commands: 0"
@@ -94,7 +103,7 @@ function Invoke-CardCase {
 Invoke-CardCase `
   -Name "first_native" `
   -Status "NEXT_CREATE_FIRST_NATIVE_GMTITLE" `
-  -Expected @("Result: READY_FOR_FIRST_NATIVE_GMTITLE", "SWTITLECONVERT", "DR_A3_Outline", "YES: 첫 native GMTITLE 1장을 만들고 마무리합니다.", "GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요", "SWTITLECONVERT 안에서 물어보는 YES/OPEN/BATCH/MANUAL 응답과 CAD 일반 OPEN 명령은 다릅니다", "긴 좌표를 사람이 직접 치지 마세요", "커서가 화면 중앙에 남아 보여도")
+  -Expected @("예상 수동 GMTITLE 확인량", "저장된 시트 수량: A2 1장, A3 12장, A4 2장", "지금 필요한 확인", "A3 12장을 처리하기 위한 첫 native 기준 객체 1회", "A4 frame-only 2장은 제목블록 생성 대상이 아닙니다", "Result: READY_FOR_FIRST_NATIVE_GMTITLE", "SWTITLECONVERT", "DR_A3_Outline", "YES: 첫 native GMTITLE 1장을 만들고 마무리합니다.", "GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요", "SWTITLECONVERT 안에서 물어보는 YES/OPEN/BATCH/MANUAL 응답과 CAD 일반 OPEN 명령은 다릅니다", "긴 좌표를 사람이 직접 치지 마세요", "커서가 화면 중앙에 남아 보여도")
 
 Invoke-CardCase `
   -Name "prepare_a4" `
