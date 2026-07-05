@@ -827,4 +827,8 @@ Write-Output "목표모드 참고 문서:"
 Write-Output ("  실행 카드: {0}" -f $runCard)
 Write-Output ("  상세 계획: {0}" -f $goalPlan)
 Write-Output ""
+Write-Output "짧은 다음 작업 카드:"
+Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_next_cad_action.ps1"))
+Write-Output "  GstarCAD를 저장하고 닫은 뒤 최신 direct probe까지 갱신하려면 위 명령에 -AutoRefreshDirectProbe를 붙이세요."
+Write-Output ""
 Write-Output "목표 상태: 실제 작업복사본이 SWTITLEVERIFY_FINAL_OK에 도달하고 대표 CAD 더블클릭 확인이 끝나기 전까지는 완료가 아닙니다."
