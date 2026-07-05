@@ -210,6 +210,17 @@ CAD 화면 옆에서 다음 명령, GMTITLE 선택값, 즉시 중단 조건, 바
 
 현재 PC에서는 Codex Computer Use가 GstarCAD 화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다. 따라서 실제 `SWTITLECONVERT`의 GMTITLE 창 선택은 사용자가 직접 하고, Codex는 로그/문서/검증 기준을 정리하는 쪽으로 사용합니다.
 
+이 카드는 direct probe의 현재 상태 코드를 보고 아래처럼 다음 행동을 바로 나눕니다.
+
+```text
+NEXT_CREATE_FIRST_NATIVE_GMTITLE -> SWTITLECONVERT
+NEXT_CREATE_MISSING_NATIVE_EXEMPLAR -> SWTITLECONVERT
+NEXT_UPGRADE_A3_A4_NATIVE -> SWTITLECONVERT
+NEXT_PREPARE_* -> SWTITLEPREPARE
+NEXT_REVIEW_* 또는 ABORT_/WARN_ -> 같은 변환 반복 금지, SWTITLESTATUS/SWTITLEVERIFY 로그 확인
+SWTITLEVERIFY_FINAL_OK -> 대표 제목블록 더블클릭 확인
+```
+
 이 상태에서 다음 실제 CAD 명령은 `SWTITLECONVERT`입니다. 첫 대상은 보통 A2입니다.
 
 중요: 위 초기 상태를 이미 변환이 진행된 CAD 도면에 그대로 적용하지 않습니다.

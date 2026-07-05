@@ -282,6 +282,16 @@ No work-copy DWG was opened and no drawing data was changed.
 
 So this card intentionally says `수동 GstarCAD 단계`. Use Computer Use screenshots for inspection only unless a later session proves activation and input work reliably.
 
+The card now interprets common saved status codes directly:
+
+```text
+NEXT_CREATE_FIRST_NATIVE_GMTITLE / NEXT_CREATE_MISSING_NATIVE_EXEMPLAR -> SWTITLECONVERT
+NEXT_UPGRADE_A3_A4_NATIVE -> SWTITLECONVERT native replacement
+NEXT_PREPARE_* -> SWTITLEPREPARE, then SWTITLESTATUS
+NEXT_REVIEW_* / ABORT_* / WARN_* -> do not repeat SWTITLECONVERT; inspect SWTITLESTATUS/SWTITLEVERIFY logs first
+SWTITLEVERIFY_FINAL_OK -> manual representative title-block double-click check
+```
+
 ## A4 Outline Prepare Probe
 
 Use `run_a4_outline_prepare_probe.ps1` to copy a work DWG, load the current GMTITLE LSP, and run the internal A4 frame-only `DR_A4_Outline` definition preflight on the copy.
