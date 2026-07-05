@@ -1,4 +1,4 @@
-# GMTITLE 목표모드 상세 계획
+﻿# GMTITLE 목표모드 상세 계획
 
 이 문서는 SolidWorks DWG를 GstarCAD Mechanical native GMTITLE 구조로 안정 변환하기 위한 목표모드 실행 기준이다.
 
@@ -16,7 +16,7 @@
 정적 preflight: PASS
 hidden verification suite: PASS (2026-07-05 19:52, all expected log markers verified)
 GstarCAD /b script smoke probe: PASS
-GMTITLE LSP 버전: 260705-status-convert-next-guidance
+GMTITLE LSP 버전: 260705-status-manual-forecast
 loader 버전: 260705-4step-gmtitle-a4-outline-preflight
 공개 사용자 명령: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLECONVERT, SWTITLEVERIFY, SWTITLEVERSION, SWSCALESCAN
 A4 raw bbox guard: 있음
@@ -311,7 +311,7 @@ nested-direct-outside probe:
 ```text
 LSP 기준:
 loader: 260705-4step-gmtitle-a4-outline-preflight
-gmtitle: 260705-status-convert-next-guidance
+gmtitle: 260705-status-manual-forecast
 
 작업 도면:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
@@ -352,7 +352,7 @@ work\swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
 ```text
 신뢰 가능:
   DWG 파일이 현재 열린 work 복사본과 같음
-  SWTITLE LSP 버전이 260705-status-convert-next-guidance
+  SWTITLE LSP 버전이 260705-status-manual-forecast
   방금 실행한 명령 결과임
 
 신뢰 보류:
@@ -406,7 +406,7 @@ BATCH 자동화:
 
 | 작업 단위 | 해결하려는 질문 | 통과 증거 | 통과 전 금지 |
 | --- | --- | --- | --- |
-| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260705-status-convert-next-guidance`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
+| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260705-status-manual-forecast`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
 | 첫 native 기준 객체 | 이 DWG 안에 실제 GMTITLE 쌍이 최소 1개 있는가 | `target-title-count > 0`, 같은 크기 `DR_A*_Outline` 기준 객체 존재 | clone/fast batch 완료 판단 |
 | A3/A4 native 교체 | 겉보기 복제본이 아니라 fresh native 쌍인가 | `A3/A4 native 교체 후보: 0`, clone/shared-link 경고 0 | 도면틀 더블클릭만 보고 성공 판정 |
 | A4 frame-only | 원본에 없는 제목블록 없이 도면틀만 교체됐는가 | `A4 도면틀-only 대상 수`와 예상 A4 수량 일치, 불필요한 `DR_titlea_3rd` 없음 | A4에 제목블록 생성 |
@@ -614,7 +614,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260705-status-convert-next-guidance
+260705-status-manual-forecast
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...
@@ -967,7 +967,7 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 
 ```text
 1. APPLOAD로 C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp 로드
-2. SWTITLEVERSION으로 gmtitle 버전이 260705-status-convert-next-guidance인지 확인
+2. SWTITLEVERSION으로 gmtitle 버전이 260705-status-manual-forecast인지 확인
 3. SWTITLESTATUS로 현재 상태 확인
 4. 기본 workcopy라면 NEXT_CREATE_FIRST_NATIVE_GMTITLE인지 확인
 5. SWTITLECONVERTNEXT 실행

@@ -1,4 +1,4 @@
-# GMTITLE 현재 실행 카드
+﻿# GMTITLE 현재 실행 카드
 
 CAD 화면 옆에 열어두고 따라가는 짧은 실행 순서입니다.
 
@@ -63,7 +63,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260705-status-convert-next-guidance
+260705-status-manual-forecast
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.

@@ -1,4 +1,4 @@
-;;; Read-only title-block and scale diagnostic module.
+﻿;;; Read-only title-block and scale diagnostic module.
 ;;;
 ;;; Main workflow:
 ;;;   APPLOAD this file directly, then run:
@@ -36,7 +36,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260705-status-convert-next-guidance")
+(setq *swcad-title-scale-version* "260705-status-manual-forecast")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -4346,6 +4346,73 @@
   )
 )
 
+(defun swcad-title-print-manual-gmtitle-forecast (summary expected-sheet-counts frame-only-count example-title a3a4-count missing-required-native / a2-count a3-count a4-count record frame-block title-block)
+  (setq a2-count (swcad-title-count-value "A2" expected-sheet-counts))
+  (setq a3-count (swcad-title-count-value "A3" expected-sheet-counts))
+  (setq a4-count (swcad-title-count-value "A4" expected-sheet-counts))
+  (swcad-title-princ-line "예상 수동 GMTITLE 확인량:")
+  (swcad-title-princ-line
+    (strcat
+      "  - 변환 기준 시트 수: A2 "
+      (itoa a2-count)
+      "장, A3 "
+      (itoa a3-count)
+      "장, A4 "
+      (itoa a4-count)
+      "장"
+    )
+  )
+  (cond
+    ((and (not example-title) (> (swcad-title-fast-summary-value summary "source-title-count") 0))
+      (setq record (swcad-title-next-bootstrap-selection-record))
+      (setq frame-block (if record (cadr record) "<unknown>"))
+      (setq title-block (if record (caddr record) "<unknown>"))
+      (swcad-title-princ-line
+        (strcat
+          "  - 지금 필요한 확인: "
+          frame-block
+          " / "
+          title-block
+          " 1회"
+        )
+      )
+      (if (> a3-count 0)
+        (swcad-title-princ-line "  - 이후 예상: A3를 처리하기 위한 첫 native 기준 객체 1회가 추가로 필요할 수 있습니다.")
+      )
+    )
+    ((> a3a4-count 0)
+      (swcad-title-princ-line
+        (strcat
+          "  - 지금 필요한 확인: A3/A4 native 교체 후보 "
+          (itoa a3a4-count)
+          "개 중 다음 1개"
+        )
+      )
+    )
+    (missing-required-native
+      (swcad-title-princ-line
+        (strcat
+          "  - 지금 필요한 확인: 누락된 크기의 첫 native 기준 객체 "
+          (swcad-title-list-string missing-required-native)
+        )
+      )
+    )
+    (T
+      (swcad-title-princ-line "  - 지금 필요한 확인: 새 GMTITLE 창 확인 없음")
+    )
+  )
+  (if (> frame-only-count 0)
+    (swcad-title-princ-line
+      (strcat
+        "  - A4 표제란 없는 도면틀 "
+        (itoa frame-only-count)
+        "장은 제목블록 생성 대상이 아닙니다. DR_A4_Outline 도면틀-only 경로로 처리합니다."
+      )
+    )
+  )
+  (swcad-title-princ-line "  - 좌표 입력, 값 복사, 기존 원본 정리는 SWTITLECONVERTNEXT/SWTITLECONVERT 흐름이 처리합니다.")
+)
+
 (defun swcad-title-fast-prerequisite-status (summary contaminated example-title / source-count frame-only-count missing-required frame-records geometry-risk-count overlap-risk-count)
   (setq source-count (swcad-title-fast-summary-value summary "source-title-count"))
   (setq frame-only-count (swcad-title-fast-summary-value summary "frame-only-count"))
@@ -4541,6 +4608,7 @@
   (swcad-title-princ-line (strcat "선택/형상 위험 경고: " (itoa selection-risk-count)))
   (swcad-title-princ-line (strcat "오염 의심 대상 도면틀 정의: " (swcad-title-list-string contaminated)))
   (swcad-title-princ-line (strcat "native GMTITLE 제목블록 존재: " (swcad-title-native-example-description example-title)))
+  (swcad-title-print-manual-gmtitle-forecast summary expected-sheet-counts frame-only-count example-title a3a4-count missing-required-native)
   (swcad-title-print-automation-policy-summary)
   (if a3a4-records
     (progn
@@ -18218,7 +18286,7 @@
   (setq *swcad-title-last-apply-status* "SWTITLEVERSION_OK")
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-status-convert-next-guidance")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-status-manual-forecast")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)

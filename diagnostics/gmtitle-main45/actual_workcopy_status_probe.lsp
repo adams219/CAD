@@ -1,4 +1,4 @@
-;;; Tracked read-only status/verify probe for a copied actual work DWG.
+﻿;;; Tracked read-only status/verify probe for a copied actual work DWG.
 ;;; The PowerShell wrapper sets SWCAD_TOOL_ROOT before launching GstarCAD.
 ;;; This script does not save the drawing.
 
@@ -82,7 +82,7 @@
   )
 )
 
-(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count pair-records pair-count native-like-pair-count non-native-like-pair-count cloned-pair-count a3a4-native-upgrade-count orphan-target-frame-count duplicate-target-pair-count record bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note first-native-selection-log-note structure-log a4-deferred-note verify-summary-log verify-source-priority verify-a4-first)
+(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count pair-records pair-count native-like-pair-count non-native-like-pair-count cloned-pair-count a3a4-native-upgrade-count orphan-target-frame-count duplicate-target-pair-count record bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note first-native-selection-log-note manual-forecast-log-note structure-log a4-deferred-note verify-summary-log verify-source-priority verify-a4-first)
   (setq load-result
     (vl-catch-all-apply
       'load
@@ -125,7 +125,7 @@
         (swtitle-diag45-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))
       )
       (swtitle-diag45-write-line handle (strcat "Loaded version: " version-value))
-      (swtitle-diag45-write-line handle "Expected version: 260705-status-convert-next-guidance")
+      (swtitle-diag45-write-line handle "Expected version: 260705-status-manual-forecast")
       (swtitle-diag45-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-diag45-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-diag45-write-line handle (strcat "DBMOD before commands: " (itoa (getvar "DBMOD"))))
@@ -206,6 +206,13 @@
               (swtitle-diag45-file-contains-p next-step-log "제목블록: DR_titlea_3rd")
             )
           )
+          (setq manual-forecast-log-note
+            (and
+              (swtitle-diag45-file-contains-p next-step-log "예상 수동 GMTITLE 확인량:")
+              (swtitle-diag45-file-contains-p next-step-log "지금 필요한 확인: DR_A2_Outline / DR_titlea_3rd 1회")
+              (swtitle-diag45-file-contains-p next-step-log "A4 표제란 없는 도면틀 2장은 제목블록 생성 대상이 아닙니다.")
+            )
+          )
           (setq structure-log (swcad-title-work-log-path "swcad_title_structure_diagnosis_last.txt"))
           (setq a4-deferred-note
             (swtitle-diag45-file-contains-p
@@ -244,6 +251,7 @@
           (swtitle-diag45-write-line handle (strcat "  automation-split-note-found: " (if automation-split-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  human-check-note-found: " (if human-check-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  first-native-selection-log-note-found: " (if first-native-selection-log-note "yes" "no")))
+          (swtitle-diag45-write-line handle (strcat "  manual-forecast-log-note-found: " (if manual-forecast-log-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  structure-log: " structure-log))
           (swtitle-diag45-write-line handle (strcat "  a4-frame-only-deferred-note-found: " (if a4-deferred-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  verify-summary-log: " verify-summary-log))
