@@ -23,6 +23,8 @@
 
   [switch]$SkipFinalCompletionGate,
 
+  [switch]$AutoRefreshDirectProbe,
+
   [switch]$DryRun
 )
 
@@ -197,8 +199,11 @@ function Write-InitialCardShortSummary {
 function Assert-ManualSessionConversionReady {
   param([string]$CardText)
 
-  if ($CardText -match "(?m)^Result:\s*(READY_FOR_FIRST_NATIVE_GMTITLE|CREATE_MISSING_NATIVE_GMTITLE_SIZE|RUN_NATIVE_REPLACEMENT|RUN_REMAINING_CONVERSION)\s*$") {
+  if ($CardText -match "(?m)^Result:\s*(READY_FOR_FIRST_NATIVE_GMTITLE|CREATE_MISSING_NATIVE_GMTITLE_SIZE|RUN_NATIVE_REPLACEMENT|RUN_REMAINING_CONVERSION|RELOAD_LSP_AND_CONFIRM_STATUS)\s*$") {
     Write-Step "처음 다음 작업 카드는 visible CAD에서 GMTITLE 한 장을 처리할 준비가 된 상태입니다."
+    if ($CardText -match "(?m)^Result:\s*RELOAD_LSP_AND_CONFIRM_STATUS\s*$") {
+      Write-Step "참고: direct probe 버전은 오래됐습니다. CAD 안에서 APPLOAD와 SWTITLESTATUS를 먼저 실행해 같은 상태인지 확인한 뒤 SWTITLECONVERTNEXT를 진행하세요."
+    }
     return
   }
 
@@ -258,6 +263,7 @@ if ($Compact) {
   Write-Step "목적: 작업복사본을 열고 사용자가 GMTITLE 한 장만 처리한 뒤, GstarCAD가 닫히면 다음 작업 카드를 다시 갱신합니다."
   Write-Step "안전: 이 스크립트는 SWTITLECONVERTNEXT를 대신 실행하지 않고, GMTITLE 창을 클릭하지 않고, DWG를 저장하지 않습니다."
   Write-Step "사전확인: 건너뛰지 않으면 visible CAD를 열기 전에 다음 작업 카드를 갱신하고, 저장된 DWG가 변환 가능한 상태가 아니면 멈춥니다."
+  Write-Step "기본값: 현재 PC의 /b probe가 불안정할 수 있어 자동 direct probe 갱신은 하지 않습니다. 필요할 때만 -AutoRefreshDirectProbe를 붙입니다."
   Write-Step "PreflightOnly: -PreflightOnly를 붙이면 CAD를 열지 않고 현재 변환 카드와 짧은 GMTITLE 선택 요약만 출력합니다."
   Write-Step "Compact: -Compact를 붙이면 긴 다음 작업 카드 본문은 숨기고 짧은 요약만 보여줍니다."
   Write-Step "CAD에서 입력할 명령:"
@@ -277,7 +283,8 @@ if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
 
 if ($DryRun) {
   Write-Step "Dry run: visible GstarCAD를 실행하지 않고 hidden probe도 실행하지 않습니다."
-  Write-Step "1. -SkipInitialNextActionCard를 쓰지 않았다면 run_next_cad_action.ps1 -AutoRefreshDirectProbe로 변환 가능 Result를 확인합니다."
+  Write-Step "1. -SkipInitialNextActionCard를 쓰지 않았다면 run_next_cad_action.ps1로 변환 가능 Result를 확인합니다."
+  Write-Step "   hidden direct probe 갱신까지 원할 때만 이 래퍼에 -AutoRefreshDirectProbe를 붙입니다."
   Write-Step "2. -PreflightOnly를 쓰면 카드와 짧은 GMTITLE 선택 요약만 보고 멈춥니다."
   Write-Step "3. -Compact를 쓰면 긴 초기 카드 본문을 숨기고 짧은 요약만 출력합니다."
   Write-Step "4. 필요하면 run_open_workcopy_for_manual_convert.ps1를 실행합니다."
@@ -303,11 +310,15 @@ if ($SkipInitialNextActionCard) {
 } else {
   $cardArgs = @(
     "-SourceWorkCopyPath",
-    $SourceWorkCopyPath,
-    "-AutoRefreshDirectProbe",
-    "-AutoRefreshTimeoutSeconds",
-    [string]$AutoRefreshTimeoutSeconds
+    $SourceWorkCopyPath
   )
+  if ($AutoRefreshDirectProbe) {
+    $cardArgs += @(
+      "-AutoRefreshDirectProbe",
+      "-AutoRefreshTimeoutSeconds",
+      [string]$AutoRefreshTimeoutSeconds
+    )
+  }
   $cardResult = Invoke-ChildPowerShellCapture `
     -ScriptPath (Join-Path $PSScriptRoot "run_next_cad_action.ps1") `
     -Arguments $cardArgs `

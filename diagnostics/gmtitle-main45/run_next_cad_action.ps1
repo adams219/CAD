@@ -733,6 +733,20 @@ while ($true) {
       [void](Invoke-DirectProbeRefresh)
       continue
     }
+    if ($script:FinalCompletionGateStatusAfterStatus -and $script:FinalCompletionGateNextFrame) {
+      Write-Output "Result: RELOAD_LSP_AND_CONFIRM_STATUS"
+      Write-Output "이유: direct probe 로그는 없지만 final completion gate에 다음 CAD 상태와 GMTITLE 선택값이 남아 있습니다."
+      Write-Output "다음: hidden probe가 현재 PC에서 불안정할 수 있으므로, CAD 안에서 최신 LSP를 다시 APPLOAD하고 SWTITLESTATUS로 현재 상태를 확인하세요."
+      Write-ManualLoadStep
+      Write-Output ("  final gate 기준 예상 상태: {0}" -f $script:FinalCompletionGateStatusAfterStatus)
+      Write-Output ("  final gate 기준 예상 GMTITLE 선택: {0} / {1}" -f $script:FinalCompletionGateNextFrame, ($(if ($script:FinalCompletionGateNextTitle) { $script:FinalCompletionGateNextTitle } else { "DR_titlea_3rd" })))
+      Write-Output "  SWTITLESTATUS가 같은 상태를 안내할 때만 아래 변환 명령을 계속하세요."
+      Write-ConvertCommandStep
+      Write-GmtitleDialogGuidance -FrameName $script:FinalCompletionGateNextFrame -TitleName $script:FinalCompletionGateNextTitle
+      Write-Output "hidden direct probe를 먼저 만들고 싶으면 아래 명령을 쓰세요. 다만 현재 PC에서는 /b probe가 실패할 수 있습니다."
+      Write-DirectProbeRefreshCommand
+      exit 0
+    }
     Write-Output "Result: REFRESH_DIRECT_PROBE_FIRST"
     Write-DirectProbeRefreshCommand
     exit 0

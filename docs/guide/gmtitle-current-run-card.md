@@ -275,7 +275,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1
 ```
 
-이 세션 래퍼도 `SWTITLECONVERTNEXT`를 대신 실행하거나 GMTITLE 창을 클릭하지 않습니다. 먼저 `run_next_cad_action.ps1 -AutoRefreshDirectProbe`로 저장된 작업복사본의 다음 작업 카드를 갱신하고, 카드가 실제 변환 1장을 요구할 때만 작업복사본을 엽니다. 작업복사본을 열고, 사람이 CAD에서 한 장을 처리해 저장/닫기 할 때까지 기다린 뒤 `run_after_manual_gmtitle_step.ps1`를 이어서 실행합니다.
+이 세션 래퍼도 `SWTITLECONVERTNEXT`를 대신 실행하거나 GMTITLE 창을 클릭하지 않습니다. 먼저 `run_next_cad_action.ps1`를 자동 direct probe 갱신 없이 실행해서 저장된 작업복사본의 다음 작업 카드를 확인하고, 카드가 실제 변환 1장을 요구할 때만 작업복사본을 엽니다. hidden direct probe 갱신까지 먼저 하고 싶을 때만 `-AutoRefreshDirectProbe`를 붙입니다. 작업복사본을 열고, 사람이 CAD에서 한 장을 처리해 저장/닫기 할 때까지 기다린 뒤 `run_after_manual_gmtitle_step.ps1`를 이어서 실행합니다.
 
 이미 CAD를 직접 열어 둔 상태에서만 `-SkipOpenWorkcopy`를 붙입니다. CAD가 열려 있지 않으면 세션 래퍼는 `SKIP_OPEN_NO_GSTARCAD`로 멈추고, 오래된 상태 점검을 실행하지 않습니다.
 

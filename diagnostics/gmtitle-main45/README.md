@@ -375,7 +375,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1"
 ```
 
-Before opening visible CAD, the session wrapper refreshes `run_next_cad_action.ps1 -AutoRefreshDirectProbe` and continues only when the refreshed card asks for one visible conversion step, such as `READY_FOR_FIRST_NATIVE_GMTITLE`, `CREATE_MISSING_NATIVE_GMTITLE_SIZE`, `RUN_NATIVE_REPLACEMENT`, or `RUN_REMAINING_CONVERSION`.
+Before opening visible CAD, the session wrapper runs `run_next_cad_action.ps1` without auto-refresh by default and continues only when the card asks for one visible conversion step, such as `READY_FOR_FIRST_NATIVE_GMTITLE`, `CREATE_MISSING_NATIVE_GMTITLE_SIZE`, `RUN_NATIVE_REPLACEMENT`, `RUN_REMAINING_CONVERSION`, or `RELOAD_LSP_AND_CONFIRM_STATUS`. Use the wrapper's `-AutoRefreshDirectProbe` option only when GstarCAD is saved/closed and you explicitly want to refresh hidden direct-probe evidence first.
 
 The session wrapper opens the work-copy through `run_open_workcopy_for_manual_convert.ps1`, prints the manual CAD commands, waits for GstarCAD to close, and then runs `run_after_manual_gmtitle_step.ps1`. It does not run `SWTITLECONVERTNEXT`, does not click the GMTITLE dialog, and does not save the drawing.
 
