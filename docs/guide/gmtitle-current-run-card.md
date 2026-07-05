@@ -192,6 +192,14 @@ target 도면틀/제목블록: 0
   DR_A4_Outline
 ```
 
+Direct actual work-copy refresh command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_actual_workcopy_direct_status_probe.ps1
+```
+
+This direct probe reads the saved `work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg`, writes `work\swtitle_actual_workcopy_direct_status_260705.txt`, and must still report `dbmod-after-commands: 0`. It does not replace the visible CAD step; it only confirms the saved baseline before running `SWTITLECONVERT`.
+
 이 상태에서 다음 실제 CAD 명령은 `SWTITLECONVERT`입니다. 첫 대상은 보통 A2입니다.
 
 중요: 위 초기 상태를 이미 변환이 진행된 CAD 도면에 그대로 적용하지 않습니다.

@@ -201,6 +201,45 @@ verify-source-priority-note-found: yes
 verify-a4-frame-only-first-note-found: no
 ```
 
+## Actual Work-Copy Direct Status Probe
+
+Use `run_actual_workcopy_direct_status_probe.ps1` when the goal needs the saved state of the real work-copy DWG itself, not a copied diagnostic DWG. This probe opens the saved work-copy with the tracked read-only status fixture, runs `SWTITLEVERSION`, `SWTITLESTATUS`, and `SWTITLEVERIFY`, writes the status log, and does not save the DWG.
+
+Run it only after saving the work-copy and closing visible GstarCAD, because hidden `/b` probes can be routed to an already-open GstarCAD session.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_actual_workcopy_direct_status_probe.ps1"
+```
+
+Default input:
+
+```text
+work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
+```
+
+Default output:
+
+```text
+work\swtitle_actual_workcopy_direct_status_260705.txt
+```
+
+Current saved actual-workcopy baseline:
+
+```text
+DWG: C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
+status-after-status: NEXT_CREATE_FIRST_NATIVE_GMTITLE
+status-after-verify: SWTITLEVERIFY_FINAL_FAIL
+source-title-count: 13
+source-frame-count: 15
+frame-only-count: 2
+target-title-count: 0
+target-frame-count: 0
+next-bootstrap-frame: DR_A2_Outline
+next-bootstrap-title: DR_titlea_3rd
+dbmod-after-commands: 0
+```
+
 ## A4 Outline Prepare Probe
 
 Use `run_a4_outline_prepare_probe.ps1` to copy a work DWG, load the current GMTITLE LSP, and run the internal A4 frame-only `DR_A4_Outline` definition preflight on the copy.
