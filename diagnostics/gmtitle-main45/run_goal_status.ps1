@@ -473,7 +473,9 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "    2. Save/close GstarCAD before hidden probes."
     Write-Output "    3. Create a separate scratch DWG with one real native A4 GMTITLE result, then compare its DR_A4_Outline definition."
     Write-Output "    4. Scratch only: the native A4 sample may include DR_titlea_3rd for comparison; production A4 frame-only must still not receive a new title block."
-    Write-Output ("    5. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
+    Write-Output "    5. If direct GMTITLE only asks for an insertion point, cancel it; that is the current/default insertion flow, not proof of DR_A4_Outline selection."
+    Write-Output ("    6. If you suspect a stored paper/title setting exists, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_gmtitle_selection_config_probe.ps1"))
+    Write-Output ("    7. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
     Write-Output ""
     Write-Output "  Hidden suite verification path after A4 comparison/code changes:"
   } elseif ($a4InvestigationPreferred) {
@@ -522,8 +524,10 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "    1. Do not run more SWTITLEPREPARE/SWTITLECONVERT attempts on the work-copy."
     Write-Output "    2. Create a separate scratch DWG with one real native A4 GMTITLE result, then compare its DR_A4_Outline definition."
     Write-Output "    3. Scratch only: the native A4 sample may include DR_titlea_3rd for comparison; production A4 frame-only must still not receive a new title block."
-    Write-Output ("    4. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
-    Write-Output "    5. After a safer A4 definition strategy is implemented, rerun the focused A4 probe and full hidden suite."
+    Write-Output "    4. If direct GMTITLE only asks for an insertion point, cancel it; that is the current/default insertion flow, not proof of DR_A4_Outline selection."
+    Write-Output ("    5. If you suspect a stored paper/title setting exists, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_gmtitle_selection_config_probe.ps1"))
+    Write-Output ("    6. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
+    Write-Output "    7. After a safer A4 definition strategy is implemented, rerun the focused A4 probe and full hidden suite."
   } elseif ($a4InvestigationPreferred) {
     Write-Output "  Run the copied-DWG nested A4 probe now:"
     Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside,nested-direct-outside" -f $nestedProbeScript, $nestedProbeSource)

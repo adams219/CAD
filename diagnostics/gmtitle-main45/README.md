@@ -39,6 +39,29 @@ Next action:
   Run the full hidden suite.
 ```
 
+## GMTITLE Selection Config Probe
+
+Use `run_gmtitle_selection_config_probe.ps1` when the next question is whether GstarCAD stores the `GMTITLE` paper/title selection somewhere simple, such as `PaperSet.ini`, `PaperSet.dat`, the `PAPERSET.GRX-66` dialog registry key, or obvious `PaperSet.grx` strings.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_gmtitle_selection_config_probe.ps1"
+```
+
+Expected result on the current workstation:
+
+```text
+Result: GMTITLE_SELECTION_CONFIG_NOT_FOUND
+```
+
+This is a read-only config probe. It does not open CAD and does not touch any DWG. It also does not prove that native `GMTITLE` cannot be automated; it only records that the checked config/registry locations do not expose a reliable `DR_A*_Outline` / `DR_titlea_3rd` preselection value.
+
+Durable conclusion:
+
+```text
+docs/history/gmtitle-a4-native-selection-config-probe-2026-07-05.md
+```
+
 ## Runner
 
 Use `run_readonly_probe.ps1` to run a GstarCAD Mechanical `/b` script against a copied work DWG and wait for a completion marker in the log.
@@ -74,6 +97,7 @@ Use `run_main45_verification_suite.ps1` to run the standard read-only checks in 
 13. native adoption gate comparison probe
 14. A3 status guidance probe
 15. A3/A4 batch guard probe
+16. GMTITLE selection config probe
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
@@ -119,6 +143,7 @@ sheet residue protection keeps real text, small SW_NOTE balloons, and BOM-like i
 embedded-title prepare comparison proves the plan copy routes native-format title geometry to SWTITLEPREPARE before conversion
 A3 status guidance probe proves SWTITLESTATUS explains that DR_A3_Outline remains an INSERT/block reference and clone/shared-link candidates are the real unfinished condition
 A3/A4 batch guard probe proves BATCH does not run inside SCRIPT automation and preserves existing candidates
+GMTITLE selection config probe records that the checked PaperSet/config/registry locations do not expose an active DR_A*_Outline / DR_titlea_3rd preselection value
 ```
 
 ## Actual Work-Copy Status Probe

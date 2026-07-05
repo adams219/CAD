@@ -825,7 +825,11 @@ GMTITLE 창의 DR_A*_Outline / DR_titlea_3rd 선택까지 자동화할 수 있�
 과거 명령줄 -GMTITLE 자동 선택이 일반 A3/A4 또는 ISO 흐름으로 잘못 간 이력이 있다.
 PaperSet.ini/dat와 HKCU 설정에서 DR_A*_Outline / DR_titlea_3rd 기본 선택값을 고정하는 근거를 찾지 못했다.
 GstarCAD native 구조는 paperset.grx 같은 내부 Mechanical 모듈이 만드는 것으로 보이며, LISP 복사만으로 완전 재현되지 않는다.
+2026-07-05 확인에서는 FILEDIA=1, CMDDIA=1이어도 직접 GMTITLE 실행이 선택창 없이 삽입 지점 프롬프트로 들어갔다.
 ```
+
+따라서 직접 `GMTITLE`을 새 도면에서 실행해 `삽입 지점`만 보이는 상태는 A4 native 기준 객체 생성으로 인정하지 않는다.
+이 상태는 "A4를 선택했다"는 증거가 없고, GstarCAD의 현재/default paper state를 그대로 쓰는 흐름일 수 있다.
 
 실험 조건:
 
@@ -834,6 +838,7 @@ work 복사본에서만 실행
 실패 시 새 INSERT rollback 가능
 A2 1회, A3 1회, A4 frame-only 1회, 반복 A3 3회 검증
 SWTITLEVERIFY와 더블클릭 결과까지 확인
+생성된 scratch DWG가 run_a4_native_exemplar_probe.ps1에서 A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON을 반환
 ```
 
 승격 기준:
@@ -901,6 +906,7 @@ work 복사본을 열 때도 제목 표시줄과 활성 도면 탭이 목표 DWG
 SWTITLEPREPARE/SWTITLECONVERT가 현재 활성 DWG를 보여주며 ACTIVE를 요구하면, 목표 work 복사본이 확실할 때만 ACTIVE를 입력한다. 아니면 Enter로 중단한다.
 APPLOAD, SWTITLEVERSION, SWTITLESTATUS로 버전을 먼저 확인한다.
 GMTITLE 창 선택이 불확실하면 진행하지 않고 ESC로 중단한다.
+직접 GMTITLE 실행이 선택창 없이 삽입 지점만 묻는다면, A4 native 샘플 확보가 아니라 default 삽입 흐름으로 판단하고 취소한다.
 ```
 
 Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로그로 한다.

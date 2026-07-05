@@ -121,6 +121,7 @@ $duplicateTargetPairLog = Join-Path $workDir "swtitle_duplicate_target_pair_comp
 $adoptionGateLog = Join-Path $workDir "swtitle_adoption_gate_compare_current_main56_adoption_gate.txt"
 $a3StatusGuidanceLog = Join-Path $workDir "swtitle_a3_status_guidance_probe.txt"
 $a3a4BatchGuardLog = Join-Path $workDir "swtitle_a3a4_batch_guard_probe.txt"
+$selectionConfigLog = Join-Path $workDir "swtitle_gmtitle_selection_config_probe_260705.txt"
 
 Write-Output "===== 1. Loader probe ====="
 & (Join-Path $PSScriptRoot "run_loader_probe.ps1") `
@@ -528,6 +529,23 @@ Assert-LogContains `
     "INSERT count before/after: 4/4",
     "Batch guard preserved candidates: yes",
     "Runtime check completed: yes"
+  )
+
+Write-Output ""
+Write-Output "===== 16. GMTITLE selection config probe ====="
+& (Join-Path $PSScriptRoot "run_gmtitle_selection_config_probe.ps1") `
+  -OutputPath $selectionConfigLog
+Assert-LogContains `
+  -Path $selectionConfigLog `
+  -Label "GMTITLE selection config probe" `
+  -Patterns @(
+    "No DWG is opened or changed.",
+    "[Program PaperSet.ini]",
+    "[Program PaperSet.grx ASCII string scan]",
+    "No active persistent DR_A*_Outline / DR_titlea_3rd preselection config was found in the checked locations.",
+    "Direct GMTITLE may still reuse an internal/current command state and ask only for an insertion point.",
+    "Do not assume a scratch native A4 sample was created unless the saved DWG passes run_a4_native_exemplar_probe.ps1.",
+    "Result: GMTITLE_SELECTION_CONFIG_NOT_FOUND"
   )
 
 Write-Output ""

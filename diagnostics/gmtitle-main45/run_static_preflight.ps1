@@ -13,6 +13,7 @@ $suitePath = Join-Path $PSScriptRoot "run_main45_verification_suite.ps1"
 $readmePath = Join-Path $PSScriptRoot "README.md"
 $a4NormProbePath = Join-Path $PSScriptRoot "a4_outline_normalization_probe.lsp"
 $a4NormProbeRunnerPath = Join-Path $PSScriptRoot "run_a4_outline_normalization_probe.ps1"
+$selectionConfigProbePath = Join-Path $PSScriptRoot "run_gmtitle_selection_config_probe.ps1"
 $goalStatusPath = Join-Path $PSScriptRoot "run_goal_status.ps1"
 $guidePaths = @(
   "docs\guide\commands.md",
@@ -158,6 +159,7 @@ $suiteText = Read-Text $suitePath
 $readmeText = Read-Text $readmePath
 $a4NormProbeText = Read-Text $a4NormProbePath
 $a4NormProbeRunnerText = Read-Text $a4NormProbeRunnerPath
+$selectionConfigProbeText = Read-Text $selectionConfigProbePath
 $goalStatusText = Read-Text $goalStatusPath
 
 Write-Output "===== GMTITLE static preflight ====="
@@ -232,10 +234,13 @@ Assert-Contains -Text $suiteText -Needle "Assert-NoExistingGstarCAD" -Label "Sui
 Assert-Contains -Text $readmeText -Needle "-WaitForGstarCADClose" -Label "README waiting-mode guidance"
 Assert-Contains -Text $readmeText -Needle "A4 strict prepare guard" -Label "README A4 strict guard guidance"
 Assert-Contains -Text $readmeText -Needle "nested-direct-outside" -Label "README nested-direct A4 probe guidance"
+Assert-Contains -Text $readmeText -Needle "run_gmtitle_selection_config_probe.ps1" -Label "README GMTITLE selection config probe guidance"
 Assert-Contains -Text $a4NormProbeText -Needle "nested-outside" -Label "A4 nested normalization probe strategy"
 Assert-Contains -Text $a4NormProbeText -Needle "nested-direct-outside" -Label "A4 nested plus parent normalization probe strategy"
 Assert-Contains -Text $a4NormProbeRunnerText -Needle "WaitForGstarCADClose" -Label "A4 normalization probe wait option"
 Assert-Contains -Text $a4NormProbeRunnerText -Needle "Get-LatestCadDwgFromNextStepLog" -Label "A4 normalization latest-DWG default"
+Assert-Contains -Text $selectionConfigProbeText -Needle "GMTITLE_SELECTION_CONFIG_NOT_FOUND" -Label "Selection config probe negative result"
+Assert-Contains -Text $selectionConfigProbeText -Needle "Direct GMTITLE may still reuse an internal/current command state" -Label "Selection config probe direct-GMTITLE warning"
 Assert-Contains -Text $goalStatusText -Needle "Write-NativeFrameProgressSummary" -Label "Goal status native-frame progress summary"
 Assert-Contains -Text $goalStatusText -Needle "A4 normalization decision" -Label "Goal status A4 normalization decision guidance"
 Assert-Contains -Text $goalStatusText -Needle "A4 investigation continuation" -Label "Goal status A4 nested probe continuation guidance"
@@ -246,19 +251,21 @@ Assert-Contains -Text $goalStatusText -Needle "production A4 frame-only must sti
 Assert-Contains -Text $goalStatusText -Needle "Goal-log trust" -Label "Goal status latest-log trust marker"
 Assert-Contains -Text $goalStatusText -Needle "latest CAD log is ignored for goal next-action selection" -Label "Goal status scratch-log ignore guidance"
 Assert-Contains -Text $goalStatusText -Needle "Do not run the full hidden suite first" -Label "Goal status A4 probe before suite guidance"
+Assert-Contains -Text $goalStatusText -Needle "If direct GMTITLE only asks for an insertion point, cancel it" -Label "Goal status direct-GMTITLE insertion prompt warning"
+Assert-Contains -Text $goalStatusText -Needle "run_gmtitle_selection_config_probe.ps1" -Label "Goal status selection config probe guidance"
 
 $suiteStepNumbers = @(
   [regex]::Matches($suiteText, 'Write-Output\s+"===== ([0-9]+)\. ') |
     ForEach-Object { [int]$_.Groups[1].Value }
 )
-$expectedSuiteStepNumbers = 1..15
+$expectedSuiteStepNumbers = 1..16
 if (($suiteStepNumbers.Count -eq $expectedSuiteStepNumbers.Count) -and (@(Compare-Object $suiteStepNumbers $expectedSuiteStepNumbers).Count -eq 0)) {
   Write-Output ("Suite step numbers: {0}" -f ($suiteStepNumbers -join ", "))
 } else {
   Add-Failure ("Suite step numbers mismatch: expected {0}, got {1}" -f (($expectedSuiteStepNumbers -join ", ")), (($suiteStepNumbers -join ", ")))
 }
 
-Assert-Contains -Text $readmeText -Needle "15. A3/A4 batch guard probe" -Label "README suite step list"
+Assert-Contains -Text $readmeText -Needle "16. GMTITLE selection config probe" -Label "README suite step list"
 
 foreach ($guidePath in $guidePaths) {
   $label = "Guide version " + (Resolve-Path -LiteralPath $guidePath).Path.Substring($repoRoot.Length + 1)

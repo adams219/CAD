@@ -137,6 +137,14 @@ nested-direct-outside=no
 
 scratch native A4 비교는 production 변환이 아닙니다. scratch 샘플에는 비교를 위해 `DR_titlea_3rd`가 생길 수 있지만, 실제 A4 frame-only 생산 결과에는 원본에 없던 제목블록을 만들면 안 됩니다.
 
+주의:
+
+```text
+직접 GMTITLE만 실행해서 바로 삽입 지점만 묻는 상태는 A4 native 샘플 확보로 보지 않습니다.
+FILEDIA=1, CMDDIA=1이어도 현재 로컬에서는 GMTITLE이 선택창 없이 기존/default 상태로 삽입 흐름에 들어갈 수 있습니다.
+이 경우 DR_A4_Outline을 새로 고른 것이 아니므로 저장해도 비교 기준이 되지 않습니다.
+```
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg"
 ```
@@ -148,6 +156,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 실제 native A4 비교가 READY로 나오기 전에는 A4 frame-only production 변환을 연결하지 않습니다.
 READY 조건은 A4 definition warning/raw selection warning이 모두 <none>이고 Result가 A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON인 상태입니다.
 ```
+
+설정값을 다시 확인해야 할 때:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_gmtitle_selection_config_probe.ps1
+```
+
+현재 기대 결과는 `GMTITLE_SELECTION_CONFIG_NOT_FOUND`입니다.
 
 ### 기본 작업복사본 초기 상태
 
