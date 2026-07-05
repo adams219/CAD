@@ -31,12 +31,58 @@ function Assert-Contains {
   }
 }
 
+function Assert-NotContains {
+  param(
+    [string]$Text,
+    [string]$Needle,
+    [string]$Label
+  )
+
+  if ($Text.Contains($Needle)) {
+    Add-Failure "$Label should not contain: $Needle"
+  } else {
+    Write-Output "${Label}: absent"
+  }
+}
+
 function New-FakeDwg {
   param([string]$Name)
 
   $path = Join-Path $caseRoot "$Name.dwg"
   Set-Content -LiteralPath $path -Encoding ASCII -Value "fake dwg marker"
   return $path
+}
+
+function New-FakeRepoWorkCopy {
+  param(
+    [string]$RepoName,
+    [string]$DwgName
+  )
+
+  $repoPath = Join-Path $caseRoot $RepoName
+  $workPath = Join-Path $repoPath "work"
+  New-Item -ItemType Directory -Path $workPath -Force | Out-Null
+  Set-Content -LiteralPath (Join-Path $repoPath "swcad_load.lsp") -Encoding ASCII -Value "fake loader"
+  $dwgPath = Join-Path $workPath "$DwgName.dwg"
+  Set-Content -LiteralPath $dwgPath -Encoding ASCII -Value "fake dwg marker"
+  return @{
+    RepoPath = $repoPath
+    WorkCopyPath = $dwgPath
+  }
+}
+
+function New-FakeSandboxWorkCopy {
+  param([string]$DwgName)
+
+  $sandboxRoot = Join-Path $caseRoot "CodexSandboxOffline\.codex\.sandbox\cwd\fake"
+  $sandboxWorkPath = Join-Path $sandboxRoot "work"
+  New-Item -ItemType Directory -Path $sandboxWorkPath -Force | Out-Null
+  $dwgPath = Join-Path $sandboxWorkPath "$DwgName.dwg"
+  Set-Content -LiteralPath $dwgPath -Encoding ASCII -Value "fake sandbox dwg marker"
+  return @{
+    RepoPath = $sandboxRoot
+    WorkCopyPath = $dwgPath
+  }
 }
 
 function Write-FakeLog {
@@ -75,6 +121,24 @@ function Write-FakeLog {
     "duplicate-target-pair-count: 0",
     "dbmod-after-commands: 0"
   ) | Set-Content -LiteralPath $Path -Encoding UTF8
+}
+
+function Invoke-SandboxCorrectionCase {
+  $hostRepo = New-FakeRepoWorkCopy -RepoName "host_repo" -DwgName "host_workcopy"
+  $sandbox = New-FakeSandboxWorkCopy -DwgName "sandbox_workcopy"
+  $log = Join-Path $caseRoot "sandbox_correction.txt"
+
+  Write-FakeLog -Path $log -DwgPath $hostRepo.WorkCopyPath -Status "NEXT_CREATE_FIRST_NATIVE_GMTITLE" -Frame "DR_A2_Outline"
+  (Get-Item -LiteralPath $hostRepo.WorkCopyPath).LastWriteTime = (Get-Date).AddMinutes(-10)
+  (Get-Item -LiteralPath $sandbox.WorkCopyPath).LastWriteTime = (Get-Date).AddMinutes(-10)
+  (Get-Item -LiteralPath $log).LastWriteTime = Get-Date
+
+  Write-Output "===== card case: sandbox_correction ====="
+  $output = (& powershell -NoProfile -ExecutionPolicy Bypass -File $cardPath -SourceWorkCopyPath $sandbox.WorkCopyPath -DirectProbeLogPath $log) -join "`n"
+  Assert-Contains -Text $output -Needle "Codex sandbox 기본 경로 감지" -Label "sandbox_correction expected"
+  Assert-Contains -Text $output -Needle ("실제 CAD용 저장소 폴더: {0}" -f $hostRepo.RepoPath) -Label "sandbox_correction expected"
+  Assert-Contains -Text $output -Needle (Join-Path $hostRepo.RepoPath "swcad_load.lsp") -Label "sandbox_correction expected"
+  Assert-NotContains -Text $output -Needle (Join-Path $sandbox.RepoPath "swcad_load.lsp") -Label "sandbox_correction sandbox APPLOAD path"
 }
 
 function Invoke-CardCase {
@@ -148,6 +212,8 @@ Invoke-CardCase `
   -Status "NEXT_UPGRADE_A3_A4_NATIVE" `
   -MissingLog `
   -Expected @("Result: REFRESH_DIRECT_PROBE_FIRST", "-AutoRefreshDirectProbe")
+
+Invoke-SandboxCorrectionCase
 
 if ($failures.Count -gt 0) {
   Write-Output ""

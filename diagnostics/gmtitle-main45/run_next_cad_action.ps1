@@ -10,9 +10,8 @@
 
 $ErrorActionPreference = "Stop"
 
-$sourceWorkCopyPathWasDefault = -not $PSBoundParameters.ContainsKey("SourceWorkCopyPath")
-
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
+$displayRepoRoot = $repoRoot
 $workDir = Join-Path $repoRoot "work"
 
 if (-not $SourceWorkCopyPath) {
@@ -141,10 +140,58 @@ function Test-CodexSandboxPath {
   return $Path -like "*\CodexSandboxOffline\.codex\.sandbox\cwd\*"
 }
 
+function Get-RepoRootFromWorkCopyPath {
+  param([string]$Path)
+
+  if ([string]::IsNullOrWhiteSpace($Path)) {
+    return $null
+  }
+
+  try {
+    $fullPath = [System.IO.Path]::GetFullPath($Path)
+    $workFolder = [System.IO.DirectoryInfo]::new([System.IO.Path]::GetDirectoryName($fullPath))
+    if (-not $workFolder -or -not $workFolder.Parent) {
+      return $null
+    }
+    if (-not $workFolder.Name.Equals("work", [System.StringComparison]::OrdinalIgnoreCase)) {
+      return $null
+    }
+
+    $candidate = $workFolder.Parent.FullName
+    if (Test-Path -LiteralPath (Join-Path $candidate "swcad_load.lsp")) {
+      return $candidate
+    }
+  } catch {
+  }
+
+  return $null
+}
+
+function Update-DisplayRepoRootFromWorkCopyPath {
+  param([string]$Path)
+
+  $derivedRoot = Get-RepoRootFromWorkCopyPath -Path $Path
+  if ($derivedRoot) {
+    $script:displayRepoRoot = $derivedRoot
+    return $true
+  }
+  return $false
+}
+
+function Get-DisplayDiagnosticScriptPath {
+  param([string]$ScriptName)
+
+  $displayScriptPath = Join-Path (Join-Path $displayRepoRoot "diagnostics\gmtitle-main45") $ScriptName
+  if (Test-Path -LiteralPath $displayScriptPath) {
+    return $displayScriptPath
+  }
+  return (Join-Path $PSScriptRoot $ScriptName)
+}
+
 function Write-ManualLoadStep {
   Write-Output "수동 GstarCAD 단계:"
   Write-Output "  APPLOAD"
-  Write-Output ("  {0}" -f (Join-Path $repoRoot "swcad_load.lsp"))
+  Write-Output ("  {0}" -f (Join-Path $displayRepoRoot "swcad_load.lsp"))
   Write-Output "  SWTITLEVERSION"
 }
 
@@ -305,9 +352,9 @@ function Write-FinalDoubleClickGuidance {
 
 function Write-DirectProbeRefreshCommand {
   Write-Output "다음:"
-  Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"))
+  Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Get-DisplayDiagnosticScriptPath -ScriptName "run_actual_workcopy_direct_status_probe.ps1"))
   Write-Output "또는:"
-  Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -AutoRefreshDirectProbe" -f $PSCommandPath)
+  Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -AutoRefreshDirectProbe" -f (Get-DisplayDiagnosticScriptPath -ScriptName "run_next_cad_action.ps1"))
 }
 
 function Invoke-DirectProbeRefresh {
@@ -479,7 +526,13 @@ function Write-StatusBasedAction {
 }
 
 Write-Output "===== GMTITLE 다음 CAD 작업 카드 ====="
+if (Update-DisplayRepoRootFromWorkCopyPath -Path $SourceWorkCopyPath) {
+  $workDir = Join-Path $displayRepoRoot "work"
+}
 Write-Output ("저장소 폴더: {0}" -f $repoRoot)
+if (-not (Test-SamePath -Left $displayRepoRoot -Right $repoRoot)) {
+  Write-Output ("실제 CAD용 저장소 폴더: {0}" -f $displayRepoRoot)
+}
 Write-Output ("대상 작업복사본: {0}" -f $SourceWorkCopyPath)
 
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
@@ -522,7 +575,6 @@ while ($true) {
   $duplicateTargetPairCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*duplicate-target-pair-count:\s*(\d+)"
 
   if (
-    $sourceWorkCopyPathWasDefault -and
     (Test-CodexSandboxPath -Path $SourceWorkCopyPath) -and
     $probeDwg -and
     (-not (Test-CodexSandboxPath -Path $probeDwg)) -and
@@ -532,6 +584,9 @@ while ($true) {
     Write-Output ("  기존 sandbox 대상: {0}" -f $SourceWorkCopyPath)
     Write-Output ("  실제 direct probe DWG: {0}" -f $probeDwg)
     $SourceWorkCopyPath = $probeDwg
+    if (Update-DisplayRepoRootFromWorkCopyPath -Path $SourceWorkCopyPath) {
+      Write-Output ("  실제 CAD용 저장소 폴더: {0}" -f $displayRepoRoot)
+    }
     $sourceItem = Get-Item -LiteralPath $SourceWorkCopyPath
   }
 
