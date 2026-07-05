@@ -331,6 +331,8 @@ It also refuses stale direct-probe logs. If the work-copy DWG was saved after th
 
 Use `-AutoRefreshDirectProbe` only after saving and closing visible GstarCAD. The card runs `run_actual_workcopy_direct_status_probe.ps1` when the direct-probe log is missing, points to a different DWG, is older than the work-copy DWG save time, or was generated with a different GMTITLE LSP version. If the existing log already matches the same work-copy, save time, and current LSP version, the card reuses it and prints that reuse decision instead of launching GstarCAD again.
 
+The card also compares the latest final completion gate log with the direct-probe log. If `swtitle_final_completion_gate_status.txt` is newer and disagrees with the direct-probe status, verify result, or next native GMTITLE frame/title, the card returns `REVIEW_FINAL_GATE_DIRECT_PROBE_CONFLICT` instead of recommending another CAD command. Refresh the direct probe or rerun the final completion gate before continuing.
+
 ## A4 Outline Prepare Probe
 
 Use `run_a4_outline_prepare_probe.ps1` to copy a work DWG, load the current GMTITLE LSP, and run the internal A4 frame-only `DR_A4_Outline` definition preflight on the copy.

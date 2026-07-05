@@ -247,6 +247,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 CAD 화면 옆에서 다음 명령, GMTITLE 선택값, 즉시 중단 조건, 바로 확인할 명령만 보고 싶을 때 이 카드를 사용합니다.
 이 카드는 `work\main56_verification_suite_last_run.txt`도 같이 읽어서 최근 hidden suite가 `PASS`였는지, 아니면 `FAILED_BEFORE_PASS`로 멈췄는지 먼저 보여줍니다. 단, suite `PASS`는 자동화/guard 검증이 통과했다는 뜻이고 실제 work DWG 변환 완료 증거는 아닙니다.
 
+이 카드는 `work\swtitle_final_completion_gate_status.txt`도 같이 읽습니다. final completion gate가 direct probe보다 최신이면 두 로그의 `SWTITLESTATUS`, `SWTITLEVERIFY`, 다음 native GMTITLE 값이 서로 일치하는지 확인합니다. 서로 다르면 `REVIEW_FINAL_GATE_DIRECT_PROBE_CONFLICT`로 멈추고, direct probe 갱신 또는 final completion gate 재실행을 요구합니다.
+
 CAD가 닫혀 있고 작업복사본을 여는 단계부터 줄이고 싶으면 아래 helper를 사용할 수 있습니다.
 
 ```powershell
