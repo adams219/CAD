@@ -104,9 +104,10 @@ $openWorkcopyDryRunOutput | Write-Output
 foreach ($pattern in @(
   "Result: DRY_RUN_READY",
   "It does not run SWTITLECONVERTNEXT, does not open GMTITLE, and does not save the drawing.",
-  "After the CAD window is ready, type SWTITLECONVERTNEXT in GstarCAD.",
+  "Manual commands after the CAD window is ready:",
   "SWTITLEVERSION",
-  "SWTITLESTATUS"
+  "SWTITLESTATUS",
+  "SWTITLECONVERTNEXT"
 )) {
   if ($openWorkcopyDryRunText -notmatch [regex]::Escape($pattern)) {
     throw "Verification failed for visible work-copy opener dry-run: missing '$pattern'"

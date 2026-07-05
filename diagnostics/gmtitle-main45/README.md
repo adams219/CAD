@@ -129,7 +129,7 @@ Waiting mode does not close GstarCAD. It waits for the user to save/close the vi
 The suite also refreshes:
 
 ```text
-work\lsp_compare\swcad_title_scale_current_main45_compare_copy.lsp
+work\lsp_compare\swcad_title_scale_current_main56_compare_copy.lsp
 ```
 
 from the current source LSP before running the compare-copy probe.

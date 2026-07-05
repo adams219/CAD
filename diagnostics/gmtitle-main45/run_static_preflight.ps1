@@ -351,12 +351,16 @@ Assert-Contains -Text $suiteText -Needle "run_next_cad_action_card_probe.ps1" -L
 Assert-Contains -Text $suiteText -Needle "Visible work-copy opener dry-run (no CAD convert)" -Label "Suite visible workcopy opener dry-run preflight"
 Assert-Contains -Text $suiteText -Needle "run_open_workcopy_for_manual_convert.ps1" -Label "Suite visible workcopy opener runner"
 Assert-Contains -Text $suiteText -Needle "It does not run SWTITLECONVERTNEXT, does not open GMTITLE, and does not save the drawing." -Label "Suite visible workcopy opener no-convert expectation"
+Assert-Contains -Text $suiteText -Needle "Manual commands after the CAD window is ready:" -Label "Suite visible workcopy opener current manual command heading"
+Assert-NotContains -Text $suiteText -Needle "After the CAD window is ready, type SWTITLECONVERTNEXT in GstarCAD." -Label "Suite visible workcopy opener stale one-line command wording"
 Assert-Contains -Text $suiteText -Needle "Post-first-native marker gate probe" -Label "Suite post-first-native marker gate step"
 Assert-Contains -Text $suiteText -Needle "Post-first-native marker gate probe passed: yes" -Label "Suite post-first-native marker gate expectation"
 Assert-Contains -Text $suiteText -Needle "Structure next action: SWTITLECONVERTNEXT" -Label "Suite structure next action recommends convert-next"
 Assert-NotContains -Text $suiteText -Needle "Structure next action: SWTITLECONVERT`"," -Label "Suite stale structure next action"
 Assert-Contains -Text $readmeText -Needle "-WaitForGstarCADClose" -Label "README waiting-mode guidance"
 Assert-Contains -Text $readmeText -Needle "GstarCAD /b Script Smoke Probe" -Label "README GstarCAD /b script smoke probe guidance"
+Assert-Contains -Text $readmeText -Needle "swcad_title_scale_current_main56_compare_copy.lsp" -Label "README current suite compare-copy name"
+Assert-NotContains -Text $readmeText -Needle "swcad_title_scale_current_main45_compare_copy.lsp" -Label "README stale suite compare-copy name"
 Assert-Contains -Text $readonlyProbeRunnerText -Needle "WindowStyle = ""Minimized""" -Label "Readonly probe minimized window default"
 Assert-Contains -Text $readonlyProbeRunnerText -Needle '-WindowStyle $WindowStyle' -Label "Readonly probe configurable window style"
 Assert-Contains -Text $hiddenScriptSmokeProbeRunnerText -Needle "HIDDEN_SCRIPT_SMOKE_OK" -Label "Hidden script smoke marker"
@@ -560,6 +564,7 @@ $cadChecklistText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-cad-conve
 $nativeUpgradeGuideText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-native-frame-upgrade.md")
 $resumeGuideText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-resume-on-another-computer.md")
 $hiddenSuitePassHistoryText = Read-Text $hiddenSuitePassHistoryPath
+Assert-NoKnownMojibake -Text $hiddenSuitePassHistoryText -Label "Hidden suite pass history"
 Assert-Contains -Text $runCardText -Needle "scratch_native_a4_clean_260705.dwg" -Label "Run card clean A4 scratch evidence"
 Assert-Contains -Text $runCardText -Needle "기본 제한 시간을 180초" -Label "Run card direct probe timeout guidance"
 Assert-Contains -Text $goalPlanText -Needle "2026-07-05 clean scratch CAD" -Label "Goal plan clean A4 scratch evidence"
