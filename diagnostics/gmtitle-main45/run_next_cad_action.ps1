@@ -264,6 +264,7 @@ if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
   Write-Output "다음: Documents/CAD tool/work 아래에 작업복사본 DWG를 만들거나 복구하세요."
   exit 1
 }
+$sourceItem = Get-Item -LiteralPath $SourceWorkCopyPath
 
 if (-not (Test-Path -LiteralPath $DirectProbeLogPath)) {
   Write-Output "실제 작업복사본 direct probe: 없음"
@@ -284,11 +285,14 @@ $dbmodAfter = Get-FirstRegexValue -Text $probeText -Pattern "^\s*dbmod-after-com
 $targetTitleCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*target-title-count:\s*(\d+)"
 $targetFrameCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*target-frame-count:\s*(\d+)"
 $trusted = Test-SamePath -Left $probeDwg -Right $SourceWorkCopyPath
+$probeStale = $sourceItem.LastWriteTimeUtc -gt $probeItem.LastWriteTimeUtc.AddSeconds(2)
 
 Write-Output ("Direct probe 로그: {0}" -f $DirectProbeLogPath)
 Write-Output ("Direct probe 시간: {0}" -f $probeItem.LastWriteTime)
+Write-Output ("작업복사본 저장 시간: {0}" -f $sourceItem.LastWriteTime)
 if ($probeDwg) { Write-Output ("Direct probe DWG: {0}" -f $probeDwg) }
 Write-Output ("Direct probe 신뢰 가능: {0}" -f ($(if ($trusted) { "예" } else { "아니오" })))
+Write-Output ("Direct probe 최신 상태: {0}" -f ($(if ($probeStale) { "아니오" } else { "예" })))
 if ($statusAfterStatus) { Write-Output ("현재 저장 상태: {0}" -f $statusAfterStatus) }
 if ($statusAfterVerify) { Write-Output ("검증 상태: {0}" -f $statusAfterVerify) }
 if ($targetTitleCount) { Write-Output ("대상 제목블록 수: {0}" -f $targetTitleCount) }
@@ -298,6 +302,14 @@ if ($dbmodAfter) { Write-Output ("Direct probe 뒤 DBMOD: {0}" -f $dbmodAfter) }
 if (-not $trusted) {
   Write-Output "Result: REFRESH_DIRECT_PROBE_FIRST"
   Write-Output "이유: direct probe 로그가 대상 작업복사본의 로그가 아닙니다."
+  Write-Output "다음:"
+  Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"))
+  exit 0
+}
+
+if ($probeStale) {
+  Write-Output "Result: REFRESH_DIRECT_PROBE_FIRST"
+  Write-Output "이유: 작업복사본이 direct probe 로그보다 최신입니다."
   Write-Output "다음:"
   Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"))
   exit 0

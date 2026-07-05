@@ -275,6 +275,8 @@ Assert-Contains -Text $actualDirectStatusRunnerText -Needle "swtitle_actual_work
 Assert-Contains -Text $nextCadActionRunnerText -Needle "READY_FOR_FIRST_NATIVE_GMTITLE" -Label "Next CAD action first-native readiness"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "0xEF" -Label "Next CAD action UTF-8 BOM log guard"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "TrimStart([char]0xFEFF)" -Label "Next CAD action BOM character trim"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "작업복사본이 direct probe 로그보다 최신입니다" -Label "Next CAD action stale direct-probe guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Direct probe 최신 상태" -Label "Next CAD action direct-probe freshness output"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "RUN_PREPARE_FIRST" -Label "Next CAD action prepare-first guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "RUN_NATIVE_REPLACEMENT" -Label "Next CAD action native replacement guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "REVIEW_STRUCTURE_BEFORE_CONVERT" -Label "Next CAD action structure review guidance"

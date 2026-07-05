@@ -292,6 +292,8 @@ NEXT_REVIEW_* / ABORT_* / WARN_* -> do not repeat SWTITLECONVERT; inspect SWTITL
 SWTITLEVERIFY_FINAL_OK -> manual representative title-block double-click check
 ```
 
+It also refuses stale direct-probe logs. If the work-copy DWG was saved after the direct-probe log, the card returns `REFRESH_DIRECT_PROBE_FIRST` before showing another CAD command.
+
 ## A4 Outline Prepare Probe
 
 Use `run_a4_outline_prepare_probe.ps1` to copy a work DWG, load the current GMTITLE LSP, and run the internal A4 frame-only `DR_A4_Outline` definition preflight on the copy.
