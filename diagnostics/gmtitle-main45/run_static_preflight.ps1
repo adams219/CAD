@@ -208,7 +208,8 @@ if ($loaderVersion -eq $ExpectedLoaderVersion) {
 } else {
   Add-Failure "Loader version mismatch: expected '$ExpectedLoaderVersion', got '$loaderVersion'"
 }
-Assert-Contains -Text $loaderText -Needle "SWTITLECONVERTNEXT" -Label "Loader shortcut command guidance"
+Assert-Contains -Text $loaderText -Needle "GMTITLE 작업 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLEVERIFY" -Label "Loader convert-next workflow guidance"
+Assert-Contains -Text $loaderText -Needle "GMTITLE 수동 응답을 직접 고를 때만 SWTITLECONVERT를 사용하세요" -Label "Loader manual convert fallback guidance"
 
 $expectedPublicCommands = @(
   "SWTITLESTATUS",
@@ -260,6 +261,8 @@ Assert-Contains -Text $mainText -Needle "ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE" 
 Assert-Contains -Text $mainText -Needle "c:SWTITLECONVERTNEXT" -Label "SWTITLECONVERTNEXT public command"
 Assert-Contains -Text $mainText -Needle "*swcad-title-convert-next-mode*" -Label "SWTITLECONVERTNEXT auto-next mode flag"
 Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT auto response" -Label "SWTITLECONVERTNEXT auto response log"
+Assert-Contains -Text $mainText -Needle "권장 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLEVERIFY" -Label "GMTITLE load convert-next workflow guidance"
+Assert-Contains -Text $mainText -Needle "수동 응답을 직접 고를 때만 SWTITLECONVERT를 사용하세요" -Label "GMTITLE load manual convert fallback guidance"
 Assert-Contains -Text $mainText -Needle '(swcad-title-auto-next-answer "OPEN"' -Label "SWTITLECONVERTNEXT native one-sheet default"
 $a3a4NextStart = $mainText.IndexOf("(defun swcad-title-upgrade-native-a3a4-next")
 $a3a4AutoOpen = if ($a3a4NextStart -ge 0) { $mainText.IndexOf('(swcad-title-auto-next-answer "OPEN"', $a3a4NextStart) } else { -1 }

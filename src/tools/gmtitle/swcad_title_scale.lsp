@@ -18337,6 +18337,7 @@
 (swcad-title-disable-legacy-public-commands)
 
 (princ (strcat "\nswcad_title_scale 통합 흐름 로드 완료 " *swcad-title-scale-version*))
-(princ "\n통합 명령어: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERT, SWTITLECONVERTNEXT, SWTITLEVERIFY")
+(princ "\n권장 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLEVERIFY")
+(princ "\n수동 응답을 직접 고를 때만 SWTITLECONVERT를 사용하세요.")
 (princ "\n예전 SWTITLE transfer/fast/A3A4/frame-only 공개 명령은 비활성화됩니다.")
 (princ)
