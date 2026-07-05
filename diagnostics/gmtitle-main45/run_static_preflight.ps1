@@ -31,6 +31,7 @@ $selectionConfigProbePath = Join-Path $PSScriptRoot "run_gmtitle_selection_confi
 $goalStatusPath = Join-Path $PSScriptRoot "run_goal_status.ps1"
 $computerUseHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-computer-use-visible-cad-activation-failure-2026-07-05.md"
 $hiddenSuitePassHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-main56-hidden-suite-pass-2026-07-05.md"
+$finalCompletionGateHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-final-completion-gate-2026-07-06.md"
 $commandSurfaceHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-command-surface-probe-2026-07-05.md"
 $automationBoundaryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-automation-boundary-audit-2026-07-05.md"
 $selectionConfigDeepRegistryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-selection-config-deep-registry-2026-07-06.md"
@@ -227,6 +228,7 @@ $computerUseHistoryText = Read-Text $computerUseHistoryPath
 $commandSurfaceHistoryText = Read-Text $commandSurfaceHistoryPath
 $automationBoundaryHistoryText = Read-Text $automationBoundaryHistoryPath
 $selectionConfigDeepRegistryHistoryText = Read-Text $selectionConfigDeepRegistryHistoryPath
+$finalCompletionGateHistoryText = Read-Text $finalCompletionGateHistoryPath
 
 Write-Output "===== GMTITLE static preflight ====="
 Write-Output ("Repo root: {0}" -f $repoRoot)
@@ -548,6 +550,7 @@ Assert-Contains -Text $selectionConfigProbeText -Needle "recent-file history" -L
 Assert-NoKnownMojibake -Text $commandSurfaceHistoryText -Label "Command surface history"
 Assert-NoKnownMojibake -Text $automationBoundaryHistoryText -Label "Automation boundary history"
 Assert-NoKnownMojibake -Text $selectionConfigDeepRegistryHistoryText -Label "Selection config deep registry history"
+Assert-NoKnownMojibake -Text $finalCompletionGateHistoryText -Label "Final completion gate history"
 Assert-NoKnownMojibake -Text $readmeText -Label "Diagnostics README"
 Assert-Contains -Text $commandSurfaceHistoryText -Needle "GMTITLE 명령/설정 표면 재확인" -Label "Command surface history readable Korean title"
 Assert-Contains -Text $commandSurfaceHistoryText -Needle "Result: GMTITLE_SELECTION_CONFIG_NOT_FOUND" -Label "Command surface history selection config result"
@@ -558,6 +561,11 @@ Assert-Contains -Text $automationBoundaryHistoryText -Needle "A4는 A2/A3와 같
 Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "Recent File List" -Label "Selection config deep registry recent-file evidence"
 Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "최근 직접 열었던 파일 기록" -Label "Selection config deep registry non-evidence conclusion"
 Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "자동 선택할 근거가 없다" -Label "Selection config deep registry no-preselection conclusion"
+Assert-Contains -Text $finalCompletionGateHistoryText -Needle "Result: OK SWTITLESTATUS status=NEXT_CREATE_FIRST_NATIVE_GMTITLE" -Label "Final completion gate history status"
+Assert-Contains -Text $finalCompletionGateHistoryText -Needle "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_FAIL" -Label "Final completion gate history verify fail"
+Assert-Contains -Text $finalCompletionGateHistoryText -Needle "target-title-count: 0" -Label "Final completion gate history target-title count"
+Assert-Contains -Text $finalCompletionGateHistoryText -Needle "next-bootstrap-frame: DR_A2_Outline" -Label "Final completion gate history next frame"
+Assert-Contains -Text $finalCompletionGateHistoryText -Needle "SWTITLECONVERTNEXT" -Label "Final completion gate history next command"
 Assert-Contains -Text $readmeText -Needle "screenshot-coordinate ribbon clicks are not accepted as automation evidence" -Label "README ribbon coordinate automation warning"
 Assert-Contains -Text $readmeText -Needle "AppData text marker scan is advisory" -Label "README AppData advisory scan guidance"
 Assert-Contains -Text $goalStatusText -Needle "Write-NativeFrameProgressSummary" -Label "Goal status native-frame progress summary"

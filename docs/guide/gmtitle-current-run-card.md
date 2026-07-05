@@ -198,7 +198,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 
 ### 기본 작업복사본 초기 상태
 
-2026-07-05 검증 suite 기준, 기본 작업복사본은 아직 변환 전 상태입니다.
+2026-07-06 01:02 final completion gate 기준, 기본 작업복사본은 아직 변환 전 상태입니다.
 이 내용은 새 복사본에서 처음부터 시작할 때 쓰는 기준입니다.
 
 ```text
