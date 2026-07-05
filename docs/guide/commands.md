@@ -130,6 +130,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1 -PreflightOnly -Compact
 ```
 
+CAD 로그 파일을 직접 열었을 때 한글이 깨져 보이면 아래 읽기 전용 도구로 확인합니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\read_cad_text_log.ps1 -Find "짧은 GMTITLE 선택 카드|용지/도면틀|제목블록|켜둘 옵션|꺼둘 옵션"
+```
+
 수동 명령인 `SWTITLECONVERT` 안에서 입력을 물으면 상태별로 아래처럼 답합니다.
 
 ```text

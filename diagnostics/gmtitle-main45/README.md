@@ -128,6 +128,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 
 Waiting mode does not close GstarCAD. It waits for the user to save/close the visible session, then continues the hidden read-only probes.
 
+Some GstarCAD text logs are written with the Windows Korean code page rather than UTF-8. If a `work\swcad_title_*.txt` file shows broken Korean, use the read-only log reader:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\read_cad_text_log.ps1" `
+  -Filter "swcad_title_next_step_last*.txt" `
+  -Find "짧은 GMTITLE 선택 카드|용지/도면틀|제목블록|켜둘 옵션|꺼둘 옵션"
+```
+
+It tries UTF-8 first and falls back to the Windows default encoding for Korean CAD logs.
+
 The suite also refreshes:
 
 ```text

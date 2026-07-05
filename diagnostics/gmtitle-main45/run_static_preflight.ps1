@@ -31,6 +31,7 @@ $nextCadActionCardProbePath = Join-Path $PSScriptRoot "run_next_cad_action_card_
 $finalCompletionGatePath = Join-Path $PSScriptRoot "run_final_completion_gate.ps1"
 $selectionConfigProbePath = Join-Path $PSScriptRoot "run_gmtitle_selection_config_probe.ps1"
 $goalStatusPath = Join-Path $PSScriptRoot "run_goal_status.ps1"
+$cadTextLogReaderPath = Join-Path $PSScriptRoot "read_cad_text_log.ps1"
 $computerUseHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-computer-use-visible-cad-activation-failure-2026-07-05.md"
 $hiddenSuitePassHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-main56-hidden-suite-pass-2026-07-05.md"
 $finalCompletionGateHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-final-completion-gate-2026-07-06.md"
@@ -228,6 +229,7 @@ $nextCadActionCardProbeText = Read-Text $nextCadActionCardProbePath
 $finalCompletionGateText = Read-Text $finalCompletionGatePath
 $selectionConfigProbeText = Read-Text $selectionConfigProbePath
 $goalStatusText = Read-Text $goalStatusPath
+$cadTextLogReaderText = Read-Text $cadTextLogReaderPath
 $computerUseHistoryText = Read-Text $computerUseHistoryPath
 $commandSurfaceHistoryText = Read-Text $commandSurfaceHistoryPath
 $automationBoundaryHistoryText = Read-Text $automationBoundaryHistoryPath
@@ -665,6 +667,13 @@ Assert-Contains -Text $goalStatusText -Needle "수동 GMTITLE 한 장 처리 후
 Assert-Contains -Text $goalStatusText -Needle "run_after_manual_gmtitle_step.ps1" -Label "Goal status after-manual wrapper command"
 Assert-Contains -Text $goalStatusText -Needle "direct probe 갱신, 다음 작업 카드 출력, 필요 시 final completion gate 실행" -Label "Goal status after-manual wrapper scope"
 Assert-Contains -Text $goalStatusText -Needle "목표 상태: 실제 작업복사본이 SWTITLEVERIFY_FINAL_OK에 도달" -Label "Goal status Korean completion reminder"
+Assert-Contains -Text $cadTextLogReaderText -Needle "Get-LogEncodingAndText" -Label "CAD text log reader encoding helper"
+Assert-Contains -Text $cadTextLogReaderText -Needle "UTF8Encoding" -Label "CAD text log reader strict UTF-8 check"
+Assert-Contains -Text $cadTextLogReaderText -Needle "[System.Text.Encoding]::Default" -Label "CAD text log reader Windows-default fallback"
+Assert-Contains -Text $cadTextLogReaderText -Needle "Safety: this script only reads text files" -Label "CAD text log reader read-only safety"
+Assert-Contains -Text $cadTextLogReaderText -Needle "Result: READ_LOG_OK" -Label "CAD text log reader success marker"
+Assert-Contains -Text $cadTextLogReaderText -Needle "Result: LISTED_LOGS" -Label "CAD text log reader list marker"
+Assert-Contains -Text $cadTextLogReaderText -Needle "Find regex:" -Label "CAD text log reader find support"
 Assert-Contains -Text $readmeText -Needle "A4 clean scratch evidence" -Label "README clean A4 scratch evidence"
 Assert-Contains -Text $readmeText -Needle "Actual Work-Copy Direct Status Probe" -Label "README direct actual work-copy probe guidance"
 Assert-Contains -Text $readmeText -Needle "default timeout is 180 seconds" -Label "README direct actual work-copy timeout guidance"
