@@ -95,6 +95,26 @@ Write-Output "===== Preflight. Next CAD action card probe (no CAD) ====="
 & (Join-Path $PSScriptRoot "run_next_cad_action_card_probe.ps1")
 Write-Output ""
 
+Write-Output "===== Preflight. Visible work-copy opener dry-run (no CAD convert) ====="
+$openWorkcopyDryRunOutput = & (Join-Path $PSScriptRoot "run_open_workcopy_for_manual_convert.ps1") `
+  -SourceWorkCopyPath $SourceWorkCopyPath `
+  -DryRun
+$openWorkcopyDryRunText = ($openWorkcopyDryRunOutput -join "`n")
+$openWorkcopyDryRunOutput | Write-Output
+foreach ($pattern in @(
+  "Result: DRY_RUN_READY",
+  "It does not run SWTITLECONVERTNEXT, does not open GMTITLE, and does not save the drawing.",
+  "After the CAD window is ready, type SWTITLECONVERTNEXT in GstarCAD.",
+  "SWTITLEVERSION",
+  "SWTITLESTATUS"
+)) {
+  if ($openWorkcopyDryRunText -notmatch [regex]::Escape($pattern)) {
+    throw "Verification failed for visible work-copy opener dry-run: missing '$pattern'"
+  }
+}
+Write-Output "Verified visible work-copy opener dry-run"
+Write-Output ""
+
 Assert-NoExistingGstarCAD -Wait:$WaitForGstarCADClose -WaitTimeoutSeconds $WaitForGstarCADCloseTimeoutSeconds
 if (-not (Test-Path -LiteralPath $compareDir)) {
   New-Item -ItemType Directory -Path $compareDir | Out-Null
