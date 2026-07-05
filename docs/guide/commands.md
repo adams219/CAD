@@ -124,6 +124,12 @@ CAD를 열지 않고 이번에 고를 용지/제목블록만 먼저 확인하려
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1 -PreflightOnly
 ```
 
+긴 next-action 카드 대신 짧은 요약만 보고 싶으면 `-Compact`를 같이 붙입니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1 -PreflightOnly -Compact
+```
+
 수동 명령인 `SWTITLECONVERT` 안에서 입력을 물으면 상태별로 아래처럼 답합니다.
 
 ```text

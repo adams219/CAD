@@ -369,7 +369,7 @@ The session wrapper opens the work-copy through `run_open_workcopy_for_manual_co
 
 Use `-SkipOpenWorkcopy` only if the work-copy is already open in a running GstarCAD process and you only want the wait-and-check part. In that mode, the initial hidden next-action card is skipped because visible CAD is already open; run `SWTITLESTATUS` in that visible session before converting. If no GstarCAD process is detected, the wrapper stops with `SKIP_OPEN_NO_GSTARCAD` instead of running a stale after-manual check. Use `-SkipInitialNextActionCard` only after you have already confirmed the current visible CAD status. Use `-DryRun` to verify the wrapper sequence without launching visible GstarCAD.
 
-Use `-PreflightOnly` when you want the refreshed next-action card and short GMTITLE selection summary without opening visible CAD. This is the safest way to confirm the next paper/frame and title block before starting a manual CAD session.
+Use `-PreflightOnly` when you want the refreshed next-action card and short GMTITLE selection summary without opening visible CAD. This is the safest way to confirm the next paper/frame and title block before starting a manual CAD session. Add `-Compact` when you want to suppress the long next-action card body and print only the short summary.
 
 ## A4 Outline Prepare Probe
 

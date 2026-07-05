@@ -223,6 +223,12 @@ CAD를 열지 않고 이번에 고를 용지/제목블록만 먼저 확인하려
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1 -PreflightOnly
 ```
 
+긴 next-action 카드가 부담되면 아래처럼 짧은 요약만 출력합니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1 -PreflightOnly -Compact
+```
+
 ## 5. A3/A4 native 교체
 
 A3/A4 target이 화면에 보여도 복제/shared-link 구조라면 더블클릭 시 GMTITLE 표 편집창이 아니라 고급 속성 편집기로 열릴 수 있습니다.

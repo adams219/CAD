@@ -277,6 +277,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 
 CAD를 열기 전에 이번에 고를 용지/제목블록만 먼저 확인하려면 `-PreflightOnly`를 붙입니다. 이 옵션은 visible CAD를 열지 않고 next-action 카드와 짧은 GMTITLE 선택 요약만 출력합니다.
 
+긴 next-action 카드 전체가 필요 없고 짧은 선택 요약만 보고 싶으면 `-Compact`도 같이 붙입니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1 -PreflightOnly -Compact
+```
+
 CAD가 닫혀 있고 작업복사본을 여는 단계부터 줄이고 싶으면 아래 helper를 사용할 수 있습니다.
 
 ```powershell

@@ -19,6 +19,8 @@ param(
 
   [switch]$PreflightOnly,
 
+  [switch]$Compact,
+
   [switch]$SkipFinalCompletionGate,
 
   [switch]$DryRun
@@ -98,7 +100,9 @@ function Invoke-ChildPowerShellCapture {
     [string[]]$Arguments = @(),
 
     [Parameter(Mandatory = $true)]
-    [string]$Label
+    [string]$Label,
+
+    [switch]$SuppressChildOutput
   )
 
   $powershellExe = Join-Path $PSHOME "powershell.exe"
@@ -117,8 +121,12 @@ function Invoke-ChildPowerShellCapture {
   $rawOutput = & $powershellExe @fullArgs 2>&1
   $exitCode = $LASTEXITCODE
   $lines = @($rawOutput | ForEach-Object { $_.ToString() })
-  foreach ($line in $lines) {
-    Write-Step $line
+  if ($SuppressChildOutput) {
+    Write-Step ("{0} output suppressed by -Compact; short summary follows." -f $Label)
+  } else {
+    foreach ($line in $lines) {
+      Write-Step $line
+    }
   }
   Write-Step ("{0} exit code: {1}" -f $Label, $exitCode)
 
@@ -170,6 +178,12 @@ function Write-InitialCardShortSummary {
   if ($frame) { Write-Step ("  GMTITLE paper/frame to choose: {0}" -f $frame) }
   if ($title) { Write-Step ("  GMTITLE title block to choose: {0}" -f $title) }
   Write-Step "  Required options: Frame positioning ON, Object move OFF"
+  Write-Step "  CAD command order:"
+  Write-Step "    APPLOAD"
+  Write-Step ("    {0}" -f (Join-Path $repoRoot "swcad_load.lsp"))
+  Write-Step "    SWTITLEVERSION"
+  Write-Step "    SWTITLESTATUS"
+  Write-Step "    SWTITLECONVERTNEXT"
 }
 
 function Assert-ManualSessionConversionReady {
@@ -232,6 +246,7 @@ Write-Step "Purpose: open the work-copy, let the user run one visible GMTITLE st
 Write-Step "Safety: this script does not run SWTITLECONVERTNEXT, does not click the GMTITLE dialog, and does not save the DWG."
 Write-Step "Preflight: unless skipped, this script refreshes the next-action card before opening visible CAD and stops if the saved DWG is not conversion-ready."
 Write-Step "PreflightOnly: use -PreflightOnly to print the current conversion-ready card and short GMTITLE selection summary without opening CAD."
+Write-Step "Compact: use -Compact to hide the long initial next-action card and show only the short summary."
 Write-Step "Manual CAD commands:"
 Write-Step "  APPLOAD"
 Write-Step ("  {0}" -f (Join-Path $repoRoot "swcad_load.lsp"))
@@ -250,9 +265,10 @@ if ($DryRun) {
   Write-Step "Dry run: visible GstarCAD is not launched and hidden probes are not run."
   Write-Step "1. Unless -SkipInitialNextActionCard is used, run run_next_cad_action.ps1 -AutoRefreshDirectProbe and require a conversion-ready Result."
   Write-Step "2. If -PreflightOnly is used, stop after the card and short GMTITLE selection summary."
-  Write-Step "3. Optionally run run_open_workcopy_for_manual_convert.ps1."
-  Write-Step "4. Wait for GstarCAD to close."
-  Write-Step "5. Run run_after_manual_gmtitle_step.ps1."
+  Write-Step "3. If -Compact is used, suppress the long initial card body and print the short summary only."
+  Write-Step "4. Optionally run run_open_workcopy_for_manual_convert.ps1."
+  Write-Step "5. Wait for GstarCAD to close."
+  Write-Step "6. Run run_after_manual_gmtitle_step.ps1."
   Write-Step "Result: DRY_RUN_READY"
   exit 0
 }
@@ -281,7 +297,8 @@ if ($SkipInitialNextActionCard) {
   $cardResult = Invoke-ChildPowerShellCapture `
     -ScriptPath (Join-Path $PSScriptRoot "run_next_cad_action.ps1") `
     -Arguments $cardArgs `
-    -Label "Initial next-action card"
+    -Label "Initial next-action card" `
+    -SuppressChildOutput:$Compact
 
   if ($cardResult.ExitCode -ne 0) {
     Write-Step "Result: INITIAL_NEXT_ACTION_CARD_FAILED"
