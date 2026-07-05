@@ -340,6 +340,8 @@ That failure is intentional. A frame-only production result must not create a ne
 
 The scratch/native A4 sheet is only for comparison. It may include `DR_titlea_3rd` if native GMTITLE creates one, but production A4 frame-only conversion must still not create a title block that was not present in the source.
 
+2026-07-05 CAD evidence: even when the GMTITLE dialog is manually set to `DR_A4_Outline`, `DR_titlea_3rd`, Frame positioning ON, and Object move OFF, GstarCAD can return `프레임 작성 오류`. If the follow-up status still shows `DR_titlea_3rd` inserts=0, that scratch DWG is failed evidence, not an A4 native exemplar.
+
 Durable conclusion:
 
 ```text

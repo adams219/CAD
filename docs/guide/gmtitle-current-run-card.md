@@ -144,6 +144,14 @@ scratch native A4 비교는 production 변환이 아닙니다. scratch 샘플에
 FILEDIA=1, CMDDIA=1이어도 현재 로컬에서는 GMTITLE이 선택창 없이 기존/default 상태로 삽입 흐름에 들어갈 수 있습니다.
 이 경우 DR_A4_Outline을 새로 고른 것이 아니므로 저장해도 비교 기준이 되지 않습니다.
 2026-07-05 CAD 확인 결과, IMTITLE은 알 수 없는 명령이고 TIT는 GMTITLE과 같은 삽입점 흐름으로 들어갔습니다.
+
+2026-07-05 CAD 추가 확인:
+GMTITLE 창에서 DR_A4_Outline / DR_titlea_3rd / Frame positioning ON / Object move OFF까지 맞춰도
+명령줄에 "프레임 작성 오류"가 나오고, 바로 이어서 SWTITLESTATUS가
+native GMTITLE 제목블록 존재: 아니요
+DR_titlea_3rd inserts=0
+을 보이면 A4 scratch native 샘플 생성 실패로 판단합니다.
+이 상태의 Drawing1.dwg 또는 저장본은 A4 비교 기준으로 쓰지 않습니다.
 ```
 
 ```powershell

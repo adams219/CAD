@@ -268,6 +268,7 @@ Assert-Contains -Text $goalStatusText -Needle "Goal-log trust" -Label "Goal stat
 Assert-Contains -Text $goalStatusText -Needle "latest CAD log is ignored for goal next-action selection" -Label "Goal status scratch-log ignore guidance"
 Assert-Contains -Text $goalStatusText -Needle "Do not run the full hidden suite first" -Label "Goal status A4 probe before suite guidance"
 Assert-Contains -Text $goalStatusText -Needle "If direct GMTITLE only asks for an insertion point, cancel it" -Label "Goal status direct-GMTITLE insertion prompt warning"
+Assert-Contains -Text $goalStatusText -Needle "frame creation error and DR_titlea_3rd inserts=0" -Label "Goal status A4 frame creation error guidance"
 Assert-Contains -Text $goalStatusText -Needle "run_gmtitle_selection_config_probe.ps1" -Label "Goal status selection config probe guidance"
 
 $runCardText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-current-run-card.md")

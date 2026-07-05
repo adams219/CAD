@@ -263,6 +263,12 @@ nested-direct-outside probe:
   Native GMTITLE A4 pair evidence: yes
   Visible DR_A4_Outline frame inserts: 1 이상
   Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON
+
+실패 기준:
+  GMTITLE 창에서 DR_A4_Outline / DR_titlea_3rd / Frame positioning ON / Object move OFF까지 맞췄지만
+  명령줄에 "프레임 작성 오류"가 나오고,
+  SWTITLESTATUS 또는 SWTITLEVERIFY 계열 확인에서 DR_titlea_3rd inserts=0 / native GMTITLE 제목블록 존재: 아니요로 나오면
+  그 DWG는 A4 native 비교 샘플이 아니다.
 ```
 
 `DR_A4_Outline` 프레임만 안전해 보여도 native link가 있는 `DR_titlea_3rd` 쌍이 없으면 비교 기준으로 인정하지 않는다. 이 경우 `A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR`가 정상 중단이다.
