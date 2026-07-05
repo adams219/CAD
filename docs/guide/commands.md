@@ -1,4 +1,4 @@
-﻿# CAD Tool 명령어
+# CAD Tool 명령어
 
 이 문서는 사용자가 CAD 명령창에 직접 입력하는 공개 명령만 정리합니다.
 
@@ -31,7 +31,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260705-convertnext-main-workflow
+260706-after-manual-step-guidance
 ```
 
 다른 버전이 보이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.

@@ -93,8 +93,8 @@ function Write-FakeLog {
     [string]$VerifyStatus = "SWTITLEVERIFY_FINAL_FAIL",
     [string]$Frame = "DR_A3_Outline",
     [string]$Title = "DR_titlea_3rd",
-    [string]$LoadedVersion = "260705-convertnext-main-workflow",
-    [string]$ExpectedVersion = "260705-convertnext-main-workflow"
+    [string]$LoadedVersion = "260706-after-manual-step-guidance",
+    [string]$ExpectedVersion = "260706-after-manual-step-guidance"
   )
 
   @(

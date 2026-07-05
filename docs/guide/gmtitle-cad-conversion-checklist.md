@@ -1,4 +1,4 @@
-﻿# GMTITLE 실제 CAD 변환 체크리스트
+# GMTITLE 실제 CAD 변환 체크리스트
 
 이 문서는 GstarCAD 화면에서 SolidWorks DWG 작업복사본을 native GMTITLE 구조로 바꿀 때 따라가는 순서입니다.
 
@@ -59,7 +59,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260705-convertnext-main-workflow
+260706-after-manual-step-guidance
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 로드합니다.

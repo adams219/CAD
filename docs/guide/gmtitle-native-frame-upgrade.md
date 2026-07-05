@@ -1,4 +1,4 @@
-﻿# GMTITLE native 도면틀 교체 참고
+# GMTITLE native 도면틀 교체 참고
 
 이 문서는 이전의 A3/A4 native 교체 실험을 현재 4단계 흐름 기준으로 정리한 참고 문서입니다.
 
@@ -26,7 +26,7 @@ GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 
 현재 LSP 버전:
 
 ```text
-260705-convertnext-main-workflow
+260706-after-manual-step-guidance
 ```
 
 현재 loader 버전은 `SWTITLEVERSION`에서 함께 확인합니다.

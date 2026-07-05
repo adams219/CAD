@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 GMTITLE 기준 버전:
 
 ```text
-260705-verify-source-priority-a4stepnote
+260706-after-manual-step-guidance
 ```
 
 다른 버전이 보이면 `SWTITLESTATUS` 결과를 믿기 전에 최신 LSP를 다시 APPLOAD 합니다.
@@ -37,9 +37,11 @@ SolidWorks DWG의 도면틀/표제란을 GstarCAD Mechanical GMTITLE 구조로 �
 ```text
 SWTITLESTATUS
 SWTITLEPREPARE
-SWTITLECONVERT
+SWTITLECONVERTNEXT
 SWTITLEVERIFY
 ```
+
+수동 응답을 직접 골라야 할 때만 `SWTITLECONVERT`를 대신 사용합니다.
 
 옛 실험/진단/복구 명령은 LSP 내부 호환 함수로 남아 있을 수 있지만, 일반 작업에서 직접 입력하지 않습니다.
 
@@ -64,7 +66,7 @@ SWTITLEGMTITLEVERIFYALL
 SWTITLESTATUS
 SWTITLEPREPARE    필요하다고 나올 때만
 SWTITLESTATUS
-SWTITLECONVERT
+SWTITLECONVERTNEXT
 SWTITLESTATUS
 SWTITLEVERIFY     최종 검증 단계에서
 ```

@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260705-convertnext-main-workflow",
+  [string]$ExpectedGmtitleVersion = "260706-after-manual-step-guidance",
 
   [string]$ExpectedLoaderVersion = "260705-4step-gmtitle-a4-outline-preflight"
 )
@@ -519,6 +519,9 @@ Assert-Contains -Text $nextCadActionRunnerText -Needle "커서가 화면 중앙�
 Assert-Contains -Text $nextCadActionRunnerText -Needle "REFRESH_DIRECT_PROBE_FIRST" -Label "Next CAD action direct-probe refresh guard"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERT/SWTITLECONVERTNEXT에서 나올 수 있는 입력" -Label "Next CAD action convert prompt guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERTNEXT는 아래 반복 응답 중 현재 상태의 안전한 다음 값만 자동 선택합니다" -Label "Next CAD action convert-next auto response guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "작업복사본을 저장하고 GstarCAD를 닫은 뒤 아래 래퍼를 실행하세요" -Label "Next CAD action after-manual wrapper first"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "run_after_manual_gmtitle_step.ps1" -Label "Next CAD action after-manual wrapper command"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "GstarCAD를 계속 열어 둔 상태에서는 hidden probe가 현재 화면 상태와 엇갈릴 수 있습니다" -Label "Next CAD action hidden probe closed-CAD guard"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "YES: 첫 native GMTITLE 1장을 만들고 마무리합니다." -Label "Next CAD action first-native YES guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "OPEN: 다음 A3/A4 후보 1장만 fresh native GMTITLE로 교체합니다." -Label "Next CAD action native OPEN guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "BATCH: OPEN으로 최소 1장 성공한 뒤" -Label "Next CAD action native BATCH after OPEN guidance"

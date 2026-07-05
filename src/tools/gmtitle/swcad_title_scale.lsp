@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260705-convertnext-main-workflow")
+(setq *swcad-title-scale-version* "260706-after-manual-step-guidance")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -955,6 +955,28 @@
       (swcad-title-princ-line "다른 PC나 숨김 probe에서 이어가려면 먼저 이 작업복사본 DWG를 저장하세요.")
     )
   )
+)
+
+(defun swcad-title-after-manual-step-command (/ home)
+  (setq home (getenv "USERPROFILE"))
+  (if home
+    (strcat
+      "     powershell -NoProfile -ExecutionPolicy Bypass -File \""
+      home
+      "\\Documents\\CAD tool\\diagnostics\\gmtitle-main45\\run_after_manual_gmtitle_step.ps1\""
+    )
+    "     powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\\gmtitle-main45\\run_after_manual_gmtitle_step.ps1"
+  )
+)
+
+(defun swcad-title-print-after-manual-step-guidance ()
+  (swcad-title-princ-line "수동 GMTITLE 한 장 처리 후 권장 점검:")
+  (swcad-title-princ-line "  1. 이 작업복사본 DWG를 저장하세요.")
+  (swcad-title-princ-line "  2. GstarCAD를 닫으세요.")
+  (swcad-title-princ-line "  3. CAD 밖 PowerShell에서 다음 래퍼를 실행하세요:")
+  (swcad-title-princ-line (swcad-title-after-manual-step-command))
+  (swcad-title-princ-line "  이 래퍼가 direct probe 갱신, 다음 작업 카드, 필요 시 final completion gate를 묶어서 실행합니다.")
+  (swcad-title-princ-line "  저장/닫기 전에는 숨김 probe가 현재 화면 상태를 제대로 판단하지 못할 수 있습니다.")
 )
 
 (defun swcad-title-print-log-evidence-note ()
@@ -18083,6 +18105,8 @@
     )
   )
   (swcad-title-princ-text "\nSWTITLECONVERT 완료: 멈춤/경고가 있으면 SWTITLESTATUS를, 완료되면 SWTITLEVERIFY를 실행하세요.")
+  (swcad-title-princ-text "\n")
+  (swcad-title-print-after-manual-step-guidance)
   (princ)
 )
 
@@ -18353,7 +18377,7 @@
   (setq *swcad-title-last-apply-status* "SWTITLEVERSION_OK")
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-convertnext-main-workflow")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260706-after-manual-step-guidance")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)
