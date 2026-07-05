@@ -188,11 +188,29 @@ function Get-DisplayDiagnosticScriptPath {
   return (Join-Path $PSScriptRoot $ScriptName)
 }
 
+function Get-ExpectedGmtitleVersion {
+  $sourcePath = Join-Path $displayRepoRoot "src\tools\gmtitle\swcad_title_scale.lsp"
+  if (-not (Test-Path -LiteralPath $sourcePath)) {
+    return $null
+  }
+
+  $text = Get-Content -LiteralPath $sourcePath -Raw
+  $match = [regex]::Match($text, '\(setq\s+\*swcad-title-scale-version\*\s+"([^"]+)"\)')
+  if ($match.Success) {
+    return $match.Groups[1].Value
+  }
+  return $null
+}
+
 function Write-ManualLoadStep {
+  $expectedVersion = Get-ExpectedGmtitleVersion
   Write-Output "수동 GstarCAD 단계:"
   Write-Output "  APPLOAD"
   Write-Output ("  {0}" -f (Join-Path $displayRepoRoot "swcad_load.lsp"))
   Write-Output "  SWTITLEVERSION"
+  if ($expectedVersion) {
+    Write-Output ("  정상 버전: {0}" -f $expectedVersion)
+  }
   Write-Output "  SWTITLESTATUS  (현재 열린 DWG와 다음 상태 확인)"
 }
 
