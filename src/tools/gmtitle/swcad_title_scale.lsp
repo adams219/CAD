@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260706-status-compact-card")
+(setq *swcad-title-scale-version* "260706-convert-next-short-card")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -17951,7 +17951,7 @@
   (swcad-title-princ-text "\nGMTITLE 창이 열리면 로그가 요구한 DR_A*_Outline, DR_titlea_3rd, Frame positioning ON, Object move OFF를 눈으로 확인하세요.")
 )
 
-(defun swcad-title-integrated-convert (/ summary source-count frame-only-count command-text-records command-text-count a3a4-count style-records frame-definition-blockers definition-raw-risk-records missing-required-native old-batch-mode apply-result answer)
+(defun swcad-title-integrated-convert (/ summary source-count frame-only-count command-text-records command-text-count a3a4-count style-records frame-definition-blockers definition-raw-risk-records missing-required-native example-title old-batch-mode apply-result answer)
   (swcad-title-integrated-command-header "SWTITLECONVERT" "변환 실행")
   (if (swcad-title-script-active-p)
     (swcad-title-abort-interactive-gmtitle-script-active
@@ -17972,6 +17972,8 @@
           (setq command-text-records (swcad-title-command-text-residue-records))
           (setq command-text-count (length command-text-records))
           (setq a3a4-count (length (swcad-title-a3a4-native-upgrade-candidate-records)))
+          (setq example-title (swcad-title-native-example-title))
+          (setq missing-required-native (swcad-title-missing-required-native-frame-blocks summary))
           (setq style-records (swcad-title-frame-style-normalization-records))
           (setq frame-definition-blockers (swcad-title-frame-definition-blocking-records))
           (setq definition-raw-risk-records (swcad-title-frame-definition-raw-bbox-risk-records))
@@ -18015,6 +18017,7 @@
               "개 있습니다."
             )
           )
+          (swcad-title-print-compact-next-gmtitle-card summary missing-required-native example-title a3a4-count)
           (if (swcad-title-script-active-p)
             (swcad-title-abort-interactive-gmtitle-script-active
               "A3/A4 native 교체는 GMTITLE 창의 용지/제목블록 선택을 사람이 확인해야 합니다."
@@ -18061,8 +18064,9 @@
             )
           )
         )
-        ((not (swcad-title-native-example-title))
+        ((not example-title)
           (swcad-title-princ-text "\n첫 native GMTITLE 기준 객체가 없습니다. SWTITLECONVERT 내부에서 첫 native 생성 단계를 진행합니다.")
+          (swcad-title-print-compact-next-gmtitle-card summary missing-required-native example-title a3a4-count)
           (swcad-title-print-next-bootstrap-selection)
           (swcad-title-princ-text "\nSWTITLECONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록을 고르고, Frame positioning은 ON, Object move는 OFF로 두세요.")
           (if (swcad-title-script-active-p)
@@ -18075,7 +18079,7 @@
         ((and (> source-count 0) (not (swcad-title-next-fast-target-ready-p)))
           (swcad-title-princ-text "\n다음 원본 표제란 시트와 같은 크기의 native GMTITLE 기준 객체가 아직 없습니다.")
           (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 이 크기의 실제 native GMTITLE 한 장을 먼저 생성합니다.")
-          (setq missing-required-native (swcad-title-missing-required-native-frame-blocks summary))
+          (swcad-title-print-compact-next-gmtitle-card summary missing-required-native example-title a3a4-count)
           (swcad-title-print-next-missing-native-selection summary missing-required-native)
           (swcad-title-princ-text "\nSWTITLECONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록을 고르고, Frame positioning은 ON, Object move는 OFF로 두세요.")
           (if (swcad-title-script-active-p)

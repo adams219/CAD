@@ -1,4 +1,4 @@
-﻿param()
+param()
 
 $ErrorActionPreference = "Stop"
 
@@ -93,8 +93,8 @@ function Write-FakeLog {
     [string]$VerifyStatus = "SWTITLEVERIFY_FINAL_FAIL",
     [string]$Frame = "DR_A3_Outline",
     [string]$Title = "DR_titlea_3rd",
-    [string]$LoadedVersion = "260706-status-compact-card",
-    [string]$ExpectedVersion = "260706-status-compact-card"
+    [string]$LoadedVersion = "260706-convert-next-short-card",
+    [string]$ExpectedVersion = "260706-convert-next-short-card"
   )
 
   @(

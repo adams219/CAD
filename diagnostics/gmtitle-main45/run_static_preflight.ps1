@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260706-status-compact-card",
+  [string]$ExpectedGmtitleVersion = "260706-convert-next-short-card",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -335,6 +335,9 @@ Assert-Contains -Text $mainText -Needle "짧은 GMTITLE 선택 카드:" -Label "
 Assert-Contains -Text $mainText -Needle "  다음 명령: SWTITLECONVERTNEXT" -Label "SWTITLESTATUS compact selection card command"
 Assert-Contains -Text $mainText -Needle "  켜둘 옵션: Frame positioning" -Label "SWTITLESTATUS compact selection card frame-positioning"
 Assert-Contains -Text $mainText -Needle "  꺼둘 옵션: Object move" -Label "SWTITLESTATUS compact selection card object-move"
+Assert-Contains -Text $mainText -Needle "(setq example-title (swcad-title-native-example-title))" -Label "SWTITLECONVERT compact card native-example basis"
+Assert-Contains -Text $mainText -Needle "(setq missing-required-native (swcad-title-missing-required-native-frame-blocks summary))" -Label "SWTITLECONVERT compact card missing-native basis"
+Assert-Contains -Text $mainText -Needle "(swcad-title-print-compact-next-gmtitle-card summary missing-required-native example-title a3a4-count)" -Label "SWTITLECONVERT compact selection card before dialog"
 Assert-Contains -Text $mainText -Needle "A4 표제란 없는 도면틀 " -Label "SWTITLESTATUS A4 frame-only no-title forecast"
 Assert-Contains -Text $mainText -Needle "swcad-title-next-missing-native-selection-record" -Label "SWTITLESTATUS missing-native selection helper"
 Assert-Contains -Text $mainText -Needle "다음 누락 크기 native GMTITLE 선택:" -Label "SWTITLESTATUS missing-native selection heading"
@@ -436,6 +439,9 @@ Assert-Contains -Text $nextCadActionRunnerText -Needle "0xEF" -Label "Next CAD a
 Assert-Contains -Text $nextCadActionRunnerText -Needle "TrimStart([char]0xFEFF)" -Label "Next CAD action BOM character trim"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "작업복사본이 direct probe 로그보다 최신입니다" -Label "Next CAD action stale direct-probe guard"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "direct probe 로그가 현재 로드해야 할 LSP 버전과 다릅니다" -Label "Next CAD action stale direct-probe version guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "RELOAD_LSP_AND_CONFIRM_STATUS" -Label "Next CAD action stale-version manual reload result"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "CAD 안에서 최신 LSP를 다시 APPLOAD하고 SWTITLESTATUS로 현재 상태를 확인하세요" -Label "Next CAD action stale-version manual reload guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLESTATUS가 같은 상태를 안내할 때만 아래 변환 명령을 계속하세요" -Label "Next CAD action stale-version status-confirm-before-convert"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "Direct probe 최신 상태" -Label "Next CAD action direct-probe freshness output"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "Direct probe LSP 버전 일치" -Label "Next CAD action direct-probe version output"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "AutoRefreshDirectProbe" -Label "Next CAD action optional direct-probe auto refresh"
