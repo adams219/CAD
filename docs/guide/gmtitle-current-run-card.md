@@ -256,15 +256,15 @@ CAD 화면 옆에서 다음 명령, GMTITLE 선택값, 즉시 중단 조건, 바
 또한 `예상 수동 GMTITLE 확인량`을 같이 출력해서, 지금 한 번만 확인할 용지와 나중에 추가로 확인될 수 있는 용지를 분리해 보여줍니다. A4 frame-only는 제목블록 생성 대상이 아니므로 이 예측에서도 별도로 표시합니다.
 
 ```text
-NEXT_CREATE_FIRST_NATIVE_GMTITLE -> SWTITLECONVERT
-NEXT_CREATE_MISSING_NATIVE_EXEMPLAR -> SWTITLECONVERT
-NEXT_UPGRADE_A3_A4_NATIVE -> SWTITLECONVERT
+NEXT_CREATE_FIRST_NATIVE_GMTITLE -> SWTITLECONVERTNEXT 권장, 수동 응답 직접 선택 시 SWTITLECONVERT
+NEXT_CREATE_MISSING_NATIVE_EXEMPLAR -> SWTITLECONVERTNEXT 권장, 수동 응답 직접 선택 시 SWTITLECONVERT
+NEXT_UPGRADE_A3_A4_NATIVE -> SWTITLECONVERTNEXT 권장, 수동 응답 직접 선택 시 SWTITLECONVERT
 NEXT_PREPARE_* -> SWTITLEPREPARE
 NEXT_REVIEW_* 또는 ABORT_/WARN_ -> 같은 변환 반복 금지, SWTITLESTATUS/SWTITLEVERIFY 로그 확인
 SWTITLEVERIFY_FINAL_OK -> 대표 제목블록 더블클릭 확인
 ```
 
-이 상태에서 다음 실제 CAD 명령은 `SWTITLECONVERT`입니다. 첫 대상은 보통 A2입니다.
+이 상태에서 다음 실제 CAD 명령은 `SWTITLECONVERTNEXT`를 권장합니다. 첫 대상은 보통 A2입니다. `YES`/`OPEN` 같은 반복 응답을 직접 고르고 싶을 때만 `SWTITLECONVERT`를 사용합니다.
 
 중요: 위 초기 상태를 이미 변환이 진행된 CAD 도면에 그대로 적용하지 않습니다.
 항상 최신 `SWTITLESTATUS` 또는 `swcad_title_next_step_last.txt`의 DWG 경로가 현재 열린 도면과 같은지 먼저 확인합니다.
@@ -287,14 +287,14 @@ SWTITLESTATUS
 상태가 변환을 요구하면:
 
 ```text
-SWTITLECONVERT
+SWTITLECONVERTNEXT
 SWTITLESTATUS
 ```
 
-반복 확인 입력을 줄이고 싶으면 `SWTITLECONVERT` 대신 아래 명령을 사용할 수 있습니다.
+수동 응답을 직접 고르고 싶으면 대신 아래 명령을 사용할 수 있습니다.
 
 ```text
-SWTITLECONVERTNEXT
+SWTITLECONVERT
 ```
 
 `SWTITLECONVERTNEXT`는 아래의 `YES`/`OPEN` 선택만 자동으로 고르고, GMTITLE 창에서 DR 용지/제목블록/옵션을 확인하는 일은 그대로 남깁니다.

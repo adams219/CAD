@@ -110,16 +110,16 @@ SWTITLESTATUS
 상태가 변환을 요구하면:
 
 ```text
-SWTITLECONVERT
-```
-
-반복 확인 입력을 줄이고 싶으면 아래 명령을 대신 사용할 수 있습니다.
-
-```text
 SWTITLECONVERTNEXT
 ```
 
 `SWTITLECONVERTNEXT`는 `YES`/`OPEN` 같은 반복 응답만 현재 상태에 맞게 자동 선택합니다. GMTITLE 창의 DR 용지/제목블록/옵션 확인은 직접 해야 합니다.
+
+수동 응답을 직접 고르고 싶으면 아래 명령을 대신 사용할 수 있습니다.
+
+```text
+SWTITLECONVERT
+```
 
 ```text
 SWTITLESTATUS

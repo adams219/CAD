@@ -47,7 +47,7 @@ SWTITLECONVERT
 SWTITLEVERIFY
 ```
 
-반복 확인 입력을 줄이고 싶을 때는 `SWTITLECONVERT` 대신 아래 명령을 사용할 수 있습니다.
+일반 작업에서는 반복 확인 입력을 줄이기 위해 `SWTITLECONVERTNEXT`를 권장합니다. 수동 응답을 직접 고르고 싶을 때만 `SWTITLECONVERT`를 사용합니다.
 
 ```text
 SWTITLECONVERTNEXT

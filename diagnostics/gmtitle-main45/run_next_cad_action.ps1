@@ -196,8 +196,8 @@ function Write-ManualLoadStep {
 }
 
 function Write-ConvertCommandStep {
-  Write-Output "  SWTITLECONVERT"
-  Write-Output "  또는 반복 확인 입력을 줄이려면: SWTITLECONVERTNEXT"
+  Write-Output "  SWTITLECONVERTNEXT  (권장: YES/OPEN 반복 응답 자동 선택)"
+  Write-Output "  또는 수동 응답을 직접 고르려면: SWTITLECONVERT"
 }
 
 function Write-GmtitleDialogGuidance {
@@ -315,7 +315,8 @@ function Write-ConvertPromptGuidance {
   param([string]$Mode)
 
   Write-Output ""
-  Write-Output "SWTITLECONVERT 안에서 나올 수 있는 입력:"
+  Write-Output "SWTITLECONVERT/SWTITLECONVERTNEXT에서 나올 수 있는 입력:"
+  Write-Output "  SWTITLECONVERTNEXT는 아래 반복 응답 중 현재 상태의 안전한 다음 값만 자동 선택합니다."
   switch ($Mode) {
     "FirstNative" {
       Write-Output "  YES: 첫 native GMTITLE 1장을 만들고 마무리합니다."
