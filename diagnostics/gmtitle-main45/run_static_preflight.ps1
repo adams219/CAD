@@ -356,6 +356,9 @@ Assert-Contains -Text $goalStatusText -Needle "Direct actual work-copy probe" -L
 
 $runCardText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-current-run-card.md")
 $goalPlanText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-goal-mode-plan.md")
+$commandsGuideText = Read-Text (Join-Path $repoRoot "docs\guide\commands.md")
+$cadChecklistText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-cad-conversion-checklist.md")
+$resumeGuideText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-resume-on-another-computer.md")
 Assert-Contains -Text $runCardText -Needle "scratch_native_a4_clean_260705.dwg" -Label "Run card clean A4 scratch evidence"
 Assert-Contains -Text $goalPlanText -Needle "2026-07-05 clean scratch CAD" -Label "Goal plan clean A4 scratch evidence"
 Assert-Contains -Text $runCardText -Needle "A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS" -Label "Run card clean A4 outside marker result"
@@ -364,6 +367,14 @@ Assert-Contains -Text $runCardText -Needle "swtitle_a4_native_exemplar_scratch_n
 Assert-Contains -Text $goalPlanText -Needle "swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt" -Label "Goal plan clean A4 scratch dedicated log"
 Assert-Contains -Text $runCardText -Needle "RIBBON_ACCESSIBILITY_NOT_STABLE" -Label "Run card ribbon coordinate automation warning"
 Assert-Contains -Text $goalPlanText -Needle "RIBBON_ACCESSIBILITY_NOT_STABLE" -Label "Goal plan ribbon accessibility finding"
+Assert-Contains -Text $commandsGuideText -Needle "첫 native GMTITLE 생성: YES" -Label "Commands guide convert YES prompt"
+Assert-Contains -Text $commandsGuideText -Needle "A3/A4 native 교체 1장 처리: OPEN" -Label "Commands guide convert OPEN prompt"
+Assert-Contains -Text $commandsGuideText -Needle "NO_INSERTS가 반복됨: MANUAL" -Label "Commands guide convert MANUAL prompt"
+Assert-Contains -Text $cadChecklistText -Needle "첫 native GMTITLE 기준 객체 생성: YES" -Label "CAD checklist convert YES prompt"
+Assert-Contains -Text $cadChecklistText -Needle "A3/A4 native 교체 1장 처리: OPEN" -Label "CAD checklist convert OPEN prompt"
+Assert-Contains -Text $resumeGuideText -Needle "첫 native GMTITLE 생성: YES" -Label "Resume guide convert YES prompt"
+Assert-Contains -Text $resumeGuideText -Needle "A3/A4 native 교체 1장 처리: OPEN" -Label "Resume guide convert OPEN prompt"
+Assert-Contains -Text $resumeGuideText -Needle "NO_INSERTS가 반복됨: MANUAL" -Label "Resume guide convert MANUAL prompt"
 
 $suiteStepNumbers = @(
   [regex]::Matches($suiteText, 'Write-Output\s+"===== ([0-9]+)\. ') |

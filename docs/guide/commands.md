@@ -68,6 +68,17 @@ SWTITLEVERIFY     최종 검증 단계에서
 
 `SWTITLESTATUS`가 `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX`를 안내하거나 `SWTITLECONVERT`가 `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK`로 멈추면 기존 도면을 지우지 않는 보호 중단입니다. 같은 변환을 반복하지 말고 로그를 확인합니다.
 
+`SWTITLECONVERT` 안에서 입력을 물으면 상태별로 아래처럼 답합니다.
+
+```text
+첫 native GMTITLE 생성: YES
+누락된 용지 크기의 첫 native GMTITLE 생성: YES
+A3/A4 native 교체 1장 처리: OPEN
+A3/A4 같은 선택값을 여러 장 이어서 처리: BATCH
+OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복됨: MANUAL
+판단이 애매하거나 현재 DWG가 다름: Enter로 중단
+```
+
 ## GMTITLE 창에서 확인할 값
 
 `SWTITLECONVERT` 중 GMTITLE 창이 열리면 로그가 요구한 값만 선택합니다.

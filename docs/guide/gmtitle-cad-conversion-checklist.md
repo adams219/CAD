@@ -182,6 +182,17 @@ Object move ON 상태로 확인
 긴 소수점 좌표 수동 입력
 ```
 
+`SWTITLECONVERT`가 명령창 입력을 물으면 아래 기준만 사용합니다.
+
+```text
+첫 native GMTITLE 기준 객체 생성: YES
+누락된 용지 크기의 첫 native GMTITLE 생성: YES
+A3/A4 native 교체 1장 처리: OPEN
+A3/A4 같은 선택값을 여러 장 이어서 처리: BATCH
+OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복됨: MANUAL
+판단이 애매하거나 현재 DWG가 다름: Enter로 중단
+```
+
 실행 뒤 바로 다시 상태를 확인합니다.
 
 ```text
