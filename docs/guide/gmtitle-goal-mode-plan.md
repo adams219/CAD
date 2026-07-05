@@ -269,6 +269,14 @@ nested-direct-outside probe:
   명령줄에 "프레임 작성 오류"가 나오고,
   SWTITLESTATUS 또는 SWTITLEVERIFY 계열 확인에서 DR_titlea_3rd inserts=0 / native GMTITLE 제목블록 존재: 아니요로 나오면
   그 DWG는 A4 native 비교 샘플이 아니다.
+
+2026-07-05 clean scratch CAD 결과:
+  새 `gcadiso.dwt` 기반 Drawing2에서 같은 선택값을 적용하고 삽입점 `0,0`을 입력하면
+  "프레임 작성 오류" 없이 A4 GMTITLE 도면틀/제목블록이 생성됐다.
+  저장본:
+  C:\Users\DR-DESIGN\Documents\CAD tool\work\scratch_native_a4_clean_260705.dwg
+  이 결과는 DR_A4_Outline이 항상 실패하는 것이 아니라 기존 도면 상태/이미 로드된 정의/컨텍스트가 실패 조건일 수 있음을 의미한다.
+  아직 최종 증거는 아니며, GstarCAD를 닫은 뒤 run_a4_native_exemplar_probe.ps1에서 READY 판정을 받아야 한다.
 ```
 
 `DR_A4_Outline` 프레임만 안전해 보여도 native link가 있는 `DR_titlea_3rd` 쌍이 없으면 비교 기준으로 인정하지 않는다. 이 경우 `A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR`가 정상 중단이다.

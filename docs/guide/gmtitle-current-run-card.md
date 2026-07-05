@@ -152,6 +152,15 @@ native GMTITLE 제목블록 존재: 아니요
 DR_titlea_3rd inserts=0
 을 보이면 A4 scratch native 샘플 생성 실패로 판단합니다.
 이 상태의 Drawing1.dwg 또는 저장본은 A4 비교 기준으로 쓰지 않습니다.
+
+2026-07-05 CAD clean scratch 확인:
+새 `gcadiso.dwt` 기반 Drawing2에서 GMTITLE 창을 직접 열고
+DR_A4_Outline / DR_titlea_3rd / Frame positioning ON / Object move OFF를 선택한 뒤
+삽입점 `0,0`을 입력하면 "프레임 작성 오류" 없이 A4 도면틀과 제목블록이 생성되었습니다.
+이 도면은 `C:\Users\DR-DESIGN\Documents\CAD tool\work\scratch_native_a4_clean_260705.dwg`로 저장했습니다.
+따라서 A4 실패는 DR_A4_Outline 자체가 항상 고장난 것이 아니라,
+기존 Drawing1/work-copy 상태나 이미 로드된 정의/컨텍스트에 따라 달라지는 문제로 봅니다.
+다음 증거는 이 scratch DWG를 닫은 뒤 `run_a4_native_exemplar_probe.ps1`로 구조를 읽어 READY인지 확인하는 것입니다.
 ```
 
 ```powershell

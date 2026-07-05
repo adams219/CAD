@@ -459,6 +459,8 @@ $nestedProbeSource = $script:LatestCadDwg
 if ((-not $script:LatestCadDwgTrustedForGoal) -or (-not $nestedProbeSource)) {
   $nestedProbeSource = $SourceWorkCopyPath
 }
+$scratchNativeA4Path = Join-Path $repoRoot "work\scratch_native_a4_clean_260705.dwg"
+$scratchNativeA4Exists = Test-Path -LiteralPath $scratchNativeA4Path
 if ($existingGstarCAD.Count -gt 0) {
   if ($a4CandidateSafeNeedsReview) {
     Write-Output "  A4 normalization candidate review:"
@@ -472,13 +474,20 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "    1. Do not repeat SWTITLEPREPARE/SWTITLECONVERT; the installed outline and nested cleanup probes are both unsafe."
     Write-Output "    2. Save/close GstarCAD before hidden probes."
     Write-Output "    3. Create a separate scratch DWG with one real native A4 GMTITLE result, then compare its DR_A4_Outline definition."
+    if ($scratchNativeA4Exists) {
+      Write-Output ("       Saved clean gcadiso.dwt scratch from 2026-07-05 CAD test: {0}" -f $scratchNativeA4Path)
+    }
     Write-Output "    4. Scratch only: the native A4 sample may include DR_titlea_3rd for comparison; production A4 frame-only must still not receive a new title block."
     Write-Output "    5. If direct GMTITLE only asks for an insertion point, cancel it; that is the current/default insertion flow, not proof of DR_A4_Outline selection."
     Write-Output "    6. If DR_A4_Outline / DR_titlea_3rd selection ends with a frame creation error and DR_titlea_3rd inserts=0, treat that scratch as failed evidence."
     Write-Output "    7. Scratch READY requires both 'Native GMTITLE A4 pair evidence: yes' and 'Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON'."
     Write-Output "    8. If the probe reports A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR, the scratch has a frame but not a proven native GMTITLE pair."
     Write-Output ("    9. If you suspect a stored paper/title setting exists, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_gmtitle_selection_config_probe.ps1"))
-    Write-Output ("    10. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
+    if ($scratchNativeA4Exists) {
+      Write-Output ("    10. After closing GstarCAD, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"), $scratchNativeA4Path)
+    } else {
+      Write-Output ("    10. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
+    }
     Write-Output ""
     Write-Output "  Hidden suite verification path after A4 comparison/code changes:"
   } elseif ($a4InvestigationPreferred) {
@@ -526,13 +535,20 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "  A4 native comparison investigation:"
     Write-Output "    1. Do not run more SWTITLEPREPARE/SWTITLECONVERT attempts on the work-copy."
     Write-Output "    2. Create a separate scratch DWG with one real native A4 GMTITLE result, then compare its DR_A4_Outline definition."
+    if ($scratchNativeA4Exists) {
+      Write-Output ("       Saved clean gcadiso.dwt scratch from 2026-07-05 CAD test: {0}" -f $scratchNativeA4Path)
+    }
     Write-Output "    3. Scratch only: the native A4 sample may include DR_titlea_3rd for comparison; production A4 frame-only must still not receive a new title block."
     Write-Output "    4. If direct GMTITLE only asks for an insertion point, cancel it; that is the current/default insertion flow, not proof of DR_A4_Outline selection."
     Write-Output "    5. If DR_A4_Outline / DR_titlea_3rd selection ends with a frame creation error and DR_titlea_3rd inserts=0, treat that scratch as failed evidence."
     Write-Output "    6. Scratch READY requires both 'Native GMTITLE A4 pair evidence: yes' and 'Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON'."
     Write-Output "    7. If the probe reports A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR, the scratch has a frame but not a proven native GMTITLE pair."
     Write-Output ("    8. If you suspect a stored paper/title setting exists, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_gmtitle_selection_config_probe.ps1"))
-    Write-Output ("    9. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
+    if ($scratchNativeA4Exists) {
+      Write-Output ("    9. After closing GstarCAD, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"), $scratchNativeA4Path)
+    } else {
+      Write-Output ("    9. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
+    }
     Write-Output "    10. After a safer A4 definition strategy is implemented, rerun the focused A4 probe and full hidden suite."
   } elseif ($a4InvestigationPreferred) {
     Write-Output "  Run the copied-DWG nested A4 probe now:"
