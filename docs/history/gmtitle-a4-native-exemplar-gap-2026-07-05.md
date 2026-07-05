@@ -19,7 +19,15 @@ diagnostics/gmtitle-main45/run_a4_native_exemplar_probe.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1
 ```
 
-기본 입력:
+2026-07-05 후속 안전장치:
+
+```text
+현재 runner는 인자 없이 실행하면 중단한다.
+이전처럼 기본 작업복사본을 조용히 복사하면 swtitle_a4_native_exemplar_probe_260705.dwg라는 이름 때문에
+실제 native A4 scratch 샘플로 착각할 수 있었기 때문이다.
+```
+
+과거 기본 입력으로 검사했던 파일:
 
 ```text
 work/0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
@@ -168,7 +176,8 @@ A4 자동화 방향을 더 진행하려면 다음 중 하나가 필요하다.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_actual_workcopy_status_probe.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1 `
+  -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<saved-current-workcopy>.dwg"
 ```
 
 이때 `target-sheet-counts`에 A2/A3가 보이면 그 저장본이 다음 기준이다.

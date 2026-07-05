@@ -1,4 +1,5 @@
 param(
+  [Alias("SourceDwgPath")]
   [string]$SourceWorkCopyPath,
 
   [string]$ProbeDwgPath,
@@ -13,7 +14,15 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
 
 if (-not $SourceWorkCopyPath) {
-  $SourceWorkCopyPath = Join-Path $repoRoot "work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg"
+  throw @"
+A4_NATIVE_EXEMPLAR_REQUIRES_SOURCEWORKCOPYPATH
+run_a4_native_exemplar_probe.ps1 requires -SourceWorkCopyPath or -SourceDwgPath.
+
+Use a saved scratch/native A4 GMTITLE DWG when checking for a usable A4 exemplar:
+  powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1 -SourceDwgPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg"
+
+The main verification suite passes the default work-copy path explicitly for the known A4 gap probe.
+"@
 }
 if (-not $ProbeDwgPath) {
   $ProbeDwgPath = Join-Path $repoRoot "work\swtitle_a4_native_exemplar_probe_260705.dwg"

@@ -288,26 +288,27 @@ docs/history/gmtitle-a4-outline-normalization-probe-2026-07-05.md
 
 ## A4 Native Exemplar Probe
 
-Use `run_a4_native_exemplar_probe.ps1` to check whether a copied DWG already contains a usable native or native-like A4 `DR_A4_Outline` exemplar.
+Use `run_a4_native_exemplar_probe.ps1` to check whether a saved DWG already contains a usable native or native-like A4 `DR_A4_Outline` exemplar. The runner intentionally has no default input, so a default work-copy cannot be mistaken for a scratch native A4 sample.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
-  "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"
+  "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1" `
+  -SourceDwgPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg"
 ```
 
-Default input:
+No-argument result:
 
 ```text
-work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
+A4_NATIVE_EXEMPLAR_REQUIRES_SOURCEWORKCOPYPATH
 ```
 
-Default log:
+Default log when an input path is supplied:
 
 ```text
 work\swtitle_a4_native_exemplar_probe_260705.txt
 ```
 
-Current expected result for the saved default work copy:
+The main verification suite still runs the known gap check by passing the saved default work-copy path explicitly. Current expected suite result for that saved default work copy:
 
 ```text
 A4 outline definition status: missing
