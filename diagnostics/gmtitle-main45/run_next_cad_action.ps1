@@ -101,6 +101,11 @@ function Write-GmtitleDialogGuidance {
   Write-Output ("  제목블록: {0}" -f ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" })))
   Write-Output "  Frame positioning: ON"
   Write-Output "  Object move: OFF"
+  Write-Output ""
+  Write-Output "배치점 안내:"
+  Write-Output "  - 긴 좌표를 사람이 직접 치지 마세요. SWTITLECONVERT가 GMTITLE 창 뒤에 왼쪽 아래 배치점을 자동 전송합니다."
+  Write-Output "  - 커서가 화면 중앙에 남아 보여도, 명령줄이 삽입점을 기다리는 상태면 잠시 기다렸다가 자동 입력을 확인하세요."
+  Write-Output "  - 자동 입력 후에도 삽입점 입력이 남아 있으면 기존 원본 도면틀의 왼쪽 아래 끝점을 OSNAP으로 찍고, 객체/새 위치 프롬프트가 나오면 취소하세요."
 }
 
 function Write-GmtitleAbortGuards {

@@ -58,6 +58,22 @@ SWTITLEVERSION
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
 
+## GMTITLE 배치점 원칙
+
+`SWTITLECONVERT`를 통해 GMTITLE 창을 열었을 때는 긴 좌표를 사람이 직접 치지 않습니다.
+
+```text
+용지/도면틀과 제목블록을 고른 뒤 OK
+Frame positioning: ON
+Object move: OFF
+```
+
+그 다음 `SWTITLECONVERT`가 기존 원본 도면틀의 왼쪽 아래 배치점을 자동 전송합니다.
+마우스 커서가 화면 중앙에 남아 보여도, 명령줄이 삽입점을 기다리는 상태라면 잠시 기다렸다가 자동 입력을 확인합니다.
+
+자동 입력 후에도 삽입점 입력이 남아 있으면 기존 원본 도면틀의 왼쪽 아래 끝점을 OSNAP으로 찍습니다.
+객체 선택/새 위치 프롬프트가 나오면 Object move가 켜진 상태일 수 있으므로 취소하고 다시 확인합니다.
+
 ## 현재 기준 상태를 고르는 법
 
 먼저 `work\swcad_title_next_step_last.txt` 안의 DWG 경로를 봅니다.
