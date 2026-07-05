@@ -101,6 +101,46 @@ DBMOD after checks: 0
 
 따라서 지금 상태에서는 imported `DR_A4_Outline`과 native A4를 구조 비교할 수 없다.
 
+## 2026-07-05 이어서 확인: A2/A3 진행본도 A4 기준은 없음
+
+이후 최신 CAD next-step 로그가 가리키는 진행본을 대상으로 같은 probe를 다시 실행했다.
+
+입력:
+
+```text
+C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg
+```
+
+로그:
+
+```text
+work/swtitle_a4_native_exemplar_probe_260705.txt
+```
+
+결과:
+
+```text
+Loaded version: 260705-verify-source-priority-a4stepnote
+Source frame-only count: 2
+Expected sheet counts:
+  A2: 1
+  A3: 12
+  A4: 2
+Current target sheet counts:
+  A2: 1
+  A3: 12
+A4 outline definition status: missing
+Definition exists: no
+Visible DR_A4_Outline frame inserts: 0
+Result: A4_NATIVE_EXEMPLAR_MISSING_DEFINITION
+```
+
+판단:
+
+A2/A3 변환이 진행된 작업본에서도 비교 가능한 native A4 기준 객체는 아직 없다. 이 상태에서 `SWTITLEPREPARE` 또는 `SWTITLECONVERT`를 반복하면 A4 원본을 보호하는 guard에 다시 걸리는 것이 정상이다.
+
+다음 단계는 실제 작업본을 더 건드리는 것이 아니라, 별도 scratch DWG에 GstarCAD `GMTITLE`로 native A4 샘플을 한 장 만들고 그 구조를 검사하는 것이다.
+
 ## 중요한 운영 결론
 
 숨김 GstarCAD probe는 디스크에 저장된 DWG만 본다.
@@ -136,6 +176,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 ### 선택 B: A4 native scratch 기준 객체 생성
 
 작업복사본을 망치지 않기 위해 `work` 아래의 scratch DWG에서 GstarCAD native `GMTITLE`로 `DR_A4_Outline`을 한 장 만든다.
+
+이 scratch 샘플은 비교 전용이다. `GMTITLE` 동작 때문에 `DR_titlea_3rd`가 같이 생길 수 있지만, production A4 frame-only 변환에서는 원본에 없던 제목블록을 만들면 안 된다.
 
 그 뒤 해당 scratch DWG를 대상으로 실행:
 

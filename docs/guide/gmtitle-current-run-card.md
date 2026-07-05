@@ -125,27 +125,28 @@ WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE
 none=no
 huge-insert=no
 direct-outside=no
+nested-outside=no
+nested-direct-outside=no
 ```
 
 즉 `SWTITLEPREPARE`가 같은 경고로 멈추면 정상적인 안전 중단입니다. 이때는 변환을 반복하지 말고 A4 도면틀 정의 전략을 다시 봅니다.
 
-다음 조사 후보는 `nested-outside` probe입니다. `DR_A4_Outline` 전체가 아니라 그 안의 oversized child block 내부를 확인하는 단계이며, 아직 생산 변환 명령이 아닙니다.
+`nested-outside`와 `nested-direct-outside`도 copied-DWG probe에서 모두 unsafe였습니다.
 
-함께 비교할 후보는 `nested-direct-outside`입니다. 이 전략은 큰 child INSERT 자체는 유지하고, child 내부 A4 바깥 객체와 parent에 직접 붙은 바깥 선/텍스트를 함께 비교합니다. 이것도 아직 생산 변환 명령이 아니라 copied-DWG probe입니다.
+따라서 지금 다음 단계는 `SWTITLEPREPARE`나 `SWTITLECONVERT`를 더 누르는 것이 아닙니다. 별도 scratch DWG에서 GstarCAD가 실제 `GMTITLE`로 만든 native A4 결과를 확보하고, 그 안의 `DR_A4_Outline` 정의를 비교해야 합니다.
+
+scratch native A4 비교는 production 변환이 아닙니다. scratch 샘플에는 비교를 위해 `DR_titlea_3rd`가 생길 수 있지만, 실제 A4 frame-only 생산 결과에는 원본에 없던 제목블록을 만들면 안 됩니다.
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg" -Strategies nested-outside,nested-direct-outside -WaitForGstarCADClose
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg"
 ```
-
-이 명령은 visible GstarCAD가 닫힐 때까지 기다렸다가 복사본 probe를 실행합니다. 먼저 실행해 둔 뒤 CAD에서 작업복사본을 저장하고 GstarCAD를 종료하면 됩니다.
-
-`-SourceWorkCopyPath`는 혼동 방지를 위해 명시한 값입니다. 생략하면 wrapper가 최신 `work\swcad_title_next_step_last.txt` 안의 DWG 경로를 먼저 사용합니다.
 
 중요:
 
 ```text
-nested probe safe=yes 전에는 production SWTITLEPREPARE/SWTITLECONVERT에 A4 정규화 방식을 넣지 않습니다.
-safe=no가 계속 나오면 더 많이 지우는 방식으로 가지 않고, 실제 native A4 GMTITLE/frame 정의와 비교하는 방향으로 전환합니다.
+현재 work DWG에 더 많은 삭제/정규화를 시도하지 않습니다.
+실제 native A4 비교가 READY로 나오기 전에는 A4 frame-only production 변환을 연결하지 않습니다.
+READY 조건은 A4 definition warning/raw selection warning이 모두 <none>이고 Result가 A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON인 상태입니다.
 ```
 
 ### 기본 작업복사본 초기 상태

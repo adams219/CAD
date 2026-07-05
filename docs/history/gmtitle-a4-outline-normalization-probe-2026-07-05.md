@@ -130,9 +130,45 @@ Normalization safe for A4 frame-only conversion: no
 
 이 방식은 절대 생산 변환에 넣으면 안 된다.
 
+### 4. nested-outside
+
+`DR_A4_Outline`의 oversized child block 내부를 기준으로 A4 밖 객체를 제거하는 방식을 별도 copied-DWG에서 확인했다.
+
+결과:
+
+```text
+After definition raw bbox: (0, 0) - (872.26126377, 302.7)
+After test raw bbox: (0, 0) - (872.26126377, 302.7)
+After test effective bbox: (0, 0) - (210, 297)
+After raw selection warning: raw CAD selection bbox is larger than the effective visible frame
+Normalization safe for A4 frame-only conversion: no
+```
+
+판단:
+
+겉보기 A4 frame은 보존됐지만 CAD가 실제 선택하는 raw bbox는 여전히 A4보다 너무 크다. 기존 A4 frame-only를 지우는 생산 변환으로 승격하지 않는다.
+
+### 5. nested-direct-outside
+
+oversized child INSERT 자체는 유지하고, child 내부 A4 바깥 객체와 parent 직접 바깥 객체를 함께 비교했다.
+
+결과:
+
+```text
+After definition raw bbox: (0, 0) - (872.26126377, 297)
+After test raw bbox: (0, 0) - (872.26126377, 297)
+After test effective bbox: (0, 0) - (210, 297)
+After raw selection warning: raw CAD selection bbox is larger than the effective visible frame
+Normalization safe for A4 frame-only conversion: no
+```
+
+판단:
+
+높이 방향의 일부 위험은 줄었지만 폭 방향 raw bbox가 여전히 872mm 수준으로 남는다. 이 역시 생산 변환으로 승격하지 않는다.
+
 ## 결론
 
-세 전략 모두 A4 frame-only 변환용으로 안전하지 않다.
+다섯 전략 모두 A4 frame-only 변환용으로 안전하지 않다.
 
 이번 probe의 중요한 성과는 A4를 고친 것이 아니라, 다음 잘못된 방향을 명확히 배제한 것이다.
 
@@ -140,6 +176,8 @@ Normalization safe for A4 frame-only conversion: no
 설치 원본 DR_A4_Outline 직접 사용: 불가
 큰 INSERT 하나만 삭제: 불충분
 A4 밖 direct 객체 전체 삭제: 도면틀 파괴
+nested-outside: raw selection warning이 남아 불가
+nested-direct-outside: raw selection warning이 남아 불가
 ```
 
 따라서 현재 guard는 유지해야 한다.
@@ -148,12 +186,12 @@ A4 밖 direct 객체 전체 삭제: 도면틀 파괴
 
 ## 다음 구현 방향
 
-단순 삭제식 정규화는 중단한다. 다만 child 내부와 parent 직접 객체를 분리해서 보는 copied-DWG probe는 아직 유효한 조사 방향이다.
+단순 삭제식 정규화는 중단한다. child 내부와 parent 직접 객체를 분리해서 보는 copied-DWG probe도 `safe=no`였으므로, 같은 종류의 삭제 전략을 더 늘리지 않는다.
 
 다음 조사는 아래 순서가 맞다.
 
-1. `nested-outside,nested-direct-outside` copied-DWG probe를 실행해 child 내부/parent 직접 객체 분리 가능성을 먼저 확인한다.
-2. 그래도 safe=yes가 나오지 않으면 GstarCAD에서 실제 GMTITLE로 생성된 A4 outline-only 또는 A4 frame 구조를 확보한다.
+1. GstarCAD에서 실제 GMTITLE로 생성된 A4 frame 구조를 별도 scratch DWG에 확보한다.
+2. scratch 샘플은 비교용이므로 `DR_titlea_3rd`가 생겨도 된다. production A4 frame-only에는 여전히 새 제목블록을 만들지 않는다.
 3. 그 native A4 결과의 `DR_A4_Outline` definition, insert bbox, xdata, extension dictionary, reactors를 설치 원본 import 결과와 비교한다.
 4. 설치 원본 `DR_A4_Outline`이 잘못된 것인지, import 방식이 잘못된 것인지, 또는 GstarCAD가 GMTITLE 실행 시 추가 정리를 하는지 분리한다.
 5. 깨끗한 A4 outline 기준을 찾은 뒤에만 `SWTITLEPREPARE` 또는 `SWTITLECONVERT`에 A4 frame-only 변환을 다시 연결한다.

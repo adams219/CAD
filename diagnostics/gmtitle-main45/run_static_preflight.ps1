@@ -241,6 +241,8 @@ Assert-Contains -Text $goalStatusText -Needle "A4 normalization decision" -Label
 Assert-Contains -Text $goalStatusText -Needle "A4 investigation continuation" -Label "Goal status A4 nested probe continuation guidance"
 Assert-Contains -Text $goalStatusText -Needle "A4 normalization candidate review" -Label "Goal status A4 safe-candidate review guidance"
 Assert-Contains -Text $goalStatusText -Needle "A4 native comparison investigation" -Label "Goal status A4 unsafe-nested fallback guidance"
+Assert-Contains -Text $goalStatusText -Needle "scratch DWG with one real native A4 GMTITLE" -Label "Goal status A4 scratch-native comparison guidance"
+Assert-Contains -Text $goalStatusText -Needle "production A4 frame-only must still not receive a new title block" -Label "Goal status A4 no-production-title guidance"
 Assert-Contains -Text $goalStatusText -Needle "Do not run the full hidden suite first" -Label "Goal status A4 probe before suite guidance"
 
 $suiteStepNumbers = @(

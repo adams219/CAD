@@ -246,12 +246,12 @@ Current expected conclusion:
 none: unsafe, raw bbox remains (0,0)-(872.26126377,302.7)
 huge-insert: unsafe, raw bbox improves but still does not match A4
 direct-outside: unsafe, deletes too much and leaves only POINT/TEXT remnants
-nested-outside: investigation candidate, not yet promoted
-nested-direct-outside: investigation candidate, not yet promoted
+nested-outside: unsafe, effective A4 remains but raw selection bbox remains oversized
+nested-direct-outside: unsafe, effective A4 remains but raw selection bbox remains oversized
 Normalization safe for A4 frame-only conversion: no
 ```
 
-This is a negative probe. It proves that direct deletion-style normalization should not be promoted into `SWTITLEPREPARE` or `SWTITLECONVERT`.
+This is a negative probe. It proves that deletion-style normalization, including the nested child-block variants, should not be promoted into `SWTITLEPREPARE` or `SWTITLECONVERT`.
 
 Durable conclusion:
 
@@ -294,6 +294,8 @@ This probe is useful after manually creating or saving a scratch/native A4 GMTIT
 ```text
 Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON
 ```
+
+The scratch/native A4 sheet is only for comparison. It may include `DR_titlea_3rd` if native GMTITLE creates one, but production A4 frame-only conversion must still not create a title block that was not present in the source.
 
 Durable conclusion:
 

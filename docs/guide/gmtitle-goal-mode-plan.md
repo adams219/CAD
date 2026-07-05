@@ -214,6 +214,8 @@ A4 definition normalization probe:
   none: unsafe
   huge-insert: unsafe
   direct-outside: unsafe
+nested-outside: unsafe
+nested-direct-outside: unsafe
 ```
 
 따라서 현재까지 검증된 범위에서는 "틀 밖 객체만 지우면 된다"는 단순 정규화 전략을 채택하지 않는다.
@@ -223,43 +225,43 @@ A4 definition normalization probe:
 `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`을 표시하면 `SWTITLEPREPARE`를 계속 반복하지 않는다.
 그 상태는 "A4 준비 명령을 더 눌러야 함"이 아니라 "현재 설치 원본 정의 경로가 raw bbox guard를 통과하지 못함"으로 판단한다.
 
-다음 조사 후보:
+현재 조사 결론:
 
 ```text
 nested-outside probe:
   DR_A4_Outline 직접 하위 객체 중 oversized INSERT인
   "도면 세로 A4 From_HYUN" 내부를 별도로 출력한다.
 
-목적:
-  parent DR_A4_Outline을 통째로 지우는 대신,
-  child block 내부에서 raw bbox를 키우는 객체만 분리할 수 있는지 확인한다.
+결과:
+  safe=no
+  raw selection warning이 남음
 
 nested-direct-outside probe:
   큰 child INSERT는 유지하고,
   child block 내부 A4 바깥 객체와 parent에 직접 붙은 바깥 선/텍스트를 함께 비교한다.
 
-목적:
-  기존 none/huge-insert/direct-outside 실패 원인을 분리한다.
-  huge-insert는 실제 A4 틀까지 잃었고,
-  direct-outside는 parent 기준으로 child INSERT까지 제거해서 틀이 사라졌다.
-  따라서 child 내부 정리와 parent 바깥 객체 정리를 조합한 결과가 raw/effective bbox를 모두 통과하는지 확인한다.
+결과:
+  safe=no
+  raw selection warning이 남음
 
-주의:
-  아직 생산 변환 경로가 아니다.
-  copied-DWG probe에서 safe=yes가 나오고, A4 effective/raw bbox가 모두 검증되기 전에는
-  SWTITLEPREPARE/SWTITLECONVERT 기본 흐름에 넣지 않는다.
+판단:
+  더 많은 삭제식 정규화로 진행하지 않는다.
+  실제 GstarCAD GMTITLE이 만든 native A4 결과와 구조를 비교한다.
 
-실행법:
-  powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg" -Strategies nested-outside,nested-direct-outside -WaitForGstarCADClose
+다음 실행법:
+  1. work 아래 별도 scratch DWG에서 GMTITLE로 DR_A4_Outline native A4를 한 장 만든다.
+  2. 이 scratch는 비교용이므로 DR_titlea_3rd가 생겨도 된다.
+  3. production A4 frame-only 변환에서는 여전히 새 DR_titlea_3rd를 만들면 안 된다.
+  4. scratch DWG 저장 후 아래 probe를 실행한다.
 
-운영:
-  이 명령은 visible GstarCAD 종료를 기다린 뒤 hidden copied-DWG probe를 실행한다.
-  현재 CAD 작업복사본을 저장하고 GstarCAD를 닫은 뒤 결과 로그를 확인한다.
-  SourceWorkCopyPath를 생략하면 wrapper가 최신 work\swcad_title_next_step_last.txt 안의 DWG 경로를 먼저 사용한다.
+  powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg"
 
-중단 기준:
-  nested probe safe=yes 전에는 production SWTITLEPREPARE/SWTITLECONVERT에 A4 정규화 방식을 넣지 않는다.
-  nested probe도 safe=no라면 더 많이 지우는 방식으로 가지 않고, 실제 native A4 GMTITLE/frame 정의와 비교하는 방향으로 전환한다.
+통과 기준:
+  Definition strict A4 warning: <none>
+  Definition test insert geometry warning: <none>
+  Definition test insert raw selection warning: <none>
+  Visible DR_A4_Outline frame inserts: 1 이상
+  Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON
 ```
 
 따라서 이 상태에서의 실제 순서는 아래다.
@@ -268,8 +270,8 @@ nested-direct-outside probe:
 1. 열린 CAD 도면이 위 DWG 경로와 같은지 확인
 2. SWTITLEPREPARE 실행
 3. SWTITLESTATUS 실행
-4. 상태가 SWTITLECONVERT를 안내하면 A4 frame-only 변환 진행
-5. 같은 NEXT_PREPARE 상태 또는 raw bbox 위험이 그대로면 저장/종료 후 nested probe
+4. 같은 NEXT_PREPARE 상태 또는 raw bbox 위험이 그대로면 같은 명령 반복 금지
+5. 별도 scratch native A4 비교 샘플을 만든 뒤 run_a4_native_exemplar_probe.ps1로 확인
 ```
 
 이 단계에서는 `SWTITLECONVERT`를 반복해서 누르지 않는다. A4 정의가 준비되지 않은 상태에서 변환을 반복하면, 원본에 없던 제목블록이 생기거나 A4 원본 도면틀이 잘못 삭제될 수 있다.

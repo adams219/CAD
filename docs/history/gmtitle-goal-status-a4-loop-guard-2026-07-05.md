@@ -139,14 +139,31 @@ git diff --check
 
 GstarCAD가 열려 있으면 hidden `/b` probe를 실행하지 않는다.
 
-다음 실제 작업은 사용자가 작업복사본을 저장하고 GstarCAD를 닫은 뒤 아래 순서로 진행한다.
+2026-07-05 이어서 확인 결과, nested probe도 둘 다 unsafe였다.
 
 ```text
-1. nested-outside,nested-direct-outside copied-DWG probe 실행
-2. safe=yes 여부 확인
-3. safe=yes면 production 반영 전 로그 검토
-4. safe=no면 실제 native A4 정의 비교로 전환
-5. A4 strategy 확정 후 hidden suite와 실제 SWTITLEVERIFY_FINAL_OK 검증
+nested-outside: safe=no
+nested-direct-outside: safe=no
+현재 진행본 A4 native exemplar probe: A4_NATIVE_EXEMPLAR_MISSING_DEFINITION
+```
+
+따라서 다음 실제 작업은 아래 순서로 진행한다.
+
+```text
+1. 실제 work DWG에서 더 이상 SWTITLEPREPARE/SWTITLECONVERT를 반복하지 않는다.
+2. work 아래 별도 scratch DWG를 만든다.
+3. 그 scratch에서 GstarCAD GMTITLE로 DR_A4_Outline native A4 샘플을 한 장 만든다.
+4. scratch 저장 후 run_a4_native_exemplar_probe.ps1로 DR_A4_Outline 정의를 검사한다.
+5. Result가 A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON일 때만 A4 strategy 구현을 다시 검토한다.
+6. A4 strategy 확정 후 focused A4 probe, hidden suite, 실제 SWTITLEVERIFY_FINAL_OK 순서로 검증한다.
+```
+
+scratch 샘플에는 비교를 위해 `DR_titlea_3rd`가 생길 수 있다. 하지만 production A4 frame-only 결과에는 원본에 없던 제목블록을 만들면 안 된다.
+
+probe 실행 예:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg"
 ```
 
 ## 완료 아님
