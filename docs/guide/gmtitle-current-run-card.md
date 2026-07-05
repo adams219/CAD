@@ -84,7 +84,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260706-convert-next-short-card
+260706-convert-next-quoted-pause
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -311,7 +311,7 @@ SWTITLECONVERTNEXT
 
 `GSTARCAD_VISIBLE_WINDOW_NOT_STABLE_AFTER_CHECK`도 같은 의미로 봅니다. 시작 직후 임시 창 핸들은 생겼지만 실제 CAD 창이 유지되지 않은 상태라서, helper가 변환 없이 프로세스를 정리합니다.
 
-현재 PC에서는 Codex Computer Use가 GstarCAD 화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다. 따라서 실제 `SWTITLECONVERTNEXT`/`SWTITLECONVERT`의 GMTITLE 창 선택은 사용자가 직접 하고, Codex는 로그/문서/검증 기준을 정리하는 쪽으로 사용합니다.
+현재 PC에서는 Codex Computer Use가 GstarCAD 화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다. 특히 긴 명령어를 붙여넣기 방식으로 넣으면 CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있습니다. 따라서 실제 `SWTITLECONVERTNEXT`/`SWTITLECONVERT`의 GMTITLE 창 선택은 사용자가 직접 하고, Codex는 로그/문서/검증 기준을 정리하는 쪽으로 사용합니다.
 
 ## Hidden Suite 검증 상태
 

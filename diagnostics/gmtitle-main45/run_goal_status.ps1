@@ -43,6 +43,7 @@ $script:DirectWorkcopyNextFrame = $null
 $script:DirectWorkcopyNextTitle = $null
 $script:DirectWorkcopyTargetTitleCount = $null
 $script:DirectWorkcopyTargetFrameCount = $null
+$script:WorkingTreeDirty = $false
 
 if (-not $SourceWorkCopyPath) {
   $SourceWorkCopyPath = Join-Path $repoRoot "work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg"
@@ -177,7 +178,9 @@ function Write-HiddenSuiteLastRunSummary {
   if ($statusAfterVerify) { Write-Output ("  Actual work-copy verify in suite: {0}" -f $statusAfterVerify) }
 
   if ($result -eq "PASS") {
-    if ($script:HeadCommitTimeUtc -and ($item.LastWriteTimeUtc -lt $script:HeadCommitTimeUtc.AddSeconds(-2))) {
+    if ($script:WorkingTreeDirty) {
+      Write-Output "  Meaning: this PASS was produced before the current uncommitted changes. Treat it as historical guard evidence until the suite is rerun on the current worktree."
+    } elseif ($script:HeadCommitTimeUtc -and ($item.LastWriteTimeUtc -lt $script:HeadCommitTimeUtc.AddSeconds(-2))) {
       Write-Output "  Meaning: this PASS is older than the current commit. Treat it as historical guard evidence until /b smoke passes and the suite is rerun."
     } else {
       Write-Output "  Meaning: automation/guard probes passed; this is not proof that the real work DWG finished conversion."
@@ -745,8 +748,10 @@ if ($script:HeadCommitTimeUtc) {
 
 $statusText = Invoke-GitText @("status", "--short")
 if ([string]::IsNullOrWhiteSpace($statusText)) {
+  $script:WorkingTreeDirty = $false
   Write-Output "Working tree: clean"
 } else {
+  $script:WorkingTreeDirty = $true
   Write-Output "Working tree: dirty"
   Write-Output $statusText
 }

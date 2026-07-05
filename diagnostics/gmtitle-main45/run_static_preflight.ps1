@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260706-convert-next-short-card",
+  [string]$ExpectedGmtitleVersion = "260706-convert-next-quoted-pause",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -350,6 +350,7 @@ Assert-Contains -Text $mainText -Needle "다음 명령: SWTITLECONVERTNEXT" -Lab
 Assert-Contains -Text $mainText -Needle "다음: SWTITLECONVERTNEXT를 실행하세요" -Label "SWTITLESTATUS next action recommends convert-next"
 Assert-NotContains -Text $mainText -Needle "다음: SWTITLECONVERT를 실행하세요." -Label "Stale direct convert next-action wording"
 Assert-NotContains -Text $mainText -Needle "일반 흐름은 SWTITLECONVERT를 사용하세요." -Label "Stale direct convert general-flow wording"
+Assert-NotContains -Text $mainText -Needle "(command pause)" -Label "GMTITLE interactive wait must use explicit pause string"
 $a3a4NextStart = $mainText.IndexOf("(defun swcad-title-upgrade-native-a3a4-next")
 $a3a4AutoOpen = if ($a3a4NextStart -ge 0) { $mainText.IndexOf('(swcad-title-auto-next-answer "OPEN"', $a3a4NextStart) } else { -1 }
 $a3a4Prompt = if ($a3a4NextStart -ge 0) { $mainText.IndexOf("(getstring", $a3a4NextStart) } else { -1 }
@@ -479,6 +480,7 @@ Assert-Contains -Text $openWorkcopyRunnerText -Needle "보이지 않는 GstarCAD
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "run_open_workcopy_for_manual_convert.ps1" -Label "Manual session wrapper opens workcopy helper"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "run_after_manual_gmtitle_step.ps1" -Label "Manual session wrapper after-manual check"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "SWTITLECONVERTNEXT를 대신 실행하지 않고" -Label "Manual session wrapper no-convert guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle 'CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있으므로' -Label "Manual session wrapper pasteclip warning"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "GMTITLE 창을 클릭하지 않고" -Label "Manual session wrapper no-click guard"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "Wait-ForGstarCADToClose" -Label "Manual session wrapper waits for close"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "Assert-GstarCADRunningBeforeManualStep" -Label "Manual session wrapper requires visible CAD before wait"
@@ -492,6 +494,7 @@ Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "필수 옵션: Fr
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "CAD 명령 순서:" -Label "Manual session wrapper CAD command order summary"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "GMTITLE 창: 위 용지/제목블록/옵션만 확인하세요." -Label "Manual session wrapper compact dialog scope"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "금지: GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요." -Label "Manual session wrapper compact raw-command guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle '금지: 긴 명령/경로를 자동 입력하거나 붙여넣지 마세요. CAD가 `_pasteclip` 삽입으로 해석할 수 있습니다.' -Label "Manual session wrapper compact pasteclip guard"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "배치점: 긴 좌표를 직접 치지 말고 자동 입력을 기다리세요." -Label "Manual session wrapper compact placement guard"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "처리 후: 작업복사본을 저장하고 GstarCAD를 닫으세요." -Label "Manual session wrapper compact after-step guard"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "PreflightOnly" -Label "Manual session wrapper preflight-only option"
@@ -525,7 +528,10 @@ Assert-Contains -Text $nextCadActionRunnerText -Needle "Write-SuiteLastRunSummar
 Assert-Contains -Text $nextCadActionRunnerText -Needle "최근 hidden suite 요약:" -Label "Next CAD action suite summary heading"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "main56_verification_suite_last_run.txt" -Label "Next CAD action suite summary path"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "Get-GitHeadCommitTimeUtc" -Label "Next CAD action head commit time helper"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Test-GitWorkingTreeDirty" -Label "Next CAD action dirty worktree helper"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "suite 로그가 현재 커밋보다 오래됨" -Label "Next CAD action stale suite flag"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "현재 작업트리 변경 있음" -Label "Next CAD action dirty worktree flag"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "미커밋 변경분까지 검증한 증거가 아닙니다" -Label "Next CAD action dirty suite meaning"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "과거 guard 증거로만 봅니다" -Label "Next CAD action stale suite meaning"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "자동화/guard 검증은 통과했습니다" -Label "Next CAD action suite pass meaning"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "suite가 최종 PASS 전에 멈췄습니다" -Label "Next CAD action suite failure meaning"
@@ -546,6 +552,7 @@ Assert-Contains -Text $nextCadActionRunnerText -Needle "helper는 기본적으�
 Assert-Contains -Text $nextCadActionRunnerText -Needle "정상 버전:" -Label "Next CAD action expected loaded version guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLESTATUS  (현재 열린 DWG와 다음 상태 확인)" -Label "Next CAD action visible-CAD status preflight"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다" -Label "Next CAD action Korean Computer Use limitation wording"
+Assert-Contains -Text $nextCadActionRunnerText -Needle 'CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있습니다' -Label "Next CAD action pasteclip warning"
 Assert-Contains -Text $computerUseHistoryText -Needle "failed to activate captured window" -Label "Computer Use activation failure history"
 Assert-Contains -Text $computerUseHistoryText -Needle "Do not repeat the same visible-CAD Computer Use click/type attempt as a default path" -Label "Computer Use no-repeat guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "용지/도면틀:" -Label "Next CAD action Korean dialog paper guidance"
@@ -743,6 +750,8 @@ Assert-Contains -Text $goalStatusText -Needle "Hidden verification suite last ru
 Assert-Contains -Text $goalStatusText -Needle "main56_verification_suite_last_run.txt" -Label "Goal status hidden suite summary path"
 Assert-Contains -Text $goalStatusText -Needle "Commit time:" -Label "Goal status commit time output"
 Assert-Contains -Text $goalStatusText -Needle "Suite log older than current commit" -Label "Goal status stale suite flag"
+Assert-Contains -Text $goalStatusText -Needle "Working tree: dirty" -Label "Goal status dirty worktree output"
+Assert-Contains -Text $goalStatusText -Needle "current uncommitted changes" -Label "Goal status dirty suite meaning"
 Assert-Contains -Text $goalStatusText -Needle "historical guard evidence until /b smoke passes" -Label "Goal status stale suite meaning"
 Assert-Contains -Text $goalStatusText -Needle "automation/guard probes passed; this is not proof that the real work DWG finished conversion" -Label "Goal status hidden suite pass boundary"
 Assert-Contains -Text $goalStatusText -Needle "the suite stopped before final PASS" -Label "Goal status hidden suite failure boundary"
@@ -776,6 +785,7 @@ Assert-Contains -Text $runCardText -Needle "## 자동화 경계" -Label "Run car
 Assert-Contains -Text $runCardText -Needle "LSP가 자동 처리:" -Label "Run card LSP automation scope"
 Assert-Contains -Text $runCardText -Needle "사람이 확인:" -Label "Run card human GMTITLE scope"
 Assert-Contains -Text $runCardText -Needle "GMTITLE 창 선택까지 완전 자동으로 켜지 않는 이유" -Label "Run card no unsafe full automation reason"
+Assert-Contains -Text $runCardText -Needle 'CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있습니다' -Label "Run card Computer Use pasteclip warning"
 Assert-Contains -Text $runCardText -Needle "GMTITLE 배치점 원칙" -Label "Run card GMTITLE placement principle"
 Assert-Contains -Text $runCardText -Needle '`SWTITLECONVERTNEXT` 또는 수동 `SWTITLECONVERT`를 통해 GMTITLE 창을 열었을 때는 긴 좌표를 사람이 직접 치지 않습니다' -Label "Run card convert-next placement wording"
 Assert-Contains -Text $runCardText -Needle '`SWTITLECONVERTNEXT`/`SWTITLECONVERT`가 GMTITLE 호출, 왼쪽 아래 배치점 자동 전송, 값 복사, 이전 원본 정리를 묶어서 처리합니다' -Label "Run card convert-next integrated flow wording"

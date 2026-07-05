@@ -93,6 +93,17 @@ function Get-GitHeadCommitTimeUtc {
   }
 }
 
+function Test-GitWorkingTreeDirty {
+  param([string]$RepoRoot)
+
+  try {
+    $status = & git -C $RepoRoot status --short 2>$null
+    return (-not [string]::IsNullOrWhiteSpace(($status | Out-String)))
+  } catch {
+    return $false
+  }
+}
+
 function Get-CountFromProbeSection {
   param(
     [string]$Text,
@@ -234,6 +245,7 @@ function Write-SuiteLastRunSummary {
   $failureCommand = Get-FirstRegexValue -Text $suiteText -Pattern "^Failure command:\s*(.+)$"
   $item = Get-Item -LiteralPath $suiteLog
   $headCommitTimeUtc = Get-GitHeadCommitTimeUtc -RepoRoot $displayRepoRoot
+  $workingTreeDirty = Test-GitWorkingTreeDirty -RepoRoot $displayRepoRoot
 
   Write-Output ("  로그: {0}" -f $suiteLog)
   if ($generated) { Write-Output ("  생성: {0}" -f $generated) }
@@ -242,11 +254,14 @@ function Write-SuiteLastRunSummary {
     Write-Output ("  현재 커밋 시간: {0}" -f $headCommitTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"))
     Write-Output ("  suite 로그가 현재 커밋보다 오래됨: {0}" -f ($(if ($suiteOlderThanHead) { "예" } else { "아니오" })))
   }
+  Write-Output ("  현재 작업트리 변경 있음: {0}" -f ($(if ($workingTreeDirty) { "예" } else { "아니오" })))
   Write-Output ("  결과: {0}" -f $result)
   if ($failure) { Write-Output ("  실패 원인: {0}" -f $failure) }
   if ($failureCommand) { Write-Output ("  실패 명령: {0}" -f $failureCommand) }
   if ($result -eq "PASS") {
-    if ($headCommitTimeUtc -and ($item.LastWriteTimeUtc -lt $headCommitTimeUtc.AddSeconds(-2))) {
+    if ($workingTreeDirty) {
+      Write-Output "  의미: 이 PASS는 현재 커밋 뒤의 미커밋 변경분까지 검증한 증거가 아닙니다. 현재 worktree 기준 suite를 다시 돌리기 전까지는 과거 guard 증거로만 봅니다."
+    } elseif ($headCommitTimeUtc -and ($item.LastWriteTimeUtc -lt $headCommitTimeUtc.AddSeconds(-2))) {
       Write-Output "  의미: 이 PASS는 현재 커밋보다 오래된 기록입니다. /b smoke가 통과하고 suite를 다시 돌리기 전까지는 과거 guard 증거로만 봅니다."
     } else {
       Write-Output "  의미: 자동화/guard 검증은 통과했습니다. 실제 work DWG 변환 완료 증거는 별도로 필요합니다."
@@ -577,6 +592,7 @@ function Write-StatusBasedAction {
       Write-ManualLoadStep
       Write-ConvertCommandStep
       Write-Output "  참고: 현재 PC에서는 Codex Computer Use가 GstarCAD 화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다."
+      Write-Output "  경고: 긴 명령/경로를 자동 입력하거나 붙여넣으면 CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있습니다. 실제 CAD 명령은 사용자가 직접 입력하세요."
       Write-AutomationBoundarySummary -Mode "FirstNative"
       Write-GmtitleDialogGuidance -FrameName ($(if ($FrameName) { $FrameName } else { "DR_A2_Outline" })) -TitleName ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" }))
       Write-ConvertPromptGuidance -Mode "FirstNative"

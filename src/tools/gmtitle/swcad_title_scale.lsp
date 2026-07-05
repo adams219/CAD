@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260706-convert-next-short-card")
+(setq *swcad-title-scale-version* "260706-convert-next-quoted-pause")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -11707,7 +11707,7 @@
         (setq guard 200)
       )
       (T
-        (command pause)
+        (command "\\")
       )
     )
     (setq guard (+ guard 1))
