@@ -214,12 +214,12 @@ function Write-GmtitleDialogGuidance {
   Write-Output "  Object move: OFF"
   Write-Output ""
   Write-Output "명령 경로 주의:"
-  Write-Output "  - CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요. SWTITLECONVERT가 GMTITLE 호출, 배치점 자동 전송, 값 복사/정리를 묶어서 처리합니다."
+  Write-Output "  - CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요. SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 GMTITLE 호출, 배치점 자동 전송, 값 복사/정리를 묶어서 처리합니다."
   Write-Output "  - SWTITLECONVERTNEXT는 같은 흐름에서 YES/OPEN 같은 반복 응답만 자동 선택합니다. GMTITLE 창의 DR 용지/제목블록/옵션 확인은 여전히 직접 해야 합니다."
   Write-Output "  - SWTITLECONVERT 안에서 물어보는 YES/OPEN/BATCH/MANUAL 응답과 CAD 일반 OPEN 명령은 다릅니다."
   Write-Output ""
   Write-Output "배치점 안내:"
-  Write-Output "  - 긴 좌표를 사람이 직접 치지 마세요. SWTITLECONVERT가 GMTITLE 창 뒤에 왼쪽 아래 배치점을 자동 전송합니다."
+  Write-Output "  - 긴 좌표를 사람이 직접 치지 마세요. SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 GMTITLE 창 뒤에 왼쪽 아래 배치점을 자동 전송합니다."
   Write-Output "  - 커서가 화면 중앙에 남아 보여도, 명령줄이 삽입점을 기다리는 상태면 잠시 기다렸다가 자동 입력을 확인하세요."
   Write-Output "  - 자동 입력 후에도 삽입점 입력이 남아 있으면 기존 원본 도면틀의 왼쪽 아래 끝점을 OSNAP으로 찍고, 객체/새 위치 프롬프트가 나오면 취소하세요."
 }
@@ -260,7 +260,7 @@ function Write-ManualSelectionForecast {
       if (($frameOnlyCount -as [int]) -gt 0 -or $hasA4Missing) {
         Write-Output ("  - A4 frame-only {0}장은 제목블록 생성 대상이 아닙니다. 검증된 DR_A4_Outline 도면틀-only 경로로 처리합니다." -f ($(if ($frameOnlyCount) { $frameOnlyCount } else { "해당" })))
       }
-      Write-Output "  - 좌표 입력, 값 복사, 기존 원본 정리는 SWTITLECONVERT가 자동 처리합니다."
+      Write-Output "  - 좌표 입력, 값 복사, 기존 원본 정리는 SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 자동 처리합니다."
       return
     }
     "^NEXT_CREATE_MISSING_NATIVE_EXEMPLAR$" {

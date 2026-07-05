@@ -142,7 +142,7 @@ Frame positioning: ON
 Object move: OFF
 ```
 
-CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력해서 우회하지 않습니다. `SWTITLECONVERT`가 GMTITLE 호출, 배치점 자동 전송, 값 복사/정리를 묶어서 처리합니다.
+CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력해서 우회하지 않습니다. `SWTITLECONVERTNEXT`/`SWTITLECONVERT`가 GMTITLE 호출, 배치점 자동 전송, 값 복사/정리를 묶어서 처리합니다.
 
 주의: 아래의 `OPEN`은 `SWTITLECONVERT`가 물어볼 때 답하는 응답입니다. CAD 일반 `OPEN` 명령을 뜻하지 않습니다.
 
@@ -162,7 +162,7 @@ OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복됨: MANUAL
 ```text
 SWTITLESTATUS가 겹친 GMTITLE target 쌍을 표시하면 SWTITLECONVERT를 반복하지 않습니다.
 먼저 SWTITLEPREPARE로 정리합니다.
-같은 위치에 기존 native GMTITLE 쌍이 있으면 SWTITLECONVERT가 새로 만들지 않고 그 쌍을 채택합니다.
+같은 위치에 기존 native GMTITLE 쌍이 있으면 SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 새로 만들지 않고 그 쌍을 채택합니다.
 DR_A3_Outline 안의 native-format title-like 형상은 그 자체만으로 삭제하지 않습니다.
 A3/A4 native 교체 후보가 남아 있으면 SWTITLESTATUS는 A4 frame-only보다 그 후보를 먼저 안내합니다.
 BATCH는 첫 후보부터 쓰지 말고, OPEN으로 후보 수가 줄어든 증거를 먼저 확인한 뒤 사용합니다.
