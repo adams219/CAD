@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$SourceWorkCopyPath,
 
   [switch]$SkipOpenWorkcopy,
@@ -122,7 +122,7 @@ function Invoke-ChildPowerShellCapture {
   $exitCode = $LASTEXITCODE
   $lines = @($rawOutput | ForEach-Object { $_.ToString() })
   if ($SuppressChildOutput) {
-    Write-Step ("{0} output suppressed by -Compact; short summary follows." -f $Label)
+    Write-Step ("{0} 출력은 -Compact 때문에 숨겼습니다. 아래 짧은 요약만 확인하세요." -f $Label)
   } else {
     foreach ($line in $lines) {
       Write-Step $line
@@ -171,14 +171,14 @@ function Write-InitialCardShortSummary {
   }
 
   Write-Step ""
-  Write-Step "Initial next-action short summary:"
-  if ($result) { Write-Step ("  Result: {0}" -f $result) }
-  if ($status) { Write-Step ("  Saved-DWG status: {0}" -f $status) }
-  if ($verify) { Write-Step ("  Verify status: {0}" -f $verify) }
-  if ($frame) { Write-Step ("  GMTITLE paper/frame to choose: {0}" -f $frame) }
-  if ($title) { Write-Step ("  GMTITLE title block to choose: {0}" -f $title) }
-  Write-Step "  Required options: Frame positioning ON, Object move OFF"
-  Write-Step "  CAD command order:"
+  Write-Step "처음 실행할 다음 작업 짧은 요약:"
+  if ($result) { Write-Step ("  결과 코드: {0}" -f $result) }
+  if ($status) { Write-Step ("  저장된 DWG 상태: {0}" -f $status) }
+  if ($verify) { Write-Step ("  검증 상태: {0}" -f $verify) }
+  if ($frame) { Write-Step ("  GMTITLE에서 고를 용지/도면틀: {0}" -f $frame) }
+  if ($title) { Write-Step ("  GMTITLE에서 고를 제목블록: {0}" -f $title) }
+  Write-Step "  필수 옵션: Frame positioning ON, Object move OFF"
+  Write-Step "  CAD 명령 순서:"
   Write-Step "    APPLOAD"
   Write-Step ("    {0}" -f (Join-Path $repoRoot "swcad_load.lsp"))
   Write-Step "    SWTITLEVERSION"
@@ -190,13 +190,13 @@ function Assert-ManualSessionConversionReady {
   param([string]$CardText)
 
   if ($CardText -match "(?m)^Result:\s*(READY_FOR_FIRST_NATIVE_GMTITLE|CREATE_MISSING_NATIVE_GMTITLE_SIZE|RUN_NATIVE_REPLACEMENT|RUN_REMAINING_CONVERSION)\s*$") {
-    Write-Step "Initial next-action card is conversion-ready for one visible GMTITLE step."
+    Write-Step "처음 다음 작업 카드는 visible CAD에서 GMTITLE 한 장을 처리할 준비가 된 상태입니다."
     return
   }
 
   Write-Step "Result: MANUAL_SESSION_NOT_CONVERSION_READY"
-  Write-Step "Reason: the refreshed next-action card does not ask for a visible GMTITLE conversion step."
-  Write-Step "Next: follow the Result and guidance in the card above instead of opening CAD through this session wrapper."
+  Write-Step "이유: 갱신된 다음 작업 카드가 visible CAD 변환 1단계를 요구하지 않습니다."
+  Write-Step "다음: 이 세션 래퍼로 CAD를 열지 말고, 위 카드의 Result와 안내를 따르세요."
   exit 1
 }
 
@@ -226,66 +226,66 @@ function Assert-GstarCADRunningBeforeManualStep {
   if ($existing.Count -eq 0) {
     if ($Context -eq "SkipOpenWorkcopy") {
       Write-Step "Result: SKIP_OPEN_NO_GSTARCAD"
-      Write-Step "Reason: -SkipOpenWorkcopy was used, but no running GstarCAD process was detected."
-      Write-Step "Next: open the work-copy in GstarCAD first, or run this session wrapper without -SkipOpenWorkcopy."
+      Write-Step "이유: -SkipOpenWorkcopy를 사용했지만 실행 중인 GstarCAD를 찾지 못했습니다."
+      Write-Step "다음: 먼저 GstarCAD에서 작업복사본을 열거나, -SkipOpenWorkcopy 없이 이 래퍼를 다시 실행하세요."
     } else {
       Write-Step "Result: GSTARCAD_CLOSED_BEFORE_MANUAL_STEP"
-      Write-Step "Reason: the visible open helper returned, but no running GstarCAD process was detected before the manual step."
-      Write-Step "Next: open the work-copy manually and run run_after_manual_gmtitle_step.ps1 after saving and closing, or rerun this wrapper."
+      Write-Step "이유: visible open helper가 끝났지만 수동 단계 전에 실행 중인 GstarCAD를 찾지 못했습니다."
+      Write-Step "다음: 작업복사본을 직접 열고 저장/닫기 뒤 run_after_manual_gmtitle_step.ps1를 실행하거나, 이 래퍼를 다시 실행하세요."
     }
     exit 1
   }
 
-  Write-Step ("Observed GstarCAD process before manual step: {0}" -f (($existing | ForEach-Object { $_.Id }) -join ", "))
+  Write-Step ("수동 단계 전에 확인된 GstarCAD 프로세스: {0}" -f (($existing | ForEach-Object { $_.Id }) -join ", "))
 }
 
-Write-Step "===== GMTITLE manual visible-CAD session ====="
-Write-Step ("Repo root: {0}" -f $repoRoot)
-Write-Step ("Source work copy: {0}" -f $SourceWorkCopyPath)
-Write-Step "Purpose: open the work-copy, let the user run one visible GMTITLE step, then wait for GstarCAD to close and refresh the next action card."
-Write-Step "Safety: this script does not run SWTITLECONVERTNEXT, does not click the GMTITLE dialog, and does not save the DWG."
-Write-Step "Preflight: unless skipped, this script refreshes the next-action card before opening visible CAD and stops if the saved DWG is not conversion-ready."
-Write-Step "PreflightOnly: use -PreflightOnly to print the current conversion-ready card and short GMTITLE selection summary without opening CAD."
-Write-Step "Compact: use -Compact to hide the long initial next-action card and show only the short summary."
-Write-Step "Manual CAD commands:"
+Write-Step "===== GMTITLE 수동 visible-CAD 세션 ====="
+Write-Step ("저장소 루트: {0}" -f $repoRoot)
+Write-Step ("대상 작업복사본: {0}" -f $SourceWorkCopyPath)
+Write-Step "목적: 작업복사본을 열고 사용자가 GMTITLE 한 장만 처리한 뒤, GstarCAD가 닫히면 다음 작업 카드를 다시 갱신합니다."
+Write-Step "안전: 이 스크립트는 SWTITLECONVERTNEXT를 대신 실행하지 않고, GMTITLE 창을 클릭하지 않고, DWG를 저장하지 않습니다."
+Write-Step "사전확인: 건너뛰지 않으면 visible CAD를 열기 전에 다음 작업 카드를 갱신하고, 저장된 DWG가 변환 가능한 상태가 아니면 멈춥니다."
+Write-Step "PreflightOnly: -PreflightOnly를 붙이면 CAD를 열지 않고 현재 변환 카드와 짧은 GMTITLE 선택 요약만 출력합니다."
+Write-Step "Compact: -Compact를 붙이면 긴 다음 작업 카드 본문은 숨기고 짧은 요약만 보여줍니다."
+Write-Step "CAD에서 입력할 명령:"
 Write-Step "  APPLOAD"
 Write-Step ("  {0}" -f (Join-Path $repoRoot "swcad_load.lsp"))
 Write-Step "  SWTITLEVERSION"
 Write-Step "  SWTITLESTATUS"
 Write-Step "  SWTITLECONVERTNEXT"
-Write-Step "After one GMTITLE step: save the work-copy DWG and close GstarCAD. This script will then run the after-manual check."
+Write-Step "GMTITLE 한 장을 끝낸 뒤: 작업복사본 DWG를 저장하고 GstarCAD를 닫으세요. 그 다음 이 스크립트가 후속 점검을 실행합니다."
 
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
   Write-Step "Result: BLOCKED_WORKCOPY_MISSING"
-  Write-Step ("Work-copy DWG not found: {0}" -f $SourceWorkCopyPath)
+  Write-Step ("작업복사본 DWG를 찾지 못했습니다: {0}" -f $SourceWorkCopyPath)
   exit 1
 }
 
 if ($DryRun) {
-  Write-Step "Dry run: visible GstarCAD is not launched and hidden probes are not run."
-  Write-Step "1. Unless -SkipInitialNextActionCard is used, run run_next_cad_action.ps1 -AutoRefreshDirectProbe and require a conversion-ready Result."
-  Write-Step "2. If -PreflightOnly is used, stop after the card and short GMTITLE selection summary."
-  Write-Step "3. If -Compact is used, suppress the long initial card body and print the short summary only."
-  Write-Step "4. Optionally run run_open_workcopy_for_manual_convert.ps1."
-  Write-Step "5. Wait for GstarCAD to close."
-  Write-Step "6. Run run_after_manual_gmtitle_step.ps1."
+  Write-Step "Dry run: visible GstarCAD를 실행하지 않고 hidden probe도 실행하지 않습니다."
+  Write-Step "1. -SkipInitialNextActionCard를 쓰지 않았다면 run_next_cad_action.ps1 -AutoRefreshDirectProbe로 변환 가능 Result를 확인합니다."
+  Write-Step "2. -PreflightOnly를 쓰면 카드와 짧은 GMTITLE 선택 요약만 보고 멈춥니다."
+  Write-Step "3. -Compact를 쓰면 긴 초기 카드 본문을 숨기고 짧은 요약만 출력합니다."
+  Write-Step "4. 필요하면 run_open_workcopy_for_manual_convert.ps1를 실행합니다."
+  Write-Step "5. GstarCAD가 닫힐 때까지 기다립니다."
+  Write-Step "6. run_after_manual_gmtitle_step.ps1를 실행합니다."
   Write-Step "Result: DRY_RUN_READY"
   exit 0
 }
 
 if ($PreflightOnly -and ($SkipInitialNextActionCard -or $SkipOpenWorkcopy)) {
   Write-Step "Result: PREFLIGHT_ONLY_REQUIRES_INITIAL_CARD"
-  Write-Step "Reason: -PreflightOnly is useful only when the initial next-action card can be refreshed."
-  Write-Step "Next: remove -SkipInitialNextActionCard and -SkipOpenWorkcopy, or run run_next_cad_action.ps1 directly."
+  Write-Step "이유: -PreflightOnly는 초기 다음 작업 카드를 갱신할 수 있을 때만 의미가 있습니다."
+  Write-Step "다음: -SkipInitialNextActionCard와 -SkipOpenWorkcopy를 빼거나, run_next_cad_action.ps1를 직접 실행하세요."
   exit 1
 }
 
 if ($SkipInitialNextActionCard) {
-  Write-Step "SkipInitialNextActionCard: not refreshing the saved-DWG next-action card before visible CAD."
-  Write-Step "Use this only when you already confirmed SWTITLESTATUS in the currently open work-copy."
+  Write-Step "SkipInitialNextActionCard: visible CAD 전에 저장된 DWG의 다음 작업 카드를 갱신하지 않습니다."
+  Write-Step "현재 열린 작업복사본에서 SWTITLESTATUS를 이미 확인했을 때만 사용하세요."
 } elseif ($SkipOpenWorkcopy) {
-  Write-Step "Initial next-action card skipped because -SkipOpenWorkcopy means a visible GstarCAD process should already be open."
-  Write-Step "Before converting, run SWTITLESTATUS in that visible CAD session and follow its current next action."
+  Write-Step "-SkipOpenWorkcopy는 visible GstarCAD가 이미 열려 있다는 뜻이므로 초기 다음 작업 카드를 건너뜁니다."
+  Write-Step "변환 전에 그 CAD 세션에서 SWTITLESTATUS를 실행하고 현재 다음 작업만 따르세요."
 } else {
   $cardArgs = @(
     "-SourceWorkCopyPath",
@@ -297,19 +297,19 @@ if ($SkipInitialNextActionCard) {
   $cardResult = Invoke-ChildPowerShellCapture `
     -ScriptPath (Join-Path $PSScriptRoot "run_next_cad_action.ps1") `
     -Arguments $cardArgs `
-    -Label "Initial next-action card" `
+    -Label "초기 다음 작업 카드" `
     -SuppressChildOutput:$Compact
 
   if ($cardResult.ExitCode -ne 0) {
     Write-Step "Result: INITIAL_NEXT_ACTION_CARD_FAILED"
-    Write-Step "Reason: could not refresh the saved-DWG next-action card before opening visible CAD."
+    Write-Step "이유: visible CAD를 열기 전에 저장된 DWG의 다음 작업 카드를 갱신하지 못했습니다."
     exit $cardResult.ExitCode
   }
   Write-InitialCardShortSummary -CardText $cardResult.Text
   Assert-ManualSessionConversionReady -CardText $cardResult.Text
   if ($PreflightOnly) {
     Write-Step "Result: MANUAL_SESSION_PREFLIGHT_READY"
-    Write-Step "Next: rerun this wrapper without -PreflightOnly to open visible CAD, or open the work-copy manually and follow the summary above."
+    Write-Step "다음: visible CAD를 열려면 -PreflightOnly 없이 이 래퍼를 다시 실행하거나, 작업복사본을 직접 열고 위 요약을 따르세요."
     exit 0
   }
 }
@@ -330,24 +330,24 @@ if (-not $SkipOpenWorkcopy) {
   $openExitCode = Invoke-ChildPowerShell `
     -ScriptPath (Join-Path $PSScriptRoot "run_open_workcopy_for_manual_convert.ps1") `
     -Arguments $openArgs `
-    -Label "Open work-copy for manual convert" `
+    -Label "수동 변환용 작업복사본 열기" `
     -AllowFailure
 
   if ($openExitCode -ne 0) {
-    Write-Step "Visible open helper did not complete successfully."
-    Write-Step "If you opened the work-copy manually, rerun this script with -SkipOpenWorkcopy after CAD is open, or close CAD and use run_after_manual_gmtitle_step.ps1."
+    Write-Step "Visible open helper가 정상 완료되지 않았습니다."
+    Write-Step "작업복사본을 직접 열었다면 CAD가 열린 뒤 -SkipOpenWorkcopy로 이 스크립트를 다시 실행하세요. 아니면 CAD를 닫고 run_after_manual_gmtitle_step.ps1를 사용하세요."
     exit $openExitCode
   }
 
   Assert-GstarCADRunningBeforeManualStep -Context "OpenHelper"
 } else {
-  Write-Step "SkipOpenWorkcopy: assuming GstarCAD is already open or will be opened manually."
+  Write-Step "SkipOpenWorkcopy: GstarCAD가 이미 열려 있거나 직접 열 예정이라고 보고 진행합니다."
   Assert-GstarCADRunningBeforeManualStep -Context "SkipOpenWorkcopy"
 }
 
 Write-Step ""
-Write-Step "Now finish one manual GMTITLE step in GstarCAD, save the DWG, and close GstarCAD."
-Write-Step "This script will wait and then refresh direct-probe evidence."
+Write-Step "이제 GstarCAD에서 GMTITLE 한 장만 처리하고, DWG를 저장한 뒤 GstarCAD를 닫으세요."
+Write-Step "이 스크립트는 기다렸다가 direct-probe 증거를 갱신합니다."
 
 if (-not (Wait-ForGstarCADToClose -TimeoutSeconds $WaitForGstarCADCloseTimeoutSeconds)) {
   exit 1
@@ -368,6 +368,6 @@ if ($SkipFinalCompletionGate) {
 Invoke-ChildPowerShell `
   -ScriptPath (Join-Path $PSScriptRoot "run_after_manual_gmtitle_step.ps1") `
   -Arguments $afterArgs `
-  -Label "After-manual GMTITLE step check"
+  -Label "수동 GMTITLE 한 장 처리 후 점검"
 
 Write-Step "Result: MANUAL_GMTITLE_SESSION_COMPLETE"
