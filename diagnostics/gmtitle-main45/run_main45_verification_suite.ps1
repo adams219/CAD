@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$SourceWorkCopyPath,
 
   [int]$TimeoutSeconds = 90,
@@ -250,8 +250,10 @@ $openWorkcopyDryRunText = ($openWorkcopyDryRunOutput -join "`n")
 $openWorkcopyDryRunOutput | Write-Output
 foreach ($pattern in @(
   "Result: DRY_RUN_READY",
-  "It does not run SWTITLECONVERTNEXT, does not open GMTITLE, and does not save the drawing.",
-  "Manual commands after the CAD window is ready:",
+  "이 helper는 SWTITLECONVERTNEXT를 실행하지 않고, GMTITLE 창을 열지 않고, 도면을 저장하지 않습니다.",
+  "CAD 창이 준비되면 GstarCAD 명령창에 아래 순서만 입력하세요:",
+  "필수 옵션: Frame positioning ON, Object move OFF",
+  "CAD 명령창에 GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요.",
   "SWTITLEVERSION",
   "SWTITLESTATUS",
   "SWTITLECONVERTNEXT"

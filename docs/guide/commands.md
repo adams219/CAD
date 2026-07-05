@@ -105,16 +105,16 @@ SWTITLEVERIFY     최종 검증 단계에서
 수동으로 GMTITLE 창에서 한 장을 처리한 뒤에는 작업복사본을 저장하고 GstarCAD를 닫은 다음, CAD 밖 PowerShell에서 아래 래퍼를 실행합니다.
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1
-```
-
-긴 next-action 카드 대신 다음 한 단계 요약만 보고 싶으면 `-Compact`를 붙입니다.
-
-```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1 -Compact
 ```
 
-이 래퍼는 DWG를 편집하지 않고 direct probe 갱신, 다음 작업 카드 출력, 필요 시 final completion gate 실행을 한 번에 묶습니다. 그래서 예전 로그를 보고 같은 `SWTITLECONVERTNEXT`를 반복하는 실수를 줄입니다.
+이 기본 명령은 긴 next-action 카드 대신 다음 한 단계 요약만 보여줍니다. 전체 카드가 필요할 때만 `-Compact`를 빼고 실행합니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1
+```
+
+이 래퍼는 DWG를 편집하지 않고 direct probe 갱신, 다음 한 단계 요약 출력, 필요 시 final completion gate 실행을 한 번에 묶습니다. 그래서 예전 로그를 보고 같은 `SWTITLECONVERTNEXT`를 반복하는 실수를 줄입니다.
 
 작업복사본 열기부터 한 장 처리 후 점검까지 한 번에 묶으려면 아래 세션 래퍼를 사용할 수 있습니다.
 
