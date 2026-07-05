@@ -107,6 +107,12 @@ Write-Output ("Source work copy: {0}" -f $SourceWorkCopyPath)
 Write-Output ("Current LSP compare copy: {0}" -f $compareLsp)
 Write-Output ""
 
+Write-Output "===== Preflight. Hidden /b script smoke probe ====="
+& (Join-Path $PSScriptRoot "run_hidden_script_smoke_probe.ps1") `
+  -SourceWorkCopyPath $SourceWorkCopyPath `
+  -TimeoutSeconds $TimeoutSeconds
+Write-Output ""
+
 $loaderLog = Join-Path $workDir "swtitle_loader_probe_main56_diagnostics.txt"
 $copyCompareLog = Join-Path $workDir "swtitle_lsp_copy_compare_current_main56.txt"
 $actualStatusLog = Join-Path $workDir "swtitle_actual_workcopy_status_main56_diagnostics.txt"

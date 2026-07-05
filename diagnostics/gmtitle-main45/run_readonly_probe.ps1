@@ -1,4 +1,4 @@
-param(
+﻿param(
   [Parameter(Mandatory = $true)]
   [string]$DwgPath,
 
@@ -54,6 +54,21 @@ $argumentList = @(
   "`"$ScriptPath`""
 )
 
+Write-Output ("GstarCAD DWG: {0}" -f $DwgPath)
+Write-Output ("GstarCAD script: {0}" -f $ScriptPath)
+Write-Output ("Expected log: {0}" -f $LogPath)
+Write-Output ("Completion pattern: {0}" -f $CompletionPattern)
+Write-Output ("Timeout seconds: {0}" -f $TimeoutSeconds)
+try {
+  $scriptPreview = Get-Content -LiteralPath $ScriptPath -TotalCount 3 -ErrorAction Stop
+  Write-Output "Script preview:"
+  foreach ($line in $scriptPreview) {
+    Write-Output ("  {0}" -f $line)
+  }
+} catch {
+  Write-Output ("Script preview unavailable: {0}" -f $_.Exception.Message)
+}
+
 $process = Start-Process -FilePath $gcad -ArgumentList $argumentList -WindowStyle Hidden -PassThru
 Write-Output ("Started GstarCAD PID: {0}" -f $process.Id)
 
@@ -72,6 +87,8 @@ while ((Get-Date) -lt $deadline) {
 
 if (-not $completed) {
   Write-Output "Runtime log was not completed before timeout."
+  Write-Output "Hidden /b script did not produce the expected completion pattern before the timeout."
+  Write-Output "If no log was created at all, GstarCAD likely started but did not execute the provided SCR file in this session."
 }
 
 if (-not $process.HasExited) {

@@ -503,6 +503,29 @@ function Write-A4FrameOnlyEvidenceSummary {
   }
 }
 
+function Write-HiddenScriptSmokeSummary {
+  param([string]$WorkDir)
+
+  $smokeLog = Join-Path $WorkDir "swtitle_hidden_script_smoke_probe.txt"
+  Write-Output "Hidden /b script smoke probe:"
+  if (-not (Test-Path -LiteralPath $smokeLog)) {
+    Write-Output "  Result: not proven or last run failed before log creation"
+    Write-Output "  Meaning: hidden CAD probes may be unavailable in this PC session; do not treat loader/probe missing logs as GMTITLE logic failures until the smoke probe passes."
+    Write-Output ("  Probe command: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $diagnosticsDir "run_hidden_script_smoke_probe.ps1"))
+    return
+  }
+
+  $item = Get-Item -LiteralPath $smokeLog
+  $text = Read-TextWithFallback -Path $smokeLog
+  Write-Output ("  Path: {0}" -f $smokeLog)
+  Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
+  if ($text -match "HIDDEN_SCRIPT_SMOKE_OK") {
+    Write-Output "  Result: PASS"
+  } else {
+    Write-Output "  Result: log exists but PASS marker is missing"
+  }
+}
+
 function Write-NativeFrameProgressSummary {
   param([string]$WorkDir)
 
@@ -597,6 +620,9 @@ if (Test-Path -LiteralPath $SourceWorkCopyPath) {
 }
 Write-Output ("Default work-copy: {0}" -f $SourceWorkCopyPath)
 Write-Output ("Default work-copy exists: {0}" -f $workCopyExists)
+
+Write-Output ""
+Write-HiddenScriptSmokeSummary -WorkDir (Join-Path $repoRoot "work")
 
 Write-Output ""
 Write-LatestCadLogSummary -WorkDir (Join-Path $repoRoot "work")

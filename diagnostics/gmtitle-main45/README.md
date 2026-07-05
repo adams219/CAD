@@ -550,6 +550,23 @@ Treat that as a strict incomplete result, not as a partial success. Use the prin
 
 When the automated evidence passes, completion is still not proven until the representative A2/A3 `DR_titlea_3rd` title blocks open the GMTITLE table editor on double-click. A4 frame-only sheets do not have a `DR_titlea_3rd` title block; confirm their `DR_A4_Outline` count and geometry through `SWTITLEVERIFY` instead.
 
+## Hidden Script Smoke Probe
+
+Use `run_hidden_script_smoke_probe.ps1` before trusting the hidden `/b` CAD probes. It opens a copied work DWG with a one-line AutoLISP script and verifies that GstarCAD actually executes the SCR file.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_hidden_script_smoke_probe.ps1"
+```
+
+Expected result:
+
+```text
+Hidden GstarCAD /b script smoke probe result: PASS
+```
+
+If this fails with no log, do not treat later loader/probe log-missing failures as GMTITLE logic failures. It means hidden `/b` script delivery is not working in the current PC session. Save and close visible GstarCAD, rerun with a longer `-TimeoutSeconds`, or continue the visible `SWTITLECONVERT` workflow and verify the real work-copy with `SWTITLESTATUS` / `SWTITLEVERIFY`.
+
 ## Loader Probe
 
 Use `run_loader_probe.ps1` to copy the current work DWG to a probe DWG, load `swcad_load.lsp`, and confirm the loader exposes the same main45 GMTITLE workflow.
