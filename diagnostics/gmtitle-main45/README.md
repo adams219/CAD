@@ -263,11 +263,26 @@ For the current saved baseline it should report:
 
 ```text
 Result: READY_FOR_FIRST_NATIVE_GMTITLE
-Paper/frame: DR_A2_Outline
-Title block: DR_titlea_3rd
+용지/도면틀: DR_A2_Outline
+제목블록: DR_titlea_3rd
 Frame positioning: ON
 Object move: OFF
-After conversion: SWTITLESTATUS
+변환/정리 후: SWTITLESTATUS
+```
+
+Use `run_next_cad_action_card_probe.ps1` to test the card state machine without launching GstarCAD or editing a DWG:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_next_cad_action_card_probe.ps1"
+```
+
+It checks representative status codes such as first-native creation, A4 prepare, A3/A4 native replacement, review/abort states, final OK, stale logs, and missing logs.
+
+Expected result:
+
+```text
+Next CAD action card probe result: PASS
 ```
 
 2026-07-05 visible-CAD Computer Use check:
