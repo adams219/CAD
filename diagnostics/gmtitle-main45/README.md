@@ -549,6 +549,8 @@ Next: run_next_cad_action.ps1
 
 Treat that as a strict incomplete result, not as a partial success. Use the printed next-action card command to return to the guided CAD workflow.
 
+The final completion gate uses a default timeout of 180 seconds. On this workstation, 90 seconds can occasionally start GstarCAD but miss the SCR completion log, which produces a log-missing failure instead of useful completion evidence.
+
 When the automated evidence passes, completion is still not proven until the representative A2/A3 `DR_titlea_3rd` title blocks open the GMTITLE table editor on double-click. A4 frame-only sheets do not have a `DR_titlea_3rd` title block; confirm their `DR_A4_Outline` count and geometry through `SWTITLEVERIFY` instead.
 
 ## GstarCAD /b Script Smoke Probe

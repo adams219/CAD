@@ -1,7 +1,7 @@
 ﻿param(
   [string]$SourceWorkCopyPath,
 
-  [int]$TimeoutSeconds = 90
+  [int]$TimeoutSeconds = 180
 )
 
 $ErrorActionPreference = "Stop"
