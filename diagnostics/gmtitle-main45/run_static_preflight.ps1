@@ -24,6 +24,7 @@ $actualDirectStatusRunnerPath = Join-Path $PSScriptRoot "run_actual_workcopy_dir
 $postFirstNativeProbePath = Join-Path $PSScriptRoot "post_first_native_transition_probe.lsp"
 $postFirstNativeRunnerPath = Join-Path $PSScriptRoot "run_post_first_native_transition_probe.ps1"
 $openWorkcopyRunnerPath = Join-Path $PSScriptRoot "run_open_workcopy_for_manual_convert.ps1"
+$manualGmtitleSessionRunnerPath = Join-Path $PSScriptRoot "run_manual_gmtitle_session.ps1"
 $nextCadActionRunnerPath = Join-Path $PSScriptRoot "run_next_cad_action.ps1"
 $afterManualGmtitleStepRunnerPath = Join-Path $PSScriptRoot "run_after_manual_gmtitle_step.ps1"
 $nextCadActionCardProbePath = Join-Path $PSScriptRoot "run_next_cad_action_card_probe.ps1"
@@ -220,6 +221,7 @@ $actualDirectStatusRunnerText = Read-Text $actualDirectStatusRunnerPath
 $postFirstNativeProbeText = Read-Text $postFirstNativeProbePath
 $postFirstNativeRunnerText = Read-Text $postFirstNativeRunnerPath
 $openWorkcopyRunnerText = Read-Text $openWorkcopyRunnerPath
+$manualGmtitleSessionRunnerText = Read-Text $manualGmtitleSessionRunnerPath
 $nextCadActionRunnerText = Read-Text $nextCadActionRunnerPath
 $afterManualGmtitleStepRunnerText = Read-Text $afterManualGmtitleStepRunnerPath
 $nextCadActionCardProbeText = Read-Text $nextCadActionCardProbePath
@@ -450,6 +452,13 @@ Assert-Contains -Text $openWorkcopyRunnerText -Needle "Stable visible GstarCAD w
 Assert-Contains -Text $openWorkcopyRunnerText -Needle "GSTARCAD_VISIBLE_WINDOW_NOT_STABLE_AFTER_CHECK" -Label "Open workcopy helper post-visible guard"
 Assert-Contains -Text $openWorkcopyRunnerText -Needle "Stopped unstable-window GstarCAD PID" -Label "Open workcopy helper unstable-window cleanup"
 Assert-Contains -Text $openWorkcopyRunnerText -Needle "Stopped non-visible GstarCAD PID" -Label "Open workcopy helper non-visible cleanup"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "run_open_workcopy_for_manual_convert.ps1" -Label "Manual session wrapper opens workcopy helper"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "run_after_manual_gmtitle_step.ps1" -Label "Manual session wrapper after-manual check"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "does not run SWTITLECONVERTNEXT" -Label "Manual session wrapper no-convert guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "does not click the GMTITLE dialog" -Label "Manual session wrapper no-click guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "Wait-ForGstarCADToClose" -Label "Manual session wrapper waits for close"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "MANUAL_GMTITLE_SESSION_COMPLETE" -Label "Manual session wrapper completion marker"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "DryRun" -Label "Manual session wrapper dry-run option"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "run_open_workcopy_for_manual_convert.ps1" -Label "Next CAD action open-workcopy helper"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "A3/A4 native 교체 후보 수" -Label "Next CAD action native-upgrade candidate output"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "현재 GMTITLE 쌍: 전체" -Label "Next CAD action target-pair forecast"
@@ -525,6 +534,8 @@ Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "DryRun" -Label 
 Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "[Console]::Out.WriteLine" -Label "After-manual wrapper screen output is not captured by return assignment"
 Assert-Contains -Text $readmeText -Needle "run_after_manual_gmtitle_step.ps1" -Label "README after-manual wrapper guidance"
 Assert-Contains -Text $readmeText -Needle "work\swtitle_after_manual_gmtitle_step_last.txt" -Label "README after-manual wrapper log path"
+Assert-Contains -Text $readmeText -Needle "run_manual_gmtitle_session.ps1" -Label "README manual session wrapper guidance"
+Assert-Contains -Text $readmeText -Needle 'does not run `SWTITLECONVERTNEXT`' -Label "README manual session no-convert guard"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "Next CAD action card probe result: PASS" -Label "Next CAD action card probe pass marker"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_CREATE_FIRST_NATIVE_GMTITLE" -Label "Next CAD action card probe first-native case"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" -Label "Next CAD action card probe prepare case"
@@ -729,6 +740,8 @@ Assert-Contains -Text $commandsGuideText -Needle "run_after_manual_gmtitle_step.
 Assert-Contains -Text $runCardText -Needle "run_after_manual_gmtitle_step.ps1" -Label "Run card after-manual wrapper command"
 Assert-Contains -Text $runCardText -Needle "work\swtitle_after_manual_gmtitle_step_last.txt" -Label "Run card after-manual wrapper log"
 Assert-Contains -Text $runCardText -Needle "작업복사본을 저장하고 GstarCAD를 닫은 상태" -Label "Run card after-manual saved-and-closed guard"
+Assert-Contains -Text $runCardText -Needle "run_manual_gmtitle_session.ps1" -Label "Run card manual session wrapper command"
+Assert-Contains -Text $runCardText -Needle '`SWTITLECONVERTNEXT`를 대신 실행하거나 GMTITLE 창을 클릭하지 않습니다' -Label "Run card manual session no-convert/no-click guard"
 Assert-Contains -Text $cadChecklistText -Needle "첫 native GMTITLE 기준 객체 생성: YES" -Label "CAD checklist convert YES prompt"
 Assert-Contains -Text $cadChecklistText -Needle "A3/A4 native 교체 1장 처리: OPEN" -Label "CAD checklist convert OPEN prompt"
 Assert-Contains -Text $cadChecklistText -Needle "BATCH는 OPEN으로 최소 1장 성공한 뒤" -Label "CAD checklist BATCH after OPEN guidance"

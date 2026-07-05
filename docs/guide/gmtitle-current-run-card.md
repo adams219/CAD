@@ -263,6 +263,14 @@ CAD를 닫을 준비를 하면서 기다리게 하려면:
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1 -WaitForGstarCADClose
 ```
 
+작업복사본 열기부터, 사용자가 한 장을 처리하고 CAD를 닫은 뒤 자동 점검까지 한 번에 묶고 싶으면 아래 세션 래퍼를 사용할 수 있습니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1
+```
+
+이 세션 래퍼도 `SWTITLECONVERTNEXT`를 대신 실행하거나 GMTITLE 창을 클릭하지 않습니다. 작업복사본을 열고, 사람이 CAD에서 한 장을 처리해 저장/닫기 할 때까지 기다린 뒤 `run_after_manual_gmtitle_step.ps1`를 이어서 실행합니다.
+
 CAD가 닫혀 있고 작업복사본을 여는 단계부터 줄이고 싶으면 아래 helper를 사용할 수 있습니다.
 
 ```powershell

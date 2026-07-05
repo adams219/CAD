@@ -354,6 +354,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 
 Use `-DryRun` to check the wrapper flow without launching hidden GstarCAD probes. Use `-SkipFinalCompletionGate` when you only want the refreshed next-action card, even if the card is near the final verification stage.
 
+### Manual GMTITLE Session Wrapper
+
+If you want one PowerShell command to open the work-copy, wait while you do one visible GMTITLE step, and then run the after-manual check automatically, use:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1"
+```
+
+The session wrapper opens the work-copy through `run_open_workcopy_for_manual_convert.ps1`, prints the manual CAD commands, waits for GstarCAD to close, and then runs `run_after_manual_gmtitle_step.ps1`. It does not run `SWTITLECONVERTNEXT`, does not click the GMTITLE dialog, and does not save the drawing.
+
+Use `-SkipOpenWorkcopy` if you already opened the work-copy yourself and only want the wait-and-check part. Use `-DryRun` to verify the wrapper sequence without launching visible GstarCAD.
+
 ## A4 Outline Prepare Probe
 
 Use `run_a4_outline_prepare_probe.ps1` to copy a work DWG, load the current GMTITLE LSP, and run the internal A4 frame-only `DR_A4_Outline` definition preflight on the copy.
