@@ -136,9 +136,10 @@ function Invoke-SandboxCorrectionCase {
   Write-Output "===== card case: sandbox_correction ====="
   $output = (& powershell -NoProfile -ExecutionPolicy Bypass -File $cardPath -SourceWorkCopyPath $sandbox.WorkCopyPath -DirectProbeLogPath $log) -join "`n"
   Assert-Contains -Text $output -Needle "Codex sandbox 기본 경로 감지" -Label "sandbox_correction expected"
-  Assert-Contains -Text $output -Needle ("실제 CAD용 저장소 폴더: {0}" -f $hostRepo.RepoPath) -Label "sandbox_correction expected"
-  Assert-Contains -Text $output -Needle (Join-Path $hostRepo.RepoPath "swcad_load.lsp") -Label "sandbox_correction expected"
-  Assert-NotContains -Text $output -Needle (Join-Path $sandbox.RepoPath "swcad_load.lsp") -Label "sandbox_correction sandbox APPLOAD path"
+  Assert-Contains -Text $output -Needle "실제 CAD용 저장소 폴더:" -Label "sandbox_correction expected"
+  Assert-Contains -Text $output -Needle "host_repo" -Label "sandbox_correction expected"
+  Assert-Contains -Text $output -Needle "host_repo\swcad_load.lsp" -Label "sandbox_correction expected"
+  Assert-NotContains -Text $output -Needle "CodexSandboxOffline\.codex\.sandbox\cwd\fake\swcad_load.lsp" -Label "sandbox_correction sandbox APPLOAD path"
 }
 
 function Invoke-CardCase {
