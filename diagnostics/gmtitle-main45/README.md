@@ -304,10 +304,10 @@ So this card intentionally says `수동 GstarCAD 단계`. Use Computer Use scree
 The card now interprets common saved status codes directly:
 
 ```text
-NEXT_CREATE_FIRST_NATIVE_GMTITLE / NEXT_CREATE_MISSING_NATIVE_EXEMPLAR -> SWTITLECONVERT
-NEXT_UPGRADE_A3_A4_NATIVE -> SWTITLECONVERT native replacement
+NEXT_CREATE_FIRST_NATIVE_GMTITLE / NEXT_CREATE_MISSING_NATIVE_EXEMPLAR -> SWTITLECONVERTNEXT, or SWTITLECONVERT only when choosing responses manually
+NEXT_UPGRADE_A3_A4_NATIVE -> SWTITLECONVERTNEXT native replacement, or SWTITLECONVERT only when choosing OPEN/BATCH/MANUAL manually
 NEXT_PREPARE_* -> SWTITLEPREPARE, then SWTITLESTATUS
-NEXT_REVIEW_* / ABORT_* / WARN_* -> do not repeat SWTITLECONVERT; inspect SWTITLESTATUS/SWTITLEVERIFY logs first
+NEXT_REVIEW_* / ABORT_* / WARN_* -> do not repeat SWTITLECONVERTNEXT/SWTITLECONVERT; inspect SWTITLESTATUS/SWTITLEVERIFY logs first
 SWTITLEVERIFY_FINAL_OK -> manual representative title-block double-click check
 ```
 

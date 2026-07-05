@@ -70,7 +70,7 @@ SWTITLEVERSION
 
 ## GMTITLE 배치점 원칙
 
-`SWTITLECONVERT`를 통해 GMTITLE 창을 열었을 때는 긴 좌표를 사람이 직접 치지 않습니다.
+`SWTITLECONVERTNEXT` 또는 수동 `SWTITLECONVERT`를 통해 GMTITLE 창을 열었을 때는 긴 좌표를 사람이 직접 치지 않습니다.
 
 ```text
 용지/도면틀과 제목블록을 고른 뒤 OK
@@ -78,11 +78,11 @@ Frame positioning: ON
 Object move: OFF
 ```
 
-CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력해서 우회하지 않습니다. `SWTITLECONVERT`가 GMTITLE 호출, 왼쪽 아래 배치점 자동 전송, 값 복사, 이전 원본 정리를 묶어서 처리합니다.
+CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력해서 우회하지 않습니다. `SWTITLECONVERTNEXT`/`SWTITLECONVERT`가 GMTITLE 호출, 왼쪽 아래 배치점 자동 전송, 값 복사, 이전 원본 정리를 묶어서 처리합니다.
 
 `SWTITLECONVERT` 안에서 물어보는 `YES`, `OPEN`, `BATCH`, `MANUAL` 응답은 CAD 일반 `OPEN` 명령과 다릅니다.
 
-그 다음 `SWTITLECONVERT`가 기존 원본 도면틀의 왼쪽 아래 배치점을 자동 전송합니다.
+그 다음 `SWTITLECONVERTNEXT`/`SWTITLECONVERT`가 기존 원본 도면틀의 왼쪽 아래 배치점을 자동 전송합니다.
 마우스 커서가 화면 중앙에 남아 보여도, 명령줄이 삽입점을 기다리는 상태라면 잠시 기다렸다가 자동 입력을 확인합니다.
 
 자동 입력 후에도 삽입점 입력이 남아 있으면 기존 원본 도면틀의 왼쪽 아래 끝점을 OSNAP으로 찍습니다.
