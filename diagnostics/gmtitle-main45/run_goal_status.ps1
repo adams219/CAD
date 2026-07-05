@@ -267,6 +267,9 @@ function Write-DirectActualWorkcopyProbeSummary {
   $firstNativeSelectionFound = Get-FirstRegexValue -Text $text -Pattern "^\s*first-native-selection-log-note-found:\s*(yes|no)"
   $nextFrame = Get-FirstRegexValue -Text $text -Pattern "^\s*next-bootstrap-frame:\s*(\S+)"
   $nextTitle = Get-FirstRegexValue -Text $text -Pattern "^\s*next-bootstrap-title:\s*(\S+)"
+  $nextMissingFrame = Get-FirstRegexValue -Text $text -Pattern "^\s*next-missing-native-frame:\s*(\S+)"
+  $nextMissingTitle = Get-FirstRegexValue -Text $text -Pattern "^\s*next-missing-native-title:\s*(\S+)"
+  $nextMissingRole = Get-FirstRegexValue -Text $text -Pattern "^\s*next-missing-native-role:\s*(\S+)"
   $sourceTitleCount = Get-FirstRegexValue -Text $text -Pattern "^\s*source-title-count:\s*(\d+)"
   $sourceFrameCount = Get-FirstRegexValue -Text $text -Pattern "^\s*source-frame-count:\s*(\d+)"
   $frameOnlyCount = Get-FirstRegexValue -Text $text -Pattern "^\s*frame-only-count:\s*(\d+)"
@@ -305,6 +308,9 @@ function Write-DirectActualWorkcopyProbeSummary {
   if ($targetFrameCount) { Write-Output ("  target-frame-count: {0}" -f $targetFrameCount) }
   if ($nextFrame) { Write-Output ("  next-bootstrap-frame: {0}" -f $nextFrame) }
   if ($nextTitle) { Write-Output ("  next-bootstrap-title: {0}" -f $nextTitle) }
+  if ($nextMissingFrame) { Write-Output ("  next-missing-native-frame: {0}" -f $nextMissingFrame) }
+  if ($nextMissingTitle) { Write-Output ("  next-missing-native-title: {0}" -f $nextMissingTitle) }
+  if ($nextMissingRole) { Write-Output ("  next-missing-native-role: {0}" -f $nextMissingRole) }
 
   if ($trusted) {
     $script:DirectWorkcopyProbeTrusted = $true

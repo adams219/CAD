@@ -148,7 +148,10 @@ function Invoke-CardCase {
     [string]$Status,
     [string[]]$Expected,
     [switch]$MakeStale,
-    [switch]$MissingLog
+    [switch]$MissingLog,
+    [string]$NextMissingFrame,
+    [string]$NextMissingTitle,
+    [string]$NextMissingRole
   )
 
   $dwg = New-FakeDwg -Name $Name
@@ -156,6 +159,15 @@ function Invoke-CardCase {
 
   if (-not $MissingLog) {
     Write-FakeLog -Path $log -DwgPath $dwg -Status $Status
+    if ($NextMissingFrame) {
+      Add-Content -LiteralPath $log -Encoding UTF8 -Value "next-missing-native-frame: $NextMissingFrame"
+    }
+    if ($NextMissingTitle) {
+      Add-Content -LiteralPath $log -Encoding UTF8 -Value "next-missing-native-title: $NextMissingTitle"
+    }
+    if ($NextMissingRole) {
+      Add-Content -LiteralPath $log -Encoding UTF8 -Value "next-missing-native-role: $NextMissingRole"
+    }
     if ($MakeStale) {
       (Get-Item -LiteralPath $log).LastWriteTime = (Get-Date).AddMinutes(-10)
       (Get-Item -LiteralPath $dwg).LastWriteTime = Get-Date
@@ -181,6 +193,14 @@ Invoke-CardCase `
   -Name "prepare_a4" `
   -Status "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" `
   -Expected @("Result: RUN_PREPARE_FIRST", "SWTITLEPREPARE")
+
+Invoke-CardCase `
+  -Name "missing_native" `
+  -Status "NEXT_CREATE_MISSING_NATIVE_EXEMPLAR" `
+  -NextMissingFrame "DR_A3_Outline" `
+  -NextMissingTitle "DR_titlea_3rd" `
+  -NextMissingRole "title-sheet" `
+  -Expected @("Result: CREATE_MISSING_NATIVE_GMTITLE_SIZE", "지금 필요한 확인: DR_A3_Outline / DR_titlea_3rd 1회", "처리 유형: title-sheet", "YES: 누락된 용지 크기의 첫 native GMTITLE 1장을 만듭니다.")
 
 Invoke-CardCase `
   -Name "native_upgrade" `

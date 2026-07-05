@@ -4346,6 +4346,44 @@
   )
 )
 
+(defun swcad-title-next-missing-native-selection-record (summary missing-required-native / frame-block sheet title-count frame-only-count role title-block)
+  (setq frame-block (swcad-title-next-fast-target-frame-block))
+  (if (and frame-block (not (member frame-block missing-required-native)))
+    (setq frame-block nil)
+  )
+  (if (not frame-block)
+    (setq frame-block (car missing-required-native))
+  )
+  (if frame-block
+    (progn
+      (setq sheet (swcad-title-sheet-size-from-block-name frame-block))
+      (setq title-count (swcad-title-summary-title-count-for-frame-block summary frame-block))
+      (setq frame-only-count (swcad-title-summary-frame-only-count-for-frame-block summary frame-block))
+      (setq role (if (> title-count 0) "title-sheet" (if (> frame-only-count 0) "frame-only" "unknown")))
+      (setq title-block (if (equal role "frame-only") "<none-frame-only>" (swcad-title-target-title-block-name)))
+      (list sheet frame-block title-block role)
+    )
+    nil
+  )
+)
+
+(defun swcad-title-print-next-missing-native-selection (summary missing-required-native / record sheet frame-block title-block role)
+  (setq record (swcad-title-next-missing-native-selection-record summary missing-required-native))
+  (if record
+    (progn
+      (setq sheet (car record))
+      (setq frame-block (cadr record))
+      (setq title-block (caddr record))
+      (setq role (cadddr record))
+      (swcad-title-princ-line "다음 누락 크기 native GMTITLE 선택:")
+      (swcad-title-princ-line (strcat "  원본 용지: " (if sheet sheet "<unknown>")))
+      (swcad-title-princ-line (strcat "  용지/도면틀: " (if frame-block frame-block "<unknown>")))
+      (swcad-title-princ-line (strcat "  제목블록: " (if title-block title-block "<unknown>")))
+      (swcad-title-princ-line (strcat "  처리 유형: " (if role role "<unknown>")))
+    )
+  )
+)
+
 (defun swcad-title-print-manual-gmtitle-forecast (summary expected-sheet-counts frame-only-count example-title a3a4-count missing-required-native / a2-count a3-count a4-count record frame-block title-block)
   (setq a2-count (swcad-title-count-value "A2" expected-sheet-counts))
   (setq a3-count (swcad-title-count-value "A3" expected-sheet-counts))
@@ -4390,9 +4428,21 @@
       )
     )
     (missing-required-native
+      (setq record (swcad-title-next-missing-native-selection-record summary missing-required-native))
+      (setq frame-block (if record (cadr record) (car missing-required-native)))
+      (setq title-block (if record (caddr record) (swcad-title-target-title-block-name)))
       (swcad-title-princ-line
         (strcat
-          "  - 지금 필요한 확인: 누락된 크기의 첫 native 기준 객체 "
+          "  - 지금 필요한 확인: "
+          (if frame-block frame-block "<unknown>")
+          " / "
+          (if title-block title-block "<unknown>")
+          " 1회"
+        )
+      )
+      (swcad-title-princ-line
+        (strcat
+          "  - 아직 없는 native 기준 객체: "
           (swcad-title-list-string missing-required-native)
         )
       )
@@ -4706,6 +4756,7 @@
         ((and missing-required-native (not (swcad-title-next-fast-target-ready-p)))
           (swcad-title-apply-result "NEXT_CREATE_MISSING_NATIVE_EXEMPLAR")
           (swcad-title-print-required-native-exemplars summary)
+          (swcad-title-print-next-missing-native-selection summary missing-required-native)
           (swcad-title-princ-line "다음: SWTITLECONVERTNEXT를 실행하세요. 가능한 경우 누락된 정확한 크기의 native GMTITLE 단계를 내부에서 안내합니다.")
           (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
         )

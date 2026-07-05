@@ -82,7 +82,7 @@
   )
 )
 
-(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count pair-records pair-count native-like-pair-count non-native-like-pair-count cloned-pair-count a3a4-native-upgrade-count orphan-target-frame-count duplicate-target-pair-count record bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note first-native-selection-log-note manual-forecast-log-note structure-log a4-deferred-note verify-summary-log verify-source-priority verify-a4-first)
+(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count pair-records pair-count native-like-pair-count non-native-like-pair-count cloned-pair-count a3a4-native-upgrade-count orphan-target-frame-count duplicate-target-pair-count record bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames missing-selection-record missing-selection-sheet missing-selection-frame missing-selection-title missing-selection-role first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note first-native-selection-log-note manual-forecast-log-note structure-log a4-deferred-note verify-summary-log verify-source-priority verify-a4-first)
   (setq load-result
     (vl-catch-all-apply
       'load
@@ -149,6 +149,11 @@
           (setq bootstrap-frame (if bootstrap-record (cadr bootstrap-record) "<none>"))
           (setq bootstrap-title (if bootstrap-record (caddr bootstrap-record) "<none>"))
           (setq missing-native-frames (swcad-title-missing-required-native-frame-blocks summary))
+          (setq missing-selection-record (swcad-title-next-missing-native-selection-record summary missing-native-frames))
+          (setq missing-selection-sheet (if missing-selection-record (car missing-selection-record) "<none>"))
+          (setq missing-selection-frame (if missing-selection-record (cadr missing-selection-record) "<none>"))
+          (setq missing-selection-title (if missing-selection-record (caddr missing-selection-record) "<none>"))
+          (setq missing-selection-role (if missing-selection-record (cadddr missing-selection-record) "<none>"))
           (setq first-native-guidance-ok
             (and
               (equal status-after-status "NEXT_CREATE_FIRST_NATIVE_GMTITLE")
@@ -262,6 +267,10 @@
           (swtitle-diag45-write-line handle (strcat "  next-bootstrap-source-sheet: " bootstrap-sheet))
           (swtitle-diag45-write-line handle (strcat "  next-bootstrap-frame: " bootstrap-frame))
           (swtitle-diag45-write-line handle (strcat "  next-bootstrap-title: " bootstrap-title))
+          (swtitle-diag45-write-line handle (strcat "  next-missing-native-source-sheet: " missing-selection-sheet))
+          (swtitle-diag45-write-line handle (strcat "  next-missing-native-frame: " missing-selection-frame))
+          (swtitle-diag45-write-line handle (strcat "  next-missing-native-title: " missing-selection-title))
+          (swtitle-diag45-write-line handle (strcat "  next-missing-native-role: " missing-selection-role))
           (if missing-native-frames
             (foreach frame-block missing-native-frames
               (swtitle-diag45-write-line handle (strcat "  missing-native-frame: " frame-block))

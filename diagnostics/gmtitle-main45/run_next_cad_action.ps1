@@ -239,6 +239,9 @@ function Write-ManualSelectionForecast {
   $expectedA3 = Get-CountFromProbeSection -Text $ProbeText -SectionLabel "expected-sheet-counts:" -Key "A3"
   $expectedA4 = Get-CountFromProbeSection -Text $ProbeText -SectionLabel "expected-sheet-counts:" -Key "A4"
   $missingFrames = @(Get-AllRegexValues -Text $ProbeText -Pattern "^\s*missing-native-frame:\s*(DR_A[0-4]_Outline)")
+  $nextMissingFrame = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*next-missing-native-frame:\s*(\S+)"
+  $nextMissingTitle = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*next-missing-native-title:\s*(\S+)"
+  $nextMissingRole = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*next-missing-native-role:\s*(\S+)"
   $hasA3Missing = $missingFrames -contains "DR_A3_Outline"
   $hasA4Missing = $missingFrames -contains "DR_A4_Outline"
   $targetPairCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*target-gmtitle-pair-count:\s*(\d+)"
@@ -265,7 +268,10 @@ function Write-ManualSelectionForecast {
       return
     }
     "^NEXT_CREATE_MISSING_NATIVE_EXEMPLAR$" {
-      Write-Output ("  - 지금 필요한 확인: {0} / {1} 1회" -f ($(if ($FrameName) { $FrameName } else { "SWTITLESTATUS가 요구한 DR 용지" })), ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" })))
+      Write-Output ("  - 지금 필요한 확인: {0} / {1} 1회" -f ($(if ($nextMissingFrame) { $nextMissingFrame } elseif ($FrameName) { $FrameName } else { "SWTITLESTATUS가 요구한 DR 용지" })), ($(if ($nextMissingTitle) { $nextMissingTitle } elseif ($TitleName) { $TitleName } else { "DR_titlea_3rd" })))
+      if ($nextMissingRole) {
+        Write-Output ("  - 처리 유형: {0}" -f $nextMissingRole)
+      }
       Write-Output "  - 이 크기의 기준 객체가 생긴 뒤 같은 크기 나머지는 자동/일괄 처리 후보가 됩니다."
       return
     }
@@ -571,6 +577,8 @@ while ($true) {
   $statusAfterVerify = Get-FirstRegexValue -Text $probeText -Pattern "^\s*status-after-verify:\s*(\S+)"
   $nextFrame = Get-FirstRegexValue -Text $probeText -Pattern "^\s*next-bootstrap-frame:\s*(\S+)"
   $nextTitle = Get-FirstRegexValue -Text $probeText -Pattern "^\s*next-bootstrap-title:\s*(\S+)"
+  $nextMissingFrame = Get-FirstRegexValue -Text $probeText -Pattern "^\s*next-missing-native-frame:\s*(\S+)"
+  $nextMissingTitle = Get-FirstRegexValue -Text $probeText -Pattern "^\s*next-missing-native-title:\s*(\S+)"
   $dbmodAfter = Get-FirstRegexValue -Text $probeText -Pattern "^\s*dbmod-after-commands:\s*(\d+)"
   $targetTitleCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*target-title-count:\s*(\d+)"
   $targetFrameCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*target-frame-count:\s*(\d+)"
@@ -655,6 +663,15 @@ if ($dbmodAfter -and $dbmodAfter -ne "0") {
   Write-Output "이유: 읽기 전용 direct probe 뒤 DBMOD가 0으로 끝나지 않았습니다."
   Write-Output "다음: 저장된 작업복사본 상태가 깨끗한지 확인하기 전에는 CAD 변환을 계속하지 마세요."
   exit 0
+}
+
+if ($statusAfterStatus -eq "NEXT_CREATE_MISSING_NATIVE_EXEMPLAR") {
+  if ($nextMissingFrame -and $nextMissingFrame -ne "<none>") {
+    $nextFrame = $nextMissingFrame
+  }
+  if ($nextMissingTitle -and $nextMissingTitle -ne "<none>") {
+    $nextTitle = $nextMissingTitle
+  }
 }
 
 Write-Output ""
