@@ -188,6 +188,10 @@ function Write-InitialCardShortSummary {
   Write-Step "    SWTITLEVERSION"
   Write-Step "    SWTITLESTATUS"
   Write-Step "    SWTITLECONVERTNEXT"
+  Write-Step "  GMTITLE 창: 위 용지/제목블록/옵션만 확인하세요."
+  Write-Step "  금지: GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요."
+  Write-Step "  배치점: 긴 좌표를 직접 치지 말고 자동 입력을 기다리세요."
+  Write-Step "  처리 후: 작업복사본을 저장하고 GstarCAD를 닫으세요."
 }
 
 function Assert-ManualSessionConversionReady {
