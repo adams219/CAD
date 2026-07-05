@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$SourceWorkCopyPath,
 
   [int]$TimeoutSeconds = 90,
@@ -87,6 +87,11 @@ if (-not $SourceWorkCopyPath) {
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
   throw "Source work-copy DWG not found: $SourceWorkCopyPath"
 }
+
+Write-Output "===== Preflight. Next CAD action card probe (no CAD) ====="
+& (Join-Path $PSScriptRoot "run_next_cad_action_card_probe.ps1")
+Write-Output ""
+
 Assert-NoExistingGstarCAD -Wait:$WaitForGstarCADClose -WaitTimeoutSeconds $WaitForGstarCADCloseTimeoutSeconds
 if (-not (Test-Path -LiteralPath $compareDir)) {
   New-Item -ItemType Directory -Path $compareDir | Out-Null

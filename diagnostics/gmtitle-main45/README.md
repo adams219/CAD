@@ -87,6 +87,8 @@ The runner now fails fast if another `gcad.exe` process is already open. In that
 
 Use `run_main45_verification_suite.ps1` to run the standard read-only checks in one command:
 
+Before the hidden GstarCAD probes, the suite now runs the no-CAD next-action card probe. This catches stale-log, missing-log, abort/warn, final-OK, first-native, prepare, and native-upgrade card regressions without opening or changing any DWG.
+
 1. loader probe
 2. current LSP compare-copy probe
 3. actual work-copy status/verify probe
@@ -133,6 +135,7 @@ The suite also fails before the first probe if `gcad.exe` is already running and
 The suite fails if expected log markers are missing. The checked markers include:
 
 ```text
+no-CAD next-action card probe PASS before hidden GstarCAD starts
 loaded main45 versions
 four workflow commands enabled
 representative legacy commands disabled
