@@ -507,11 +507,12 @@ function Write-HiddenScriptSmokeSummary {
   param([string]$WorkDir)
 
   $smokeLog = Join-Path $WorkDir "swtitle_hidden_script_smoke_probe.txt"
-  Write-Output "Hidden /b script smoke probe:"
+  Write-Output "GstarCAD /b script smoke probe:"
   if (-not (Test-Path -LiteralPath $smokeLog)) {
     Write-Output "  Result: not proven or last run failed before log creation"
-    Write-Output "  Meaning: hidden CAD probes may be unavailable in this PC session; do not treat loader/probe missing logs as GMTITLE logic failures until the smoke probe passes."
-    Write-Output ("  Probe command: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $diagnosticsDir "run_hidden_script_smoke_probe.ps1"))
+    Write-Output "  Meaning: GstarCAD /b probes may be unavailable with the current window style; do not treat loader/probe missing logs as GMTITLE logic failures until the smoke probe passes."
+    Write-Output "  Note: this workstation previously ran SCR scripts with WindowStyle=Minimized after WindowStyle=Hidden produced no log."
+    Write-Output ("  Probe command: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -WindowStyle Minimized" -f (Join-Path $diagnosticsDir "run_hidden_script_smoke_probe.ps1"))
     return
   }
 

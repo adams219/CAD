@@ -5,7 +5,10 @@
 
   [string]$LogPath,
 
-  [int]$TimeoutSeconds = 90
+  [int]$TimeoutSeconds = 90,
+
+  [ValidateSet("Hidden", "Minimized", "Normal", "Maximized")]
+  [string]$WindowStyle = "Minimized"
 )
 
 $ErrorActionPreference = "Stop"
@@ -33,38 +36,41 @@ if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
 Remove-Item -LiteralPath $LogPath -Force -ErrorAction SilentlyContinue
 
 $logForLisp = $LogPath.Replace("\", "/")
-$scriptText = "(setq h (open `"$logForLisp`" `"w`")) (if h (progn (write-line `"HIDDEN_SCRIPT_SMOKE_OK`" h) (close h)))"
+$scriptText = "(setq h (open `"$logForLisp`" `"w`")) (if h (progn (write-line `"HIDDEN_SCRIPT_SMOKE_OK`" h) (close h)))`r`n"
 [System.IO.File]::WriteAllText($ScriptPath, $scriptText, [System.Text.Encoding]::ASCII)
 
-Write-Output "===== Hidden GstarCAD /b script smoke probe ====="
+Write-Output "===== GstarCAD /b script smoke probe ====="
 Write-Output ("DWG: {0}" -f $SourceWorkCopyPath)
 Write-Output ("SCR: {0}" -f $ScriptPath)
 Write-Output ("LOG: {0}" -f $LogPath)
+Write-Output ("Window style: {0}" -f $WindowStyle)
 
 & (Join-Path $PSScriptRoot "run_readonly_probe.ps1") `
   -DwgPath $SourceWorkCopyPath `
   -ScriptPath $ScriptPath `
   -LogPath $LogPath `
   -CompletionPattern "HIDDEN_SCRIPT_SMOKE_OK" `
-  -TimeoutSeconds $TimeoutSeconds | Write-Output
+  -TimeoutSeconds $TimeoutSeconds `
+  -WindowStyle $WindowStyle | Write-Output
 
 if (-not (Test-Path -LiteralPath $LogPath)) {
   throw @"
-Hidden GstarCAD /b script smoke probe failed: no log was created.
+GstarCAD /b script smoke probe failed: no log was created.
 
-This means hidden verification probes cannot currently prove CAD behavior on this PC, even with a one-line AutoLISP script.
+This means GstarCAD /b verification probes cannot currently prove CAD behavior on this PC with WindowStyle=$WindowStyle, even with a one-line AutoLISP script.
 Do not interpret later loader/probe log-missing failures as GMTITLE logic failures until this smoke probe passes.
 
 Try:
 1. Save and close every visible GstarCAD window.
 2. Rerun this smoke probe with a longer -TimeoutSeconds value.
-3. If it still fails, continue the visible SWTITLECONVERT workflow and use SWTITLESTATUS/SWTITLEVERIFY logs from the real work-copy.
+3. If WindowStyle=Hidden fails with no log, rerun with -WindowStyle Minimized.
+4. If it still fails, continue the visible SWTITLECONVERT workflow and use SWTITLESTATUS/SWTITLEVERIFY logs from the real work-copy.
 "@
 }
 
 $text = Get-Content -LiteralPath $LogPath -Raw
 if ($text -notmatch "HIDDEN_SCRIPT_SMOKE_OK") {
-  throw "Hidden GstarCAD /b script smoke probe failed: log exists but does not contain HIDDEN_SCRIPT_SMOKE_OK."
+  throw "GstarCAD /b script smoke probe failed: log exists but does not contain HIDDEN_SCRIPT_SMOKE_OK."
 }
 
-Write-Output "Hidden GstarCAD /b script smoke probe result: PASS"
+Write-Output "GstarCAD /b script smoke probe result: PASS"

@@ -12,6 +12,9 @@
 
   [int]$TimeoutSeconds = 75,
 
+  [ValidateSet("Hidden", "Minimized", "Normal", "Maximized")]
+  [string]$WindowStyle = "Minimized",
+
   [switch]$AllowExistingGstarCAD
 )
 
@@ -35,8 +38,8 @@ if (($existingGstarCAD.Count -gt 0) -and (-not $AllowExistingGstarCAD)) {
     Format-Table -AutoSize |
     Out-String
   throw @"
-Existing GstarCAD process detected before hidden probe startup.
-Hidden /b probes are unreliable while a visible GstarCAD session is open because GstarCAD can route the script to the existing instance or wait behind an active command prompt.
+Existing GstarCAD process detected before GstarCAD /b probe startup.
+GstarCAD /b probes are unreliable while a visible GstarCAD session is open because GstarCAD can route the script to the existing instance or wait behind an active command prompt.
 
 Save the work-copy DWG, close GstarCAD, then rerun the probe.
 
@@ -59,6 +62,7 @@ Write-Output ("GstarCAD script: {0}" -f $ScriptPath)
 Write-Output ("Expected log: {0}" -f $LogPath)
 Write-Output ("Completion pattern: {0}" -f $CompletionPattern)
 Write-Output ("Timeout seconds: {0}" -f $TimeoutSeconds)
+Write-Output ("Window style: {0}" -f $WindowStyle)
 try {
   $scriptPreview = Get-Content -LiteralPath $ScriptPath -TotalCount 3 -ErrorAction Stop
   Write-Output "Script preview:"
@@ -69,7 +73,7 @@ try {
   Write-Output ("Script preview unavailable: {0}" -f $_.Exception.Message)
 }
 
-$process = Start-Process -FilePath $gcad -ArgumentList $argumentList -WindowStyle Hidden -PassThru
+$process = Start-Process -FilePath $gcad -ArgumentList $argumentList -WindowStyle $WindowStyle -PassThru
 Write-Output ("Started GstarCAD PID: {0}" -f $process.Id)
 
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -87,7 +91,7 @@ while ((Get-Date) -lt $deadline) {
 
 if (-not $completed) {
   Write-Output "Runtime log was not completed before timeout."
-  Write-Output "Hidden /b script did not produce the expected completion pattern before the timeout."
+  Write-Output ("GstarCAD /b script did not produce the expected completion pattern before the timeout. Window style: {0}" -f $WindowStyle)
   Write-Output "If no log was created at all, GstarCAD likely started but did not execute the provided SCR file in this session."
 }
 
@@ -104,7 +108,7 @@ if (-not $process.HasExited) {
   }
   $stillRunning = Get-Process -Id $process.Id -ErrorAction SilentlyContinue
   if ($stillRunning) {
-    throw "GstarCAD PID $($process.Id) did not exit after Stop-Process; aborting before starting another hidden probe."
+    throw "GstarCAD PID $($process.Id) did not exit after Stop-Process; aborting before starting another GstarCAD /b probe."
   }
 }
 

@@ -3,6 +3,9 @@
 
   [int]$TimeoutSeconds = 90,
 
+  [ValidateSet("Hidden", "Minimized", "Normal", "Maximized")]
+  [string]$ProbeWindowStyle = "Minimized",
+
   [switch]$WaitForGstarCADClose,
 
   [int]$WaitForGstarCADCloseTimeoutSeconds = 600
@@ -29,7 +32,7 @@ function Assert-NoExistingGstarCAD {
         Write-Output "No existing GstarCAD process detected. Continuing verification suite."
         return
       }
-      Write-Output ("Waiting for GstarCAD to close before hidden probes... active PID(s): {0}" -f (($existing | ForEach-Object { $_.Id }) -join ", "))
+      Write-Output ("Waiting for GstarCAD to close before GstarCAD /b probes... active PID(s): {0}" -f (($existing | ForEach-Object { $_.Id }) -join ", "))
       Start-Sleep -Seconds 5
     }
   }
@@ -42,7 +45,7 @@ function Assert-NoExistingGstarCAD {
       Out-String
     throw @"
 Existing GstarCAD process detected before the verification suite.
-The suite uses hidden /b probes, which are unreliable while a visible GstarCAD session is open.
+The suite uses GstarCAD /b probes, which are unreliable while a visible GstarCAD session is open.
 
 Save the work-copy DWG, close GstarCAD, then rerun:
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_main45_verification_suite.ps1
@@ -107,10 +110,11 @@ Write-Output ("Source work copy: {0}" -f $SourceWorkCopyPath)
 Write-Output ("Current LSP compare copy: {0}" -f $compareLsp)
 Write-Output ""
 
-Write-Output "===== Preflight. Hidden /b script smoke probe ====="
+Write-Output "===== Preflight. GstarCAD /b script smoke probe ====="
 & (Join-Path $PSScriptRoot "run_hidden_script_smoke_probe.ps1") `
   -SourceWorkCopyPath $SourceWorkCopyPath `
-  -TimeoutSeconds $TimeoutSeconds
+  -TimeoutSeconds $TimeoutSeconds `
+  -WindowStyle $ProbeWindowStyle
 Write-Output ""
 
 $loaderLog = Join-Path $workDir "swtitle_loader_probe_main56_diagnostics.txt"
