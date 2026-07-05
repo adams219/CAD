@@ -17,11 +17,48 @@ $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
 $workDir = Join-Path $repoRoot "work"
 $compareDir = Join-Path $workDir "lsp_compare"
 $suiteLastRunLog = Join-Path $workDir "main56_verification_suite_last_run.txt"
+$script:suiteLastRunInitialized = $false
+$script:suiteLastRunCompleted = $false
 
 function Write-SuiteLastRunLine {
   param([string]$Text)
 
   Add-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value $Text
+}
+
+function Set-SuiteLastRunFailure {
+  param([object]$ErrorRecord)
+
+  if ($script:suiteLastRunCompleted) {
+    return
+  }
+  if (-not $script:suiteLastRunInitialized) {
+    return
+  }
+  if (-not (Test-Path -LiteralPath $suiteLastRunLog)) {
+    return
+  }
+
+  $message = "<unknown>"
+  $line = $null
+  if ($ErrorRecord -and $ErrorRecord.Exception -and $ErrorRecord.Exception.Message) {
+    $message = (($ErrorRecord.Exception.Message -replace "\s+", " ").Trim())
+  }
+  if ($ErrorRecord -and $ErrorRecord.InvocationInfo -and $ErrorRecord.InvocationInfo.Line) {
+    $line = (($ErrorRecord.InvocationInfo.Line -replace "\s+", " ").Trim())
+  }
+
+  Write-SuiteLastRunLine ""
+  Write-SuiteLastRunLine "Result: FAILED_BEFORE_PASS"
+  Write-SuiteLastRunLine ("Failure: {0}" -f $message)
+  if ($line) {
+    Write-SuiteLastRunLine ("Failure command: {0}" -f $line)
+  }
+}
+
+trap {
+  Set-SuiteLastRunFailure -ErrorRecord $_
+  break
 }
 
 function Get-SuiteFirstRegexValue {
@@ -199,6 +236,7 @@ Set-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value @(
   ("Timeout seconds: {0}" -f $TimeoutSeconds),
   "Result: RUNNING_OR_FAILED_BEFORE_PASS"
 )
+$script:suiteLastRunInitialized = $true
 
 Write-Output "===== Preflight. Next CAD action card probe (no CAD) ====="
 & (Join-Path $PSScriptRoot "run_next_cad_action_card_probe.ps1")
@@ -794,4 +832,5 @@ Write-SuiteStatusSummary `
   -A4OutlineConvertLogPath $a4OutlineConvertLog `
   -A3StatusGuidanceLogPath $a3StatusGuidanceLog `
   -A3A4BatchGuardLogPath $a3a4BatchGuardLog
+$script:suiteLastRunCompleted = $true
 Write-Output ("Suite last-run summary: {0}" -f $suiteLastRunLog)

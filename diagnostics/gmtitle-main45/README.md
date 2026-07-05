@@ -140,7 +140,7 @@ The suite also refreshes a concise latest-run summary:
 work\main56_verification_suite_last_run.txt
 ```
 
-At suite start this file is reset to `Result: RUNNING_OR_FAILED_BEFORE_PASS`. Only a fully successful run rewrites it to `Result: PASS` and records the actual work-copy state, A4 frame-only evidence, and A3/A4 batch guard evidence. Treat this file as the quick current suite summary, but keep using the individual probe logs for detailed diagnosis.
+At suite start this file is reset to `Result: RUNNING_OR_FAILED_BEFORE_PASS`. If the suite stops before the final pass gate, it appends `Result: FAILED_BEFORE_PASS` plus the failure message/command. Only a fully successful run rewrites it to `Result: PASS` and records the actual work-copy state, A4 frame-only evidence, and A3/A4 batch guard evidence. Treat this file as the quick current suite summary, but keep using the individual probe logs for detailed diagnosis.
 
 The suite also fails before the first probe if `gcad.exe` is already running and `-WaitForGstarCADClose` is not used. Save the work-copy DWG and close GstarCAD first, otherwise hidden `/b` probes can attach to the visible session and never create their log.
 
