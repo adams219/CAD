@@ -826,6 +826,8 @@ GMTITLE 창의 DR_A*_Outline / DR_titlea_3rd 선택까지 자동화할 수 있�
 PaperSet.ini/dat와 HKCU 설정에서 DR_A*_Outline / DR_titlea_3rd 기본 선택값을 고정하는 근거를 찾지 못했다.
 GstarCAD native 구조는 paperset.grx 같은 내부 Mechanical 모듈이 만드는 것으로 보이며, LISP 복사만으로 완전 재현되지 않는다.
 2026-07-05 확인에서는 FILEDIA=1, CMDDIA=1이어도 직접 GMTITLE 실행이 선택창 없이 삽입 지점 프롬프트로 들어갔다.
+리본 매크로 XML에는 `^C^Cimtitle`가 보였지만, 실제 CAD 명령줄에서 `IMTITLE`은 알 수 없는 명령이었다.
+`TIT` 짧은 명령은 `GMTITLE`과 같은 삽입점 프롬프트 흐름으로 들어갔다.
 ```
 
 따라서 직접 `GMTITLE`을 새 도면에서 실행해 `삽입 지점`만 보이는 상태는 A4 native 기준 객체 생성으로 인정하지 않는다.
@@ -907,6 +909,7 @@ SWTITLEPREPARE/SWTITLECONVERT가 현재 활성 DWG를 보여주며 ACTIVE를 요
 APPLOAD, SWTITLEVERSION, SWTITLESTATUS로 버전을 먼저 확인한다.
 GMTITLE 창 선택이 불확실하면 진행하지 않고 ESC로 중단한다.
 직접 GMTITLE 실행이 선택창 없이 삽입 지점만 묻는다면, A4 native 샘플 확보가 아니라 default 삽입 흐름으로 판단하고 취소한다.
+IMTITLE/TIT도 대체 자동화 경로로 쓰지 않는다. 현재 확인상 IMTITLE은 실행 불가, TIT는 GMTITLE 별칭이다.
 ```
 
 Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로그로 한다.

@@ -125,7 +125,7 @@ function Add-BinaryStringSummary {
   }
 
   $latin1 = [System.Text.Encoding]::GetEncoding(28591).GetString($bytes)
-  $patterns = "DR_[A-Za-z0-9_]+|DR[-_][A-Za-z0-9_]+|DR_titlea_3rd|DR_titlea|GMTITLE|PAPERSET|PaperSet|DrawWithBlock|TitleBlockTotalMass|TitleScale"
+  $patterns = "DR_[A-Za-z0-9_]+|DR[-_][A-Za-z0-9_]+|DR_titlea_3rd|DR_titlea|GMTITLE|GMSBLOCKE|HC_SBLOCKE|PAPERSET|PaperSet|DrawWithBlock|TitleBlockTotalMass|TitleScale|Frame|Object"
   $hits = [regex]::Matches($latin1, $patterns) |
     ForEach-Object { $_.Value } |
     Sort-Object -Unique
@@ -139,6 +139,85 @@ function Add-BinaryStringSummary {
   } else {
     Add-Line "ASCII markers: <none>"
   }
+  Add-Line
+}
+
+function Add-CuiCommandMapSummary {
+  param([string]$Path)
+
+  Add-Line "[CUI command translation map]"
+  Add-Line ("Path: {0}" -f $Path)
+  if (-not (Test-Path -LiteralPath $Path)) {
+    Add-Line "Status: missing"
+    Add-Line
+    return
+  }
+
+  try {
+    [xml]$xml = Read-TextWithFallback -Path $Path
+  } catch {
+    Add-Line ("Status: unreadable, skipped ({0})" -f $_.Exception.Message)
+    Add-Line
+    return
+  }
+
+  $gmtitleItems = @($xml.SelectNodes("//Item[*[@command='GMTITLE']]"))
+  if ($gmtitleItems.Count -gt 0) {
+    foreach ($item in $gmtitleItems) {
+      $ko = $item.SelectSingleNode("ko-kr")
+      $en = $item.SelectSingleNode("en-us")
+      Add-Line ("GMTITLE map: module={0}, top-command={1}, ko-command={2}, ko-name={3}, en-name={4}, short={5}, alt={6}" -f `
+        $item.module, $item.command, $ko.command, $ko.name, $en.name, $ko.short, $item.alt)
+      if ("$($item.command)" -match "(?i)imtitle") {
+        Add-Line "GMTITLE map note: the ribbon/menu macro uses IMTITLE before the localized GMTITLE command name."
+      }
+    }
+  } else {
+    Add-Line "GMTITLE map: <none>"
+  }
+
+  $sblockItems = @($xml.SelectNodes("//Item[@module='PAPERSET' and @command='HC_SBLOCKE']"))
+  if ($sblockItems.Count -gt 0) {
+    foreach ($item in $sblockItems) {
+      $ko = $item.SelectSingleNode("ko-kr")
+      Add-Line ("PAPERSET edit map: internal-command={0}, user-command={1}" -f $item.command, $ko.command)
+      Add-Line "PAPERSET edit map note: GMSBLOCKE is mapped to HC_SBLOCKE and appears related to super attribute block editing, not DR paper/title preselection."
+    }
+  } else {
+    Add-Line "PAPERSET edit map: <none>"
+  }
+
+  Add-Line
+}
+
+function Add-PaperSetLanguageSummary {
+  param([string]$Path)
+
+  Add-Line "[PAPERSET dialog language labels]"
+  Add-Line ("Path: {0}" -f $Path)
+  if (-not (Test-Path -LiteralPath $Path)) {
+    Add-Line "Status: missing"
+    Add-Line
+    return
+  }
+
+  try {
+    [xml]$xml = Read-TextWithFallback -Path $Path
+  } catch {
+    Add-Line ("Status: unreadable, skipped ({0})" -f $_.Exception.Message)
+    Add-Line
+    return
+  }
+
+  $dialogItems = @($xml.SelectNodes("//Module[@name='PAPERSET']/Catalog[@name='DIALOG']/Item"))
+  if ($dialogItems.Count -gt 0) {
+    foreach ($item in $dialogItems | Select-Object -First 3) {
+      Add-Line ("Label: en-us={0}, ko-kr={1}" -f $item.'en-us', $item.'ko-kr')
+    }
+  } else {
+    Add-Line "Labels: <none>"
+  }
+
   Add-Line
 }
 
@@ -231,6 +310,8 @@ $installRoot = "C:\Program Files\Gstarsoft\GstarCAD Mechanical 2024 Korean"
 Add-TextFileSummary -Label "Program PaperSet.ini" -Path (Join-Path $installRoot "MCADSetting\PaperSet.ini")
 Add-TextFileSummary -Label "Program PaperSet.dat" -Path (Join-Path $installRoot "MCADSetting\PaperSet.dat")
 Add-BinaryStringSummary -Label "Program PaperSet.grx ASCII string scan" -Path (Join-Path $installRoot "Professional\GRX8X64\PaperSet.grx")
+Add-CuiCommandMapSummary -Path (Join-Path $installRoot "Common\ImCuiTranslate.xml")
+Add-PaperSetLanguageSummary -Path (Join-Path $installRoot "Common\ImLanguage.xml")
 
 if ($env:APPDATA) {
   Add-TextFileSummary -Label "Roaming impro.ini" -Path (Join-Path $env:APPDATA "Gstarsoft\GstarMechStd\R24\ko-KR\Gcadm\MCADSetting\pro\impro.ini")
@@ -256,6 +337,7 @@ if ($selectionEvidence.Count -gt 0) {
   Add-Line "Result: GMTITLE_SELECTION_CONFIG_REVIEW_NEEDED"
 } else {
   Add-Line "  No active persistent DR_A*_Outline / DR_titlea_3rd preselection config was found in the checked locations."
+  Add-Line "  The CUI map exposes a ribbon/menu IMTITLE macro for the drawing title/border command, while GMSBLOCKE maps to PAPERSET super attribute block editing."
   Add-Line "  Direct GMTITLE may still reuse an internal/current command state and ask only for an insertion point."
   Add-Line "  Do not assume a scratch native A4 sample was created unless the saved DWG passes run_a4_native_exemplar_probe.ps1."
   Add-Line "Result: GMTITLE_SELECTION_CONFIG_NOT_FOUND"

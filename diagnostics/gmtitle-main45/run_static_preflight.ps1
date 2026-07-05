@@ -241,6 +241,7 @@ Assert-Contains -Text $a4NormProbeRunnerText -Needle "WaitForGstarCADClose" -Lab
 Assert-Contains -Text $a4NormProbeRunnerText -Needle "Get-LatestCadDwgFromNextStepLog" -Label "A4 normalization latest-DWG default"
 Assert-Contains -Text $selectionConfigProbeText -Needle "GMTITLE_SELECTION_CONFIG_NOT_FOUND" -Label "Selection config probe negative result"
 Assert-Contains -Text $selectionConfigProbeText -Needle "Direct GMTITLE may still reuse an internal/current command state" -Label "Selection config probe direct-GMTITLE warning"
+Assert-Contains -Text $selectionConfigProbeText -Needle "ribbon/menu IMTITLE macro" -Label "Selection config probe IMTITLE macro note"
 Assert-Contains -Text $goalStatusText -Needle "Write-NativeFrameProgressSummary" -Label "Goal status native-frame progress summary"
 Assert-Contains -Text $goalStatusText -Needle "A4 normalization decision" -Label "Goal status A4 normalization decision guidance"
 Assert-Contains -Text $goalStatusText -Needle "A4 investigation continuation" -Label "Goal status A4 nested probe continuation guidance"

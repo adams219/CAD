@@ -34,7 +34,16 @@ PaperSet.dat:
   A0/A1/A2/A3/A4 치수 목록은 있으나 DR_A*_Outline / DR_titlea_3rd 선택값 없음
 
 PaperSet.grx ASCII marker:
-  PaperSet, TitleBlockTotalMass, TitleScale 정도만 확인됨
+  Frame, Object, PaperSet, TitleBlockTotalMass, TitleScale 정도만 확인됨
+
+ImCuiTranslate.xml:
+  GMTITLE 표시 명령의 상위 매크로는 ^C^Cimtitle
+  ko-kr command는 GMTITLE, short는 TIT
+  PAPERSET 내부 HC_SBLOCKE는 GMSBLOCKE로 매핑됨
+
+ImLanguage.xml:
+  PAPERSET DIALOG 라벨은 Super Attribute Block Edit / 속성 블록 편집
+  따라서 GMSBLOCKE는 생성/용지 선택이 아니라 속성 블록 편집 계열로 보는 것이 맞음
 
 PAPERSET.GRX-66 registry key:
   현재 일반 조회에서는 키가 없었음
@@ -76,6 +85,25 @@ GMTITLE 창의 DR_A*_Outline / DR_titlea_3rd 기본 선택을 고정할 근거�
 3. production A4 frame-only에는 원본에 없던 DR_titlea_3rd 제목블록을 만들지 않는다.
 4. A4 raw bbox guard가 통과하기 전에는 기존 A4 원본 도면틀을 삭제하지 않는다.
 ```
+
+## 2026-07-05 CAD 명령줄 확인
+
+현재 열려 있던 scratch `Drawing1.dwg`에서 원본/작업복사본을 건드리지 않고 확인했다.
+
+```text
+IMTITLE:
+  결과: 알 수 없는 명령 "imtitle"
+  판단: XML 상위 매크로에 보이지만 현재 CAD 명령줄에서 실행 가능한 대체 경로가 아님
+
+TIT:
+  결과: GMTITLE과 같은 _UNDO 이후 삽입 지점 프롬프트로 들어감
+  판단: DR_A4_Outline 선택창을 여는 별도 경로가 아니라 GMTITLE 짧은 명령/별칭 계열
+
+ESC:
+  결과: 삽입 프리뷰/대기 상태 취소
+```
+
+따라서 현재 기준으로는 `GMTITLE`, `TIT`, `IMTITLE` 중 어느 것도 A4 native 샘플을 자동 확보하는 확실한 경로가 아니다.
 
 다음 유효한 조사 방향:
 
