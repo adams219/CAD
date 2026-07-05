@@ -36,7 +36,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260705-convert-next")
+(setq *swcad-title-scale-version* "260705-convert-next-a3a4-auto-open")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -16946,13 +16946,13 @@
       (swcad-title-princ-line "BATCH 중에도 각 GMTITLE 창에서 DR 용지/DR_titlea_3rd/옵션을 반드시 눈으로 확인하세요.")
       (swcad-title-princ-line "처리 후에는 SWTITLESTATUS를 다시 실행하세요. native 교체가 필요한 A3/A4 대상 쌍이 0이 될 때까지 진행합니다.")
       (setq answer
-        (getstring
-          T
-          "\n이 한 장의 GMTITLE 창을 열려면 OPEN, 수동 생성 후 마무리하려면 MANUAL, 여러 장을 이어서 처리하려면 BATCH, 안전하게 중단하려면 Enter를 누르세요: "
+        (or
+          (swcad-title-auto-next-answer "OPEN" "A3/A4 native 교체 후보 1장 처리")
+          (getstring
+            T
+            "\n이 한 장의 GMTITLE 창을 열려면 OPEN, 수동 생성 후 마무리하려면 MANUAL, 여러 장을 이어서 처리하려면 BATCH, 안전하게 중단하려면 Enter를 누르세요: "
+          )
         )
-      )
-      (if *swcad-title-convert-next-mode*
-        (setq answer (swcad-title-auto-next-answer "OPEN" "A3/A4 native 교체 후보 1장 처리"))
       )
       (cond
         ((= (strcase answer) "OPEN")
@@ -18191,7 +18191,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-convert-next")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-convert-next-a3a4-auto-open")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)

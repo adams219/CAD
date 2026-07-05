@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260705-convert-next",
+  [string]$ExpectedGmtitleVersion = "260705-convert-next-a3a4-auto-open",
 
   [string]$ExpectedLoaderVersion = "260705-4step-gmtitle-a4-outline-preflight"
 )
@@ -48,7 +48,7 @@ function Read-Text {
   if (-not (Test-Path -LiteralPath $Path)) {
     throw "Required file not found: $Path"
   }
-  [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $Path).Path)
+  [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $Path).Path, [System.Text.Encoding]::UTF8)
 }
 
 function Test-LispBalance {
@@ -260,8 +260,16 @@ Assert-Contains -Text $mainText -Needle "ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE" 
 Assert-Contains -Text $mainText -Needle "c:SWTITLECONVERTNEXT" -Label "SWTITLECONVERTNEXT public command"
 Assert-Contains -Text $mainText -Needle "*swcad-title-convert-next-mode*" -Label "SWTITLECONVERTNEXT auto-next mode flag"
 Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT auto response" -Label "SWTITLECONVERTNEXT auto response log"
-Assert-Contains -Text $mainText -Needle "A3/A4 native 교체 후보 1장 처리" -Label "SWTITLECONVERTNEXT native one-sheet default"
-Assert-Contains -Text $mainText -Needle "GMTITLE 창의 DR 용지/DR_titlea_3rd/Frame positioning ON/Object move OFF 확인은 계속 사람이 해야 합니다" -Label "SWTITLECONVERTNEXT visual GMTITLE confirmation guard"
+Assert-Contains -Text $mainText -Needle '(swcad-title-auto-next-answer "OPEN"' -Label "SWTITLECONVERTNEXT native one-sheet default"
+$a3a4NextStart = $mainText.IndexOf("(defun swcad-title-upgrade-native-a3a4-next")
+$a3a4AutoOpen = if ($a3a4NextStart -ge 0) { $mainText.IndexOf('(swcad-title-auto-next-answer "OPEN"', $a3a4NextStart) } else { -1 }
+$a3a4Prompt = if ($a3a4NextStart -ge 0) { $mainText.IndexOf("(getstring", $a3a4NextStart) } else { -1 }
+if (($a3a4NextStart -ge 0) -and ($a3a4AutoOpen -gt $a3a4NextStart) -and ($a3a4Prompt -gt $a3a4AutoOpen)) {
+  Write-Output "SWTITLECONVERTNEXT A3/A4 OPEN before prompt: found"
+} else {
+  Add-Failure "SWTITLECONVERTNEXT A3/A4 OPEN auto response must be checked before getstring prompt"
+}
+Assert-Contains -Text $mainText -Needle "DR_titlea_3rd/Frame positioning ON/Object move OFF" -Label "SWTITLECONVERTNEXT visual GMTITLE confirmation guard"
 Assert-Contains -Text $suiteText -Needle "A4 outline native outside marker prepare probe" -Label "Suite A4 native outside marker prepare step"
 Assert-Contains -Text $suiteText -Needle "After definition status: ready-native-outside-markers" -Label "Suite A4 native outside marker prepare expectation"
 Assert-Contains -Text $suiteText -Needle "A4 outline frame-only convert probe" -Label "Suite A4 outline convert step"
