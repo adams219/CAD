@@ -37,7 +37,7 @@ if (-not $LogPath) {
   $LogPath = Join-Path $workDir "swtitle_after_manual_gmtitle_step_last.txt"
 }
 if ($RunFinalCompletionGate -and $SkipFinalCompletionGate) {
-  throw "Use either -RunFinalCompletionGate or -SkipFinalCompletionGate, not both."
+  throw "-RunFinalCompletionGate와 -SkipFinalCompletionGate는 동시에 사용할 수 없습니다."
 }
 
 $script:logLines = New-Object System.Collections.Generic.List[string]
@@ -93,10 +93,10 @@ function Invoke-ChildPowerShell {
 
   $powershellExe = Join-Path $PSHOME "powershell.exe"
   if (-not (Test-Path -LiteralPath $powershellExe)) {
-    throw "PowerShell executable not found: $powershellExe"
+    throw "PowerShell 실행 파일을 찾지 못했습니다: $powershellExe"
   }
   if (-not (Test-Path -LiteralPath $ScriptPath)) {
-    throw "Child script not found: $ScriptPath"
+    throw "하위 스크립트를 찾지 못했습니다: $ScriptPath"
   }
 
   $fullArgs = @(
@@ -210,10 +210,10 @@ function Assert-GstarCADClosed {
     while ((Get-Date) -lt $deadline) {
       $existing = @(Get-Process -Name gcad -ErrorAction SilentlyContinue)
       if ($existing.Count -eq 0) {
-        Write-Log "No running GstarCAD process detected. Continuing."
+        Write-Log "실행 중인 GstarCAD가 없습니다. 계속 진행합니다."
         return
       }
-      Write-Log ("Waiting for GstarCAD to close... active PID(s): {0}" -f (($existing | ForEach-Object { $_.Id }) -join ", "))
+      Write-Log ("GstarCAD가 닫히기를 기다리는 중입니다... 실행 중인 PID: {0}" -f (($existing | ForEach-Object { $_.Id }) -join ", "))
       Start-Sleep -Seconds 5
     }
   }
@@ -221,9 +221,9 @@ function Assert-GstarCADClosed {
   $existingGstarCAD = @(Get-Process -Name gcad -ErrorAction SilentlyContinue)
   if ($existingGstarCAD.Count -gt 0) {
     Write-Log "Result: CLOSE_GSTARCAD_FIRST"
-    Write-Log "Reason: this check launches hidden GstarCAD probes, so a visible GstarCAD session can make the saved DWG state unreliable."
-    Write-Log "Next: save the work-copy DWG, close GstarCAD, then rerun this command."
-    Write-Log "Alternative: rerun this command with -WaitForGstarCADClose, then save and close GstarCAD."
+    Write-Log "이유: 이 점검은 hidden GstarCAD probe를 실행하므로, visible GstarCAD가 열려 있으면 저장된 DWG 상태와 엇갈릴 수 있습니다."
+    Write-Log "다음: 작업복사본 DWG를 저장하고 GstarCAD를 닫은 뒤 이 명령을 다시 실행하세요."
+    Write-Log "대안: -WaitForGstarCADClose를 붙여 다시 실행한 뒤, GstarCAD를 저장하고 닫으세요."
     $details = $existingGstarCAD |
       Select-Object Id, ProcessName, MainWindowTitle, StartTime |
       Format-Table -AutoSize |
@@ -237,7 +237,7 @@ function Assert-GstarCADClosed {
     exit 1
   }
 
-  Write-Log "No running GstarCAD process detected. Continuing."
+  Write-Log "실행 중인 GstarCAD가 없습니다. 계속 진행합니다."
 }
 
 function Test-CardSuggestsFinalGate {
@@ -250,32 +250,32 @@ function Test-CardSuggestsFinalGate {
   )
 }
 
-Write-Log "===== GMTITLE after-manual-step check ====="
-Write-Log ("Repo root: {0}" -f $repoRoot)
-Write-Log ("Source work copy: {0}" -f $SourceWorkCopyPath)
-Write-Log ("Direct probe log: {0}" -f $DirectProbeLogPath)
-Write-Log ("After-manual log: {0}" -f $LogPath)
-Write-Log ("Direct probe timeout seconds: {0}" -f $AutoRefreshTimeoutSeconds)
-Write-Log ("Final completion gate timeout seconds: {0}" -f $FinalGateTimeoutSeconds)
-Write-Log "Purpose: after one visible GMTITLE step is saved and GstarCAD is closed, refresh the direct probe and print the next CAD action card."
-Write-Log "Safety: this wrapper does not edit the DWG."
+Write-Log "===== GMTITLE 수동 한 장 처리 후 점검 ====="
+Write-Log ("저장소 루트: {0}" -f $repoRoot)
+Write-Log ("대상 작업복사본: {0}" -f $SourceWorkCopyPath)
+Write-Log ("direct probe 로그: {0}" -f $DirectProbeLogPath)
+Write-Log ("후속 점검 로그: {0}" -f $LogPath)
+Write-Log ("direct probe 제한 시간(초): {0}" -f $AutoRefreshTimeoutSeconds)
+Write-Log ("final completion gate 제한 시간(초): {0}" -f $FinalGateTimeoutSeconds)
+Write-Log "목적: visible CAD에서 GMTITLE 한 장을 처리하고 저장/닫은 뒤, direct probe를 갱신하고 다음 CAD 작업을 안내합니다."
+Write-Log "안전: 이 래퍼는 DWG를 편집하지 않습니다."
 if ($Compact) {
-  Write-Log "Compact: long child output is kept in the log file, while the screen shows the next short action summary."
+  Write-Log "Compact: 긴 하위 출력은 로그 파일에 저장하고, 화면에는 다음 작업 짧은 요약만 보여줍니다."
 }
 
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
   Write-Log "Result: BLOCKED_WORKCOPY_MISSING"
-  Write-Log ("Work-copy DWG not found: {0}" -f $SourceWorkCopyPath)
+  Write-Log ("작업복사본 DWG를 찾지 못했습니다: {0}" -f $SourceWorkCopyPath)
   Save-Log
   exit 1
 }
 
 if ($DryRun) {
-  Write-Log "Dry run: hidden GstarCAD probes are not launched."
-  Write-Log "1. Confirm GstarCAD is closed."
-  Write-Log "2. Run run_next_cad_action.ps1 -AutoRefreshDirectProbe."
-  Write-Log "3. If the card indicates final verification, run run_final_completion_gate.ps1."
-  Write-Log "4. Use -Compact to hide the long child card on screen and print the next short action summary."
+  Write-Log "Dry run: hidden GstarCAD probe를 실행하지 않습니다."
+  Write-Log "1. GstarCAD가 닫혀 있는지 확인합니다."
+  Write-Log "2. run_next_cad_action.ps1 -AutoRefreshDirectProbe를 실행합니다."
+  Write-Log "3. 카드가 최종 검증 가능 상태를 가리키면 run_final_completion_gate.ps1를 실행합니다."
+  Write-Log "4. -Compact를 쓰면 긴 하위 카드는 화면에서 숨기고 다음 작업 짧은 요약만 출력합니다."
   Write-Log "Result: DRY_RUN_READY"
   Save-Log
   exit 0
@@ -307,7 +307,7 @@ $shouldRunFinalGate = $RunFinalCompletionGate -or ((-not $SkipFinalCompletionGat
 
 if ($shouldRunFinalGate) {
   Write-Log ""
-  Write-Log "The refreshed card indicates final verification may be ready, or -RunFinalCompletionGate was specified."
+  Write-Log "갱신된 카드가 최종 검증 가능 상태를 가리키거나 -RunFinalCompletionGate가 지정되었습니다."
   $gateArgs = @(
     "-SourceWorkCopyPath",
     $SourceWorkCopyPath,
@@ -326,15 +326,15 @@ if ($shouldRunFinalGate) {
 
   if ($gateResult.ExitCode -eq 0) {
     Write-Log "Result: AFTER_MANUAL_STEP_FINAL_GATE_PASSED"
-    Write-Log "Next: manually double-click representative A2/A3 DR_titlea_3rd title blocks and confirm the GMTITLE table editor opens."
+    Write-Log "다음: 대표 A2/A3 DR_titlea_3rd 제목블록을 직접 더블클릭해서 GMTITLE 표 편집창이 열리는지 확인하세요."
   } else {
     Write-Log "Result: AFTER_MANUAL_STEP_FINAL_GATE_NOT_PASSED"
-    Write-Log "Meaning: automated completion evidence is still missing. Continue from the final gate summary and next CAD action card above."
+    Write-Log "의미: 자동 완료 증거가 아직 부족합니다. 위 final gate 요약과 다음 CAD 작업 카드를 기준으로 계속 진행하세요."
   }
 } else {
   Write-Log "Result: AFTER_MANUAL_STEP_NEXT_ACTION_READY"
-  Write-Log "Meaning: the Result and guidance in the next CAD action card above are the next CAD steps. Do not repeat SWTITLECONVERTNEXT blindly."
+  Write-Log "의미: 위 짧은 요약의 결과 코드와 안내가 다음 CAD 단계입니다. SWTITLECONVERTNEXT를 무작정 반복하지 마세요."
 }
 
 Save-Log
-Write-Output ("Saved after-manual GMTITLE step log: {0}" -f $LogPath)
+Write-Output ("수동 GMTITLE 후속 점검 로그 저장: {0}" -f $LogPath)
