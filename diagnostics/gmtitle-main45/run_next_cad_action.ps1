@@ -618,6 +618,9 @@ while ($true) {
   if ($orphanTargetFrameCount) { Write-Output ("고아 GMTITLE 도면틀 수: {0}" -f $orphanTargetFrameCount) }
   if ($duplicateTargetPairCount) { Write-Output ("중복 GMTITLE 쌍 수: {0}" -f $duplicateTargetPairCount) }
   if ($dbmodAfter) { Write-Output ("Direct probe 뒤 DBMOD: {0}" -f $dbmodAfter) }
+  if ($AutoRefreshDirectProbe -and (-not $refreshAttempted) -and $trusted -and (-not $probeStale)) {
+    Write-Output "Direct probe 자동 갱신: 기존 로그가 대상 작업복사본과 일치하고 작업복사본보다 오래되지 않아 재사용합니다."
+  }
 
   if (-not $trusted) {
     if ($AutoRefreshDirectProbe -and (-not $refreshAttempted)) {

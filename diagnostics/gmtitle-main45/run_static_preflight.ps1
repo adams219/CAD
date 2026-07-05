@@ -348,6 +348,7 @@ Assert-Contains -Text $nextCadActionRunnerText -Needle "Direct probe 최신 상�
 Assert-Contains -Text $nextCadActionRunnerText -Needle "AutoRefreshDirectProbe" -Label "Next CAD action optional direct-probe auto refresh"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "AutoRefreshTimeoutSeconds = 180" -Label "Next CAD action direct-probe auto refresh timeout"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "AUTO_REFRESH_DIRECT_PROBE_FAILED" -Label "Next CAD action auto refresh failure guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "기존 로그가 대상 작업복사본과 일치하고 작업복사본보다 오래되지 않아 재사용합니다" -Label "Next CAD action auto refresh reuse explanation"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "예상 수동 GMTITLE 확인량" -Label "Next CAD action manual selection forecast"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "저장된 시트 수량" -Label "Next CAD action expected sheet count forecast"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "A4 frame-only {0}장은 제목블록 생성 대상이 아닙니다" -Label "Next CAD action A4 frame-only no-title forecast"
