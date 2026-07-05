@@ -27,7 +27,8 @@
 ;;; A3/A4 native-recheck or cloned GMTITLE pairs are normally handled through
 ;;; SWTITLECONVERTNEXT, one sheet at a time, so the GMTITLE dialog can be
 ;;; visually verified before the next sheet is touched. SWTITLECONVERT remains
-;;; the manual-response fallback.
+;;; the manual-response fallback. Use BATCH only after one OPEN pass proves the
+;;; candidate count decreases and the same DR frame/title/options repeat.
 ;;; Command-line -GMTITLE selection is disabled by default. Local CAD
 ;;; history showed it can choose ordinary ISO/A-series defaults instead
 ;;; of the required DR_A*_Outline + DR_titlea_3rd pair.
@@ -4597,6 +4598,12 @@
   )
 )
 
+(defun swcad-title-print-native-batch-safety-guidance ()
+  (swcad-title-princ-line "BATCH 안전 조건: 먼저 OPEN으로 1장을 성공시킨 뒤 SWTITLESTATUS/direct probe에서 후보 수가 줄었는지 확인하세요.")
+  (swcad-title-princ-line "BATCH 사용 시점: 남은 후보들이 같은 DR 용지/DR_titlea_3rd/Frame positioning ON/Object move OFF로 반복된다고 눈으로 확인될 때만 사용하세요.")
+  (swcad-title-princ-line "BATCH 금지 조건: 첫 후보부터 바로 BATCH를 쓰거나, GMTITLE 창이 ISO/일반 A3/A4 기본값이면 진행하지 마세요.")
+)
+
 (defun swcad-title-next-step (/ summary source-count frame-only-count source-frame-count contaminated definition-raw-risk-records definition-raw-risk-count example-title frame-records geometry-risk-count overlap-risk-count selection-risk-count target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records missing-target-sheets missing-required-native a3a4-records a3a4-count style-records style-count command-text-count next-frame-block)
   (swcad-title-open-next-step-log)
   (setq summary (swcad-title-fast-sheet-summary))
@@ -4839,6 +4846,7 @@
       (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
       (swcad-title-princ-line (strcat "현재 표시된 A3/A4 native 교체 후보는 " (itoa a3a4-count) "개입니다."))
       (swcad-title-princ-line "SWTITLECONVERTNEXT는 다음 후보 1장의 OPEN 응답을 자동 선택합니다. BATCH는 수동 SWTITLECONVERT에서만 직접 선택하세요.")
+      (swcad-title-print-native-batch-safety-guidance)
       (swcad-title-princ-line "BATCH를 써도 각 GMTITLE 창의 DR 용지/DR_titlea_3rd/Frame positioning ON/Object move OFF 확인은 사람이 해야 합니다.")
       (swcad-title-princ-line "이미 만들어진 A3/A4 GMTITLE 대상 쌍의 더블클릭 native 동작을 복구하는 단계입니다.")
       (if (> frame-only-count 0)
@@ -16175,6 +16183,7 @@
         )
       )
           (swcad-title-princ-line "일반 흐름은 SWTITLECONVERTNEXT를 사용하세요. 수동 응답을 직접 고를 때만 SWTITLECONVERT를 사용하세요.")
+          (swcad-title-print-native-batch-safety-guidance)
           (swcad-title-princ-line "GMTITLE 창에서는 출력된 DR_A*_Outline 용지와 DR_titlea_3rd 제목블록을 선택하세요.")
           (swcad-title-princ-line "필수 GMTITLE 옵션: Frame positioning=ON, Object move=OFF.")
           (swcad-title-princ-line "ISO 기본 용지/제목블록이면 확인하지 말고 취소한 뒤 다시 실행하세요.")
@@ -16373,6 +16382,7 @@
       (swcad-title-princ-line "다음 안전한 경로: SWTITLECONVERTNEXT를 실행하면 native 교체 단계로 들어갑니다.")
       (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
       (swcad-title-princ-line (strcat "SWTITLECONVERTNEXT는 현재 표시된 후보 " (itoa a3a4-total) "개 중 다음 1개를 처리한 뒤 상태 확인으로 돌아갑니다."))
+      (swcad-title-print-native-batch-safety-guidance)
       (swcad-title-princ-line "각 GMTITLE 창에서는 출력된 DR_A*_Outline 용지와 DR_titlea_3rd를 선택하고, Frame positioning은 ON, Object move는 OFF로 둔 뒤 확인하세요.")
       (swcad-title-princ-line "ISO A3/A4 또는 ISO 제목블록 기본값이면 확인하지 말고 취소한 뒤 다시 실행하세요.")
       (swcad-title-princ-line "특정 시트를 먼저 진단하려면 해당 제목블록 위치와 SWTITLEVERIFY 로그를 비교하세요.")
@@ -17083,6 +17093,7 @@
       )
       (swcad-title-princ-line "OPEN은 다음 후보 1장만 처리합니다. MANUAL은 자동 흐름이 GMTITLE 생성 객체를 놓칠 때 준비/마무리 방식으로 복구합니다.")
       (swcad-title-princ-line "BATCH는 수량을 입력받고 GMTITLE 창을 여러 번 이어서 열 수 있습니다.")
+      (swcad-title-print-native-batch-safety-guidance)
       (swcad-title-princ-line "BATCH 중에도 각 GMTITLE 창에서 DR 용지/DR_titlea_3rd/옵션을 반드시 눈으로 확인하세요.")
       (swcad-title-princ-line "처리 후에는 SWTITLESTATUS를 다시 실행하세요. native 교체가 필요한 A3/A4 대상 쌍이 0이 될 때까지 진행합니다.")
       (setq answer
