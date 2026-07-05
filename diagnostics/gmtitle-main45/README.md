@@ -56,7 +56,7 @@ Result: GMTITLE_SELECTION_CONFIG_NOT_FOUND
 
 This is a read-only config probe. It does not open CAD and does not touch any DWG. It also does not prove that native `GMTITLE` cannot be automated; it only records that the checked config/registry locations do not expose a reliable `DR_A*_Outline` / `DR_titlea_3rd` preselection value.
 
-It also records the command-map distinction discovered in the GstarCAD XML files: the ribbon/menu entry exposes an `IMTITLE` macro for the drawing title/border command, while `GMSBLOCKE` maps to the `PAPERSET` super attribute block editor rather than paper/title preselection. The 2026-07-05 scratch CAD check found `IMTITLE` is not an executable command in the current command line, and `TIT` falls back into the same insertion-point flow as `GMTITLE`.
+It also records the command-map distinction discovered in the GstarCAD XML files: the ribbon/menu entry exposes an `IMTITLE` macro for the drawing title/border command, while `GMSBLOCKE` maps to the `PAPERSET` super attribute block editor rather than paper/title preselection. The 2026-07-05 scratch CAD check found `IMTITLE` is not an executable command in the current command line, and `TIT` falls back into the same insertion-point flow as `GMTITLE`. A follow-up accessibility check on the visible GstarCAD ribbon did not expose a stable drawing-title/border element either, so screenshot-coordinate ribbon clicks are not accepted as automation evidence.
 
 Durable conclusion:
 

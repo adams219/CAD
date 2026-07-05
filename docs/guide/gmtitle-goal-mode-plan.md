@@ -821,6 +821,8 @@ GMTITLE 창의 DR_A*_Outline / DR_titlea_3rd 선택까지 자동화할 수 있�
 
 아직 기본값으로 켜지 않는 이유:
 
+<!-- RIBBON_ACCESSIBILITY_NOT_STABLE -->
+
 ```text
 과거 명령줄 -GMTITLE 자동 선택이 일반 A3/A4 또는 ISO 흐름으로 잘못 간 이력이 있다.
 PaperSet.ini/dat와 HKCU 설정에서 DR_A*_Outline / DR_titlea_3rd 기본 선택값을 고정하는 근거를 찾지 못했다.
@@ -828,6 +830,7 @@ GstarCAD native 구조는 paperset.grx 같은 내부 Mechanical 모듈이 만드
 2026-07-05 확인에서는 FILEDIA=1, CMDDIA=1이어도 직접 GMTITLE 실행이 선택창 없이 삽입 지점 프롬프트로 들어갔다.
 리본 매크로 XML에는 `^C^Cimtitle`가 보였지만, 실제 CAD 명령줄에서 `IMTITLE`은 알 수 없는 명령이었다.
 `TIT` 짧은 명령은 `GMTITLE`과 같은 삽입점 프롬프트 흐름으로 들어갔다.
+같은 scratch CAD 세션에서 리본 접근성 트리를 확인했지만 `도면 제목/경계`를 안정적으로 조작할 수 있는 요소가 노출되지 않았다.
 ```
 
 따라서 직접 `GMTITLE`을 새 도면에서 실행해 `삽입 지점`만 보이는 상태는 A4 native 기준 객체 생성으로 인정하지 않는다.
@@ -900,6 +903,7 @@ CAD 조작이 필요할 때도 아래 규칙을 지킨다.
 ```text
 전체화면/최대화 상태를 유지한다.
 스크린샷 좌표 클릭으로 DR 용지를 고르지 않는다.
+리본 접근성 이름이 잡히지 않는 상태에서 리본 버튼 좌표를 자동화 근거로 삼지 않는다.
 CAD 명령줄에는 붙여넣기보다 키 입력을 우선한다.
 _pasteclip 상태가 보이면 ESC로 빠져나온 뒤 다시 시작한다.
 긴 명령이나 파일 경로를 한 번에 붙여넣지 않는다. CAD가 이를 _pasteclip 삽입으로 해석할 수 있다.

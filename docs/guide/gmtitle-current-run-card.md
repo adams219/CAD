@@ -234,10 +234,13 @@ Object move: OFF
 
 금지:
 
+<!-- RIBBON_ACCESSIBILITY_NOT_STABLE -->
+
 ```text
 일반 A2/A3/A4 용지
 ISO 제목블록
 스크린샷 좌표 클릭
+리본 접근성/스크린샷 좌표로 DR 용지 자동 선택
 긴 소수점 좌표 수동 입력
 Object move ON
 ```
