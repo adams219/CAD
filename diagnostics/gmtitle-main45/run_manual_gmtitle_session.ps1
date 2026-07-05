@@ -374,6 +374,9 @@ $afterArgs = @(
 if ($SkipFinalCompletionGate) {
   $afterArgs += "-SkipFinalCompletionGate"
 }
+if ($Compact) {
+  $afterArgs += "-Compact"
+}
 
 Invoke-ChildPowerShell `
   -ScriptPath (Join-Path $PSScriptRoot "run_after_manual_gmtitle_step.ps1") `

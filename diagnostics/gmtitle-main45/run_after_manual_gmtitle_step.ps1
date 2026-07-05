@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$SourceWorkCopyPath,
 
   [string]$DirectProbeLogPath,
@@ -16,6 +16,8 @@ param(
   [switch]$RunFinalCompletionGate,
 
   [switch]$SkipFinalCompletionGate,
+
+  [switch]$Compact,
 
   [switch]$DryRun
 )
@@ -44,6 +46,12 @@ function Write-Log {
   param([AllowEmptyString()][string]$Message)
 
   [Console]::Out.WriteLine($Message)
+  [void]$script:logLines.Add($Message)
+}
+
+function Write-LogOnly {
+  param([AllowEmptyString()][string]$Message)
+
   [void]$script:logLines.Add($Message)
 }
 
@@ -78,6 +86,8 @@ function Invoke-ChildPowerShell {
     [Parameter(Mandatory = $true)]
     [string]$Label,
 
+    [switch]$SuppressChildOutput,
+
     [switch]$AllowFailure
   )
 
@@ -99,14 +109,26 @@ function Invoke-ChildPowerShell {
 
   Write-Log ""
   Write-Log ("----- {0} -----" -f $Label)
-  Write-Log ("Command: {0}" -f (Get-QuotedCommandPreview -Parts (@($powershellExe) + $fullArgs)))
+  if ($SuppressChildOutput) {
+    Write-Log "긴 PowerShell 실행 명령줄은 -Compact 때문에 화면에서 숨겼습니다. 전체 내용은 로그 파일에 저장합니다."
+    Write-LogOnly ("Command: {0}" -f (Get-QuotedCommandPreview -Parts (@($powershellExe) + $fullArgs)))
+  } else {
+    Write-Log ("Command: {0}" -f (Get-QuotedCommandPreview -Parts (@($powershellExe) + $fullArgs)))
+  }
 
   $rawOutput = & $powershellExe @fullArgs 2>&1
   $exitCode = $LASTEXITCODE
   $lines = @($rawOutput | ForEach-Object { $_.ToString() })
 
-  foreach ($line in $lines) {
-    Write-Log $line
+  if ($SuppressChildOutput) {
+    foreach ($line in $lines) {
+      Write-LogOnly $line
+    }
+    Write-Log ("{0} 출력은 -Compact 때문에 화면에서 숨겼습니다. 아래 짧은 요약만 확인하세요." -f $Label)
+  } else {
+    foreach ($line in $lines) {
+      Write-Log $line
+    }
   }
   Write-Log ("{0} exit code: {1}" -f $Label, $exitCode)
 
@@ -119,6 +141,60 @@ function Invoke-ChildPowerShell {
   return @{
     ExitCode = $exitCode
     Text = ($lines -join "`n")
+  }
+}
+
+function Get-FirstRegexValue {
+  param(
+    [string]$Text,
+    [string]$Pattern
+  )
+
+  $match = [regex]::Match($Text, $Pattern, [System.Text.RegularExpressions.RegexOptions]::Multiline)
+  if ($match.Success -and $match.Groups.Count -gt 1) {
+    return $match.Groups[1].Value.Trim()
+  }
+  return $null
+}
+
+function Write-AfterManualCardShortSummary {
+  param([string]$CardText)
+
+  $result = Get-FirstRegexValue -Text $CardText -Pattern "^Result:\s*(\S+)\s*$"
+  $status = Get-FirstRegexValue -Text $CardText -Pattern "^\s*SWTITLESTATUS:\s*(\S+)"
+  $verify = Get-FirstRegexValue -Text $CardText -Pattern "^\s*SWTITLEVERIFY:\s*(\S+)"
+  $frame = $null
+  $title = $null
+
+  $pairMatch = [regex]::Match($CardText, "\b(DR_A[1-4]_Outline)\s*/\s*(DR_titlea_3rd)\b", [System.Text.RegularExpressions.RegexOptions]::Multiline)
+  if ($pairMatch.Success) {
+    $frame = $pairMatch.Groups[1].Value.Trim()
+    $title = $pairMatch.Groups[2].Value.Trim()
+  }
+  if (-not $frame) {
+    $frame = Get-FirstRegexValue -Text $CardText -Pattern "\b(DR_A[1-4]_Outline)\b"
+  }
+  if (-not $title) {
+    $title = Get-FirstRegexValue -Text $CardText -Pattern "\b(DR_titlea_3rd)\b"
+  }
+
+  Write-Log ""
+  Write-Log "수동 GMTITLE 처리 후 다음 작업 짧은 요약:"
+  if ($result) { Write-Log ("  결과 코드: {0}" -f $result) }
+  if ($status) { Write-Log ("  저장된 DWG 상태: {0}" -f $status) }
+  if ($verify) { Write-Log ("  검증 상태: {0}" -f $verify) }
+  if ($frame) { Write-Log ("  다음 GMTITLE 용지/도면틀: {0}" -f $frame) }
+  if ($title) { Write-Log ("  다음 GMTITLE 제목블록: {0}" -f $title) }
+
+  if ($result -match "READY_FOR_FIRST_NATIVE_GMTITLE|CREATE_MISSING_NATIVE_GMTITLE_SIZE|RUN_NATIVE_REPLACEMENT|RUN_REMAINING_CONVERSION") {
+    Write-Log "  다음 CAD 명령: SWTITLESTATUS -> SWTITLECONVERTNEXT"
+    Write-Log "  필수 옵션: Frame positioning ON, Object move OFF"
+  } elseif ($result -match "RUN_PREPARE_FIRST") {
+    Write-Log "  다음 CAD 명령: SWTITLEPREPARE -> SWTITLESTATUS"
+  } elseif ($result -match "RUN_FINAL_VERIFY|READY_FOR_DOUBLE_CLICK_CHECK") {
+    Write-Log "  다음 CAD 명령: SWTITLEVERIFY, 그 뒤 대표 A2/A3 제목블록 더블클릭 확인"
+  } elseif ($result -match "VERIFY_NOT_FINAL|REVIEW_") {
+    Write-Log "  다음 CAD 명령: SWTITLESTATUS 또는 SWTITLEVERIFY 로그 확인"
   }
 }
 
@@ -183,6 +259,9 @@ Write-Log ("Direct probe timeout seconds: {0}" -f $AutoRefreshTimeoutSeconds)
 Write-Log ("Final completion gate timeout seconds: {0}" -f $FinalGateTimeoutSeconds)
 Write-Log "Purpose: after one visible GMTITLE step is saved and GstarCAD is closed, refresh the direct probe and print the next CAD action card."
 Write-Log "Safety: this wrapper does not edit the DWG."
+if ($Compact) {
+  Write-Log "Compact: long child output is kept in the log file, while the screen shows the next short action summary."
+}
 
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
   Write-Log "Result: BLOCKED_WORKCOPY_MISSING"
@@ -196,6 +275,7 @@ if ($DryRun) {
   Write-Log "1. Confirm GstarCAD is closed."
   Write-Log "2. Run run_next_cad_action.ps1 -AutoRefreshDirectProbe."
   Write-Log "3. If the card indicates final verification, run run_final_completion_gate.ps1."
+  Write-Log "4. Use -Compact to hide the long child card on screen and print the next short action summary."
   Write-Log "Result: DRY_RUN_READY"
   Save-Log
   exit 0
@@ -216,7 +296,12 @@ $nextArgs = @(
 $cardResult = Invoke-ChildPowerShell `
   -ScriptPath (Join-Path $PSScriptRoot "run_next_cad_action.ps1") `
   -Arguments $nextArgs `
-  -Label "Next CAD action card with direct-probe refresh"
+  -Label "Next CAD action card with direct-probe refresh" `
+  -SuppressChildOutput:$Compact
+
+if ($Compact) {
+  Write-AfterManualCardShortSummary -CardText $cardResult.Text
+}
 
 $shouldRunFinalGate = $RunFinalCompletionGate -or ((-not $SkipFinalCompletionGate) -and (Test-CardSuggestsFinalGate -Text $cardResult.Text))
 

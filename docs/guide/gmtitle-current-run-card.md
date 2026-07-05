@@ -255,6 +255,12 @@ CAD 화면 옆에서 다음 명령, GMTITLE 선택값, 즉시 중단 조건, 바
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1
 ```
 
+긴 카드 대신 다음 한 단계 요약만 보려면:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1 -Compact
+```
+
 이 명령은 DWG를 직접 편집하지 않습니다. 작업복사본을 저장하고 GstarCAD를 닫은 상태에서 direct probe를 갱신하고, 최신 증거로 다음 CAD 작업 카드를 다시 출력합니다. 카드가 최종 검증 단계라고 판단하면 `run_final_completion_gate.ps1`도 이어서 실행하고, 결과를 `work\swtitle_after_manual_gmtitle_step_last.txt`에 남깁니다.
 
 CAD를 닫을 준비를 하면서 기다리게 하려면:
