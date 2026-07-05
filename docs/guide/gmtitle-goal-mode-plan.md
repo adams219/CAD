@@ -208,7 +208,8 @@ DR_A3_Outline 도면틀은 native GMTITLE에서도 INSERT/block 참조로 선택
 설치 원본 DR_A4_Outline import:
   보이는 A4 effective bbox는 (0,0)-(210,297)
   실제 CAD raw selection bbox는 (0,0)-(872.26126377,302.7)
-  결과: WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE
+  과거 결과: WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE
+  현재 정책: 큰 raw bbox/선택 위험은 계속 중단하지만, native A4의 작은 바깥 마커는 ready-native-outside-markers로 허용
 
 A4 definition normalization probe:
   none: unsafe
@@ -283,7 +284,18 @@ nested-direct-outside probe:
   clean scratch 결과는 work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt 전용 로그로 보존한다.
   native GMTITLE 쌍은 맞지만 공식 A4 정의 자체에 작은 바깥 선/텍스트가 있다는 뜻이다.
   따라서 strict raw bbox mismatch만으로 오염이라고 판단하지 않는다.
-  다음 구현 결정은 production A4 frame-only에서 이 official native outside marker를 허용/잘라내기/보존 중 어떻게 처리할지다.
+  구현 정책은 큰 raw bbox/선택 위험은 계속 중단하되, official native outside marker만 있는 경우는 ready-native-outside-markers로 허용하는 쪽으로 정했다.
+
+2026-07-05 A4 frame-only convert probe:
+  run_a4_outline_convert_probe.ps1가 복사본에서 준비와 변환을 함께 실행했다.
+  결과:
+    Prepare result: OK status=OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
+    After prepare definition status: ready-native-outside-markers
+    Convert result: OK status=FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
+    After frame-only-count: 1
+    After target title count: 0
+    After DR_A4_Outline target frame count: 1
+  즉 production A4 frame-only 경로는 원본에 없던 DR_titlea_3rd 제목블록을 만들지 않고 도면틀만 교체하는 것으로 검증됐다.
 ```
 
 `DR_A4_Outline` 프레임만 안전해 보여도 native link가 있는 `DR_titlea_3rd` 쌍이 없으면 비교 기준으로 인정하지 않는다. 이 경우 `A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR`가 정상 중단이다.
@@ -731,7 +743,9 @@ A3/A4 native 교체 후보가 0이 된 뒤 A4를 처리한다.
 
 A4는 원본에 표제란이 없는 시트가 있을 수 있다. 따라서 A4에 `DR_titlea_3rd`가 생기면 성공이 아니라 잘못된 추가일 수 있다.
 
-A4는 보이는 도면틀 크기만 보지 않는다. `DR_A4_Outline` 블록 정의의 raw bbox가 `(0,0)-(210,297)` 근처를 벗어나면, 겉보기 effective bbox가 A4처럼 보여도 실패로 본다. 이 경우 원본 A4에는 없던 선/글자가 변환 후 같이 딸려올 수 있으므로 `SWTITLEPREPARE`가 `WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`로 멈추는 것이 정상이다.
+A4는 보이는 도면틀 크기만 보지 않는다. `DR_A4_Outline` 블록 정의의 raw bbox가 커도, 그것이 공식 native A4의 작은 바깥 마커인지 과도한 raw-selection 위험인지 구분한다.
+`ready-native-outside-markers`는 effective A4 형상과 raw selection 검사가 통과한 상태다.
+반대로 raw/effective 비율이 크거나 raw selection warning이 남으면, 원본 A4에는 없던 선/글자가 변환 후 같이 딸려올 수 있으므로 `SWTITLEPREPARE`가 `WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`로 멈추는 것이 정상이다.
 
 기대 결과:
 

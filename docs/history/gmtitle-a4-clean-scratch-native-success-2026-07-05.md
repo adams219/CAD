@@ -99,3 +99,35 @@ Result: A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS
 ```
 
 단, production A4 원본은 frame-only이므로 원본에 없던 `DR_titlea_3rd` 제목블록을 만들면 안 된다는 규칙은 유지한다.
+
+## 2026-07-05 구현 반영
+
+`SWTITLEPREPARE`의 A4 정의 준비 기준을 조정했다.
+
+```text
+과도한 raw bbox 위험: 계속 중단
+raw selection warning: 계속 중단
+geometry warning: 계속 중단
+공식 native A4의 작은 바깥 마커만 있음: ready-native-outside-markers로 허용
+```
+
+이 변경은 A4 frame-only source에 제목블록을 만들지 않는 기존 보호를 바꾸지 않는다.
+
+## 2026-07-05 A4 frame-only 변환 검증
+
+`run_a4_outline_convert_probe.ps1`로 작업 복사본을 다시 복사한 뒤, A4 정의 준비와 A4 frame-only 변환을 한 번에 검증했다.
+
+```text
+Prepare result: OK status=OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
+After prepare definition status: ready-native-outside-markers
+Convert result: OK status=FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
+After source-title-count: 13
+After frame-only-count: 1
+After target title count: 0
+After DR_A4_Outline target frame count: 1
+After target-sheet-counts:
+  A4: 1
+Runtime check completed: yes
+```
+
+따라서 공식 native A4의 작은 바깥 마커는 허용하되, production A4 frame-only source에는 `DR_titlea_3rd`를 새로 만들지 않는 정책이 실제 복사본 검증을 통과했다.

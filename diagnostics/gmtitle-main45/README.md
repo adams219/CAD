@@ -91,18 +91,19 @@ Use `run_main45_verification_suite.ps1` to run the standard read-only checks in 
 2. current LSP compare-copy probe
 3. actual work-copy status/verify probe
 4. A4 native exemplar gap probe
-5. A4 outline strict prepare guard probe
-6. SWTITLECONVERT script guard probe
-7. common A2/A3/A4 frame-definition classification probe
-8. A2/A3/A4 style-normalization rebuild cleanup probe
-9. command-text guard comparison probe
-10. sheet residue protection probe
-11. embedded-title prepare copy-comparison probe
-12. duplicate target pair comparison probe
-13. native adoption gate comparison probe
-14. A3 status guidance probe
-15. A3/A4 batch guard probe
-16. GMTITLE selection config probe
+5. A4 native outside marker prepare probe
+6. A4 outline frame-only convert probe
+7. SWTITLECONVERT script guard probe
+8. common A2/A3/A4 frame-definition classification probe
+9. A2/A3/A4 style-normalization rebuild cleanup probe
+10. command-text guard comparison probe
+11. sheet residue protection probe
+12. embedded-title prepare copy-comparison probe
+13. duplicate target pair comparison probe
+14. native adoption gate comparison probe
+15. A3 status guidance probe
+16. A3/A4 batch guard probe
+17. GMTITLE selection config probe
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
@@ -140,7 +141,7 @@ A2/A3/A4 expected sheet counts
 actual work-copy first native guidance: A2 -> DR_A2_Outline + DR_titlea_3rd
 A4 native exemplar gap: saved default work-copy has two frame-only sources but no DR_A4_Outline definition or target insert yet
 A4 clean scratch evidence: `work\scratch_native_a4_clean_260705.dwg` was saved from a clean gcadiso.dwt CAD test after DR_A4_Outline / DR_titlea_3rd inserted at 0,0 without the frame creation error; it still needs the focused A4 native exemplar probe after GstarCAD is closed
-A4 strict prepare guard: imported DR_A4_Outline definitions whose raw bbox extends outside (0,0)-(210,297) are rejected and the original A4 source frames remain
+A4 native outside marker prepare: imported DR_A4_Outline definitions with official small native outside markers are accepted when effective geometry/raw-selection checks pass; excessive raw bbox or raw-selection warnings still preserve the original A4 source frames
 SWTITLECONVERT script guard aborts in SCRIPT mode without changing source/target counts, INSERT count, or DBMOD
 mixed/all_contaminated/all_native frame-class PASS results
 A2/A3/A4 style-normalization record count 3 -> 0 after rebuild cleanup
@@ -222,18 +223,50 @@ Default log:
 work\swtitle_a4_outline_prepare_probe_260705.txt
 ```
 
-Expected safe result for the current installed `DR_A4_Outline` state:
+Expected result for the current installed `DR_A4_Outline` state:
 
 ```text
 Loaded version: 260705-verify-source-priority-a4stepnote
 Before definition status: missing
-Prepare result: OK status=WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE
-After definition status: missing
+Prepare result: OK status=OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
+After definition status: ready-native-outside-markers
 After frame-only-count: 2
 Runtime check completed: yes
 ```
 
-This is a safety pass, not a completed A4 conversion. It proves that the tool refuses the unsafe imported `DR_A4_Outline` definition and preserves the existing A4 source frames.
+This is a readiness pass, not a completed A4 conversion. It proves that the tool accepts the official native A4 outline only after the test insert has correct effective A4 geometry and no raw-selection warning. The production conversion still must not create a `DR_titlea_3rd` for source A4 frame-only sheets.
+
+## A4 Outline Convert Probe
+
+Use `run_a4_outline_convert_probe.ps1` to copy a work DWG, prepare the official native `DR_A4_Outline` definition, and run the A4 frame-only conversion on the copy.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_a4_outline_convert_probe.ps1"
+```
+
+Default log:
+
+```text
+work\swtitle_a4_outline_convert_probe_260705.txt
+```
+
+Expected result:
+
+```text
+Prepare result: OK status=OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
+After prepare definition status: ready-native-outside-markers
+Convert result: OK status=FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
+After source-title-count: 13
+After frame-only-count: 1
+After target title count: 0
+After DR_A4_Outline target frame count: 1
+After target-sheet-counts:
+  A4: 1
+Runtime check completed: yes
+```
+
+This proves the A4 frame-only path replaces one source A4 frame with a native `DR_A4_Outline` frame without creating an extra `DR_titlea_3rd` title block.
 
 ## A4 Outline Normalization Probe
 

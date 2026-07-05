@@ -107,6 +107,7 @@ $copyCompareLog = Join-Path $workDir "swtitle_lsp_copy_compare_current_main56.tx
 $actualStatusLog = Join-Path $workDir "swtitle_actual_workcopy_status_main56_diagnostics.txt"
 $a4NativeExemplarLog = Join-Path $workDir "swtitle_a4_native_exemplar_probe_260705.txt"
 $a4OutlinePrepareLog = Join-Path $workDir "swtitle_a4_outline_prepare_probe_main56_default.txt"
+$a4OutlineConvertLog = Join-Path $workDir "swtitle_a4_outline_convert_probe_main56_default.txt"
 $convertScriptGuardLog = Join-Path $workDir "swtitle_convert_script_guard_probe.txt"
 $frameclassLogs = @(
   Join-Path $workDir "swtitle_frameclass_common_probe_mixed.txt"
@@ -249,7 +250,7 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 5. A4 outline strict prepare guard probe ====="
+Write-Output "===== 5. A4 outline native outside marker prepare probe ====="
 & (Join-Path $PSScriptRoot "run_a4_outline_prepare_probe.ps1") `
   -SourceWorkCopyPath $SourceWorkCopyPath `
   -ProbeDwgPath (Join-Path $workDir "swtitle_a4_outline_prepare_probe_main56_default.dwg") `
@@ -257,7 +258,7 @@ Write-Output "===== 5. A4 outline strict prepare guard probe ====="
   -TimeoutSeconds $TimeoutSeconds
 Assert-LogContains `
   -Path $a4OutlinePrepareLog `
-  -Label "A4 outline strict prepare guard probe" `
+  -Label "A4 outline native outside marker prepare probe" `
   -Patterns @(
     "Load result: OK",
     "Loaded version: 260705-verify-source-priority-a4stepnote",
@@ -267,19 +268,51 @@ Assert-LogContains `
     "<none>",
     "Before DR_A4_Outline definition details:",
     "Definition exists: no",
-    "Prepare result: OK status=WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE",
-    "After definition status: missing",
+    "Prepare result: OK status=OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED",
+    "After definition status: ready-native-outside-markers",
     "After frame-only-count: 2",
     "After target-sheet-counts:",
     "<none>",
     "After DR_A4_Outline definition details:",
-    "Definition exists: no",
-    "Native check result: OK status=WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE",
+    "Definition exists: yes",
+    "Test insert effective bbox: (0, 0) - (210, 297)",
+    "Test insert geometry warning: <none>",
+    "Test insert raw selection warning: <none>",
+    "Native check result: OK status=",
     "Runtime check completed: yes"
   )
 
 Write-Output ""
-Write-Output "===== 6. SWTITLECONVERT script guard probe ====="
+Write-Output "===== 6. A4 outline frame-only convert probe ====="
+& (Join-Path $PSScriptRoot "run_a4_outline_convert_probe.ps1") `
+  -SourceWorkCopyPath $SourceWorkCopyPath `
+  -ProbeDwgPath (Join-Path $workDir "swtitle_a4_outline_convert_probe_main56_default.dwg") `
+  -LogPath $a4OutlineConvertLog `
+  -TimeoutSeconds $TimeoutSeconds
+Assert-LogContains `
+  -Path $a4OutlineConvertLog `
+  -Label "A4 outline frame-only convert probe" `
+  -Patterns @(
+    "Load result: OK",
+    "Loaded version: 260705-verify-source-priority-a4stepnote",
+    "Before source-title-count: 13",
+    "Before frame-only-count: 2",
+    "Before target title count: 0",
+    "Before DR_A4_Outline target frame count: 0",
+    "Prepare result: OK status=OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED",
+    "After prepare definition status: ready-native-outside-markers",
+    "Convert result: OK status=FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER",
+    "After source-title-count: 13",
+    "After frame-only-count: 1",
+    "After target title count: 0",
+    "After DR_A4_Outline target frame count: 1",
+    "After target-sheet-counts:",
+    "A4: 1",
+    "Runtime check completed: yes"
+  )
+
+Write-Output ""
+Write-Output "===== 7. SWTITLECONVERT script guard probe ====="
 & (Join-Path $PSScriptRoot "run_convert_script_guard_probe.ps1") `
   -SourceWorkCopyPath $SourceWorkCopyPath `
   -LogPath $convertScriptGuardLog `
@@ -305,7 +338,7 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 7. Common A2/A3/A4 frame-definition probe ====="
+Write-Output "===== 8. Common A2/A3/A4 frame-definition probe ====="
 & (Join-Path $PSScriptRoot "run_frameclass_common_probe.ps1") `
   -SourceWorkCopyPath $SourceWorkCopyPath `
   -TimeoutSeconds $TimeoutSeconds
@@ -354,7 +387,7 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 8. A2/A3/A4 style-normalization rebuild cleanup probe ====="
+Write-Output "===== 9. A2/A3/A4 style-normalization rebuild cleanup probe ====="
 & (Join-Path $PSScriptRoot "run_style_normalization_compare_probe.ps1") `
   -LspPath $sourceLsp `
   -Label "current_main56_stylecmp_all_sizes_clean" `
@@ -379,7 +412,7 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 9. Command-text guard comparison probe ====="
+Write-Output "===== 10. Command-text guard comparison probe ====="
 & (Join-Path $PSScriptRoot "run_command_text_guard_compare_probe.ps1") `
   -LspPath $sourceLsp `
   -Label "current_main56_command_text_guard" `
@@ -399,7 +432,7 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 10. Sheet residue protection probe ====="
+Write-Output "===== 11. Sheet residue protection probe ====="
 & (Join-Path $PSScriptRoot "run_residue_protection_probe.ps1") `
   -LspPath $sourceLsp `
   -Label "current_main56_residue_protection" `
@@ -421,7 +454,7 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 11. Embedded-title prepare comparison probe ====="
+Write-Output "===== 12. Embedded-title prepare comparison probe ====="
 & (Join-Path $PSScriptRoot "run_embedded_title_prepare_compare_probe.ps1") `
   -LspPath $sourceLsp `
   -Label "current_main56_embedded_prepare" `
@@ -447,7 +480,7 @@ Assert-LogContains `
 
 Write-Output ""
 Write-Output ""
-Write-Output "===== 12. Duplicate target pair comparison probe ====="
+Write-Output "===== 13. Duplicate target pair comparison probe ====="
 & (Join-Path $PSScriptRoot "run_duplicate_target_pair_compare_probe.ps1") `
   -LspPath $sourceLsp `
   -Label "current_main56_duplicate_target_pair" `
@@ -470,7 +503,7 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 13. Native adoption gate comparison probe ====="
+Write-Output "===== 14. Native adoption gate comparison probe ====="
 & (Join-Path $PSScriptRoot "run_adoption_gate_compare_probe.ps1") `
   -LspPath $sourceLsp `
   -Label "current_main56_adoption_gate" `
@@ -492,7 +525,7 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 14. A3 status guidance probe ====="
+Write-Output "===== 15. A3 status guidance probe ====="
 & (Join-Path $PSScriptRoot "run_a3_status_guidance_probe.ps1") `
   -SourceWorkCopyPath $SourceWorkCopyPath `
   -LogPath $a3StatusGuidanceLog `
@@ -512,7 +545,7 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 15. A3/A4 batch guard probe ====="
+Write-Output "===== 16. A3/A4 batch guard probe ====="
 & (Join-Path $PSScriptRoot "run_a3a4_batch_guard_probe.ps1") `
   -SourceWorkCopyPath $SourceWorkCopyPath `
   -LogPath $a3a4BatchGuardLog `
@@ -533,7 +566,7 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 16. GMTITLE selection config probe ====="
+Write-Output "===== 17. GMTITLE selection config probe ====="
 & (Join-Path $PSScriptRoot "run_gmtitle_selection_config_probe.ps1") `
   -OutputPath $selectionConfigLog
 Assert-LogContains `

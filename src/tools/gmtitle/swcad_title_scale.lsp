@@ -4085,7 +4085,17 @@
   )
 )
 
-(defun swcad-title-a4-frame-only-outline-definition-status (/ frame-block raw-risk strict-warning)
+(defun swcad-title-a4-frame-only-outline-native-outside-marker-p (frame-block / raw-risk strict-warning)
+  (and
+    frame-block
+    (swcad-title-block-exists-p frame-block)
+    (not (swcad-title-target-frame-block-contaminated-p frame-block))
+    (not (swcad-title-frame-definition-raw-bbox-risk-record frame-block))
+    (setq strict-warning (swcad-title-a4-frame-only-outline-raw-a4-warning frame-block))
+  )
+)
+
+(defun swcad-title-a4-frame-only-outline-definition-status (/ frame-block raw-risk)
   (setq frame-block (swcad-title-a4-frame-only-outline-target-block))
   (cond
     ((not (swcad-title-a4-frame-only-outline-policy-blocked-p)) "not-a4-frame-only")
@@ -4093,13 +4103,16 @@
     ((not (swcad-title-block-exists-p frame-block)) "missing")
     ((swcad-title-target-frame-block-contaminated-p frame-block) "contaminated")
     ((setq raw-risk (swcad-title-frame-definition-raw-bbox-risk-record frame-block)) "raw-bbox-risk")
-    ((setq strict-warning (swcad-title-a4-frame-only-outline-raw-a4-warning frame-block)) "raw-bbox-risk")
+    ((swcad-title-a4-frame-only-outline-native-outside-marker-p frame-block) "ready-native-outside-markers")
     (T "ready")
   )
 )
 
 (defun swcad-title-a4-frame-only-outline-definition-ready-p ()
-  (equal (swcad-title-a4-frame-only-outline-definition-status) "ready")
+  (member
+    (swcad-title-a4-frame-only-outline-definition-status)
+    '("ready" "ready-native-outside-markers")
+  )
 )
 
 (defun swcad-title-a4-frame-only-outline-definition-needed-p ()
@@ -4135,6 +4148,12 @@
   (cond
     ((equal status "ready")
       (swcad-title-princ-line "  변환 가능: 현재 도면 안의 DR_A4_Outline 정의가 clean/raw-bbox 검사를 통과했습니다.")
+    )
+    ((equal status "ready-native-outside-markers")
+      (swcad-title-princ-line "  변환 가능: 현재 DR_A4_Outline 정의는 공식 native A4의 작은 바깥 마커를 포함하지만, 과도한 raw bbox/선택 위험은 없습니다.")
+      (if strict-warning
+        (swcad-title-princ-line (strcat "  참고: " strict-warning))
+      )
     )
     ((equal status "missing")
       (swcad-title-princ-line "  필요 작업(A4 frame-only 단계): SWTITLEPREPARE로 설치 원본 정의를 가져와 형상/선택범위를 먼저 검증하세요.")
@@ -8201,13 +8220,13 @@
   )
 )
 
-(defun swcad-title-prepare-a4-frame-only-outline-definition (/ frame-block status answer doc existed imported test-frame test-bbox geometry-warning raw-warning strict-warning cleanup-ok backup-name)
+(defun swcad-title-prepare-a4-frame-only-outline-definition (/ frame-block status answer doc existed imported test-frame test-bbox geometry-warning raw-warning raw-risk strict-warning native-outside-marker-ok cleanup-ok backup-name)
   (setq frame-block (swcad-title-a4-frame-only-outline-target-block))
   (setq status (swcad-title-a4-frame-only-outline-definition-status))
   (swcad-title-princ-text "\nA4 frame-only DR_A4_Outline 정의 준비:")
   (swcad-title-print-a4-frame-only-outline-definition-status)
   (cond
-    ((equal status "ready")
+    ((swcad-title-a4-frame-only-outline-definition-ready-p)
       (swcad-title-princ-text "\nA4 frame-only 정의 준비: 이미 준비됨")
     )
     ((not (equal status "missing"))
@@ -8261,19 +8280,40 @@
               nil
             )
           )
+          (setq raw-risk
+            (if imported
+              (swcad-title-frame-definition-raw-bbox-risk-record frame-block)
+              nil
+            )
+          )
           (setq strict-warning
             (if imported
               (swcad-title-a4-frame-only-outline-raw-a4-warning frame-block)
               nil
             )
           )
+          (setq native-outside-marker-ok
+            (and
+              strict-warning
+              (not raw-risk)
+              (not geometry-warning)
+              (not raw-warning)
+            )
+          )
           (if test-frame
             (swcad-title-delete-ename test-frame)
           )
           (cond
-            ((and imported (not geometry-warning) (not raw-warning) (not strict-warning))
+            ((and imported (not geometry-warning) (not raw-warning) (not raw-risk))
               (swcad-title-apply-result "OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED")
               (swcad-title-princ-line (strcat "가져온 DR_A4_Outline 테스트 범위: " (swcad-title-bbox-string test-bbox)))
+              (if native-outside-marker-ok
+                (progn
+                  (swcad-title-princ-line "가져온 DR_A4_Outline 정의에는 공식 native A4의 작은 바깥 마커가 있습니다.")
+                  (swcad-title-princ-line "테스트 INSERT의 effective A4 형상과 raw selection 검사가 통과했으므로 A4 도면틀-only 변환에는 사용할 수 있습니다.")
+                  (swcad-title-princ-line (strcat "참고 정의 범위: " strict-warning))
+                )
+              )
               (swcad-title-princ-line "다음: SWTITLESTATUS를 다시 실행한 뒤 SWTITLECONVERT로 A4 도면틀-only 변환을 진행하세요.")
             )
             (T
@@ -8296,6 +8336,9 @@
               )
               (if geometry-warning
                 (swcad-title-princ-line (strcat "형상 경고: " geometry-warning))
+              )
+              (if raw-risk
+                (swcad-title-princ-line (strcat "정의 선택범위 위험: " (caddr raw-risk)))
               )
               (if raw-warning
                 (swcad-title-princ-line (strcat "선택 범위 경고: " raw-warning))

@@ -107,31 +107,34 @@ A3 성공 여부는 도면틀 더블클릭이 아니라 짝 DR_titlea_3rd 제목
 ```
 
 `SWTITLEPREPARE` 뒤에는 반드시 `SWTITLESTATUS`를 다시 실행합니다.
-그 결과가 `SWTITLECONVERT`를 안내하면 그때 변환을 진행하고, `WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`가 나오면 멈춥니다.
+그 결과가 `SWTITLECONVERT`를 안내하면 그때 변환을 진행합니다.
+`WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`가 나오면 멈추고, `OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED`와 `ready-native-outside-markers`가 나오면 A4 도면틀-only 변환 준비가 된 상태로 봅니다.
 
-현재 probe 기준으로는 설치 원본 `DR_A4_Outline`이 strict A4 raw bbox 검사를 통과하지 못할 가능성이 큽니다.
+현재 probe 기준으로는 설치 원본 `DR_A4_Outline`이 A4 바깥의 작은 native 마커를 포함합니다.
+이제 이 경우를 무조건 실패로 보지 않고, effective A4 형상과 raw selection 검사가 통과하면 `ready-native-outside-markers`로 허용합니다.
 
 ```text
 prepare probe:
-WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE
+OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
+After definition status: ready-native-outside-markers
 
 보이는 A4 범위:
 (0, 0) - (210, 297)
 
-실제 CAD 선택 raw 범위:
-(0, 0) - (872.26126377, 302.7)
+실제 test insert effective 범위:
+(0, 0) - (210, 297)
 
-정규화 probe:
-none=no
-huge-insert=no
-direct-outside=no
-nested-outside=no
-nested-direct-outside=no
+raw selection warning:
+<none>
+
+convert probe:
+FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
+After target title count: 0
+After DR_A4_Outline target frame count: 1
 ```
 
-즉 `SWTITLEPREPARE`가 같은 경고로 멈추면 정상적인 안전 중단입니다. 이때는 변환을 반복하지 말고 A4 도면틀 정의 전략을 다시 봅니다.
-
-`nested-outside`와 `nested-direct-outside`도 copied-DWG probe에서 모두 unsafe였습니다.
+즉 A4 frame-only 변환은 제목블록을 새로 만들지 않고 `DR_A4_Outline` 도면틀만 교체하는 쪽으로 검증됐습니다.
+다만 큰 raw bbox 위험이나 raw selection warning이 나오면 여전히 안전 중단입니다.
 
 따라서 지금 다음 단계는 `SWTITLEPREPARE`나 `SWTITLECONVERT`를 더 누르는 것이 아닙니다. 별도 scratch DWG에서 GstarCAD가 실제 `GMTITLE`로 만든 native A4 결과를 확보하고, 그 안의 `DR_A4_Outline` 정의를 비교해야 합니다.
 
@@ -316,7 +319,10 @@ DR_A4_Outline raw definition bbox가 (0,0)-(210,297) 근처를 벗어나지 않�
 기존 A4 내용 삭제 없음
 ```
 
-A4에서 `DR_titlea_3rd`가 생기거나 `WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`가 나오면 멈추고 로그를 봅니다. 이 경고는 실패라기보다 원본 A4를 지키기 위해 변환을 중단했다는 뜻입니다.
+A4에서 `DR_titlea_3rd`가 생기면 멈추고 로그를 봅니다.
+`WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`는 원본 A4를 지키기 위해 변환을 중단했다는 뜻입니다.
+반대로 `ready-native-outside-markers`는 공식 native A4의 작은 바깥 마커는 있지만 effective A4 형상과 raw selection 검사가 통과했다는 뜻입니다.
+`run_a4_outline_convert_probe.ps1` 기준으로는 A4 frame-only 1장을 변환한 뒤에도 `After target title count: 0`, `After DR_A4_Outline target frame count: 1`이므로, 원본에 없던 표제란을 만들지 않는 조건을 만족합니다.
 
 ## 로그를 볼 때 우선순위
 

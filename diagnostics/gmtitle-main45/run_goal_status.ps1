@@ -32,6 +32,8 @@ $script:A4NestedProbeUnsafe = $false
 $script:A4NormalizationCandidateSafe = $false
 $script:A4NativeExemplarResult = $null
 $script:A4NativeExemplarMinorOutside = $false
+$script:A4PrepareProbeReadyWithNativeOutside = $false
+$script:A4FrameOnlyConvertProbePassed = $false
 
 if (-not $SourceWorkCopyPath) {
   $SourceWorkCopyPath = Join-Path $repoRoot "work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg"
@@ -269,12 +271,19 @@ function Write-A4FrameOnlyEvidenceSummary {
       if ($prepareResult -match "WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE") {
         $script:A4PrepareProbeUnsafe = $true
       }
+      if ($prepareResult -match "OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED") {
+        Write-Output "  Installed DR_A4_Outline prepare probe: imported definition accepted for A4 frame-only readiness."
+      }
     }
     if ($rawWarning) {
       Write-Output ("  A4 raw-selection warning: {0}" -f $rawWarning)
     }
     if ($afterDefinition) {
-      Write-Output ("  A4 definition after unsafe probe: {0}" -f $afterDefinition)
+      Write-Output ("  A4 definition after prepare probe: {0}" -f $afterDefinition)
+      if ($afterDefinition -match "ready-native-outside-markers") {
+        $script:A4PrepareProbeReadyWithNativeOutside = $true
+        Write-Output "  A4 definition readiness: ready with official native outside markers."
+      }
     }
   } else {
     Write-Output "  Installed DR_A4_Outline prepare probe: <missing>"
@@ -363,6 +372,44 @@ function Write-A4FrameOnlyEvidenceSummary {
     }
   } else {
     Write-Output "  A4 native exemplar probe result: <not-run>"
+  }
+
+  $convertProbeLogs = @(
+    (Join-Path $WorkDir "swtitle_a4_outline_convert_probe_main56_default.txt"),
+    (Join-Path $WorkDir "swtitle_a4_outline_convert_probe_260705.txt")
+  )
+  $convertProbeLog = $convertProbeLogs | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+  if ($convertProbeLog) {
+    $convertText = Read-TextWithFallback -Path $convertProbeLog
+    $convertResult = Get-FirstMatchingLine -Text $convertText -Pattern "^Convert result:"
+    $afterFrameOnly = Get-FirstMatchingLine -Text $convertText -Pattern "^After frame-only-count:"
+    $afterTargetTitle = Get-FirstMatchingLine -Text $convertText -Pattern "^After target title count:"
+    $afterA4Frame = Get-FirstMatchingLine -Text $convertText -Pattern "^After DR_A4_Outline target frame count:"
+
+    if ($convertResult) {
+      Write-Output ("  A4 frame-only convert probe: {0}" -f $convertResult)
+      Write-Output ("  A4 frame-only convert log: {0}" -f $convertProbeLog)
+    }
+    if ($afterFrameOnly) {
+      Write-Output ("  A4 frame-only convert probe: {0}" -f $afterFrameOnly)
+    }
+    if ($afterTargetTitle) {
+      Write-Output ("  A4 frame-only convert probe: {0}" -f $afterTargetTitle)
+    }
+    if ($afterA4Frame) {
+      Write-Output ("  A4 frame-only convert probe: {0}" -f $afterA4Frame)
+    }
+    if (
+      ($convertText -match "Convert result: OK status=FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER") -and
+      ($convertText -match "(?m)^After frame-only-count:\s*1") -and
+      ($convertText -match "(?m)^After target title count:\s*0") -and
+      ($convertText -match "(?m)^After DR_A4_Outline target frame count:\s*1")
+    ) {
+      $script:A4FrameOnlyConvertProbePassed = $true
+      Write-Output "  A4 frame-only convert decision: verified; one source A4 frame-only sheet becomes DR_A4_Outline and no DR_titlea_3rd is created."
+    }
+  } else {
+    Write-Output "  A4 frame-only convert probe: <not-run>"
   }
 
   if ($script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") {
@@ -498,7 +545,16 @@ $a4NativeA4ComparisonNeeded = (
   $script:A4NestedProbeUnsafe
 )
 $a4NativeOutsideMarkerDecisionNeeded = (
-  $script:A4NativeExemplarResult -eq "A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS"
+  ($script:A4NativeExemplarResult -eq "A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS") -and
+  (-not $script:A4PrepareProbeReadyWithNativeOutside)
+)
+$a4NativeOutsideMarkerPolicyReady = (
+  ($script:A4NativeExemplarResult -eq "A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS") -and
+  $script:A4PrepareProbeReadyWithNativeOutside
+)
+$a4FrameOnlyProductionPathVerified = (
+  $a4NativeOutsideMarkerPolicyReady -and
+  $script:A4FrameOnlyConvertProbePassed
 )
 $nestedProbeScript = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1"
 $nestedProbeSource = $script:LatestCadDwg
@@ -509,7 +565,23 @@ $scratchNativeA4Path = Join-Path $repoRoot "work\scratch_native_a4_clean_260705.
 $scratchNativeA4Log = Join-Path $repoRoot "work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt"
 $scratchNativeA4Exists = Test-Path -LiteralPath $scratchNativeA4Path
 if ($existingGstarCAD.Count -gt 0) {
-  if ($a4NativeOutsideMarkerDecisionNeeded) {
+  if ($a4FrameOnlyProductionPathVerified) {
+    Write-Output "  A4 native outside-marker policy and frame-only conversion path are verified:"
+    Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair with official small outside markers."
+    Write-Output "    2. SWTITLEPREPARE now accepts that definition as ready-native-outside-markers when geometry/raw-selection checks pass."
+    Write-Output "    3. The A4 frame-only convert probe finalized one DR_A4_Outline frame with zero DR_titlea_3rd title inserts."
+    Write-Output "    4. Next visible-CAD work should return to the normal four-command workflow on the real work-copy, starting from SWTITLESTATUS."
+    Write-Output ""
+    Write-Output "  Hidden suite verification path only if you changed code again:"
+  } elseif ($a4NativeOutsideMarkerPolicyReady) {
+    Write-Output "  A4 native outside-marker policy is implemented:"
+    Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair with official small outside markers."
+    Write-Output "    2. SWTITLEPREPARE now accepts that definition as ready-native-outside-markers when geometry/raw-selection checks pass."
+    Write-Output "    3. Run the focused A4 frame-only convert probe or the full hidden suite before using this on the real work-copy."
+    Write-Output "    4. Production A4 frame-only must still not create an extra DR_titlea_3rd."
+    Write-Output ""
+    Write-Output "  Hidden suite verification path:"
+  } elseif ($a4NativeOutsideMarkerDecisionNeeded) {
     Write-Output "  A4 native outside-marker decision:"
     Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair, but native DR_A4_Outline itself has small geometry outside (0,0)-(210,297)."
     Write-Output "    2. Do not keep creating more scratch A4 sheets; the next implementation decision is whether production A4 frame-only should tolerate, crop, or preserve those official native outside markers."
@@ -581,7 +653,24 @@ if ($existingGstarCAD.Count -gt 0) {
   Write-Output "  Or start the suite in waiting mode first:"
   Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -WaitForGstarCADClose" -f $suite)
 } else {
-  if ($a4NativeOutsideMarkerDecisionNeeded) {
+  if ($a4FrameOnlyProductionPathVerified) {
+    Write-Output "  A4 native outside-marker policy and frame-only conversion path are verified:"
+    Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair with official small outside markers."
+    Write-Output "    2. SWTITLEPREPARE now accepts that definition as ready-native-outside-markers when geometry/raw-selection checks pass."
+    Write-Output "    3. The A4 frame-only convert probe finalized one DR_A4_Outline frame with zero DR_titlea_3rd title inserts."
+    Write-Output "    4. The full hidden suite includes this probe and has a verified A4 convert expectation."
+    Write-Output "  Next real work-copy step:"
+    Write-Output "    1. Open or activate the real work-copy DWG in GstarCAD."
+    Write-Output "    2. APPLOAD the current swcad_title_scale.lsp if needed."
+    Write-Output "    3. Run SWTITLESTATUS."
+    Write-Output "    4. Follow the four-command flow through SWTITLECONVERT and SWTITLEVERIFY."
+  } elseif ($a4NativeOutsideMarkerPolicyReady) {
+    Write-Output "  A4 native outside-marker policy is implemented:"
+    Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair with official small outside markers."
+    Write-Output "    2. SWTITLEPREPARE now accepts that definition as ready-native-outside-markers when geometry/raw-selection checks pass."
+    Write-Output "    3. Run the focused A4 frame-only convert probe or the full hidden suite before using this on the real work-copy."
+    Write-Output "    4. Production A4 frame-only must still not create an extra DR_titlea_3rd."
+  } elseif ($a4NativeOutsideMarkerDecisionNeeded) {
     Write-Output "  A4 native outside-marker decision:"
     Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair, but native DR_A4_Outline itself has small geometry outside (0,0)-(210,297)."
     Write-Output "    2. Do not keep creating more scratch A4 sheets; the next implementation decision is whether production A4 frame-only should tolerate, crop, or preserve those official native outside markers."
@@ -626,4 +715,4 @@ Write-Output "Goal-mode reference docs:"
 Write-Output ("  Run card: {0}" -f $runCard)
 Write-Output ("  Detailed plan: {0}" -f $goalPlan)
 Write-Output ""
-Write-Output "Goal status: not complete until the hidden suite passes and the actual work-copy reaches SWTITLEVERIFY_FINAL_OK."
+Write-Output "Goal status: not complete until the actual work-copy reaches SWTITLEVERIFY_FINAL_OK and representative CAD double-click checks are confirmed."

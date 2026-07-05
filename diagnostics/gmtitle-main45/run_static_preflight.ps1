@@ -15,6 +15,8 @@ $a4NormProbePath = Join-Path $PSScriptRoot "a4_outline_normalization_probe.lsp"
 $a4NormProbeRunnerPath = Join-Path $PSScriptRoot "run_a4_outline_normalization_probe.ps1"
 $a4NativeProbeFixturePath = Join-Path $PSScriptRoot "a4_native_exemplar_probe.lsp"
 $a4NativeProbeRunnerPath = Join-Path $PSScriptRoot "run_a4_native_exemplar_probe.ps1"
+$a4OutlineConvertProbePath = Join-Path $PSScriptRoot "a4_outline_convert_probe.lsp"
+$a4OutlineConvertRunnerPath = Join-Path $PSScriptRoot "run_a4_outline_convert_probe.ps1"
 $selectionConfigProbePath = Join-Path $PSScriptRoot "run_gmtitle_selection_config_probe.ps1"
 $goalStatusPath = Join-Path $PSScriptRoot "run_goal_status.ps1"
 $guidePaths = @(
@@ -163,6 +165,8 @@ $a4NormProbeText = Read-Text $a4NormProbePath
 $a4NormProbeRunnerText = Read-Text $a4NormProbeRunnerPath
 $a4NativeProbeFixtureText = Read-Text $a4NativeProbeFixturePath
 $a4NativeProbeRunnerText = Read-Text $a4NativeProbeRunnerPath
+$a4OutlineConvertProbeText = Read-Text $a4OutlineConvertProbePath
+$a4OutlineConvertRunnerText = Read-Text $a4OutlineConvertRunnerPath
 $selectionConfigProbeText = Read-Text $selectionConfigProbePath
 $goalStatusText = Read-Text $goalStatusPath
 
@@ -172,6 +176,7 @@ Write-Output ("Repo root: {0}" -f $repoRoot)
 Test-LispBalance -Text $mainText -Label "swcad_title_scale.lsp"
 Test-LispBalance -Text $loaderText -Label "swcad_load.lsp"
 Test-LispBalance -Text $a4NormProbeText -Label "a4_outline_normalization_probe.lsp"
+Test-LispBalance -Text $a4OutlineConvertProbeText -Label "a4_outline_convert_probe.lsp"
 
 $gmtitleVersion = Get-VersionValue -Text $mainText -VariableName "*swcad-title-scale-version*"
 if ($gmtitleVersion -eq $ExpectedGmtitleVersion) {
@@ -230,14 +235,19 @@ if ($legacyStillPublic.Count -eq 0) {
 
 Assert-Contains -Text $mainText -Needle "swcad-title-a4-frame-only-outline-raw-a4-warning" -Label "A4 strict raw-bbox function"
 Assert-Contains -Text $mainText -Needle "WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE" -Label "A4 unsafe definition status"
+Assert-Contains -Text $mainText -Needle "ready-native-outside-markers" -Label "A4 native outside marker ready status"
 Assert-Contains -Text $mainText -Needle "ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE" -Label "Interactive GMTITLE script guard"
 Assert-Contains -Text $mainText -Needle "ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE" -Label "A3/A4 batch script guard"
-Assert-Contains -Text $suiteText -Needle "A4 outline strict prepare guard probe" -Label "Suite A4 strict prepare guard step"
+Assert-Contains -Text $suiteText -Needle "A4 outline native outside marker prepare probe" -Label "Suite A4 native outside marker prepare step"
+Assert-Contains -Text $suiteText -Needle "After definition status: ready-native-outside-markers" -Label "Suite A4 native outside marker prepare expectation"
+Assert-Contains -Text $suiteText -Needle "A4 outline frame-only convert probe" -Label "Suite A4 outline convert step"
+Assert-Contains -Text $suiteText -Needle "FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER" -Label "Suite A4 outline convert expectation"
+Assert-Contains -Text $suiteText -Needle "After target title count: 0" -Label "Suite A4 outline no-title expectation"
 Assert-Contains -Text $suiteText -Needle "Native GMTITLE A4 pair evidence: no" -Label "Suite A4 native-pair gap expectation"
 Assert-Contains -Text $suiteText -Needle "WaitForGstarCADClose" -Label "Suite GstarCAD-close wait option"
 Assert-Contains -Text $suiteText -Needle "Assert-NoExistingGstarCAD" -Label "Suite open-GstarCAD preflight"
 Assert-Contains -Text $readmeText -Needle "-WaitForGstarCADClose" -Label "README waiting-mode guidance"
-Assert-Contains -Text $readmeText -Needle "A4 strict prepare guard" -Label "README A4 strict guard guidance"
+Assert-Contains -Text $readmeText -Needle "A4 native outside marker prepare" -Label "README A4 native marker prepare guidance"
 Assert-Contains -Text $readmeText -Needle "nested-direct-outside" -Label "README nested-direct A4 probe guidance"
 Assert-Contains -Text $readmeText -Needle "run_gmtitle_selection_config_probe.ps1" -Label "README GMTITLE selection config probe guidance"
 Assert-Contains -Text $a4NormProbeText -Needle "nested-outside" -Label "A4 nested normalization probe strategy"
@@ -250,6 +260,9 @@ Assert-Contains -Text $a4NativeProbeFixtureText -Needle "A4_NATIVE_EXEMPLAR_READ
 Assert-Contains -Text $a4NativeProbeFixtureText -Needle "Definition minor native outside markers" -Label "A4 native exemplar minor outside marker log"
 Assert-Contains -Text $a4NativeProbeRunnerText -Needle "A4_NATIVE_EXEMPLAR_REQUIRES_SOURCEWORKCOPYPATH" -Label "A4 native exemplar explicit source guard"
 Assert-Contains -Text $a4NativeProbeRunnerText -Needle "WaitForGstarCADClose" -Label "A4 native exemplar wait option"
+Assert-Contains -Text $a4OutlineConvertProbeText -Needle "After target title count" -Label "A4 outline convert no-title log"
+Assert-Contains -Text $a4OutlineConvertProbeText -Needle "FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER" -Label "A4 outline convert finalized status"
+Assert-Contains -Text $a4OutlineConvertRunnerText -Needle "run_readonly_probe.ps1" -Label "A4 outline convert hidden runner"
 Assert-Contains -Text $selectionConfigProbeText -Needle "GMTITLE_SELECTION_CONFIG_NOT_FOUND" -Label "Selection config probe negative result"
 Assert-Contains -Text $selectionConfigProbeText -Needle "Direct GMTITLE may still reuse an internal/current command state" -Label "Selection config probe direct-GMTITLE warning"
 Assert-Contains -Text $selectionConfigProbeText -Needle "ribbon/menu IMTITLE macro" -Label "Selection config probe IMTITLE macro note"
@@ -295,14 +308,14 @@ $suiteStepNumbers = @(
   [regex]::Matches($suiteText, 'Write-Output\s+"===== ([0-9]+)\. ') |
     ForEach-Object { [int]$_.Groups[1].Value }
 )
-$expectedSuiteStepNumbers = 1..16
+$expectedSuiteStepNumbers = 1..17
 if (($suiteStepNumbers.Count -eq $expectedSuiteStepNumbers.Count) -and (@(Compare-Object $suiteStepNumbers $expectedSuiteStepNumbers).Count -eq 0)) {
   Write-Output ("Suite step numbers: {0}" -f ($suiteStepNumbers -join ", "))
 } else {
   Add-Failure ("Suite step numbers mismatch: expected {0}, got {1}" -f (($expectedSuiteStepNumbers -join ", ")), (($suiteStepNumbers -join ", ")))
 }
 
-Assert-Contains -Text $readmeText -Needle "16. GMTITLE selection config probe" -Label "README suite step list"
+Assert-Contains -Text $readmeText -Needle "17. GMTITLE selection config probe" -Label "README suite step list"
 
 foreach ($guidePath in $guidePaths) {
   $label = "Guide version " + (Resolve-Path -LiteralPath $guidePath).Path.Substring($repoRoot.Length + 1)
