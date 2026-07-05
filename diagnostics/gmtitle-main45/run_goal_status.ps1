@@ -259,8 +259,12 @@ function Write-DirectActualWorkcopyProbeSummary {
   $item = Get-Item -LiteralPath $logPath
   $text = Read-TextWithFallback -Path $logPath
   $dwg = Get-FirstRegexValue -Text $text -Pattern "^DWG[^:]*:\s*(.+)$"
+  $loadedVersion = Get-FirstRegexValue -Text $text -Pattern "^Loaded version:\s*(\S+)"
+  $expectedVersion = Get-FirstRegexValue -Text $text -Pattern "^Expected version:\s*(\S+)"
   $statusAfterStatus = Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-status:\s*(\S+)"
   $statusAfterVerify = Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-verify:\s*(\S+)"
+  $manualForecastFound = Get-FirstRegexValue -Text $text -Pattern "^\s*manual-forecast-log-note-found:\s*(yes|no)"
+  $firstNativeSelectionFound = Get-FirstRegexValue -Text $text -Pattern "^\s*first-native-selection-log-note-found:\s*(yes|no)"
   $nextFrame = Get-FirstRegexValue -Text $text -Pattern "^\s*next-bootstrap-frame:\s*(\S+)"
   $nextTitle = Get-FirstRegexValue -Text $text -Pattern "^\s*next-bootstrap-title:\s*(\S+)"
   $sourceTitleCount = Get-FirstRegexValue -Text $text -Pattern "^\s*source-title-count:\s*(\d+)"
@@ -288,8 +292,12 @@ function Write-DirectActualWorkcopyProbeSummary {
   Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
   if ($dwg) { Write-Output ("  DWG: {0}" -f $dwg) }
   Write-Output ("  Trusted for goal: {0}" -f ($(if ($trusted) { "yes" } else { "no" })))
+  if ($loadedVersion) { Write-Output ("  loaded-version: {0}" -f $loadedVersion) }
+  if ($expectedVersion) { Write-Output ("  expected-version: {0}" -f $expectedVersion) }
   if ($statusAfterStatus) { Write-Output ("  status-after-status: {0}" -f $statusAfterStatus) }
   if ($statusAfterVerify) { Write-Output ("  status-after-verify: {0}" -f $statusAfterVerify) }
+  if ($firstNativeSelectionFound) { Write-Output ("  first-native-selection-log-note-found: {0}" -f $firstNativeSelectionFound) }
+  if ($manualForecastFound) { Write-Output ("  manual-forecast-log-note-found: {0}" -f $manualForecastFound) }
   if ($sourceTitleCount) { Write-Output ("  source-title-count: {0}" -f $sourceTitleCount) }
   if ($sourceFrameCount) { Write-Output ("  source-frame-count: {0}" -f $sourceFrameCount) }
   if ($frameOnlyCount) { Write-Output ("  frame-only-count: {0}" -f $frameOnlyCount) }

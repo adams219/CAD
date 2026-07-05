@@ -479,6 +479,8 @@ Assert-Contains -Text $readmeText -Needle "A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_
 Assert-Contains -Text $readmeText -Needle "swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt" -Label "README clean A4 scratch dedicated log"
 Assert-Contains -Text $goalStatusText -Needle "run_gmtitle_selection_config_probe.ps1" -Label "Goal status selection config probe guidance"
 Assert-Contains -Text $goalStatusText -Needle "Direct actual work-copy probe" -Label "Goal status direct actual work-copy probe summary"
+Assert-Contains -Text $goalStatusText -Needle "loaded-version:" -Label "Goal status direct-probe loaded version output"
+Assert-Contains -Text $goalStatusText -Needle "manual-forecast-log-note-found:" -Label "Goal status direct-probe manual forecast evidence"
 Assert-Contains -Text $goalStatusText -Needle "GstarCAD /b script smoke probe" -Label "Goal status GstarCAD /b script smoke summary"
 Assert-Contains -Text $goalStatusText -Needle "WindowStyle=Minimized" -Label "Goal status minimized smoke probe guidance"
 
