@@ -82,7 +82,7 @@
   )
 )
 
-(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note structure-log a4-deferred-note verify-summary-log verify-source-priority verify-a4-first)
+(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count pair-records pair-count native-like-pair-count non-native-like-pair-count cloned-pair-count a3a4-native-upgrade-count orphan-target-frame-count duplicate-target-pair-count record bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note structure-log a4-deferred-note verify-summary-log verify-source-priority verify-a4-first)
   (setq load-result
     (vl-catch-all-apply
       'load
@@ -165,6 +165,19 @@
               (swcad-title-count-inserts-by-effective-name "DR_A4_Outline")
             )
           )
+          (setq pair-records (swcad-title-target-gmtitle-pair-records))
+          (setq pair-count (length pair-records))
+          (setq native-like-pair-count 0)
+          (foreach record pair-records
+            (if (swcad-title-target-pair-native-like-p record)
+              (setq native-like-pair-count (+ native-like-pair-count 1))
+            )
+          )
+          (setq non-native-like-pair-count (- pair-count native-like-pair-count))
+          (setq cloned-pair-count (swcad-title-cloned-gmtitle-pair-total))
+          (setq a3a4-native-upgrade-count (length (swcad-title-a3a4-native-upgrade-candidate-records)))
+          (setq orphan-target-frame-count (length (swcad-title-orphan-target-frame-records)))
+          (setq duplicate-target-pair-count (length (swcad-title-duplicate-target-pair-records)))
           (setq ok-verify (swtitle-diag45-run-command handle "SWTITLEVERIFY" 'c:SWTITLEVERIFY))
           (setq status-after-verify (swtitle-diag45-status-value))
           (setq next-step-log (swcad-title-work-log-path "swcad_title_next_step_last.txt"))
@@ -212,6 +225,13 @@
           (swtitle-diag45-write-line handle (strcat "  frame-only-count: " (itoa frame-only-count)))
           (swtitle-diag45-write-line handle (strcat "  target-title-count: " (itoa title-count)))
           (swtitle-diag45-write-line handle (strcat "  target-frame-count: " (itoa frame-count)))
+          (swtitle-diag45-write-line handle (strcat "  target-gmtitle-pair-count: " (itoa pair-count)))
+          (swtitle-diag45-write-line handle (strcat "  native-like-target-pair-count: " (itoa native-like-pair-count)))
+          (swtitle-diag45-write-line handle (strcat "  non-native-like-target-pair-count: " (itoa non-native-like-pair-count)))
+          (swtitle-diag45-write-line handle (strcat "  cloned-gmtitle-pair-count: " (itoa cloned-pair-count)))
+          (swtitle-diag45-write-line handle (strcat "  a3a4-native-upgrade-candidate-count: " (itoa a3a4-native-upgrade-count)))
+          (swtitle-diag45-write-line handle (strcat "  orphan-target-frame-count: " (itoa orphan-target-frame-count)))
+          (swtitle-diag45-write-line handle (strcat "  duplicate-target-pair-count: " (itoa duplicate-target-pair-count)))
           (swtitle-diag45-write-line handle (strcat "  next-step-log: " next-step-log))
           (swtitle-diag45-write-line handle (strcat "  log-evidence-note-found: " (if log-evidence-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  automation-split-note-found: " (if automation-split-note "yes" "no")))

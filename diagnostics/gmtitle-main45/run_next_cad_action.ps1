@@ -187,6 +187,11 @@ function Write-ManualSelectionForecast {
   $missingFrames = @(Get-AllRegexValues -Text $ProbeText -Pattern "^\s*missing-native-frame:\s*(DR_A[0-4]_Outline)")
   $hasA3Missing = $missingFrames -contains "DR_A3_Outline"
   $hasA4Missing = $missingFrames -contains "DR_A4_Outline"
+  $targetPairCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*target-gmtitle-pair-count:\s*(\d+)"
+  $nativeLikeTargetPairCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*native-like-target-pair-count:\s*(\d+)"
+  $nonNativeLikeTargetPairCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*non-native-like-target-pair-count:\s*(\d+)"
+  $clonedPairCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*cloned-gmtitle-pair-count:\s*(\d+)"
+  $a3a4NativeUpgradeCandidateCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*a3a4-native-upgrade-candidate-count:\s*(\d+)"
 
   Write-Output ""
   Write-Output "예상 수동 GMTITLE 확인량:"
@@ -211,7 +216,19 @@ function Write-ManualSelectionForecast {
       return
     }
     "^NEXT_UPGRADE_A3_A4_NATIVE$" {
+      if ($a3a4NativeUpgradeCandidateCount) {
+        Write-Output ("  - 현재 A3/A4 native 교체 후보: {0}개" -f $a3a4NativeUpgradeCandidateCount)
+      }
+      if ($targetPairCount -or $nativeLikeTargetPairCount -or $nonNativeLikeTargetPairCount) {
+        Write-Output ("  - 현재 GMTITLE 쌍: 전체 {0}개, native-like {1}개, 교체 필요 {2}개" -f ($(if ($targetPairCount) { $targetPairCount } else { "?" })), ($(if ($nativeLikeTargetPairCount) { $nativeLikeTargetPairCount } else { "?" })), ($(if ($nonNativeLikeTargetPairCount) { $nonNativeLikeTargetPairCount } else { "?" })))
+      }
+      if ($clonedPairCount) {
+        Write-Output ("  - 복제/공유 링크 후보: {0}개" -f $clonedPairCount)
+      }
       Write-Output "  - 지금은 OPEN으로 A3/A4 후보 1장을 먼저 교체해 후보 수가 줄어드는지 확인합니다."
+      if (($a3a4NativeUpgradeCandidateCount -as [int]) -gt 1) {
+        Write-Output "  - OPEN 1회 성공 뒤 direct probe를 갱신해서 후보 수가 줄었는지 먼저 확인하세요."
+      }
       Write-Output "  - BATCH는 OPEN 1회 성공 뒤 같은 DR 용지/제목블록/옵션이 반복된다는 걸 확인했을 때만 사용합니다."
       Write-Output "  - 도면틀이 INSERT처럼 보이는 것 자체는 실패 기준이 아니며, 대표 DR_titlea_3rd 제목블록을 확인합니다."
       return
@@ -496,6 +513,13 @@ while ($true) {
   $dbmodAfter = Get-FirstRegexValue -Text $probeText -Pattern "^\s*dbmod-after-commands:\s*(\d+)"
   $targetTitleCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*target-title-count:\s*(\d+)"
   $targetFrameCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*target-frame-count:\s*(\d+)"
+  $targetPairCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*target-gmtitle-pair-count:\s*(\d+)"
+  $nativeLikeTargetPairCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*native-like-target-pair-count:\s*(\d+)"
+  $nonNativeLikeTargetPairCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*non-native-like-target-pair-count:\s*(\d+)"
+  $clonedPairCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*cloned-gmtitle-pair-count:\s*(\d+)"
+  $a3a4NativeUpgradeCandidateCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*a3a4-native-upgrade-candidate-count:\s*(\d+)"
+  $orphanTargetFrameCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*orphan-target-frame-count:\s*(\d+)"
+  $duplicateTargetPairCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*duplicate-target-pair-count:\s*(\d+)"
 
   if (
     $sourceWorkCopyPathWasDefault -and
@@ -524,6 +548,13 @@ while ($true) {
   if ($statusAfterVerify) { Write-Output ("검증 상태: {0}" -f $statusAfterVerify) }
   if ($targetTitleCount) { Write-Output ("대상 제목블록 수: {0}" -f $targetTitleCount) }
   if ($targetFrameCount) { Write-Output ("대상 도면틀 수: {0}" -f $targetFrameCount) }
+  if ($targetPairCount) { Write-Output ("GMTITLE 도면틀/제목블록 쌍 수: {0}" -f $targetPairCount) }
+  if ($nativeLikeTargetPairCount) { Write-Output ("native-like GMTITLE 쌍 수: {0}" -f $nativeLikeTargetPairCount) }
+  if ($nonNativeLikeTargetPairCount) { Write-Output ("교체 필요 GMTITLE 쌍 수: {0}" -f $nonNativeLikeTargetPairCount) }
+  if ($clonedPairCount) { Write-Output ("복제/공유 링크 GMTITLE 쌍 수: {0}" -f $clonedPairCount) }
+  if ($a3a4NativeUpgradeCandidateCount) { Write-Output ("A3/A4 native 교체 후보 수: {0}" -f $a3a4NativeUpgradeCandidateCount) }
+  if ($orphanTargetFrameCount) { Write-Output ("고아 GMTITLE 도면틀 수: {0}" -f $orphanTargetFrameCount) }
+  if ($duplicateTargetPairCount) { Write-Output ("중복 GMTITLE 쌍 수: {0}" -f $duplicateTargetPairCount) }
   if ($dbmodAfter) { Write-Output ("Direct probe 뒤 DBMOD: {0}" -f $dbmodAfter) }
 
   if (-not $trusted) {

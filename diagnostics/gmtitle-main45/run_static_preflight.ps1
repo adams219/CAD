@@ -19,6 +19,7 @@ $a4NativeProbeFixturePath = Join-Path $PSScriptRoot "a4_native_exemplar_probe.ls
 $a4NativeProbeRunnerPath = Join-Path $PSScriptRoot "run_a4_native_exemplar_probe.ps1"
 $a4OutlineConvertProbePath = Join-Path $PSScriptRoot "a4_outline_convert_probe.lsp"
 $a4OutlineConvertRunnerPath = Join-Path $PSScriptRoot "run_a4_outline_convert_probe.ps1"
+$actualDirectStatusProbePath = Join-Path $PSScriptRoot "actual_workcopy_status_probe.lsp"
 $actualDirectStatusRunnerPath = Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"
 $nextCadActionRunnerPath = Join-Path $PSScriptRoot "run_next_cad_action.ps1"
 $nextCadActionCardProbePath = Join-Path $PSScriptRoot "run_next_cad_action_card_probe.ps1"
@@ -176,6 +177,7 @@ $a4NativeProbeFixtureText = Read-Text $a4NativeProbeFixturePath
 $a4NativeProbeRunnerText = Read-Text $a4NativeProbeRunnerPath
 $a4OutlineConvertProbeText = Read-Text $a4OutlineConvertProbePath
 $a4OutlineConvertRunnerText = Read-Text $a4OutlineConvertRunnerPath
+$actualDirectStatusProbeText = Read-Text $actualDirectStatusProbePath
 $actualDirectStatusRunnerText = Read-Text $actualDirectStatusRunnerPath
 $nextCadActionRunnerText = Read-Text $nextCadActionRunnerPath
 $nextCadActionCardProbeText = Read-Text $nextCadActionCardProbePath
@@ -191,6 +193,7 @@ Test-LispBalance -Text $mainText -Label "swcad_title_scale.lsp"
 Test-LispBalance -Text $loaderText -Label "swcad_load.lsp"
 Test-LispBalance -Text $a4NormProbeText -Label "a4_outline_normalization_probe.lsp"
 Test-LispBalance -Text $a4OutlineConvertProbeText -Label "a4_outline_convert_probe.lsp"
+Test-LispBalance -Text $actualDirectStatusProbeText -Label "actual_workcopy_status_probe.lsp"
 
 $gmtitleVersion = Get-VersionValue -Text $mainText -VariableName "*swcad-title-scale-version*"
 if ($gmtitleVersion -eq $ExpectedGmtitleVersion) {
@@ -303,6 +306,13 @@ Assert-Contains -Text $nextCadActionRunnerText -Needle "AUTO_REFRESH_DIRECT_PROB
 Assert-Contains -Text $nextCadActionRunnerText -Needle "예상 수동 GMTITLE 확인량" -Label "Next CAD action manual selection forecast"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "저장된 시트 수량" -Label "Next CAD action expected sheet count forecast"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "A4 frame-only {0}장은 제목블록 생성 대상이 아닙니다" -Label "Next CAD action A4 frame-only no-title forecast"
+Assert-Contains -Text $actualDirectStatusProbeText -Needle "a3a4-native-upgrade-candidate-count" -Label "Actual workcopy probe native-upgrade candidate count"
+Assert-Contains -Text $actualDirectStatusProbeText -Needle "target-gmtitle-pair-count" -Label "Actual workcopy probe target pair count"
+Assert-Contains -Text $actualDirectStatusProbeText -Needle "native-like-target-pair-count" -Label "Actual workcopy probe native-like pair count"
+Assert-Contains -Text $actualDirectStatusProbeText -Needle "duplicate-target-pair-count" -Label "Actual workcopy probe duplicate target pair count"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "A3/A4 native 교체 후보 수" -Label "Next CAD action native-upgrade candidate output"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "현재 GMTITLE 쌍: 전체" -Label "Next CAD action target-pair forecast"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "OPEN 1회 성공 뒤 direct probe를 갱신해서 후보 수가 줄었는지 먼저 확인하세요." -Label "Next CAD action native OPEN refresh guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "Codex sandbox 기본 경로 감지" -Label "Next CAD action Codex sandbox default-path correction"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "direct probe의 실제 DWG를 대상 작업복사본으로 사용" -Label "Next CAD action real direct-probe DWG correction"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "run_actual_workcopy_direct_status_probe.ps1" -Label "Next CAD action direct-probe runner guidance"

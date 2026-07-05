@@ -66,6 +66,13 @@ function Write-FakeLog {
     "  A4: 2",
     "target-title-count: 1",
     "target-frame-count: 1",
+    "target-gmtitle-pair-count: 13",
+    "native-like-target-pair-count: 1",
+    "non-native-like-target-pair-count: 12",
+    "cloned-gmtitle-pair-count: 12",
+    "a3a4-native-upgrade-candidate-count: 12",
+    "orphan-target-frame-count: 0",
+    "duplicate-target-pair-count: 0",
     "dbmod-after-commands: 0"
   ) | Set-Content -LiteralPath $Path -Encoding UTF8
 }
@@ -113,7 +120,7 @@ Invoke-CardCase `
 Invoke-CardCase `
   -Name "native_upgrade" `
   -Status "NEXT_UPGRADE_A3_A4_NATIVE" `
-  -Expected @("Result: RUN_NATIVE_REPLACEMENT", "SWTITLECONVERT", "OPEN: 다음 A3/A4 후보 1장만 fresh native GMTITLE로 교체합니다.", "BATCH: OPEN으로 최소 1장 성공한 뒤", "MANUAL: OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복될 때만 사용합니다.")
+  -Expected @("Result: RUN_NATIVE_REPLACEMENT", "SWTITLECONVERT", "A3/A4 native 교체 후보 수: 12", "현재 A3/A4 native 교체 후보: 12개", "현재 GMTITLE 쌍: 전체 13개, native-like 1개, 교체 필요 12개", "복제/공유 링크 후보: 12개", "OPEN 1회 성공 뒤 direct probe를 갱신해서 후보 수가 줄었는지 먼저 확인하세요.", "OPEN: 다음 A3/A4 후보 1장만 fresh native GMTITLE로 교체합니다.", "BATCH: OPEN으로 최소 1장 성공한 뒤", "MANUAL: OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복될 때만 사용합니다.")
 
 Invoke-CardCase `
   -Name "structure_review" `
