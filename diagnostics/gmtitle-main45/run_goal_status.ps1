@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$SourceWorkCopyPath
 )
 
@@ -611,7 +611,7 @@ Write-Output ""
 Write-A4FrameOnlyEvidenceSummary -WorkDir (Join-Path $repoRoot "work")
 
 Write-Output ""
-Write-Output "Next action:"
+Write-Output "다음 작업:"
 $a4InvestigationPreferred = (
   (
     ($script:LatestCadDwgTrustedForGoal -and $script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") -or
@@ -657,19 +657,19 @@ $scratchNativeA4Log = Join-Path $repoRoot "work\swtitle_a4_native_exemplar_scrat
 $scratchNativeA4Exists = Test-Path -LiteralPath $scratchNativeA4Path
 if ($existingGstarCAD.Count -gt 0) {
   if ($a4FrameOnlyProductionPathVerified) {
-    Write-Output "  A4 native outside-marker policy and frame-only conversion path are verified:"
-    Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair with official small outside markers."
-    Write-Output "    2. SWTITLEPREPARE now accepts that definition as ready-native-outside-markers when geometry/raw-selection checks pass."
-    Write-Output "    3. The A4 frame-only convert probe finalized one DR_A4_Outline frame with zero DR_titlea_3rd title inserts."
+    Write-Output "  A4 native 바깥 마커 허용 정책과 frame-only 변환 경로는 검증됨:"
+    Write-Output "    1. A4 scratch probe에서 공식 작은 바깥 마커를 가진 실제 native GMTITLE 쌍을 확인했습니다."
+    Write-Output "    2. SWTITLEPREPARE는 형상/raw-selection 검사가 통과하면 이 정의를 ready-native-outside-markers로 허용합니다."
+    Write-Output "    3. A4 frame-only convert probe는 DR_titlea_3rd 제목블록 없이 DR_A4_Outline 도면틀 1개만 마무리했습니다."
     if ($script:DirectWorkcopyProbeTrusted -and $script:DirectWorkcopyStatusCode) {
-      Write-Output ("    4. Direct actual work-copy probe says next state is {0}." -f $script:DirectWorkcopyStatusCode)
+      Write-Output ("    4. 실제 작업복사본 direct probe의 다음 상태: {0}" -f $script:DirectWorkcopyStatusCode)
       if ($script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") {
-        Write-Output ("    5. In visible CAD, run SWTITLECONVERT and create the first native GMTITLE with {0} / {1}." -f $script:DirectWorkcopyNextFrame, $script:DirectWorkcopyNextTitle)
+        Write-Output ("    5. 열린 CAD에서 SWTITLECONVERT를 실행하고 첫 native GMTITLE을 {0} / {1}로 만드세요." -f $script:DirectWorkcopyNextFrame, $script:DirectWorkcopyNextTitle)
       } else {
-        Write-Output "    5. In visible CAD, follow SWTITLESTATUS for the next four-command workflow step."
+        Write-Output "    5. 열린 CAD에서는 SWTITLESTATUS가 안내하는 4단계 흐름의 다음 작업만 따르세요."
       }
     } else {
-      Write-Output "    4. Next visible-CAD work should return to the normal four-command workflow on the real work-copy, starting from SWTITLESTATUS."
+      Write-Output "    4. 다음 열린 CAD 작업은 실제 작업복사본에서 SWTITLESTATUS부터 4단계 흐름으로 돌아가세요."
     }
     Write-Output ""
     Write-Output "  Hidden suite verification path only if you changed code again:"
@@ -754,27 +754,27 @@ if ($existingGstarCAD.Count -gt 0) {
   Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -WaitForGstarCADClose" -f $suite)
 } else {
   if ($a4FrameOnlyProductionPathVerified) {
-    Write-Output "  A4 native outside-marker policy and frame-only conversion path are verified:"
-    Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair with official small outside markers."
-    Write-Output "    2. SWTITLEPREPARE now accepts that definition as ready-native-outside-markers when geometry/raw-selection checks pass."
-    Write-Output "    3. The A4 frame-only convert probe finalized one DR_A4_Outline frame with zero DR_titlea_3rd title inserts."
-    Write-Output "    4. The full hidden suite includes this probe and has a verified A4 convert expectation."
-    Write-Output "  Next real work-copy step:"
+    Write-Output "  A4 native 바깥 마커 허용 정책과 frame-only 변환 경로는 검증됨:"
+    Write-Output "    1. A4 scratch probe에서 공식 작은 바깥 마커를 가진 실제 native GMTITLE 쌍을 확인했습니다."
+    Write-Output "    2. SWTITLEPREPARE는 형상/raw-selection 검사가 통과하면 이 정의를 ready-native-outside-markers로 허용합니다."
+    Write-Output "    3. A4 frame-only convert probe는 DR_titlea_3rd 제목블록 없이 DR_A4_Outline 도면틀 1개만 마무리했습니다."
+    Write-Output "    4. 전체 hidden suite에도 이 probe와 A4 변환 기대값이 포함되어 있습니다."
+    Write-Output "  다음 실제 작업복사본 단계:"
     if ($script:DirectWorkcopyProbeTrusted -and $script:DirectWorkcopyStatusCode) {
-      Write-Output ("    1. Direct actual work-copy probe says: {0}." -f $script:DirectWorkcopyStatusCode)
-      Write-Output "    2. Open or activate the real work-copy DWG in GstarCAD."
-      Write-Output "    3. APPLOAD the current swcad_title_scale.lsp if needed."
+      Write-Output ("    1. 실제 작업복사본 direct probe 상태: {0}" -f $script:DirectWorkcopyStatusCode)
+      Write-Output "    2. GstarCAD에서 실제 작업복사본 DWG를 열거나 활성화하세요."
+      Write-Output "    3. 필요하면 최신 swcad_title_scale.lsp를 APPLOAD 하세요."
       if ($script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") {
-        Write-Output ("    4. Run SWTITLECONVERT and create the first native GMTITLE with {0} / {1}." -f $script:DirectWorkcopyNextFrame, $script:DirectWorkcopyNextTitle)
-        Write-Output "    5. Then run SWTITLESTATUS and continue the four-command flow."
+        Write-Output ("    4. SWTITLECONVERT를 실행하고 첫 native GMTITLE을 {0} / {1}로 만드세요." -f $script:DirectWorkcopyNextFrame, $script:DirectWorkcopyNextTitle)
+        Write-Output "    5. 그 다음 SWTITLESTATUS를 실행하고 4단계 흐름을 계속하세요."
       } else {
-        Write-Output "    4. Run SWTITLESTATUS and follow the four-command flow through SWTITLECONVERT and SWTITLEVERIFY."
+        Write-Output "    4. SWTITLESTATUS를 실행하고 SWTITLECONVERT/SWTITLEVERIFY까지 이어지는 4단계 흐름만 따르세요."
       }
     } else {
-      Write-Output "    1. Open or activate the real work-copy DWG in GstarCAD."
-      Write-Output "    2. APPLOAD the current swcad_title_scale.lsp if needed."
-      Write-Output "    3. Run SWTITLESTATUS."
-      Write-Output "    4. Follow the four-command flow through SWTITLECONVERT and SWTITLEVERIFY."
+      Write-Output "    1. GstarCAD에서 실제 작업복사본 DWG를 열거나 활성화하세요."
+      Write-Output "    2. 필요하면 최신 swcad_title_scale.lsp를 APPLOAD 하세요."
+      Write-Output "    3. SWTITLESTATUS를 실행하세요."
+      Write-Output "    4. SWTITLECONVERT/SWTITLEVERIFY까지 이어지는 4단계 흐름만 따르세요."
     }
   } elseif ($a4NativeOutsideMarkerPolicyReady) {
     Write-Output "  A4 native outside-marker policy is implemented:"
@@ -813,18 +813,18 @@ if ($existingGstarCAD.Count -gt 0) {
     }
     Write-Output "    10. After a safer A4 definition strategy is implemented, rerun the focused A4 probe and full hidden suite."
   } elseif ($a4InvestigationPreferred) {
-    Write-Output "  Run the copied-DWG nested A4 probe now:"
+    Write-Output "  지금은 복사본 DWG 기준 nested A4 probe를 먼저 실행하세요:"
     Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside,nested-direct-outside" -f $nestedProbeScript, $nestedProbeSource)
-    Write-Output "  Do not run the full hidden suite first; it cannot prove the A4 blocker until this probe closes the DR_A4_Outline raw-bbox question."
+    Write-Output "  먼저 전체 hidden suite를 돌리지 마세요. 이 probe가 DR_A4_Outline raw-bbox 의문을 닫기 전에는 A4 blocker를 증명할 수 없습니다."
   } else {
-    Write-Output "  Run the full hidden suite now:"
+    Write-Output "  지금 전체 hidden suite를 실행하세요:"
     Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f $suite)
   }
 }
 
 Write-Output ""
-Write-Output "Goal-mode reference docs:"
-Write-Output ("  Run card: {0}" -f $runCard)
-Write-Output ("  Detailed plan: {0}" -f $goalPlan)
+Write-Output "목표모드 참고 문서:"
+Write-Output ("  실행 카드: {0}" -f $runCard)
+Write-Output ("  상세 계획: {0}" -f $goalPlan)
 Write-Output ""
-Write-Output "Goal status: not complete until the actual work-copy reaches SWTITLEVERIFY_FINAL_OK and representative CAD double-click checks are confirmed."
+Write-Output "목표 상태: 실제 작업복사본이 SWTITLEVERIFY_FINAL_OK에 도달하고 대표 CAD 더블클릭 확인이 끝나기 전까지는 완료가 아닙니다."
