@@ -10,6 +10,8 @@
 
 $ErrorActionPreference = "Stop"
 
+$sourceWorkCopyPathWasDefault = -not $PSBoundParameters.ContainsKey("SourceWorkCopyPath")
+
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
 $workDir = Join-Path $repoRoot "work"
 
@@ -80,6 +82,15 @@ function Test-SamePath {
   } catch {
     return $false
   }
+}
+
+function Test-CodexSandboxPath {
+  param([string]$Path)
+
+  if ([string]::IsNullOrWhiteSpace($Path)) {
+    return $false
+  }
+  return $Path -like "*\CodexSandboxOffline\.codex\.sandbox\cwd\*"
 }
 
 function Write-ManualLoadStep {
@@ -371,6 +382,21 @@ while ($true) {
   $dbmodAfter = Get-FirstRegexValue -Text $probeText -Pattern "^\s*dbmod-after-commands:\s*(\d+)"
   $targetTitleCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*target-title-count:\s*(\d+)"
   $targetFrameCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*target-frame-count:\s*(\d+)"
+
+  if (
+    $sourceWorkCopyPathWasDefault -and
+    (Test-CodexSandboxPath -Path $SourceWorkCopyPath) -and
+    $probeDwg -and
+    (-not (Test-CodexSandboxPath -Path $probeDwg)) -and
+    (Test-Path -LiteralPath $probeDwg)
+  ) {
+    Write-Output ("Codex sandbox 기본 경로 감지: direct probe의 실제 DWG를 대상 작업복사본으로 사용합니다.")
+    Write-Output ("  기존 sandbox 대상: {0}" -f $SourceWorkCopyPath)
+    Write-Output ("  실제 direct probe DWG: {0}" -f $probeDwg)
+    $SourceWorkCopyPath = $probeDwg
+    $sourceItem = Get-Item -LiteralPath $SourceWorkCopyPath
+  }
+
   $trusted = Test-SamePath -Left $probeDwg -Right $SourceWorkCopyPath
   $probeStale = $sourceItem.LastWriteTimeUtc -gt $probeItem.LastWriteTimeUtc.AddSeconds(2)
 
