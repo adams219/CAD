@@ -23,6 +23,7 @@ $actualDirectStatusProbePath = Join-Path $PSScriptRoot "actual_workcopy_status_p
 $actualDirectStatusRunnerPath = Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"
 $postFirstNativeProbePath = Join-Path $PSScriptRoot "post_first_native_transition_probe.lsp"
 $postFirstNativeRunnerPath = Join-Path $PSScriptRoot "run_post_first_native_transition_probe.ps1"
+$openWorkcopyRunnerPath = Join-Path $PSScriptRoot "run_open_workcopy_for_manual_convert.ps1"
 $nextCadActionRunnerPath = Join-Path $PSScriptRoot "run_next_cad_action.ps1"
 $nextCadActionCardProbePath = Join-Path $PSScriptRoot "run_next_cad_action_card_probe.ps1"
 $finalCompletionGatePath = Join-Path $PSScriptRoot "run_final_completion_gate.ps1"
@@ -198,6 +199,7 @@ $actualDirectStatusProbeText = Read-Text $actualDirectStatusProbePath
 $actualDirectStatusRunnerText = Read-Text $actualDirectStatusRunnerPath
 $postFirstNativeProbeText = Read-Text $postFirstNativeProbePath
 $postFirstNativeRunnerText = Read-Text $postFirstNativeRunnerPath
+$openWorkcopyRunnerText = Read-Text $openWorkcopyRunnerPath
 $nextCadActionRunnerText = Read-Text $nextCadActionRunnerPath
 $nextCadActionCardProbeText = Read-Text $nextCadActionCardProbePath
 $finalCompletionGateText = Read-Text $finalCompletionGatePath
@@ -383,6 +385,9 @@ Assert-Contains -Text $actualDirectStatusProbeText -Needle "next-missing-native-
 Assert-Contains -Text $postFirstNativeProbeText -Needle "marker-only A2 target is not accepted as the first native GMTITLE" -Label "Post-first-native marker gate negative evidence"
 Assert-Contains -Text $postFirstNativeProbeText -Needle "Next missing native selection after fixture" -Label "Post-first-native marker gate next missing selection evidence"
 Assert-Contains -Text $postFirstNativeRunnerText -Needle "post_first_native_transition_probe.lsp" -Label "Post-first-native marker gate runner"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "SWTITLESTATUS" -Label "Open workcopy helper status command"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "It does not run SWTITLECONVERTNEXT" -Label "Open workcopy helper no-convert guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "run_open_workcopy_for_manual_convert.ps1" -Label "Next CAD action open-workcopy helper"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "A3/A4 native 교체 후보 수" -Label "Next CAD action native-upgrade candidate output"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "현재 GMTITLE 쌍: 전체" -Label "Next CAD action target-pair forecast"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "OPEN 1회 성공 뒤 direct probe를 갱신해서 후보 수가 줄었는지 먼저 확인하세요." -Label "Next CAD action native OPEN refresh guidance"

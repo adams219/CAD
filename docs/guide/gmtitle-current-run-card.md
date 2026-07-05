@@ -224,6 +224,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 
 CAD 화면 옆에서 다음 명령, GMTITLE 선택값, 즉시 중단 조건, 바로 확인할 명령만 보고 싶을 때 이 카드를 사용합니다.
 
+CAD가 닫혀 있고 작업복사본을 여는 단계부터 줄이고 싶으면 아래 helper를 사용할 수 있습니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_open_workcopy_for_manual_convert.ps1
+```
+
+이 helper는 작업복사본을 열고 최신 LSP를 로드한 뒤 `SWTITLEVERSION`과 `SWTITLESTATUS`까지만 실행합니다. `SWTITLECONVERTNEXT`와 GMTITLE 창 선택은 실행하지 않으므로, CAD 창이 준비된 뒤 명령줄에 `SWTITLECONVERTNEXT`를 직접 입력합니다.
+
 현재 PC에서는 Codex Computer Use가 GstarCAD 화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다. 따라서 실제 `SWTITLECONVERTNEXT`/`SWTITLECONVERT`의 GMTITLE 창 선택은 사용자가 직접 하고, Codex는 로그/문서/검증 기준을 정리하는 쪽으로 사용합니다.
 
 ## Hidden Suite 검증 상태

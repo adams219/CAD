@@ -205,6 +205,8 @@ function Get-ExpectedGmtitleVersion {
 function Write-ManualLoadStep {
   $expectedVersion = Get-ExpectedGmtitleVersion
   Write-Output "수동 GstarCAD 단계:"
+  Write-Output "  CAD가 닫혀 있으면 먼저 아래 helper로 작업복사본 열기+APPLOAD+SWTITLESTATUS까지 준비할 수 있습니다:"
+  Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Get-DisplayDiagnosticScriptPath -ScriptName "run_open_workcopy_for_manual_convert.ps1"))
   Write-Output "  APPLOAD"
   Write-Output ("  {0}" -f (Join-Path $displayRepoRoot "swcad_load.lsp"))
   Write-Output "  SWTITLEVERSION"
