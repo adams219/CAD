@@ -654,19 +654,31 @@ SWTITLEVERIFY 안내
   -> 변환 후보가 없으므로 최종 검증 단계다.
 ```
 
-### 3단계: A3/A4 native 교체
+### 3단계: 첫 native 생성 또는 A3/A4 native 교체
 
-현재 작업복사본의 다음 실제 작업은 이 단계다.
+이 단계는 `SWTITLESTATUS` 상태 코드에 따라 두 갈래다. 현재 기본 workcopy direct probe가
+`NEXT_CREATE_FIRST_NATIVE_GMTITLE`이면 아직 A3/A4 교체 단계가 아니라, 먼저 첫 A2 native
+GMTITLE 기준 객체를 만들어야 한다.
+
+A3/A4 native 교체 설명은 `SWTITLESTATUS`가 `NEXT_UPGRADE_A3_A4_NATIVE`를 출력한 뒤에만
+적용한다. 이 조건 없이 A3/A4 교체 절차를 따라 하면 과거 중간 workcopy 상태를 현재 도면에
+잘못 적용하게 된다.
 
 ```text
 SWTITLECONVERTNEXT
 ```
 
-`SWTITLECONVERTNEXT`는 현재 상태의 다음 응답을 자동으로 선택한다. 수동 응답을 직접 고르기 위해 `SWTITLECONVERT`를 사용한다면 기본은 `OPEN`이다.
+`SWTITLECONVERTNEXT`는 현재 상태의 다음 응답을 자동으로 선택한다. 수동 응답을 직접 고르기 위해
+`SWTITLECONVERT`를 사용할 때의 응답은 상태별로 다르다.
 
 ```text
+YES
+  NEXT_CREATE_FIRST_NATIVE_GMTITLE 또는 NEXT_CREATE_MISSING_NATIVE_EXEMPLAR 상태에서 쓴다.
+  첫 native GMTITLE 기준 객체를 1장 만든다.
+
 OPEN
-  다음 후보 1장만 처리한다.
+  NEXT_UPGRADE_A3_A4_NATIVE 상태에서 쓴다.
+  다음 A3/A4 native 교체 후보 1장만 처리한다.
 
 MANUAL
   OPEN이 계속 새 GMTITLE 객체를 못 잡을 때 쓰는 복구 경로다.
@@ -680,6 +692,7 @@ BATCH
   단, 연속 처리 전에 OPEN으로 최소 1장 성공 증거를 먼저 확보한다.
   각 GMTITLE 창 선택은 사람이 눈으로 확인한다.
   ISO 기본값, Object move ON, 예상과 다른 DR 용지가 보이면 즉시 취소한다.
+  첫 native 생성 단계에서는 쓰지 않는다.
 
 Enter
   중단한다. 도면을 바꾸지 않는다.
