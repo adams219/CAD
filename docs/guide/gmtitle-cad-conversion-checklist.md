@@ -11,6 +11,8 @@ SWTITLECONVERT
 SWTITLEVERIFY
 ```
 
+반복 입력을 줄이고 싶으면 `SWTITLECONVERT` 대신 `SWTITLECONVERTNEXT`를 사용할 수 있습니다. 이 명령은 현재 상태의 다음 응답만 자동 선택하며, GMTITLE 창의 DR 용지/제목블록/옵션 확인은 직접 해야 합니다.
+
 아래 옛 명령은 직접 입력하지 않습니다.
 
 ```text
@@ -57,7 +59,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260705-verify-source-priority-a4stepnote
+260705-convert-next
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 로드합니다.

@@ -27,7 +27,7 @@ codex/gm-title
 주의:
 
 ```text
-2026-07-05 현재 로컬 작업 기준은 `260705-verify-source-priority-a4stepnote`입니다.
+2026-07-05 현재 로컬 작업 기준은 `260705-convert-next`입니다.
 현재 로컬 브랜치는 GitHub보다 앞선 커밋이 있을 수 있으므로, 다른 PC에서 이어가기 전에 이 브랜치가 GitHub에 push됐는지 확인합니다.
 다른 PC에서는 `codex/gm-title` 브랜치를 받은 뒤, CAD에서 `SWTITLEVERSION`으로 실제 로드 버전을 확인합니다.
 ```
@@ -77,7 +77,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260705-verify-source-priority-a4stepnote
+260705-convert-next
 ```
 
 다른 버전이면 변환하지 말고 다시 APPLOAD 합니다. 그래도 다른 버전이면 다른 브랜치를 받았거나, 열린 CAD 세션이 예전 LSP를 유지하고 있을 수 있습니다.
@@ -111,6 +111,17 @@ SWTITLESTATUS
 
 ```text
 SWTITLECONVERT
+```
+
+반복 확인 입력을 줄이고 싶으면 아래 명령을 대신 사용할 수 있습니다.
+
+```text
+SWTITLECONVERTNEXT
+```
+
+`SWTITLECONVERTNEXT`는 `YES`/`OPEN` 같은 반복 응답만 현재 상태에 맞게 자동 선택합니다. GMTITLE 창의 DR 용지/제목블록/옵션 확인은 직접 해야 합니다.
+
+```text
 SWTITLESTATUS
 ```
 

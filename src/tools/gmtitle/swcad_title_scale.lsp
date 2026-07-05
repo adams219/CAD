@@ -6,6 +6,11 @@
 ;;;     SWTITLEPREPARE
 ;;;     SWTITLECONVERT
 ;;;     SWTITLEVERIFY
+;;; Optional shortcut:
+;;;     SWTITLECONVERTNEXT
+;;;   runs the same conversion decision tree, but automatically chooses the
+;;;   conservative next response for the current state (YES or one-sheet OPEN).
+;;;   GMTITLE dialog paper/title/options still require visual confirmation.
 ;;;
 ;;; Older transfer, batch, frame-only, and A3/A4 recovery routines remain
 ;;; as internal implementation helpers. They are intentionally not the user
@@ -31,7 +36,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260705-verify-source-priority-a4stepnote")
+(setq *swcad-title-scale-version* "260705-convert-next")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -39,6 +44,7 @@
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
 (setq *swcad-title-batch-mode* nil)
+(setq *swcad-title-convert-next-mode* nil)
 (setq *swcad-title-last-apply-status* nil)
 (setq *swcad-title-last-clone-failure* nil)
 (setq *swcad-title-last-native-gmtitle-abort-reason* nil)
@@ -845,6 +851,22 @@
 
 (defun swcad-title-princ-text (text)
   (princ (swcad-title-korean-line text))
+)
+
+(defun swcad-title-auto-next-answer (answer message)
+  (if *swcad-title-convert-next-mode*
+    (progn
+      (swcad-title-princ-line
+        (strcat
+          "SWTITLECONVERTNEXT auto response: "
+          answer
+          (if message (strcat " - " message) "")
+        )
+      )
+      answer
+    )
+    nil
+  )
 )
 
 (defun swcad-title-log-line (text)
@@ -13911,7 +13933,7 @@
     (T
       (swcad-title-princ-line "정책: 원본 A4에는 표제란이 없으므로 DR_titlea_3rd 제목블록을 만들지 않습니다.")
       (setq answer
-        (if *swcad-title-batch-mode*
+        (if (or *swcad-title-batch-mode* *swcad-title-convert-next-mode*)
           "YES"
           (getstring T "\n표제란 없는 A4 시트의 도면틀만 DR_A4_Outline으로 교체하려면 YES를 입력하세요: ")
         )
@@ -14049,9 +14071,12 @@
         )
       )
       (setq answer
-        (getstring
-          T
-          "\n다음 frame-only 시트에 native GMTITLE 1장을 만들고 기존 도면틀을 제거하려면 YES를 입력하세요: "
+        (or
+          (swcad-title-auto-next-answer "YES" "frame-only native GMTITLE 1장 생성")
+          (getstring
+            T
+            "\n다음 frame-only 시트에 native GMTITLE 1장을 만들고 기존 도면틀을 제거하려면 YES를 입력하세요: "
+          )
         )
       )
       (if (/= (strcase answer) "YES")
@@ -14871,20 +14896,23 @@
         )
       )
       (setq answer
-        (getstring
-          T
-          (if frame-only-target-frame-block
-            (strcat
-              "\n처리할 표제란 시트 "
-              (itoa source-count)
-              "장만 처리하려면 YES를 입력하세요: "
-            )
-            (strcat
-              "\n처리할 표제란 시트 "
-              (itoa source-count)
-              "장과 frame-only 시트 "
-              (itoa frame-only-count)
-              "장을 처리하려면 YES를 입력하세요: "
+        (or
+          (swcad-title-auto-next-answer "YES" "남은 시트 빠른 변환")
+          (getstring
+            T
+            (if frame-only-target-frame-block
+              (strcat
+                "\n처리할 표제란 시트 "
+                (itoa source-count)
+                "장만 처리하려면 YES를 입력하세요: "
+              )
+              (strcat
+                "\n처리할 표제란 시트 "
+                (itoa source-count)
+                "장과 frame-only 시트 "
+                (itoa frame-only-count)
+                "장을 처리하려면 YES를 입력하세요: "
+              )
             )
           )
         )
@@ -14980,9 +15008,12 @@
     )
     (example-title
       (setq answer
-        (getstring
-          T
-          "\n기존 native GMTITLE 기준 객체를 찾았습니다. 남은 시트 빠른 일괄 변환을 실행하려면 YES를 입력하세요: "
+        (or
+          (swcad-title-auto-next-answer "YES" "기존 native 기준 객체로 남은 시트 변환")
+          (getstring
+            T
+            "\n기존 native GMTITLE 기준 객체를 찾았습니다. 남은 시트 빠른 일괄 변환을 실행하려면 YES를 입력하세요: "
+          )
         )
       )
       (if (/= (strcase answer) "YES")
@@ -15001,9 +15032,12 @@
     )
     (T
       (setq answer
-        (getstring
-          T
-          "\n첫 native GMTITLE을 생성/마무리하고, 같은 크기 native 기준 객체가 준비된 경우에만 계속하려면 YES를 입력하세요: "
+        (or
+          (swcad-title-auto-next-answer "YES" "첫 native GMTITLE 생성")
+          (getstring
+            T
+            "\n첫 native GMTITLE을 생성/마무리하고, 같은 크기 native 기준 객체가 준비된 경우에만 계속하려면 YES를 입력하세요: "
+          )
         )
       )
       (if (/= (strcase answer) "YES")
@@ -16342,6 +16376,7 @@
         (or
           *swcad-title-native-upgrade-batch-mode*
           *swcad-title-skip-native-upgrade-confirmation*
+          *swcad-title-convert-next-mode*
         )
         (setq answer "YES")
         (setq answer
@@ -16915,6 +16950,9 @@
           T
           "\n이 한 장의 GMTITLE 창을 열려면 OPEN, 수동 생성 후 마무리하려면 MANUAL, 여러 장을 이어서 처리하려면 BATCH, 안전하게 중단하려면 Enter를 누르세요: "
         )
+      )
+      (if *swcad-title-convert-next-mode*
+        (setq answer (swcad-title-auto-next-answer "OPEN" "A3/A4 native 교체 후보 1장 처리"))
       )
       (cond
         ((= (strcase answer) "OPEN")
@@ -17823,9 +17861,12 @@
             )
             (progn
               (setq answer
-                (getstring
-                  T
-                  "\n이 크기의 첫 native GMTITLE을 생성/마무리하려면 YES를 입력하세요: "
+                (or
+                  (swcad-title-auto-next-answer "YES" "누락된 용지 크기의 첫 native GMTITLE 생성")
+                  (getstring
+                    T
+                    "\n이 크기의 첫 native GMTITLE을 생성/마무리하려면 YES를 입력하세요: "
+                  )
                 )
               )
               (if (/= (strcase answer) "YES")
@@ -18106,6 +18147,43 @@
   )
 )
 
+(defun swcad-title-integrated-convert-next (/ old-auto result)
+  (setq old-auto *swcad-title-convert-next-mode*)
+  (setq *swcad-title-convert-next-mode* T)
+  (swcad-title-princ-text "\n===== SWTITLECONVERTNEXT 다음 1단계 자동 선택 =====")
+  (swcad-title-princ-text "\n반복 확인 입력은 현재 상태의 안전한 다음 응답으로 자동 선택합니다.")
+  (swcad-title-princ-text "\nGMTITLE 창의 DR 용지/DR_titlea_3rd/Frame positioning ON/Object move OFF 확인은 계속 사람이 해야 합니다.")
+  (setq result (vl-catch-all-apply 'swcad-title-integrated-convert nil))
+  (setq *swcad-title-convert-next-mode* old-auto)
+  (if (vl-catch-all-error-p result)
+    (progn
+      (swcad-title-princ-text
+        (strcat
+          "\nSWTITLECONVERTNEXT 오류: "
+          (vl-catch-all-error-message result)
+        )
+      )
+      (setq *swcad-title-last-apply-status* "ERROR_CONVERT_NEXT_FATAL")
+    )
+  )
+  (princ)
+)
+
+(defun c:SWTITLECONVERTNEXT ()
+  (if (swcad-title-script-active-p)
+    (progn
+      (swcad-title-princ-text "\n===== SWTITLECONVERTNEXT 다음 1단계 자동 선택 =====")
+      (swcad-title-print-loaded-version)
+      (swcad-title-abort-interactive-gmtitle-script-active
+        "SWTITLECONVERTNEXT도 GMTITLE 창 선택이 필요할 수 있어 SCRIPT나 /b 자동 실행에서는 진행하지 않습니다."
+      )
+      (swcad-title-princ-text "\nSWTITLECONVERTNEXT 완료: SWTITLESTATUS로 상태를 확인한 뒤 CAD 명령줄에서 직접 다시 실행하세요.")
+      (princ)
+    )
+    (swcad-title-integrated-convert-next)
+  )
+)
+
 (defun c:SWTITLEVERIFY ()
   (swcad-title-integrated-verify)
 )
@@ -18113,7 +18191,7 @@
 (defun c:SWTITLEVERSION ()
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-verify-source-priority-a4stepnote")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-convert-next")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)
@@ -18259,6 +18337,6 @@
 (swcad-title-disable-legacy-public-commands)
 
 (princ (strcat "\nswcad_title_scale 통합 흐름 로드 완료 " *swcad-title-scale-version*))
-(princ "\n통합 명령어: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERT, SWTITLEVERIFY")
+(princ "\n통합 명령어: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERT, SWTITLECONVERTNEXT, SWTITLEVERIFY")
 (princ "\n예전 SWTITLE transfer/fast/A3A4/frame-only 공개 명령은 비활성화됩니다.")
 (princ)

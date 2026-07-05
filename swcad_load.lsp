@@ -100,4 +100,5 @@
 (princ "\nGMTITLE 작업 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERT, SWTITLEVERIFY")
 (princ "\nGMTITLE 참고: 예전 SWTITLE transfer/fast/A3A4/frame-only 직접 명령은 사용하지 말고 위 4단계 흐름을 사용하세요.")
 (princ "\n로드된 LSP 확인: SWTITLEVERSION")
+(princ "\nGMTITLE shortcut: SWTITLECONVERTNEXT")
 (princ)

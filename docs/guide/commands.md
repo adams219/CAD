@@ -31,7 +31,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260705-verify-source-priority-a4stepnote
+260705-convert-next
 ```
 
 다른 버전이 보이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -46,6 +46,14 @@ SWTITLEPREPARE
 SWTITLECONVERT
 SWTITLEVERIFY
 ```
+
+반복 확인 입력을 줄이고 싶을 때는 `SWTITLECONVERT` 대신 아래 명령을 사용할 수 있습니다.
+
+```text
+SWTITLECONVERTNEXT
+```
+
+`SWTITLECONVERTNEXT`는 현재 상태에서 안전한 다음 응답만 자동 선택합니다. 첫 native 생성/누락 크기 생성/빠른 변환은 `YES`, A3/A4 native 교체는 다음 후보 1장 `OPEN`으로 처리합니다. 단, GMTITLE 창에서 `DR_A*_Outline`, `DR_titlea_3rd`, `Frame positioning: ON`, `Object move: OFF`를 눈으로 확인하는 단계는 그대로 필요합니다.
 
 | 명령 | 용도 | 도면 변경 |
 | --- | --- | --- |

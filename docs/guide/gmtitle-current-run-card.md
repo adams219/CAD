@@ -63,7 +63,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260705-verify-source-priority-a4stepnote
+260705-convert-next
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -290,6 +290,14 @@ SWTITLESTATUS
 SWTITLECONVERT
 SWTITLESTATUS
 ```
+
+반복 확인 입력을 줄이고 싶으면 `SWTITLECONVERT` 대신 아래 명령을 사용할 수 있습니다.
+
+```text
+SWTITLECONVERTNEXT
+```
+
+`SWTITLECONVERTNEXT`는 아래의 `YES`/`OPEN` 선택만 자동으로 고르고, GMTITLE 창에서 DR 용지/제목블록/옵션을 확인하는 일은 그대로 남깁니다.
 
 `SWTITLECONVERT` 안에서 입력을 물으면 상태별로 아래처럼 답합니다.
 
