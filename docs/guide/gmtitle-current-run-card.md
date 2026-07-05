@@ -315,7 +315,14 @@ SWTITLECONVERTNEXT
 
 ## Hidden Suite 검증 상태
 
-2026-07-06 00:55 기준 `run_main45_verification_suite.ps1 -TimeoutSeconds 180`는 PASS입니다.
+최신 hidden suite PASS 여부와 Generated 시각은 아래 둘 중 하나로 확인합니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_goal_status.ps1
+```
+
+또는 `work\main56_verification_suite_last_run.txt`의 `Generated:`와 `Result:`를 직접 봅니다.
+이 문서는 특정 과거 실행 시각을 현재 기준으로 고정하지 않습니다.
 
 ```text
 no-CAD next-action card probe: PASS

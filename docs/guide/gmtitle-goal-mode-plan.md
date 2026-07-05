@@ -14,7 +14,7 @@
 브랜치: codex/gm-title
 작업트리: clean
 정적 preflight: PASS
-hidden verification suite: PASS (2026-07-06 00:55, all expected log markers verified, selection config deep registry included)
+hidden verification suite: PASS 여부는 `run_goal_status.ps1`가 최신 `work\main56_verification_suite_last_run.txt`의 Generated/Result를 읽어 판단
 GstarCAD /b script smoke probe: PASS
 GMTITLE LSP 버전: 260706-status-compact-card
 loader 버전: 260705-4step-gmtitle-a4-outline-preflight
