@@ -456,6 +456,8 @@ function Write-ConvertPromptGuidance {
   Write-Output ""
   Write-Output "SWTITLECONVERT/SWTITLECONVERTNEXT에서 나올 수 있는 입력:"
   Write-Output "  SWTITLECONVERTNEXT는 아래 반복 응답 중 현재 상태의 안전한 다음 값만 자동 선택합니다."
+  Write-Output "  SWTITLECONVERTNEXT를 쓰는 경우 사용자가 YES/OPEN/BATCH/MANUAL을 다시 입력하지 않습니다."
+  Write-Output "  아래 항목은 수동 SWTITLECONVERT를 쓸 때의 응답 의미를 이해하기 위한 설명입니다."
   switch ($Mode) {
     "FirstNative" {
       Write-Output "  YES: 첫 native GMTITLE 1장을 만들고 마무리합니다."
