@@ -25,6 +25,7 @@ $postFirstNativeProbePath = Join-Path $PSScriptRoot "post_first_native_transitio
 $postFirstNativeRunnerPath = Join-Path $PSScriptRoot "run_post_first_native_transition_probe.ps1"
 $openWorkcopyRunnerPath = Join-Path $PSScriptRoot "run_open_workcopy_for_manual_convert.ps1"
 $nextCadActionRunnerPath = Join-Path $PSScriptRoot "run_next_cad_action.ps1"
+$afterManualGmtitleStepRunnerPath = Join-Path $PSScriptRoot "run_after_manual_gmtitle_step.ps1"
 $nextCadActionCardProbePath = Join-Path $PSScriptRoot "run_next_cad_action_card_probe.ps1"
 $finalCompletionGatePath = Join-Path $PSScriptRoot "run_final_completion_gate.ps1"
 $selectionConfigProbePath = Join-Path $PSScriptRoot "run_gmtitle_selection_config_probe.ps1"
@@ -220,6 +221,7 @@ $postFirstNativeProbeText = Read-Text $postFirstNativeProbePath
 $postFirstNativeRunnerText = Read-Text $postFirstNativeRunnerPath
 $openWorkcopyRunnerText = Read-Text $openWorkcopyRunnerPath
 $nextCadActionRunnerText = Read-Text $nextCadActionRunnerPath
+$afterManualGmtitleStepRunnerText = Read-Text $afterManualGmtitleStepRunnerPath
 $nextCadActionCardProbeText = Read-Text $nextCadActionCardProbePath
 $finalCompletionGateText = Read-Text $finalCompletionGatePath
 $selectionConfigProbeText = Read-Text $selectionConfigProbePath
@@ -512,6 +514,17 @@ Assert-Contains -Text $nextCadActionRunnerText -Needle "MANUAL: OPEN이 새 GMTI
 Assert-Contains -Text $nextCadActionRunnerText -Needle "실제 DR_titlea_3rd 제목블록이 있는 대표 A2/A3 용지만 더블클릭하세요." -Label "Next CAD action final title-only double-click guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "표제란 없는 A4 frame-only 시트는 더블클릭할 제목블록이 없으므로" -Label "Next CAD action final A4 frame-only guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "DR_A*_Outline 도면틀을 더블클릭하면 GMPOWEREDIT/REFEDIT가 열릴 수 있으니" -Label "Next CAD action final frame double-click guard"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "run_next_cad_action.ps1" -Label "After-manual wrapper next-action card call"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "-AutoRefreshDirectProbe" -Label "After-manual wrapper direct probe refresh"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "run_final_completion_gate.ps1" -Label "After-manual wrapper optional final gate"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "CLOSE_GSTARCAD_FIRST" -Label "After-manual wrapper visible GstarCAD close guard"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "AFTER_MANUAL_STEP_NEXT_ACTION_READY" -Label "After-manual wrapper next-action result"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "AFTER_MANUAL_STEP_FINAL_GATE_PASSED" -Label "After-manual wrapper final-pass result"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "AFTER_MANUAL_STEP_FINAL_GATE_NOT_PASSED" -Label "After-manual wrapper final-fail summary"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "DryRun" -Label "After-manual wrapper dry-run option"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "[Console]::Out.WriteLine" -Label "After-manual wrapper screen output is not captured by return assignment"
+Assert-Contains -Text $readmeText -Needle "run_after_manual_gmtitle_step.ps1" -Label "README after-manual wrapper guidance"
+Assert-Contains -Text $readmeText -Needle "work\swtitle_after_manual_gmtitle_step_last.txt" -Label "README after-manual wrapper log path"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "Next CAD action card probe result: PASS" -Label "Next CAD action card probe pass marker"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_CREATE_FIRST_NATIVE_GMTITLE" -Label "Next CAD action card probe first-native case"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" -Label "Next CAD action card probe prepare case"
@@ -707,6 +720,9 @@ Assert-Contains -Text $commandsGuideText -Needle "NO_INSERTS가 반복됨: MANUA
 Assert-Contains -Text $commandsGuideText -Needle "SWTITLECONVERTNEXT" -Label "Commands guide convert-next shortcut guidance"
 Assert-Contains -Text $commandsGuideText -Needle "SolidWorks DWG의 도면틀/표제란을 GstarCAD Mechanical GMTITLE 구조로 바꾸는 일반 작업은 아래 권장 4개 명령만 사용합니다." -Label "Commands guide recommended 4-command wording"
 Assert-Contains -Text $commandsGuideText -Needle "SWTITLECONVERTNEXT    상태가 요구할 때만" -Label "Commands guide sequence recommends convert-next"
+Assert-Contains -Text $runCardText -Needle "run_after_manual_gmtitle_step.ps1" -Label "Run card after-manual wrapper command"
+Assert-Contains -Text $runCardText -Needle "work\swtitle_after_manual_gmtitle_step_last.txt" -Label "Run card after-manual wrapper log"
+Assert-Contains -Text $runCardText -Needle "작업복사본을 저장하고 GstarCAD를 닫은 상태" -Label "Run card after-manual saved-and-closed guard"
 Assert-Contains -Text $cadChecklistText -Needle "첫 native GMTITLE 기준 객체 생성: YES" -Label "CAD checklist convert YES prompt"
 Assert-Contains -Text $cadChecklistText -Needle "A3/A4 native 교체 1장 처리: OPEN" -Label "CAD checklist convert OPEN prompt"
 Assert-Contains -Text $cadChecklistText -Needle "BATCH는 OPEN으로 최소 1장 성공한 뒤" -Label "CAD checklist BATCH after OPEN guidance"

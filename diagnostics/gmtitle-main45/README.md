@@ -333,6 +333,27 @@ Use `-AutoRefreshDirectProbe` only after saving and closing visible GstarCAD. Th
 
 The card also compares the latest final completion gate log with the direct-probe log. If `swtitle_final_completion_gate_status.txt` is newer and disagrees with the direct-probe status, verify result, or next native GMTITLE frame/title, the card returns `REVIEW_FINAL_GATE_DIRECT_PROBE_CONFLICT` instead of recommending another CAD command. Refresh the direct probe or rerun the final completion gate before continuing.
 
+### After Manual GMTITLE Step Wrapper
+
+After one visible-CAD GMTITLE step is finished, save the work-copy DWG and close GstarCAD, then run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1"
+```
+
+This wrapper does not edit the DWG. It checks that visible GstarCAD is closed, runs `run_next_cad_action.ps1 -AutoRefreshDirectProbe`, writes `work\swtitle_after_manual_gmtitle_step_last.txt`, and prints the next action card from fresh direct-probe evidence. If the refreshed card indicates final verification is ready, it also runs `run_final_completion_gate.ps1` and reports whether automated completion evidence passed.
+
+Use `-WaitForGstarCADClose` if the command should wait while you save and close GstarCAD:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1" `
+  -WaitForGstarCADClose
+```
+
+Use `-DryRun` to check the wrapper flow without launching hidden GstarCAD probes. Use `-SkipFinalCompletionGate` when you only want the refreshed next-action card, even if the card is near the final verification stage.
+
 ## A4 Outline Prepare Probe
 
 Use `run_a4_outline_prepare_probe.ps1` to copy a work DWG, load the current GMTITLE LSP, and run the internal A4 frame-only `DR_A4_Outline` definition preflight on the copy.

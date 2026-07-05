@@ -249,6 +249,20 @@ CAD 화면 옆에서 다음 명령, GMTITLE 선택값, 즉시 중단 조건, 바
 
 이 카드는 `work\swtitle_final_completion_gate_status.txt`도 같이 읽습니다. final completion gate가 direct probe보다 최신이면 두 로그의 `SWTITLESTATUS`, `SWTITLEVERIFY`, 다음 native GMTITLE 값이 서로 일치하는지 확인합니다. 서로 다르면 `REVIEW_FINAL_GATE_DIRECT_PROBE_CONFLICT`로 멈추고, direct probe 갱신 또는 final completion gate 재실행을 요구합니다.
 
+수동으로 `SWTITLECONVERTNEXT`와 GMTITLE 창 선택을 한 번 끝낸 뒤에는 아래 래퍼를 쓰는 편이 더 안전합니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1
+```
+
+이 명령은 DWG를 직접 편집하지 않습니다. 작업복사본을 저장하고 GstarCAD를 닫은 상태에서 direct probe를 갱신하고, 최신 증거로 다음 CAD 작업 카드를 다시 출력합니다. 카드가 최종 검증 단계라고 판단하면 `run_final_completion_gate.ps1`도 이어서 실행하고, 결과를 `work\swtitle_after_manual_gmtitle_step_last.txt`에 남깁니다.
+
+CAD를 닫을 준비를 하면서 기다리게 하려면:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1 -WaitForGstarCADClose
+```
+
 CAD가 닫혀 있고 작업복사본을 여는 단계부터 줄이고 싶으면 아래 helper를 사용할 수 있습니다.
 
 ```powershell
