@@ -5,7 +5,7 @@
 
 (vl-load-com)
 
-(setq *swcad-version* "260705-4step-gmtitle-a4-outline-preflight")
+(setq *swcad-version* "260706-loader-convert-next-response-guidance")
 
 (defun swcad-loader-source (/ src)
   (setq src nil)
@@ -99,6 +99,8 @@
 (princ "\n도움말: SWHELP")
 (princ "\nGMTITLE 작업 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLEVERIFY")
 (princ "\nGMTITLE 수동 응답을 직접 고를 때만 SWTITLECONVERT를 사용하세요.")
+(princ "\nGMTITLE CONVERTNEXT: YES/OPEN/BATCH/MANUAL은 다시 입력하지 말고 GMTITLE 창만 확인하세요.")
+(princ "\nGMTITLE 창 확인: DR_A*_Outline, DR_titlea_3rd, Frame positioning ON, Object move OFF.")
 (princ "\nGMTITLE 중요: 변환 전에는 항상 SWTITLESTATUS로 현재 열린 DWG와 다음 상태를 먼저 확인하세요.")
 (princ "\nGMTITLE 금지: CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력해 우회하지 마세요.")
 (princ "\nGMTITLE 참고: 예전 SWTITLE transfer/fast/A3A4/frame-only 직접 명령은 사용하지 말고 위 흐름을 사용하세요.")

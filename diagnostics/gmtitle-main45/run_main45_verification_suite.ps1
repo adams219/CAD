@@ -320,7 +320,7 @@ Assert-LogContains `
   -Label "loader probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded loader version: 260705-4step-gmtitle-a4-outline-preflight",
+    "Loaded loader version: 260706-loader-convert-next-response-guidance",
     "Loaded GMTITLE version: 260706-status-compact-card",
     "Command-line -GMTITLE default enabled: no",
     "SCRIPT command-line -GMTITLE enabled: no",

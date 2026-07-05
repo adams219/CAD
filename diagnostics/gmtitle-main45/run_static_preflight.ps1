@@ -1,7 +1,7 @@
 ﻿param(
   [string]$ExpectedGmtitleVersion = "260706-status-compact-card",
 
-  [string]$ExpectedLoaderVersion = "260705-4step-gmtitle-a4-outline-preflight"
+  [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
 
 $ErrorActionPreference = "Stop"
@@ -261,6 +261,8 @@ if ($loaderVersion -eq $ExpectedLoaderVersion) {
 }
 Assert-Contains -Text $loaderText -Needle "GMTITLE 작업 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLEVERIFY" -Label "Loader convert-next workflow guidance"
 Assert-Contains -Text $loaderText -Needle "GMTITLE 수동 응답을 직접 고를 때만 SWTITLECONVERT를 사용하세요" -Label "Loader manual convert fallback guidance"
+Assert-Contains -Text $loaderText -Needle "GMTITLE CONVERTNEXT: YES/OPEN/BATCH/MANUAL은 다시 입력하지 말고 GMTITLE 창만 확인하세요." -Label "Loader convert-next no-extra-response guidance"
+Assert-Contains -Text $loaderText -Needle "GMTITLE 창 확인: DR_A*_Outline, DR_titlea_3rd, Frame positioning ON, Object move OFF." -Label "Loader GMTITLE dialog option guidance"
 Assert-Contains -Text $loaderText -Needle "GMTITLE 중요: 변환 전에는 항상 SWTITLESTATUS로 현재 열린 DWG와 다음 상태를 먼저 확인하세요" -Label "Loader status-first visible guidance"
 Assert-Contains -Text $loaderText -Needle "GMTITLE 금지: CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력해 우회하지 마세요" -Label "Loader raw GMTITLE/TIT/OPEN guard"
 Assert-NotContains -Text $loaderText -Needle "SWCAD loaded:" -Label "Loader stale English loaded message"

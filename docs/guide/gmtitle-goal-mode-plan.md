@@ -17,7 +17,7 @@
 hidden verification suite: PASS 여부는 `run_goal_status.ps1`가 최신 `work\main56_verification_suite_last_run.txt`의 Generated/Result를 읽어 판단
 GstarCAD /b script smoke probe: PASS
 GMTITLE LSP 버전: 260706-status-compact-card
-loader 버전: 260705-4step-gmtitle-a4-outline-preflight
+loader 버전: 260706-loader-convert-next-response-guidance
 공개 사용자 명령: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLECONVERT, SWTITLEVERIFY, SWTITLEVERSION, SWSCALESCAN
 A4 raw bbox guard: 있음
 SCRIPT/숨김 CAD interactive GMTITLE guard: 있음
@@ -313,7 +313,7 @@ nested-direct-outside probe:
 
 ```text
 LSP 기준:
-loader: 260705-4step-gmtitle-a4-outline-preflight
+loader: 260706-loader-convert-next-response-guidance
 gmtitle: 260706-status-compact-card
 
 작업 도면:
