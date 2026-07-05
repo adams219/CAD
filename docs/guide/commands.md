@@ -118,6 +118,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 
 이 세션 래퍼는 먼저 `run_next_cad_action.ps1 -AutoRefreshDirectProbe`로 저장된 작업복사본이 실제로 변환 가능한 상태인지 확인합니다. 카드가 정리/검토를 요구하면 CAD를 열지 않고 멈추므로, 상태가 바뀌었는데도 `SWTITLECONVERTNEXT`를 반복하는 실수를 줄입니다.
 
+CAD를 열지 않고 이번에 고를 용지/제목블록만 먼저 확인하려면 아래처럼 실행합니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1 -PreflightOnly
+```
+
 수동 명령인 `SWTITLECONVERT` 안에서 입력을 물으면 상태별로 아래처럼 답합니다.
 
 ```text

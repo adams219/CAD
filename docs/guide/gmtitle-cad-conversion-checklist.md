@@ -217,6 +217,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 
 이 세션 래퍼는 visible CAD를 열기 전에 next-action 카드를 갱신하고, 카드가 변환 가능한 상태일 때만 진행합니다. 카드가 `SWTITLEPREPARE`나 구조 검토를 요구하면 먼저 그 안내를 따릅니다.
 
+CAD를 열지 않고 이번에 고를 용지/제목블록만 먼저 확인하려면 아래처럼 실행합니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1 -PreflightOnly
+```
+
 ## 5. A3/A4 native 교체
 
 A3/A4 target이 화면에 보여도 복제/shared-link 구조라면 더블클릭 시 GMTITLE 표 편집창이 아니라 고급 속성 편집기로 열릴 수 있습니다.

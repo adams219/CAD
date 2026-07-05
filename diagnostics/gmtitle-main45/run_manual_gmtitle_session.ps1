@@ -17,6 +17,8 @@ param(
 
   [switch]$SkipInitialNextActionCard,
 
+  [switch]$PreflightOnly,
+
   [switch]$SkipFinalCompletionGate,
 
   [switch]$DryRun
@@ -126,6 +128,50 @@ function Invoke-ChildPowerShellCapture {
   }
 }
 
+function Get-FirstRegexValue {
+  param(
+    [string]$Text,
+    [string]$Pattern
+  )
+
+  $match = [regex]::Match($Text, $Pattern, [System.Text.RegularExpressions.RegexOptions]::Multiline)
+  if ($match.Success -and $match.Groups.Count -gt 1) {
+    return $match.Groups[1].Value.Trim()
+  }
+  return $null
+}
+
+function Write-InitialCardShortSummary {
+  param([string]$CardText)
+
+  $result = Get-FirstRegexValue -Text $CardText -Pattern "^Result:\s*(\S+)\s*$"
+  $status = Get-FirstRegexValue -Text $CardText -Pattern "^\s*SWTITLESTATUS:\s*(\S+)"
+  $verify = Get-FirstRegexValue -Text $CardText -Pattern "^\s*SWTITLEVERIFY:\s*(\S+)"
+  $frame = $null
+  $title = $null
+
+  $pairMatch = [regex]::Match($CardText, "\b(DR_A[1-4]_Outline)\s*/\s*(DR_titlea_3rd)\b", [System.Text.RegularExpressions.RegexOptions]::Multiline)
+  if ($pairMatch.Success) {
+    $frame = $pairMatch.Groups[1].Value.Trim()
+    $title = $pairMatch.Groups[2].Value.Trim()
+  }
+  if (-not $frame) {
+    $frame = Get-FirstRegexValue -Text $CardText -Pattern "\b(DR_A[1-4]_Outline)\b"
+  }
+  if (-not $title) {
+    $title = Get-FirstRegexValue -Text $CardText -Pattern "\b(DR_titlea_3rd)\b"
+  }
+
+  Write-Step ""
+  Write-Step "Initial next-action short summary:"
+  if ($result) { Write-Step ("  Result: {0}" -f $result) }
+  if ($status) { Write-Step ("  Saved-DWG status: {0}" -f $status) }
+  if ($verify) { Write-Step ("  Verify status: {0}" -f $verify) }
+  if ($frame) { Write-Step ("  GMTITLE paper/frame to choose: {0}" -f $frame) }
+  if ($title) { Write-Step ("  GMTITLE title block to choose: {0}" -f $title) }
+  Write-Step "  Required options: Frame positioning ON, Object move OFF"
+}
+
 function Assert-ManualSessionConversionReady {
   param([string]$CardText)
 
@@ -185,6 +231,7 @@ Write-Step ("Source work copy: {0}" -f $SourceWorkCopyPath)
 Write-Step "Purpose: open the work-copy, let the user run one visible GMTITLE step, then wait for GstarCAD to close and refresh the next action card."
 Write-Step "Safety: this script does not run SWTITLECONVERTNEXT, does not click the GMTITLE dialog, and does not save the DWG."
 Write-Step "Preflight: unless skipped, this script refreshes the next-action card before opening visible CAD and stops if the saved DWG is not conversion-ready."
+Write-Step "PreflightOnly: use -PreflightOnly to print the current conversion-ready card and short GMTITLE selection summary without opening CAD."
 Write-Step "Manual CAD commands:"
 Write-Step "  APPLOAD"
 Write-Step ("  {0}" -f (Join-Path $repoRoot "swcad_load.lsp"))
@@ -202,11 +249,19 @@ if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
 if ($DryRun) {
   Write-Step "Dry run: visible GstarCAD is not launched and hidden probes are not run."
   Write-Step "1. Unless -SkipInitialNextActionCard is used, run run_next_cad_action.ps1 -AutoRefreshDirectProbe and require a conversion-ready Result."
-  Write-Step "2. Optionally run run_open_workcopy_for_manual_convert.ps1."
-  Write-Step "3. Wait for GstarCAD to close."
-  Write-Step "4. Run run_after_manual_gmtitle_step.ps1."
+  Write-Step "2. If -PreflightOnly is used, stop after the card and short GMTITLE selection summary."
+  Write-Step "3. Optionally run run_open_workcopy_for_manual_convert.ps1."
+  Write-Step "4. Wait for GstarCAD to close."
+  Write-Step "5. Run run_after_manual_gmtitle_step.ps1."
   Write-Step "Result: DRY_RUN_READY"
   exit 0
+}
+
+if ($PreflightOnly -and ($SkipInitialNextActionCard -or $SkipOpenWorkcopy)) {
+  Write-Step "Result: PREFLIGHT_ONLY_REQUIRES_INITIAL_CARD"
+  Write-Step "Reason: -PreflightOnly is useful only when the initial next-action card can be refreshed."
+  Write-Step "Next: remove -SkipInitialNextActionCard and -SkipOpenWorkcopy, or run run_next_cad_action.ps1 directly."
+  exit 1
 }
 
 if ($SkipInitialNextActionCard) {
@@ -233,7 +288,13 @@ if ($SkipInitialNextActionCard) {
     Write-Step "Reason: could not refresh the saved-DWG next-action card before opening visible CAD."
     exit $cardResult.ExitCode
   }
+  Write-InitialCardShortSummary -CardText $cardResult.Text
   Assert-ManualSessionConversionReady -CardText $cardResult.Text
+  if ($PreflightOnly) {
+    Write-Step "Result: MANUAL_SESSION_PREFLIGHT_READY"
+    Write-Step "Next: rerun this wrapper without -PreflightOnly to open visible CAD, or open the work-copy manually and follow the summary above."
+    exit 0
+  }
 }
 
 if (-not $SkipOpenWorkcopy) {

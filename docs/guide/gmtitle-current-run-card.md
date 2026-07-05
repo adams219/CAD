@@ -275,6 +275,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 
 이미 보이는 CAD에서 `SWTITLESTATUS`를 확인한 경우에만 `-SkipInitialNextActionCard`를 붙입니다. 이 옵션은 hidden next-action 갱신을 건너뛰므로, 현재 열린 DWG가 work 복사본인지 직접 확인한 뒤에만 사용합니다.
 
+CAD를 열기 전에 이번에 고를 용지/제목블록만 먼저 확인하려면 `-PreflightOnly`를 붙입니다. 이 옵션은 visible CAD를 열지 않고 next-action 카드와 짧은 GMTITLE 선택 요약만 출력합니다.
+
 CAD가 닫혀 있고 작업복사본을 여는 단계부터 줄이고 싶으면 아래 helper를 사용할 수 있습니다.
 
 ```powershell
