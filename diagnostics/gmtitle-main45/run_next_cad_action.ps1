@@ -150,6 +150,13 @@ function Write-AfterStatusRefresh {
   Write-Output "  또는 이 카드를 -AutoRefreshDirectProbe 옵션으로 다시 실행하세요."
 }
 
+function Write-FinalDoubleClickGuidance {
+  Write-Output "최종 수동 확인:"
+  Write-Output "  - 실제 DR_titlea_3rd 제목블록이 있는 대표 A2/A3 용지만 더블클릭하세요."
+  Write-Output "  - 표제란 없는 A4 frame-only 시트는 더블클릭할 제목블록이 없으므로 DR_A4_Outline 수량/형상을 SWTITLEVERIFY로 확인하세요."
+  Write-Output "  - DR_A*_Outline 도면틀을 더블클릭하면 GMPOWEREDIT/REFEDIT가 열릴 수 있으니 완료 판단 대상이 아닙니다."
+}
+
 function Write-DirectProbeRefreshCommand {
   Write-Output "다음:"
   Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"))
@@ -282,13 +289,15 @@ function Write-StatusBasedAction {
       Write-Output "Result: RUN_FINAL_VERIFY"
       Write-ManualLoadStep
       Write-Output "  SWTITLEVERIFY"
-      Write-Output "검증이 SWTITLEVERIFY_FINAL_OK이면 대표 A2/A3/A4 DR_titlea_3rd 제목블록을 더블클릭하세요."
+      Write-Output "검증이 SWTITLEVERIFY_FINAL_OK이면 아래 기준으로 더블클릭을 확인하세요."
+      Write-FinalDoubleClickGuidance
       return
     }
 
     "^SWTITLEVERIFY_FINAL_OK$" {
       Write-Output "Result: READY_FOR_DOUBLE_CLICK_CHECK"
-      Write-Output "다음: 대표 A2/A3/A4 DR_titlea_3rd 제목블록을 더블클릭해서 GMTITLE 표 편집창이 열리는지 확인하세요."
+      Write-Output "다음: 대표 제목블록을 더블클릭해서 GMTITLE 표 편집창이 열리는지 확인하세요."
+      Write-FinalDoubleClickGuidance
       return
     }
 

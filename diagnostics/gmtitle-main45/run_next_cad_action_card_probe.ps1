@@ -119,7 +119,7 @@ Invoke-CardCase `
 Invoke-CardCase `
   -Name "final_ok" `
   -Status "SWTITLEVERIFY_FINAL_OK" `
-  -Expected @("Result: READY_FOR_DOUBLE_CLICK_CHECK")
+  -Expected @("Result: READY_FOR_DOUBLE_CLICK_CHECK", "실제 DR_titlea_3rd 제목블록이 있는 대표 A2/A3 용지만 더블클릭하세요.", "표제란 없는 A4 frame-only 시트는 더블클릭할 제목블록이 없으므로")
 
 Invoke-CardCase `
   -Name "stale_log" `
