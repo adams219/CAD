@@ -14,6 +14,8 @@
 브랜치: codex/gm-title
 작업트리: clean
 정적 preflight: PASS
+hidden verification suite: PASS (2026-07-05 19:52, all expected log markers verified)
+GstarCAD /b script smoke probe: PASS
 GMTITLE LSP 버전: 260705-status-convert-next-guidance
 loader 버전: 260705-4step-gmtitle-a4-outline-preflight
 공개 사용자 명령: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLECONVERT, SWTITLEVERIFY, SWTITLEVERSION, SWSCALESCAN
@@ -24,7 +26,6 @@ SCRIPT/숨김 CAD interactive GMTITLE guard: 있음
 아직 증명되지 않은 것:
 
 ```text
-hidden verification suite 전체 통과
 실제 work DWG에서 SWTITLEVERIFY_FINAL_OK
 남은 SolidWorks 원본 표제란/도면틀 수 0
 target sheet counts A2=1, A3=12, A4=2
@@ -33,6 +34,8 @@ A4 frame-only가 불필요한 DR_titlea_3rd 없이 처리됨
 A4 도면틀에 원본에 없던 외부 선/글자 없음
 도면 내부 번호, 주석, BOM, 치수, 모델 형상 보존
 ```
+
+hidden suite 통과 근거는 `docs/history/gmtitle-main56-hidden-suite-pass-2026-07-05.md`에 남긴다. 다만 이 suite는 복사본/probe 기반 검증이므로 실제 work DWG의 최종 변환 완료를 대신하지 않는다.
 
 현재 로컬에서 GstarCAD가 열려 있으면 hidden verification suite는 일부러 실행하지 않는다. `/b` 스크립트가 기존 열린 CAD 세션으로 흘러가거나 명령 대기 상태 뒤에 멈출 수 있기 때문이다.
 

@@ -27,6 +27,7 @@ $finalCompletionGatePath = Join-Path $PSScriptRoot "run_final_completion_gate.ps
 $selectionConfigProbePath = Join-Path $PSScriptRoot "run_gmtitle_selection_config_probe.ps1"
 $goalStatusPath = Join-Path $PSScriptRoot "run_goal_status.ps1"
 $computerUseHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-computer-use-visible-cad-activation-failure-2026-07-05.md"
+$hiddenSuitePassHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-main56-hidden-suite-pass-2026-07-05.md"
 $guidePaths = @(
   "docs\guide\commands.md",
   "docs\guide\gmtitle-cad-conversion-checklist.md",
@@ -469,6 +470,7 @@ $commandsGuideText = Read-Text (Join-Path $repoRoot "docs\guide\commands.md")
 $cadChecklistText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-cad-conversion-checklist.md")
 $nativeUpgradeGuideText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-native-frame-upgrade.md")
 $resumeGuideText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-resume-on-another-computer.md")
+$hiddenSuitePassHistoryText = Read-Text $hiddenSuitePassHistoryPath
 Assert-Contains -Text $runCardText -Needle "scratch_native_a4_clean_260705.dwg" -Label "Run card clean A4 scratch evidence"
 Assert-Contains -Text $runCardText -Needle "기본 제한 시간을 180초" -Label "Run card direct probe timeout guidance"
 Assert-Contains -Text $goalPlanText -Needle "2026-07-05 clean scratch CAD" -Label "Goal plan clean A4 scratch evidence"
@@ -497,10 +499,19 @@ Assert-NotContains -Text $runCardText -Needle "2026-07-05 08:55 기준 최신 CA
 Assert-NotContains -Text $runCardText -Needle "0000_A_DRP125 CP_ALL_260704_test.dwg" -Label "Run card stale 260704 workcopy path"
 Assert-Contains -Text $goalPlanText -Needle "RIBBON_ACCESSIBILITY_NOT_STABLE" -Label "Goal plan ribbon accessibility finding"
 Assert-Contains -Text $goalPlanText -Needle "특정 과거 로그를 `"최신 CAD 진행 상태`"로 고정하지 않는다" -Label "Goal plan no stale latest-state wording"
+Assert-Contains -Text $goalPlanText -Needle "hidden verification suite: PASS (2026-07-05 19:52, all expected log markers verified)" -Label "Goal plan hidden suite pass promoted"
 Assert-Contains -Text $goalPlanText -Needle "상태 코드:" -Label "Goal plan current direct-probe status block"
 Assert-Contains -Text $goalPlanText -Needle "NEXT_CREATE_FIRST_NATIVE_GMTITLE" -Label "Goal plan current direct-probe first-native status"
+Assert-NotContains -Text $goalPlanText -Needle "hidden verification suite 전체 통과" -Label "Goal plan stale hidden-suite unproven wording"
 Assert-NotContains -Text $goalPlanText -Needle "2026-07-05 08:55 기준 최신 CAD next-step 로그" -Label "Goal plan stale timestamp latest state"
 Assert-NotContains -Text $goalPlanText -Needle "0000_A_DRP125 CP_ALL_260704_test.dwg" -Label "Goal plan stale 260704 workcopy path"
+Assert-Contains -Text $runCardText -Needle '2026-07-05 19:52 기준 `run_main45_verification_suite.ps1`는 PASS입니다' -Label "Run card hidden suite pass summary"
+Assert-Contains -Text $runCardText -Needle "All expected log markers were verified." -Label "Run card hidden suite verified markers"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "===== GMTITLE main56 verification suite complete =====" -Label "Hidden suite pass history completion marker"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "All expected log markers were verified." -Label "Hidden suite pass history verified markers"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "status-after-status: NEXT_CREATE_FIRST_NATIVE_GMTITLE" -Label "Hidden suite pass history actual workcopy status"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "next-bootstrap-frame: DR_A2_Outline" -Label "Hidden suite pass history next frame"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "next-bootstrap-title: DR_titlea_3rd" -Label "Hidden suite pass history next title"
 Assert-Contains -Text $commandsGuideText -Needle "docs/history" -Label "Commands guide history-doc warning"
 Assert-Contains -Text $commandsGuideText -Needle "docs/investigations" -Label "Commands guide investigations-doc warning"
 Assert-Contains -Text $commandsGuideText -Needle "A4 frame-only는 원본에 표제란이 없는 시트입니다" -Label "Commands guide A4 frame-only current standard"

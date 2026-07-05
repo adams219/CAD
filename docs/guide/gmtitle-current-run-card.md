@@ -226,6 +226,22 @@ CAD 화면 옆에서 다음 명령, GMTITLE 선택값, 즉시 중단 조건, 바
 
 현재 PC에서는 Codex Computer Use가 GstarCAD 화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다. 따라서 실제 `SWTITLECONVERTNEXT`/`SWTITLECONVERT`의 GMTITLE 창 선택은 사용자가 직접 하고, Codex는 로그/문서/검증 기준을 정리하는 쪽으로 사용합니다.
 
+## Hidden Suite 검증 상태
+
+2026-07-05 19:52 기준 `run_main45_verification_suite.ps1`는 PASS입니다.
+
+```text
+no-CAD next-action card probe: PASS
+GstarCAD /b script smoke probe: PASS
+actual work-copy status probe: NEXT_CREATE_FIRST_NATIVE_GMTITLE
+A4 outline prepare: OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
+A4 frame-only convert: FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
+selection config: GMTITLE_SELECTION_CONFIG_NOT_FOUND
+All expected log markers were verified.
+```
+
+이 결과는 구현 방향이 probe 복사본에서 깨지지 않았다는 증거입니다. 실제 작업복사본의 `SWTITLEVERIFY_FINAL_OK`와 대표 제목블록 더블클릭 확인은 아직 별도입니다.
+
 이 카드는 direct probe의 현재 상태 코드를 보고 아래처럼 다음 행동을 바로 나눕니다.
 또한 `예상 수동 GMTITLE 확인량`을 같이 출력해서, 지금 한 번만 확인할 용지와 나중에 추가로 확인될 수 있는 용지를 분리해 보여줍니다. A4 frame-only는 제목블록 생성 대상이 아니므로 이 예측에서도 별도로 표시합니다.
 
