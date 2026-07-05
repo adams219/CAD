@@ -385,6 +385,9 @@ function Add-DeepRegistrySearchSummary {
     $activeHits = @($hits | Where-Object { $_ -notmatch "(?i)Recent|File MRU|FileList" })
     if ($activeHits.Count -gt 0) {
       [void]$selectionEvidence.Add("HKCU deep search non-recent marker")
+      Add-Line "Deep registry decision: non-recent DR marker(s) need manual review before any GMTITLE preselection automation."
+    } else {
+      Add-Line "Deep registry decision: DR markers were found only in recent-file history, so they are ignored as GMTITLE preselection evidence."
     }
   } else {
     Add-Line "  <none>"

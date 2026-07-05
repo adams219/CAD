@@ -194,6 +194,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 ```
 
 현재 기대 결과는 `GMTITLE_SELECTION_CONFIG_NOT_FOUND`입니다.
+`-DeepRegistrySearch`에서 `Recent File List`에 DR 파일 경로가 보여도 최근 직접 열었던 파일 기록일 뿐, GMTITLE 대화상자의 용지/제목블록을 자동 선택할 근거로 쓰지 않습니다.
 
 ### 기본 작업복사본 초기 상태
 

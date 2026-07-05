@@ -33,6 +33,7 @@ $computerUseHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-computer-use
 $hiddenSuitePassHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-main56-hidden-suite-pass-2026-07-05.md"
 $commandSurfaceHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-command-surface-probe-2026-07-05.md"
 $automationBoundaryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-automation-boundary-audit-2026-07-05.md"
+$selectionConfigDeepRegistryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-selection-config-deep-registry-2026-07-06.md"
 $guidePaths = @(
   "docs\guide\commands.md",
   "docs\guide\gmtitle-cad-conversion-checklist.md",
@@ -225,6 +226,7 @@ $goalStatusText = Read-Text $goalStatusPath
 $computerUseHistoryText = Read-Text $computerUseHistoryPath
 $commandSurfaceHistoryText = Read-Text $commandSurfaceHistoryPath
 $automationBoundaryHistoryText = Read-Text $automationBoundaryHistoryPath
+$selectionConfigDeepRegistryHistoryText = Read-Text $selectionConfigDeepRegistryHistoryPath
 
 Write-Output "===== GMTITLE static preflight ====="
 Write-Output ("Repo root: {0}" -f $repoRoot)
@@ -392,6 +394,7 @@ Assert-NotContains -Text $readmeText -Needle "NEXT_UPGRADE_A3_A4_NATIVE -> SWTIT
 Assert-Contains -Text $readmeText -Needle "A4 native outside marker prepare" -Label "README A4 native marker prepare guidance"
 Assert-Contains -Text $readmeText -Needle "nested-direct-outside" -Label "README nested-direct A4 probe guidance"
 Assert-Contains -Text $readmeText -Needle "run_gmtitle_selection_config_probe.ps1" -Label "README GMTITLE selection config probe guidance"
+Assert-Contains -Text $readmeText -Needle "Recent File List" -Label "README selection config recent-file warning"
 Assert-Contains -Text $a4NormProbeText -Needle "nested-outside" -Label "A4 nested normalization probe strategy"
 Assert-Contains -Text $a4NormProbeText -Needle "nested-direct-outside" -Label "A4 nested plus parent normalization probe strategy"
 Assert-Contains -Text $a4NormProbeRunnerText -Needle "WaitForGstarCADClose" -Label "A4 normalization probe wait option"
@@ -539,8 +542,10 @@ Assert-Contains -Text $selectionConfigProbeText -Needle "Direct GMTITLE may stil
 Assert-Contains -Text $selectionConfigProbeText -Needle "ribbon/menu IMTITLE macro" -Label "Selection config probe IMTITLE macro note"
 Assert-Contains -Text $selectionConfigProbeText -Needle "Command surface language note" -Label "Selection config probe command-surface language note"
 Assert-Contains -Text $selectionConfigProbeText -Needle "AppData text marker scan note" -Label "Selection config probe AppData advisory scan note"
+Assert-Contains -Text $selectionConfigProbeText -Needle "recent-file history" -Label "Selection config probe recent-file registry non-evidence"
 Assert-NoKnownMojibake -Text $commandSurfaceHistoryText -Label "Command surface history"
 Assert-NoKnownMojibake -Text $automationBoundaryHistoryText -Label "Automation boundary history"
+Assert-NoKnownMojibake -Text $selectionConfigDeepRegistryHistoryText -Label "Selection config deep registry history"
 Assert-NoKnownMojibake -Text $readmeText -Label "Diagnostics README"
 Assert-Contains -Text $commandSurfaceHistoryText -Needle "GMTITLE 명령/설정 표면 재확인" -Label "Command surface history readable Korean title"
 Assert-Contains -Text $commandSurfaceHistoryText -Needle "Result: GMTITLE_SELECTION_CONFIG_NOT_FOUND" -Label "Command surface history selection config result"
@@ -548,6 +553,9 @@ Assert-Contains -Text $commandSurfaceHistoryText -Needle "리본 버튼 좌표 �
 Assert-Contains -Text $automationBoundaryHistoryText -Needle "GMTITLE 자동화 경계 감사" -Label "Automation boundary history readable Korean title"
 Assert-Contains -Text $automationBoundaryHistoryText -Needle "CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력하지 않는다" -Label "Automation boundary raw command guard"
 Assert-Contains -Text $automationBoundaryHistoryText -Needle "A4는 A2/A3와 같은 제목블록 있는 시트로 취급하지 않는다" -Label "Automation boundary A4 frame-only guard"
+Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "Recent File List" -Label "Selection config deep registry recent-file evidence"
+Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "최근 직접 열었던 파일 기록" -Label "Selection config deep registry non-evidence conclusion"
+Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "자동 선택할 근거가 없다" -Label "Selection config deep registry no-preselection conclusion"
 Assert-Contains -Text $readmeText -Needle "screenshot-coordinate ribbon clicks are not accepted as automation evidence" -Label "README ribbon coordinate automation warning"
 Assert-Contains -Text $readmeText -Needle "AppData text marker scan is advisory" -Label "README AppData advisory scan guidance"
 Assert-Contains -Text $goalStatusText -Needle "Write-NativeFrameProgressSummary" -Label "Goal status native-frame progress summary"

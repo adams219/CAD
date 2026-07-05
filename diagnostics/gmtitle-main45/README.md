@@ -60,6 +60,8 @@ It also records the command-map distinction discovered in the GstarCAD XML files
 
 The probe also summarizes nearby GstarCAD language labels such as "Drawing Borders with Title Block", "Select title block automatically", and "Automatic placement". These are treated as dialog labels/prompts, not as a documented command-line preselection API. The AppData text marker scan is advisory only; any hit there must be inspected manually and is not accepted by itself as proof that `DR_A*_Outline` / `DR_titlea_3rd` can be preselected safely.
 
+If you run the probe with `-DeepRegistrySearch`, `DR_A*_Outline` or `DR_titlea_3rd` may appear under the GstarCAD `Recent File List`. Those entries are only direct-file open history. They are ignored as active `GMTITLE` paper/title preselection evidence unless a non-recent registry value points to the same selection.
+
 Durable conclusion:
 
 ```text
