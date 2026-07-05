@@ -548,6 +548,8 @@ Next: run_next_cad_action.ps1
 
 Treat that as a strict incomplete result, not as a partial success. Use the printed next-action card command to return to the guided CAD workflow.
 
+When the automated evidence passes, completion is still not proven until the representative A2/A3 `DR_titlea_3rd` title blocks open the GMTITLE table editor on double-click. A4 frame-only sheets do not have a `DR_titlea_3rd` title block; confirm their `DR_A4_Outline` count and geometry through `SWTITLEVERIFY` instead.
+
 ## Loader Probe
 
 Use `run_loader_probe.ps1` to copy the current work DWG to a probe DWG, load `swcad_load.lsp`, and confirm the loader exposes the same main45 GMTITLE workflow.

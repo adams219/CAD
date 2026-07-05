@@ -75,7 +75,8 @@ function Write-CompletionFailureSummary {
   Write-Output ""
   Write-Output "Next:"
   Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $PSScriptRoot "run_next_cad_action.ps1"))
-  Write-Output "Completion is not proven until SWTITLEVERIFY_FINAL_OK and representative title-block double-click checks are confirmed."
+  Write-Output "Completion is not proven until SWTITLEVERIFY_FINAL_OK and representative A2/A3 title-block double-click checks are confirmed."
+  Write-Output "A4 frame-only sheets have no DR_titlea_3rd title block; verify their DR_A4_Outline count/geometry instead."
 }
 
 if (-not $SourceWorkCopyPath) {
@@ -136,4 +137,6 @@ if ($completionFailures.Count -gt 0) {
   throw "Final completion gate failed with $($completionFailures.Count) missing evidence item(s)."
 }
 
-Write-Output "Final completion gate passed."
+Write-Output "Final automated completion evidence passed."
+Write-Output "Manual completion still requires representative A2/A3 DR_titlea_3rd title-block double-click checks."
+Write-Output "A4 frame-only sheets have no DR_titlea_3rd title block; verify their DR_A4_Outline count/geometry instead."
