@@ -90,7 +90,7 @@ Use `run_main45_verification_suite.ps1` to run the standard read-only checks in 
 Before the hidden GstarCAD probes, the suite now runs two no-CAD preflights:
 
 - next-action card probe. This catches stale-log, missing-log, abort/warn, final-OK, first-native, prepare, and native-upgrade card regressions without opening or changing any DWG.
-- visible work-copy opener dry-run. This proves the helper opens only as far as work-copy/LSP/status preparation and does not run `SWTITLECONVERTNEXT`, open GMTITLE, or save the drawing.
+- visible work-copy opener dry-run. This proves the helper opens only as far as visible work-copy launch preparation by default and does not run `SWTITLECONVERTNEXT`, open GMTITLE, or save the drawing. `/b` startup-status mode is opt-in because it can leave no stable visible CAD window in this Codex session.
 
 1. loader probe
 2. current LSP compare-copy probe

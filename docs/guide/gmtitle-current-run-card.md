@@ -230,7 +230,21 @@ CAD가 닫혀 있고 작업복사본을 여는 단계부터 줄이고 싶으면 
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_open_workcopy_for_manual_convert.ps1
 ```
 
-이 helper는 작업복사본을 열고 최신 LSP를 로드한 뒤 `SWTITLEVERSION`과 `SWTITLESTATUS`까지만 실행합니다. `SWTITLECONVERTNEXT`와 GMTITLE 창 선택은 실행하지 않으므로, CAD 창이 준비된 뒤 명령줄에 `SWTITLECONVERTNEXT`를 직접 입력합니다.
+이 helper는 기본적으로 작업복사본을 보이는 GstarCAD로 여는 것까지만 합니다. `/b` startup script로 `APPLOAD`와 `SWTITLESTATUS`까지 자동 실행하는 방식은 이 Codex 세션에서 실제 CAD 창이 안정적으로 유지되지 않는 경우가 있어 기본값에서 제외했습니다.
+
+CAD 창이 준비된 뒤 명령줄에서 아래 순서로 직접 실행합니다.
+
+```text
+APPLOAD
+C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp
+SWTITLEVERSION
+SWTITLESTATUS
+SWTITLECONVERTNEXT
+```
+
+만약 helper가 `GSTARCAD_NO_VISIBLE_WINDOW`를 출력하면 Codex 세션에서 GstarCAD 프로세스는 시작됐지만 실제 창이 안정적으로 유지되지 않은 것입니다. 이때 helper가 변환 없이 해당 프로세스를 정리하므로, Windows 시작 메뉴나 기존 CAD 바로가기로 작업복사본을 직접 연 뒤 `APPLOAD`부터 진행합니다.
+
+`GSTARCAD_VISIBLE_WINDOW_NOT_STABLE_AFTER_CHECK`도 같은 의미로 봅니다. 시작 직후 임시 창 핸들은 생겼지만 실제 CAD 창이 유지되지 않은 상태라서, helper가 변환 없이 프로세스를 정리합니다.
 
 현재 PC에서는 Codex Computer Use가 GstarCAD 화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다. 따라서 실제 `SWTITLECONVERTNEXT`/`SWTITLECONVERT`의 GMTITLE 창 선택은 사용자가 직접 하고, Codex는 로그/문서/검증 기준을 정리하는 쪽으로 사용합니다.
 
