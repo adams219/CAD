@@ -740,7 +740,7 @@ Expected safe result:
 
 ```text
 command-text-count-before: 1
-structure-next-action: SWTITLEPREPARE - ?ㅼ닔 紐낅졊???띿뒪???붿뿬臾쇱쓣 癒쇱? ?뺤씤/?뺣━?댁빞 ?⑸땲??
+structure-next-action: SWTITLEPREPARE - 실수 명령어 텍스트 잔여물을 먼저 확인/정리해야 합니다
 convert-status-after: ABORT_REVIEW_ACCIDENTAL_COMMAND_TEXT_FIRST
 danger-action-after-convert: <none>
 Runtime check completed: yes
