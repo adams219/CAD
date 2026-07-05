@@ -258,6 +258,11 @@ function Write-FinalCompletionGateSummary {
   $dbmodAfter = Get-FirstRegexValue -Text $text -Pattern "^\s*dbmod-after-commands:\s*(\d+)"
   $runtimeDone = Get-FirstRegexValue -Text $text -Pattern "^Runtime check completed:\s*(\S+)"
   $gateResult = if ($statusAfterVerify -eq "SWTITLEVERIFY_FINAL_OK") { "PASS" } elseif ($statusAfterVerify) { "FAIL" } else { "UNKNOWN" }
+  $script:FinalCompletionGateStatusAfterStatus = $statusAfterStatus
+  $script:FinalCompletionGateStatusAfterVerify = $statusAfterVerify
+  $script:FinalCompletionGateNextFrame = $nextFrame
+  $script:FinalCompletionGateNextTitle = $nextTitle
+  $script:FinalCompletionGateLastWriteTimeUtc = $item.LastWriteTimeUtc
 
   Write-Output ("  로그: {0}" -f $gateLog)
   Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
@@ -782,6 +787,43 @@ while ($true) {
   if ($orphanTargetFrameCount) { Write-Output ("고아 GMTITLE 도면틀 수: {0}" -f $orphanTargetFrameCount) }
   if ($duplicateTargetPairCount) { Write-Output ("중복 GMTITLE 쌍 수: {0}" -f $duplicateTargetPairCount) }
   if ($dbmodAfter) { Write-Output ("Direct probe 뒤 DBMOD: {0}" -f $dbmodAfter) }
+  if ($script:FinalCompletionGateStatusAfterStatus -or $script:FinalCompletionGateStatusAfterVerify) {
+    $gateIsNewer = $false
+    if ($script:FinalCompletionGateLastWriteTimeUtc) {
+      $gateIsNewer = $script:FinalCompletionGateLastWriteTimeUtc -gt $probeItem.LastWriteTimeUtc.AddSeconds(2)
+    }
+    $statusMatchesGate = (
+      (-not $script:FinalCompletionGateStatusAfterStatus) -or
+      (-not $statusAfterStatus) -or
+      ($script:FinalCompletionGateStatusAfterStatus -eq $statusAfterStatus)
+    )
+    $verifyMatchesGate = (
+      (-not $script:FinalCompletionGateStatusAfterVerify) -or
+      (-not $statusAfterVerify) -or
+      ($script:FinalCompletionGateStatusAfterVerify -eq $statusAfterVerify)
+    )
+    $nextFrameMatchesGate = (
+      (-not $script:FinalCompletionGateNextFrame) -or
+      (-not $nextFrame) -or
+      ($script:FinalCompletionGateNextFrame -eq $nextFrame)
+    )
+    $nextTitleMatchesGate = (
+      (-not $script:FinalCompletionGateNextTitle) -or
+      (-not $nextTitle) -or
+      ($script:FinalCompletionGateNextTitle -eq $nextTitle)
+    )
+    $gateConsistent = $statusMatchesGate -and $verifyMatchesGate -and $nextFrameMatchesGate -and $nextTitleMatchesGate
+    Write-Output "Final gate/direct probe 일치 확인:"
+    Write-Output ("  final gate가 direct probe보다 최신: {0}" -f ($(if ($gateIsNewer) { "예" } else { "아니오" })))
+    Write-Output ("  상태/검증/다음 native 일치: {0}" -f ($(if ($gateConsistent) { "예" } else { "아니오" })))
+    if ((-not $gateConsistent) -and $gateIsNewer) {
+      Write-Output "Result: REVIEW_FINAL_GATE_DIRECT_PROBE_CONFLICT"
+      Write-Output "이유: 최신 final completion gate와 direct probe가 서로 다른 다음 상태를 가리킵니다."
+      Write-Output "다음: GstarCAD를 저장하고 닫은 뒤 direct probe를 갱신하거나 final completion gate를 다시 실행하세요."
+      Write-DirectProbeRefreshCommand
+      exit 0
+    }
+  }
   if ($AutoRefreshDirectProbe -and (-not $refreshAttempted) -and $trusted -and (-not $probeStale)) {
     Write-Output "Direct probe 자동 갱신: 기존 로그가 대상 작업복사본, 저장 시간, 현재 LSP 버전과 일치해 재사용합니다."
   }
