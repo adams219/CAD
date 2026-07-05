@@ -90,54 +90,28 @@ CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력해서 우회�
 
 ## 현재 기준 상태를 고르는 법
 
-먼저 `work\swcad_title_next_step_last.txt` 안의 DWG 경로를 봅니다.
-
-그 경로가 지금 열린 CAD 도면과 같으면, 최신 CAD 로그를 우선합니다.
-그 경로가 probe/diagnostics/예전 복사본이면, 현재 CAD에서 `SWTITLESTATUS`를 다시 실행합니다.
-
-### 최신 CAD 진행 상태
-
-2026-07-05 08:55 기준 최신 CAD 로그는 아래 상태입니다.
+이 문서는 특정 DWG의 과거 상태를 "최신"으로 고정하지 않습니다. 현재 상태는 아래 순서로만 판단합니다.
 
 ```text
-DWG:
-C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg
-
-상태:
-NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION
-
-의미:
-A2 1장과 A3 12장은 최신 native-frame 로그에서 native-like로 잡혔고,
-현재는 A4 frame-only 도면틀 정의를 준비/검증해야 함
-
-다음 명령:
-SWTITLEPREPARE
-
-그 다음:
-SWTITLESTATUS
+1. CAD가 열려 있으면 현재 도면에서 SWTITLESTATUS를 실행합니다.
+2. work\swcad_title_next_step_last.txt의 DWG 경로가 현재 열린 work 복사본과 같은지 확인합니다.
+3. CAD를 저장하고 닫은 상태라면 run_next_cad_action.ps1 또는 -AutoRefreshDirectProbe 카드로 direct probe를 갱신합니다.
+4. 로그가 probe/diagnostics/예전 복사본을 가리키면 그 로그는 현재 작업 기준으로 쓰지 않습니다.
 ```
 
-이 상태에서는 `SWTITLECONVERT`를 반복하지 않습니다.
-먼저 `SWTITLEPREPARE`가 A4 도면틀 정의를 안전하게 만들 수 있는지 확인해야 합니다.
+즉, 과거에 어떤 도면이 `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`이었더라도 지금 열린 도면에 그대로 적용하지 않습니다. 같은 명령을 반복하기 전에 항상 현재 도면의 `SWTITLESTATUS` 또는 direct probe 카드가 요구하는 한 단계만 따릅니다.
 
-이미 같은 열린 DWG 상태에서 `SWTITLEPREPARE`를 한 번 실행했고, 바로 이어서 `SWTITLESTATUS`가 다시
-`NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`을 표시한다면 같은 명령을 계속 반복하지 않습니다.
-그 경우 현재 증거는 "CAD 조작을 더 하면 해결"이 아니라 "A4 도면틀 정의 정규화 전략을 복사본에서 비교해야 함"입니다.
-
-A3 참고:
+A3/A4 참고:
 
 ```text
-최신 swcad_title_native_frame_check_last.txt 기준:
-  A3 native-like frame/title pairs: 12
-  A3/A4 native-like 완료: 12 / 12
-  non-native-like record scan: 0
-
 DR_A3_Outline 도면틀 자체는 native GMTITLE에서도 INSERT/block 참조로 보일 수 있습니다.
 A3 성공 여부는 도면틀 더블클릭이 아니라 짝 DR_titlea_3rd 제목블록 더블클릭 표 편집창으로 확인합니다.
+
+표제란 없는 A4 frame-only는 원본에 없던 DR_titlea_3rd를 새로 만들면 안 됩니다.
 ```
 
-`SWTITLEPREPARE` 뒤에는 반드시 `SWTITLESTATUS`를 다시 실행합니다.
-그 결과가 `SWTITLECONVERT`를 안내하면 그때 변환을 진행합니다.
+`SWTITLEPREPARE`를 실행한 뒤에는 반드시 `SWTITLESTATUS`를 다시 실행합니다.
+그 결과가 `SWTITLECONVERTNEXT`를 안내하면 그때 변환을 진행합니다.
 `WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`가 나오면 멈추고, `OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED`와 `ready-native-outside-markers`가 나오면 A4 도면틀-only 변환 준비가 된 상태로 봅니다.
 
 현재 probe 기준으로는 설치 원본 `DR_A4_Outline`이 A4 바깥의 작은 native 마커를 포함합니다.

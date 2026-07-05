@@ -152,51 +152,40 @@ Object move가 OFF인지 확인
   probe 로그를 실제 작업도면 로그로 착각함
 ```
 
-## 최신 CAD 진행 상태
+## 현재 상태 판단 기준
 
-목표모드에서는 "기본 작업복사본의 시작 상태"보다 "현재 열린 CAD가 방금 남긴 로그"를 우선한다.
-
-2026-07-05 08:55 기준 최신 CAD next-step 로그는 아래 상태다.
+목표모드에서는 특정 과거 로그를 "최신 CAD 진행 상태"로 고정하지 않는다. 상태는 매번 아래 순서로 다시 잠근다.
 
 ```text
-로그:
-C:\Users\DR-DESIGN\Documents\CAD tool\work\swcad_title_next_step_last.txt
+1. CAD가 열려 있으면 현재 열린 work 복사본에서 SWTITLESTATUS를 실행한다.
+2. work\swcad_title_next_step_last.txt 안의 DWG 경로가 현재 열린 도면과 같은지 확인한다.
+3. CAD를 저장하고 닫은 상태라면 run_next_cad_action.ps1 또는 -AutoRefreshDirectProbe로 direct probe를 갱신한다.
+4. 로그가 probe/diagnostics/예전 복사본을 가리키면 현재 작업 기준으로 쓰지 않는다.
+```
 
-DWG:
-C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125 CP_ALL_260704_test.dwg
+따라서 과거에 어떤 도면이 `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`이었더라도, 그 상태를 현재 열린 도면에 그대로 적용하지 않는다. 현재 도면의 `SWTITLESTATUS` 또는 direct probe 카드가 요구하는 한 단계만 실행한다.
 
+현재 기본 workcopy direct probe 기준은 아직 첫 native GMTITLE 기준 객체가 없는 상태다.
+
+```text
 상태 코드:
-NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION
+NEXT_CREATE_FIRST_NATIVE_GMTITLE
 
-수량 힌트:
-  A2: 1
-  A3: 12
-  A4: 2
+다음 기준 객체:
+DR_A2_Outline / DR_titlea_3rd
 
-누락:
-  A4: 필요 2, 현재 0
+검증 상태:
+SWTITLEVERIFY_FINAL_FAIL
 
-권장 다음 명령:
-SWTITLEPREPARE
+target title/frame:
+0 / 0
 ```
 
-이 상태의 해석:
-
-```text
-A2 1장과 A3 12장은 최신 native-frame 로그에서 native-like로 잡힌다.
-현재 남은 핵심은 A4 frame-only 도면틀 정의 준비/검증이다.
-A4 원본은 표제란 없는 도면틀-only이므로, DR_titlea_3rd를 새로 만들면 안 된다.
-DR_A4_Outline 정의가 raw bbox 위험 없이 준비되기 전에는 기존 A4를 삭제하지 않는다.
-```
+이미 변환이 진행된 별도 work 도면에서는 기본 workcopy 상태를 그대로 쓰지 않는다. 그 경우 현재 CAD에서 새로 생성한 `SWTITLESTATUS` 로그가 우선이다.
 
 A3 판단 기준:
 
 ```text
-최신 swcad_title_native_frame_check_last.txt:
-  A3 native-like frame/title pairs found: 12
-  A3/A4 native-like 완료: 12 / 12
-  Non-native-like records found by record scan: 0
-
 DR_A3_Outline 도면틀은 native GMTITLE에서도 INSERT/block 참조로 선택될 수 있다.
 따라서 A3 완료 판단은 도면틀 더블클릭이 아니라
 짝 DR_titlea_3rd 제목블록 더블클릭 표 편집창과 native-like 후보 0개 여부로 한다.
