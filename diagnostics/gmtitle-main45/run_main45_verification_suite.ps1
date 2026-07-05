@@ -241,6 +241,7 @@ Assert-LogContains `
     "A4 outline definition status: missing",
     "Definition exists: no",
     "Visible DR_A4_Outline frame inserts: 0",
+    "Native GMTITLE A4 pair evidence: no",
     "Result: A4_NATIVE_EXEMPLAR_MISSING_DEFINITION",
     "No drawing data was saved.",
     "DBMOD after checks: 0",
