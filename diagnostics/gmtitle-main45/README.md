@@ -296,8 +296,11 @@ Use `run_a4_native_exemplar_probe.ps1` to check whether a saved DWG already cont
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1" `
-  -SourceDwgPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg"
+  -SourceDwgPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg" `
+  -WaitForGstarCADClose
 ```
+
+`-WaitForGstarCADClose` lets the runner wait while you save and close the visible scratch GstarCAD session. Without that option, the runner stops if `gcad.exe` is already open, because hidden `/b` probes can attach to the visible session and produce misleading logs.
 
 No-argument result:
 

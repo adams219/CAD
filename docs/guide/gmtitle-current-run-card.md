@@ -147,12 +147,13 @@ FILEDIA=1, CMDDIA=1이어도 현재 로컬에서는 GMTITLE이 선택창 없이 
 ```
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg"
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg" -WaitForGstarCADClose
 ```
 
 중요:
 
 ```text
+이 명령은 먼저 실행해둔 뒤 GstarCAD에서 scratch DWG를 저장하고 닫아도 됩니다.
 현재 work DWG에 더 많은 삭제/정규화를 시도하지 않습니다.
 실제 native A4 비교가 READY로 나오기 전에는 A4 frame-only production 변환을 연결하지 않습니다.
 READY 조건은 A4 definition warning/raw selection warning이 모두 <none>이고, `Native GMTITLE A4 pair evidence: yes`와 `Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON`가 함께 나오는 상태입니다.

@@ -254,7 +254,7 @@ nested-direct-outside probe:
   3. production A4 frame-only 변환에서는 여전히 새 DR_titlea_3rd를 만들면 안 된다.
   4. scratch DWG 저장 후 아래 probe를 실행한다.
 
-  powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg"
+  powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg" -WaitForGstarCADClose
 
 통과 기준:
   Definition strict A4 warning: <none>

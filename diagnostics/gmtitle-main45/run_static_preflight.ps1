@@ -247,6 +247,7 @@ Assert-Contains -Text $a4NormProbeRunnerText -Needle "Get-LatestCadDwgFromNextSt
 Assert-Contains -Text $a4NativeProbeFixtureText -Needle "A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR" -Label "A4 native exemplar requires native pair evidence"
 Assert-Contains -Text $a4NativeProbeFixtureText -Needle "Native GMTITLE A4 pair evidence" -Label "A4 native exemplar logs native pair evidence"
 Assert-Contains -Text $a4NativeProbeRunnerText -Needle "A4_NATIVE_EXEMPLAR_REQUIRES_SOURCEWORKCOPYPATH" -Label "A4 native exemplar explicit source guard"
+Assert-Contains -Text $a4NativeProbeRunnerText -Needle "WaitForGstarCADClose" -Label "A4 native exemplar wait option"
 Assert-Contains -Text $selectionConfigProbeText -Needle "GMTITLE_SELECTION_CONFIG_NOT_FOUND" -Label "Selection config probe negative result"
 Assert-Contains -Text $selectionConfigProbeText -Needle "Direct GMTITLE may still reuse an internal/current command state" -Label "Selection config probe direct-GMTITLE warning"
 Assert-Contains -Text $selectionConfigProbeText -Needle "ribbon/menu IMTITLE macro" -Label "Selection config probe IMTITLE macro note"

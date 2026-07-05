@@ -477,7 +477,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "    6. Scratch READY requires both 'Native GMTITLE A4 pair evidence: yes' and 'Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON'."
     Write-Output "    7. If the probe reports A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR, the scratch has a frame but not a proven native GMTITLE pair."
     Write-Output ("    8. If you suspect a stored paper/title setting exists, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_gmtitle_selection_config_probe.ps1"))
-    Write-Output ("    9. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
+    Write-Output ("    9. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
     Write-Output ""
     Write-Output "  Hidden suite verification path after A4 comparison/code changes:"
   } elseif ($a4InvestigationPreferred) {
@@ -530,7 +530,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "    5. Scratch READY requires both 'Native GMTITLE A4 pair evidence: yes' and 'Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON'."
     Write-Output "    6. If the probe reports A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR, the scratch has a frame but not a proven native GMTITLE pair."
     Write-Output ("    7. If you suspect a stored paper/title setting exists, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_gmtitle_selection_config_probe.ps1"))
-    Write-Output ("    8. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
+    Write-Output ("    8. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
     Write-Output "    9. After a safer A4 definition strategy is implemented, rerun the focused A4 probe and full hidden suite."
   } elseif ($a4InvestigationPreferred) {
     Write-Output "  Run the copied-DWG nested A4 probe now:"
