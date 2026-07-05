@@ -34,6 +34,8 @@ $script:A4NativeExemplarResult = $null
 $script:A4NativeExemplarMinorOutside = $false
 $script:A4PrepareProbeReadyWithNativeOutside = $false
 $script:A4FrameOnlyConvertProbePassed = $false
+$script:SuiteLastRunResult = $null
+$script:SuiteLastRunGenerated = $null
 $script:DirectWorkcopyProbeTrusted = $false
 $script:DirectWorkcopyStatusCode = $null
 $script:DirectWorkcopyVerifyStatus = $null
@@ -105,6 +107,63 @@ function Get-FirstMatchingLine {
     }
   }
   return $null
+}
+
+function Get-AllRegexValues {
+  param(
+    [string]$Text,
+    [string]$Pattern
+  )
+
+  $values = @()
+  foreach ($match in [regex]::Matches($Text, $Pattern, [System.Text.RegularExpressions.RegexOptions]::Multiline)) {
+    if ($match.Groups.Count -gt 1) {
+      $values += $match.Groups[1].Value.Trim()
+    }
+  }
+  return $values
+}
+
+function Write-HiddenSuiteLastRunSummary {
+  param([string]$WorkDir)
+
+  $suiteLog = Join-Path $WorkDir "main56_verification_suite_last_run.txt"
+  Write-Output "Hidden verification suite last run:"
+  if (-not (Test-Path -LiteralPath $suiteLog)) {
+    Write-Output "  Result: <missing>"
+    Write-Output "  Meaning: no latest suite evidence is available; rely on static preflight and current work-copy status before changing CAD data."
+    return
+  }
+
+  $item = Get-Item -LiteralPath $suiteLog
+  $text = Read-TextWithFallback -Path $suiteLog
+  $generated = Get-FirstRegexValue -Text $text -Pattern "^Generated:\s*(.+)$"
+  $resultValues = @(Get-AllRegexValues -Text $text -Pattern "^Result:\s*(.+)$")
+  $result = if ($resultValues.Count -gt 0) { $resultValues[$resultValues.Count - 1] } else { "<unknown>" }
+  $failure = Get-FirstRegexValue -Text $text -Pattern "^Failure:\s*(.+)$"
+  $failureCommand = Get-FirstRegexValue -Text $text -Pattern "^Failure command:\s*(.+)$"
+  $statusAfterStatus = Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-status:\s*(\S+)"
+  $statusAfterVerify = Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-verify:\s*(\S+)"
+
+  $script:SuiteLastRunResult = $result
+  $script:SuiteLastRunGenerated = $generated
+
+  Write-Output ("  Path: {0}" -f $suiteLog)
+  Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
+  if ($generated) { Write-Output ("  Generated: {0}" -f $generated) }
+  Write-Output ("  Result: {0}" -f $result)
+  if ($failure) { Write-Output ("  Failure: {0}" -f $failure) }
+  if ($failureCommand) { Write-Output ("  Failure command: {0}" -f $failureCommand) }
+  if ($statusAfterStatus) { Write-Output ("  Actual work-copy status in suite: {0}" -f $statusAfterStatus) }
+  if ($statusAfterVerify) { Write-Output ("  Actual work-copy verify in suite: {0}" -f $statusAfterVerify) }
+
+  if ($result -eq "PASS") {
+    Write-Output "  Meaning: automation/guard probes passed; this is not proof that the real work DWG finished conversion."
+  } elseif ($result -eq "FAILED_BEFORE_PASS") {
+    Write-Output "  Meaning: the suite stopped before final PASS; inspect the failure above before trusting automation changes."
+  } else {
+    Write-Output "  Meaning: suite evidence is incomplete or not a final PASS."
+  }
 }
 
 function Test-PathUnderDirectoryString {
@@ -651,6 +710,9 @@ Write-Output ("Default work-copy exists: {0}" -f $workCopyExists)
 
 Write-Output ""
 Write-HiddenScriptSmokeSummary -WorkDir (Join-Path $repoRoot "work")
+
+Write-Output ""
+Write-HiddenSuiteLastRunSummary -WorkDir (Join-Path $repoRoot "work")
 
 Write-Output ""
 Write-LatestCadLogSummary -WorkDir (Join-Path $repoRoot "work")

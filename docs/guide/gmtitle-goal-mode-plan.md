@@ -37,6 +37,8 @@ A4 도면틀에 원본에 없던 외부 선/글자 없음
 
 hidden suite 통과 근거는 `docs/history/gmtitle-main56-hidden-suite-pass-2026-07-05.md`에 남긴다. 다만 이 suite는 복사본/probe 기반 검증이므로 실제 work DWG의 최종 변환 완료를 대신하지 않는다.
 
+`diagnostics\gmtitle-main45\run_goal_status.ps1`는 `work\main56_verification_suite_last_run.txt`의 최근 suite 결과도 함께 보여준다. 이 줄은 "자동화/guard 검증은 통과했는가"와 "실제 작업복사본 변환이 끝났는가"를 분리해서 보기 위한 것이며, suite `PASS`만으로 목표 완료를 선언하지 않는다.
+
 현재 로컬에서 GstarCAD가 열려 있으면 hidden verification suite는 일부러 실행하지 않는다. `/b` 스크립트가 기존 열린 CAD 세션으로 흘러가거나 명령 대기 상태 뒤에 멈출 수 있기 때문이다.
 
 2026-07-05 로컬 확인 결과, 열린 GstarCAD와 별개로 안전한 독립 hidden 인스턴스를 강제하는 옵션은 찾지 못했다.
