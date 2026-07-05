@@ -77,6 +77,18 @@ if (-not $completed) {
 if (-not $process.HasExited) {
   Stop-Process -Id $process.Id -Force
   Write-Output ("Stopped GstarCAD PID: {0}" -f $process.Id)
+  $exitDeadline = (Get-Date).AddSeconds(60)
+  while ((Get-Date) -lt $exitDeadline) {
+    $stillRunning = Get-Process -Id $process.Id -ErrorAction SilentlyContinue
+    if (-not $stillRunning) {
+      break
+    }
+    Start-Sleep -Seconds 1
+  }
+  $stillRunning = Get-Process -Id $process.Id -ErrorAction SilentlyContinue
+  if ($stillRunning) {
+    throw "GstarCAD PID $($process.Id) did not exit after Stop-Process; aborting before starting another hidden probe."
+  }
 }
 
 if (Test-Path -LiteralPath $LogPath) {

@@ -140,7 +140,7 @@
   )
 )
 
-(defun swtitle-a4native-print-definition (handle frame-name / exists records raw risk strict test test-raw test-effective geometry raw-warning)
+(defun swtitle-a4native-print-definition (handle frame-name / exists records raw risk strict test test-raw test-effective geometry raw-warning minor-native-outside)
   (setq exists (swcad-title-block-exists-p frame-name))
   (swtitle-a4native-write-line handle (strcat "Definition exists: " (if exists "yes" "no")))
   (if exists
@@ -168,7 +168,29 @@
         )
         (swtitle-a4native-write-line handle "Definition test insert: <failed>")
       )
-      (and (not risk) (not strict) (not geometry) (not raw-warning))
+      (setq minor-native-outside
+        (and
+          (not risk)
+          strict
+          (not geometry)
+          (not raw-warning)
+        )
+      )
+      (swtitle-a4native-write-line
+        handle
+        (strcat
+          "Definition minor native outside markers: "
+          (if minor-native-outside "yes" "no")
+        )
+      )
+      (list
+        (and (not risk) (not strict) (not geometry) (not raw-warning))
+        minor-native-outside
+        risk
+        strict
+        geometry
+        raw-warning
+      )
     )
     nil
   )
@@ -316,7 +338,7 @@
   status
 )
 
-(defun swtitle-a4native-run (/ log-path handle load-result load-ok frame-name summary target-counts definition-status definition-safe frame-result frame-count frame-warning-count native-pair-status result)
+(defun swtitle-a4native-run (/ log-path handle load-result load-ok frame-name summary target-counts definition-status definition-result definition-safe definition-minor-native-outside frame-result frame-count frame-warning-count native-pair-status result)
   (setq log-path (getenv "SWCAD_A4_NATIVE_LOG"))
   (if (or (not log-path) (= (strlen log-path) 0))
     (setq log-path (swtitle-a4native-path "work/swtitle_a4_native_exemplar_probe_260705.txt"))
@@ -353,7 +375,9 @@
           (swtitle-a4native-count-line handle "Current target sheet counts:" target-counts)
           (setq definition-status (swcad-title-a4-frame-only-outline-definition-status))
           (swtitle-a4native-write-line handle (strcat "A4 outline definition status: " definition-status))
-          (setq definition-safe (swtitle-a4native-print-definition handle frame-name))
+          (setq definition-result (swtitle-a4native-print-definition handle frame-name))
+          (setq definition-safe (if definition-result (car definition-result) nil))
+          (setq definition-minor-native-outside (if definition-result (cadr definition-result) nil))
           (setq frame-result (swtitle-a4native-print-frame-inserts handle frame-name))
           (setq frame-count (car frame-result))
           (setq frame-warning-count (cadr frame-result))
@@ -361,11 +385,12 @@
           (setq result
             (cond
               ((not (swcad-title-block-exists-p frame-name)) "A4_NATIVE_EXEMPLAR_MISSING_DEFINITION")
-              ((not definition-safe) "A4_NATIVE_EXEMPLAR_UNSAFE_DEFINITION")
               ((= frame-count 0) "A4_NATIVE_EXEMPLAR_MISSING_FRAME_INSERT")
               ((> frame-warning-count 0) "A4_NATIVE_EXEMPLAR_FRAME_WARNING")
               ((equal native-pair-status "missing") "A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR")
               ((equal native-pair-status "warning") "A4_NATIVE_EXEMPLAR_NATIVE_PAIR_WARNING")
+              ((and (not definition-safe) definition-minor-native-outside) "A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS")
+              ((not definition-safe) "A4_NATIVE_EXEMPLAR_UNSAFE_DEFINITION")
               (T "A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON")
             )
           )

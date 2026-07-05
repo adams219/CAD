@@ -254,15 +254,16 @@ nested-direct-outside probe:
   3. production A4 frame-only 변환에서는 여전히 새 DR_titlea_3rd를 만들면 안 된다.
   4. scratch DWG 저장 후 아래 probe를 실행한다.
 
-  powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg" -WaitForGstarCADClose
+  powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg" -LogPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt" -WaitForGstarCADClose
 
 통과 기준:
-  Definition strict A4 warning: <none>
+  Definition raw risk: <none>
   Definition test insert geometry warning: <none>
   Definition test insert raw selection warning: <none>
   Native GMTITLE A4 pair evidence: yes
   Visible DR_A4_Outline frame inserts: 1 이상
   Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON
+  또는 Result: A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS
 
 실패 기준:
   GMTITLE 창에서 DR_A4_Outline / DR_titlea_3rd / Frame positioning ON / Object move OFF까지 맞췄지만
@@ -276,7 +277,13 @@ nested-direct-outside probe:
   저장본:
   C:\Users\DR-DESIGN\Documents\CAD tool\work\scratch_native_a4_clean_260705.dwg
   이 결과는 DR_A4_Outline이 항상 실패하는 것이 아니라 기존 도면 상태/이미 로드된 정의/컨텍스트가 실패 조건일 수 있음을 의미한다.
-  아직 최종 증거는 아니며, GstarCAD를 닫은 뒤 run_a4_native_exemplar_probe.ps1에서 READY 판정을 받아야 한다.
+  GstarCAD를 닫은 뒤 run_a4_native_exemplar_probe.ps1를 실행했고,
+  Result: A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS 로 확인됐다.
+  전체 suite의 default work-copy A4 gap probe는 기본 로그를 덮어쓸 수 있으므로,
+  clean scratch 결과는 work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt 전용 로그로 보존한다.
+  native GMTITLE 쌍은 맞지만 공식 A4 정의 자체에 작은 바깥 선/텍스트가 있다는 뜻이다.
+  따라서 strict raw bbox mismatch만으로 오염이라고 판단하지 않는다.
+  다음 구현 결정은 production A4 frame-only에서 이 official native outside marker를 허용/잘라내기/보존 중 어떻게 처리할지다.
 ```
 
 `DR_A4_Outline` 프레임만 안전해 보여도 native link가 있는 `DR_titlea_3rd` 쌍이 없으면 비교 기준으로 인정하지 않는다. 이 경우 `A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR`가 정상 중단이다.

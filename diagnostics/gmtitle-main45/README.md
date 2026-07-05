@@ -298,6 +298,7 @@ Use `run_a4_native_exemplar_probe.ps1` to check whether a saved DWG already cont
 powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1" `
   -SourceDwgPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg" `
+  -LogPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt" `
   -WaitForGstarCADClose
 ```
 
@@ -315,6 +316,12 @@ Default log when an input path is supplied:
 work\swtitle_a4_native_exemplar_probe_260705.txt
 ```
 
+For the clean A4 scratch from 2026-07-05, use a dedicated log so the main suite's default work-copy A4 gap probe does not overwrite the useful scratch result:
+
+```text
+work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt
+```
+
 The main verification suite still runs the known gap check by passing the saved default work-copy path explicitly. Current expected suite result for that saved default work copy:
 
 ```text
@@ -324,12 +331,25 @@ Visible DR_A4_Outline frame inserts: 0
 Result: A4_NATIVE_EXEMPLAR_MISSING_DEFINITION
 ```
 
-This probe is useful after manually creating or saving a scratch/native A4 GMTITLE sheet. A usable result must show a clean A4 definition, no geometry/raw-selection warning, and:
+This probe is useful after manually creating or saving a scratch/native A4 GMTITLE sheet. A fully clean result shows a clean A4 definition, no geometry/raw-selection warning, and:
 
 ```text
 Native GMTITLE A4 pair evidence: yes
 Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON
 ```
+
+2026-07-05 clean `gcadiso.dwt` scratch result:
+
+```text
+Native GMTITLE A4 pair evidence: yes
+Definition raw risk: <none>
+Definition test insert geometry warning: <none>
+Definition test insert raw selection warning: <none>
+Definition minor native outside markers: yes
+Result: A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS
+```
+
+That result is intentionally not collapsed into `UNSAFE_DEFINITION`. It means GstarCAD can create a real native A4 GMTITLE pair, but the official native `DR_A4_Outline` definition carries small outside marker geometry. Production A4 frame-only conversion must still decide explicitly whether to tolerate, crop, or preserve those official native outside markers, and it must not create an extra `DR_titlea_3rd` for a source A4 that had no title block.
 
 If a scratch DWG contains only a clean-looking `DR_A4_Outline` frame but no nearby `DR_titlea_3rd` with native GMTITLE link evidence, the probe reports:
 

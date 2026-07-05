@@ -30,6 +30,8 @@ $script:A4PrepareProbeUnsafe = $false
 $script:A4NestedProbeMissing = $false
 $script:A4NestedProbeUnsafe = $false
 $script:A4NormalizationCandidateSafe = $false
+$script:A4NativeExemplarResult = $null
+$script:A4NativeExemplarMinorOutside = $false
 
 if (-not $SourceWorkCopyPath) {
   $SourceWorkCopyPath = Join-Path $repoRoot "work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg"
@@ -322,6 +324,47 @@ function Write-A4FrameOnlyEvidenceSummary {
     }
   }
 
+  $scratchNativeA4Log = Join-Path $WorkDir "swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt"
+  $defaultNativeExemplarLog = Join-Path $WorkDir "swtitle_a4_native_exemplar_probe_260705.txt"
+  $nativeExemplarLog = $defaultNativeExemplarLog
+  $nativeExemplarLogKind = "default work-copy/suite"
+  if (Test-Path -LiteralPath $scratchNativeA4Log) {
+    $nativeExemplarLog = $scratchNativeA4Log
+    $nativeExemplarLogKind = "clean scratch"
+  }
+  if (Test-Path -LiteralPath $nativeExemplarLog) {
+    $nativeText = Read-TextWithFallback -Path $nativeExemplarLog
+    $nativeResult = Get-FirstRegexValue -Text $nativeText -Pattern "^Result:\s*(\S+)"
+    $minorOutside = Get-FirstRegexValue -Text $nativeText -Pattern "^Definition minor native outside markers:\s*(yes|no)"
+    $nativePair = Get-FirstMatchingLine -Text $nativeText -Pattern "^Native GMTITLE A4 pair evidence:"
+    $strictLine = Get-FirstMatchingLine -Text $nativeText -Pattern "^Definition strict A4 warning:"
+    $rawSelectionLine = Get-FirstMatchingLine -Text $nativeText -Pattern "^Definition test insert raw selection warning:"
+
+    if ($nativeResult) {
+      $script:A4NativeExemplarResult = $nativeResult
+      Write-Output ("  A4 native exemplar probe result ({0}): {1}" -f $nativeExemplarLogKind, $nativeResult)
+      Write-Output ("  A4 native exemplar log: {0}" -f $nativeExemplarLog)
+    }
+    if ($minorOutside) {
+      $script:A4NativeExemplarMinorOutside = ($minorOutside -eq "yes")
+      Write-Output ("  A4 native exemplar minor outside markers: {0}" -f $minorOutside)
+    }
+    if ($nativePair) {
+      Write-Output ("  A4 native exemplar pair evidence: {0}" -f $nativePair)
+    }
+    if ($strictLine) {
+      Write-Output ("  A4 native exemplar strict warning: {0}" -f $strictLine)
+    }
+    if ($rawSelectionLine) {
+      Write-Output ("  A4 native exemplar raw-selection warning: {0}" -f $rawSelectionLine)
+    }
+    if ($script:A4NativeExemplarMinorOutside) {
+      Write-Output "  A4 native exemplar decision: native A4 itself carries small outside marker geometry. Do not treat exact (0,0)-(210,297) raw bbox mismatch as proof of contamination by itself; production still needs an explicit keep/crop/tolerate decision before changing A4 frame-only conversion."
+    }
+  } else {
+    Write-Output "  A4 native exemplar probe result: <not-run>"
+  }
+
   if ($script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") {
     if ($script:A4PrepareProbeUnsafe -and $script:A4NestedProbeMissing) {
       Write-Output "  Interpretation: the current live state still reports SWTITLEPREPARE, but the copied-DWG prepare probe already shows the installed DR_A4_Outline path is expected to fail the strict A4 raw-bbox guard."
@@ -454,15 +497,27 @@ $a4NativeA4ComparisonNeeded = (
   $script:A4PrepareProbeUnsafe -and
   $script:A4NestedProbeUnsafe
 )
+$a4NativeOutsideMarkerDecisionNeeded = (
+  $script:A4NativeExemplarResult -eq "A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS"
+)
 $nestedProbeScript = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1"
 $nestedProbeSource = $script:LatestCadDwg
 if ((-not $script:LatestCadDwgTrustedForGoal) -or (-not $nestedProbeSource)) {
   $nestedProbeSource = $SourceWorkCopyPath
 }
 $scratchNativeA4Path = Join-Path $repoRoot "work\scratch_native_a4_clean_260705.dwg"
+$scratchNativeA4Log = Join-Path $repoRoot "work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt"
 $scratchNativeA4Exists = Test-Path -LiteralPath $scratchNativeA4Path
 if ($existingGstarCAD.Count -gt 0) {
-  if ($a4CandidateSafeNeedsReview) {
+  if ($a4NativeOutsideMarkerDecisionNeeded) {
+    Write-Output "  A4 native outside-marker decision:"
+    Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair, but native DR_A4_Outline itself has small geometry outside (0,0)-(210,297)."
+    Write-Output "    2. Do not keep creating more scratch A4 sheets; the next implementation decision is whether production A4 frame-only should tolerate, crop, or preserve those official native outside markers."
+    Write-Output "    3. Because production A4 source is frame-only, keep the rule that it must not receive an extra DR_titlea_3rd."
+    Write-Output "    4. After code changes, rerun the focused A4 probe and the full hidden suite."
+    Write-Output ""
+    Write-Output "  Hidden suite verification path after A4 production code changes:"
+  } elseif ($a4CandidateSafeNeedsReview) {
     Write-Output "  A4 normalization candidate review:"
     Write-Output "    1. Inspect the copied-DWG nested A4 normalization probe log that reported safe=yes."
     Write-Output "    2. Do not run more CAD conversion commands until that strategy is promoted into SWTITLEPREPARE/SWTITLECONVERT production logic."
@@ -484,7 +539,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "    8. If the probe reports A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR, the scratch has a frame but not a proven native GMTITLE pair."
     Write-Output ("    9. If you suspect a stored paper/title setting exists, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_gmtitle_selection_config_probe.ps1"))
     if ($scratchNativeA4Exists) {
-      Write-Output ("    10. After closing GstarCAD, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"), $scratchNativeA4Path)
+      Write-Output ("    10. After closing GstarCAD, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -LogPath ""{2}"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"), $scratchNativeA4Path, $scratchNativeA4Log)
     } else {
       Write-Output ("    10. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
     }
@@ -526,7 +581,13 @@ if ($existingGstarCAD.Count -gt 0) {
   Write-Output "  Or start the suite in waiting mode first:"
   Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -WaitForGstarCADClose" -f $suite)
 } else {
-  if ($a4CandidateSafeNeedsReview) {
+  if ($a4NativeOutsideMarkerDecisionNeeded) {
+    Write-Output "  A4 native outside-marker decision:"
+    Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair, but native DR_A4_Outline itself has small geometry outside (0,0)-(210,297)."
+    Write-Output "    2. Do not keep creating more scratch A4 sheets; the next implementation decision is whether production A4 frame-only should tolerate, crop, or preserve those official native outside markers."
+    Write-Output "    3. Because production A4 source is frame-only, keep the rule that it must not receive an extra DR_titlea_3rd."
+    Write-Output "    4. After code changes, rerun the focused A4 probe and the full hidden suite."
+  } elseif ($a4CandidateSafeNeedsReview) {
     Write-Output "  A4 normalization candidate review:"
     Write-Output "    1. Inspect the copied-DWG nested A4 normalization probe log that reported safe=yes."
     Write-Output "    2. Promote the safe strategy into SWTITLEPREPARE/SWTITLECONVERT only after confirming it preserves the A4 frame."
@@ -545,7 +606,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "    7. If the probe reports A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR, the scratch has a frame but not a proven native GMTITLE pair."
     Write-Output ("    8. If you suspect a stored paper/title setting exists, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_gmtitle_selection_config_probe.ps1"))
     if ($scratchNativeA4Exists) {
-      Write-Output ("    9. After closing GstarCAD, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"), $scratchNativeA4Path)
+      Write-Output ("    9. After closing GstarCAD, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -LogPath ""{2}"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"), $scratchNativeA4Path, $scratchNativeA4Log)
     } else {
       Write-Output ("    9. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
     }
