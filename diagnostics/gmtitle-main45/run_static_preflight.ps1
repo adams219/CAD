@@ -18,6 +18,7 @@ $a4NativeProbeRunnerPath = Join-Path $PSScriptRoot "run_a4_native_exemplar_probe
 $a4OutlineConvertProbePath = Join-Path $PSScriptRoot "a4_outline_convert_probe.lsp"
 $a4OutlineConvertRunnerPath = Join-Path $PSScriptRoot "run_a4_outline_convert_probe.ps1"
 $actualDirectStatusRunnerPath = Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"
+$nextCadActionRunnerPath = Join-Path $PSScriptRoot "run_next_cad_action.ps1"
 $selectionConfigProbePath = Join-Path $PSScriptRoot "run_gmtitle_selection_config_probe.ps1"
 $goalStatusPath = Join-Path $PSScriptRoot "run_goal_status.ps1"
 $guidePaths = @(
@@ -169,6 +170,7 @@ $a4NativeProbeRunnerText = Read-Text $a4NativeProbeRunnerPath
 $a4OutlineConvertProbeText = Read-Text $a4OutlineConvertProbePath
 $a4OutlineConvertRunnerText = Read-Text $a4OutlineConvertRunnerPath
 $actualDirectStatusRunnerText = Read-Text $actualDirectStatusRunnerPath
+$nextCadActionRunnerText = Read-Text $nextCadActionRunnerPath
 $selectionConfigProbeText = Read-Text $selectionConfigProbePath
 $goalStatusText = Read-Text $goalStatusPath
 
@@ -268,6 +270,10 @@ Assert-Contains -Text $a4OutlineConvertRunnerText -Needle "run_readonly_probe.ps
 Assert-Contains -Text $actualDirectStatusRunnerText -Needle "run_readonly_probe.ps1" -Label "Actual direct work-copy hidden runner"
 Assert-Contains -Text $actualDirectStatusRunnerText -Needle "SWCAD_ACTUAL_WORKCOPY_LOG_SUFFIX" -Label "Actual direct work-copy suffix override"
 Assert-Contains -Text $actualDirectStatusRunnerText -Needle "swtitle_actual_workcopy_direct_status_260705.txt" -Label "Actual direct work-copy log path"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "READY_FOR_FIRST_NATIVE_GMTITLE" -Label "Next CAD action first-native readiness"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Paper/frame:" -Label "Next CAD action dialog paper guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Object move: OFF" -Label "Next CAD action Object move guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "REFRESH_DIRECT_PROBE_FIRST" -Label "Next CAD action direct-probe refresh guard"
 Assert-Contains -Text $selectionConfigProbeText -Needle "GMTITLE_SELECTION_CONFIG_NOT_FOUND" -Label "Selection config probe negative result"
 Assert-Contains -Text $selectionConfigProbeText -Needle "Direct GMTITLE may still reuse an internal/current command state" -Label "Selection config probe direct-GMTITLE warning"
 Assert-Contains -Text $selectionConfigProbeText -Needle "ribbon/menu IMTITLE macro" -Label "Selection config probe IMTITLE macro note"
@@ -298,6 +304,7 @@ Assert-Contains -Text $goalStatusText -Needle "A4 native outside-marker decision
 Assert-Contains -Text $goalStatusText -Needle "official native outside markers" -Label "Goal status A4 official marker guidance"
 Assert-Contains -Text $readmeText -Needle "A4 clean scratch evidence" -Label "README clean A4 scratch evidence"
 Assert-Contains -Text $readmeText -Needle "Actual Work-Copy Direct Status Probe" -Label "README direct actual work-copy probe guidance"
+Assert-Contains -Text $readmeText -Needle "run_next_cad_action.ps1" -Label "README next CAD action guidance"
 Assert-Contains -Text $readmeText -Needle "A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS" -Label "README clean A4 outside marker result"
 Assert-Contains -Text $readmeText -Needle "swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt" -Label "README clean A4 scratch dedicated log"
 Assert-Contains -Text $goalStatusText -Needle "run_gmtitle_selection_config_probe.ps1" -Label "Goal status selection config probe guidance"

@@ -240,6 +240,36 @@ next-bootstrap-title: DR_titlea_3rd
 dbmod-after-commands: 0
 ```
 
+## Next CAD Action Card
+
+Use `run_next_cad_action.ps1` when you want the short visible-CAD instruction card without the full goal-status evidence report.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_next_cad_action.ps1"
+```
+
+It reads the direct actual work-copy probe log and prints only:
+
+```text
+current saved status
+exact visible GstarCAD command
+GMTITLE paper/title/options to choose
+abort conditions
+after-conversion verification step
+```
+
+For the current saved baseline it should report:
+
+```text
+Result: READY_FOR_FIRST_NATIVE_GMTITLE
+Paper/frame: DR_A2_Outline
+Title block: DR_titlea_3rd
+Frame positioning: ON
+Object move: OFF
+After conversion: SWTITLESTATUS
+```
+
 ## A4 Outline Prepare Probe
 
 Use `run_a4_outline_prepare_probe.ps1` to copy a work DWG, load the current GMTITLE LSP, and run the internal A4 frame-only `DR_A4_Outline` definition preflight on the copy.
