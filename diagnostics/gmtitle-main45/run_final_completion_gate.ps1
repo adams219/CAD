@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$SourceWorkCopyPath,
 
   [int]$TimeoutSeconds = 90
@@ -8,6 +8,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
 $workDir = Join-Path $repoRoot "work"
+$completionFailures = New-Object System.Collections.Generic.List[string]
 
 function Assert-LogContains {
   param(
@@ -21,17 +22,60 @@ function Assert-LogContains {
   )
 
   if (-not (Test-Path -LiteralPath $Path)) {
-    throw "Completion gate log not found for ${Label}: $Path"
+    [void]$completionFailures.Add("Completion gate log not found for ${Label}: $Path")
+    return
   }
 
   $text = Get-Content -LiteralPath $Path -Raw
   foreach ($pattern in $Patterns) {
     if ($text -notmatch [regex]::Escape($pattern)) {
-      throw "Completion gate failed for ${Label}: missing '$pattern' in $Path"
+      [void]$completionFailures.Add("Completion gate failed for ${Label}: missing '$pattern' in $Path")
     }
   }
 
-  Write-Output ("Verified completion log: {0}" -f $Label)
+  if ($completionFailures.Count -eq 0) {
+    Write-Output ("Verified completion log: {0}" -f $Label)
+  }
+}
+
+function Get-FirstRegexValue {
+  param(
+    [string]$Text,
+    [string]$Pattern
+  )
+
+  $match = [regex]::Match($Text, $Pattern, [System.Text.RegularExpressions.RegexOptions]::Multiline)
+  if ($match.Success -and $match.Groups.Count -gt 1) {
+    return $match.Groups[1].Value.Trim()
+  }
+  return $null
+}
+
+function Write-CompletionFailureSummary {
+  param([string]$StatusLogPath)
+
+  Write-Output ""
+  Write-Output "Final completion gate result: FAIL"
+  if (Test-Path -LiteralPath $StatusLogPath) {
+    $text = Get-Content -LiteralPath $StatusLogPath -Raw
+    $statusAfterStatus = Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-status:\s*(\S+)"
+    $statusAfterVerify = Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-verify:\s*(\S+)"
+    if ($statusAfterStatus) {
+      Write-Output ("Current status-after-status: {0}" -f $statusAfterStatus)
+    }
+    if ($statusAfterVerify) {
+      Write-Output ("Current status-after-verify: {0}" -f $statusAfterVerify)
+    }
+  }
+
+  Write-Output "Missing completion evidence:"
+  foreach ($failure in $completionFailures) {
+    Write-Output ("  - {0}" -f $failure)
+  }
+  Write-Output ""
+  Write-Output "Next:"
+  Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $PSScriptRoot "run_next_cad_action.ps1"))
+  Write-Output "Completion is not proven until SWTITLEVERIFY_FINAL_OK and representative title-block double-click checks are confirmed."
 }
 
 if (-not $SourceWorkCopyPath) {
@@ -86,5 +130,10 @@ Assert-LogContains `
     "A3: 12",
     "A4: 2"
   )
+
+if ($completionFailures.Count -gt 0) {
+  Write-CompletionFailureSummary -StatusLogPath $statusLogPath
+  throw "Final completion gate failed with $($completionFailures.Count) missing evidence item(s)."
+}
 
 Write-Output "Final completion gate passed."

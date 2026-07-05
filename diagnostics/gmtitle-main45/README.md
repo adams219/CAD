@@ -533,6 +533,18 @@ A3: 12
 A4: 2
 ```
 
+When it fails, it now prints:
+
+```text
+Final completion gate result: FAIL
+Current status-after-status: ...
+Current status-after-verify: ...
+Missing completion evidence:
+Next: run_next_cad_action.ps1
+```
+
+Treat that as a strict incomplete result, not as a partial success. Use the printed next-action card command to return to the guided CAD workflow.
+
 ## Loader Probe
 
 Use `run_loader_probe.ps1` to copy the current work DWG to a probe DWG, load `swcad_load.lsp`, and confirm the loader exposes the same main45 GMTITLE workflow.
