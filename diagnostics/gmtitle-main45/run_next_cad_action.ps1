@@ -79,6 +79,20 @@ function Get-AllRegexValues {
   return @($values)
 }
 
+function Get-GitHeadCommitTimeUtc {
+  param([string]$RepoRoot)
+
+  try {
+    $value = (& git -C $RepoRoot show -s --format=%cI HEAD 2>$null | Select-Object -First 1)
+    if ([string]::IsNullOrWhiteSpace($value)) {
+      return $null
+    }
+    return ([datetimeoffset]::Parse($value.Trim())).UtcDateTime
+  } catch {
+    return $null
+  }
+}
+
 function Get-CountFromProbeSection {
   param(
     [string]$Text,
@@ -218,14 +232,25 @@ function Write-SuiteLastRunSummary {
   $result = if ($resultValues.Count -gt 0) { $resultValues[$resultValues.Count - 1] } else { "<unknown>" }
   $failure = Get-FirstRegexValue -Text $suiteText -Pattern "^Failure:\s*(.+)$"
   $failureCommand = Get-FirstRegexValue -Text $suiteText -Pattern "^Failure command:\s*(.+)$"
+  $item = Get-Item -LiteralPath $suiteLog
+  $headCommitTimeUtc = Get-GitHeadCommitTimeUtc -RepoRoot $displayRepoRoot
 
   Write-Output ("  로그: {0}" -f $suiteLog)
   if ($generated) { Write-Output ("  생성: {0}" -f $generated) }
+  if ($headCommitTimeUtc) {
+    $suiteOlderThanHead = $item.LastWriteTimeUtc -lt $headCommitTimeUtc.AddSeconds(-2)
+    Write-Output ("  현재 커밋 시간: {0}" -f $headCommitTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"))
+    Write-Output ("  suite 로그가 현재 커밋보다 오래됨: {0}" -f ($(if ($suiteOlderThanHead) { "예" } else { "아니오" })))
+  }
   Write-Output ("  결과: {0}" -f $result)
   if ($failure) { Write-Output ("  실패 원인: {0}" -f $failure) }
   if ($failureCommand) { Write-Output ("  실패 명령: {0}" -f $failureCommand) }
   if ($result -eq "PASS") {
-    Write-Output "  의미: 자동화/guard 검증은 통과했습니다. 실제 work DWG 변환 완료 증거는 별도로 필요합니다."
+    if ($headCommitTimeUtc -and ($item.LastWriteTimeUtc -lt $headCommitTimeUtc.AddSeconds(-2))) {
+      Write-Output "  의미: 이 PASS는 현재 커밋보다 오래된 기록입니다. /b smoke가 통과하고 suite를 다시 돌리기 전까지는 과거 guard 증거로만 봅니다."
+    } else {
+      Write-Output "  의미: 자동화/guard 검증은 통과했습니다. 실제 work DWG 변환 완료 증거는 별도로 필요합니다."
+    }
   } elseif ($result -eq "FAILED_BEFORE_PASS") {
     Write-Output "  의미: suite가 최종 PASS 전에 멈췄습니다. 위 실패 원인을 먼저 확인하세요."
   } else {

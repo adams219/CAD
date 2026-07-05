@@ -124,6 +124,20 @@ function Get-AllRegexValues {
   return $values
 }
 
+function Get-GitHeadCommitTimeUtc {
+  param([string]$RepoRoot)
+
+  try {
+    $value = (& git -C $RepoRoot show -s --format=%cI HEAD 2>$null | Select-Object -First 1)
+    if ([string]::IsNullOrWhiteSpace($value)) {
+      return $null
+    }
+    return ([datetimeoffset]::Parse($value.Trim())).UtcDateTime
+  } catch {
+    return $null
+  }
+}
+
 function Write-HiddenSuiteLastRunSummary {
   param([string]$WorkDir)
 
@@ -151,6 +165,11 @@ function Write-HiddenSuiteLastRunSummary {
   Write-Output ("  Path: {0}" -f $suiteLog)
   Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
   if ($generated) { Write-Output ("  Generated: {0}" -f $generated) }
+  if ($script:HeadCommitTimeUtc) {
+    $suiteOlderThanHead = $item.LastWriteTimeUtc -lt $script:HeadCommitTimeUtc.AddSeconds(-2)
+    Write-Output ("  Current commit time: {0}" -f $script:HeadCommitTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"))
+    Write-Output ("  Suite log older than current commit: {0}" -f ($(if ($suiteOlderThanHead) { "yes" } else { "no" })))
+  }
   Write-Output ("  Result: {0}" -f $result)
   if ($failure) { Write-Output ("  Failure: {0}" -f $failure) }
   if ($failureCommand) { Write-Output ("  Failure command: {0}" -f $failureCommand) }
@@ -158,7 +177,11 @@ function Write-HiddenSuiteLastRunSummary {
   if ($statusAfterVerify) { Write-Output ("  Actual work-copy verify in suite: {0}" -f $statusAfterVerify) }
 
   if ($result -eq "PASS") {
-    Write-Output "  Meaning: automation/guard probes passed; this is not proof that the real work DWG finished conversion."
+    if ($script:HeadCommitTimeUtc -and ($item.LastWriteTimeUtc -lt $script:HeadCommitTimeUtc.AddSeconds(-2))) {
+      Write-Output "  Meaning: this PASS is older than the current commit. Treat it as historical guard evidence until /b smoke passes and the suite is rerun."
+    } else {
+      Write-Output "  Meaning: automation/guard probes passed; this is not proof that the real work DWG finished conversion."
+    }
   } elseif ($result -eq "FAILED_BEFORE_PASS") {
     Write-Output "  Meaning: the suite stopped before final PASS; inspect the failure above before trusting automation changes."
   } else {
@@ -715,6 +738,10 @@ Write-Output "===== GMTITLE goal status ====="
 Write-Output ("Repo root: {0}" -f $repoRoot)
 Write-Output ("Branch: {0}" -f (Invoke-GitText @("branch", "--show-current")))
 Write-Output ("Commit: {0}" -f (Invoke-GitText @("log", "-1", "--oneline")))
+$script:HeadCommitTimeUtc = Get-GitHeadCommitTimeUtc -RepoRoot $repoRoot
+if ($script:HeadCommitTimeUtc) {
+  Write-Output ("Commit time: {0}" -f $script:HeadCommitTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"))
+}
 
 $statusText = Invoke-GitText @("status", "--short")
 if ([string]::IsNullOrWhiteSpace($statusText)) {
