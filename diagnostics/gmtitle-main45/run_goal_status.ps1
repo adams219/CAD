@@ -34,6 +34,11 @@ $script:A4NativeExemplarResult = $null
 $script:A4NativeExemplarMinorOutside = $false
 $script:A4PrepareProbeReadyWithNativeOutside = $false
 $script:A4FrameOnlyConvertProbePassed = $false
+$script:DirectWorkcopyProbeTrusted = $false
+$script:DirectWorkcopyStatusCode = $null
+$script:DirectWorkcopyVerifyStatus = $null
+$script:DirectWorkcopyNextFrame = $null
+$script:DirectWorkcopyNextTitle = $null
 
 if (-not $SourceWorkCopyPath) {
   $SourceWorkCopyPath = Join-Path $repoRoot "work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg"
@@ -233,6 +238,73 @@ function Write-LatestCadLogSummary {
   $script:LatestCadDwg = $dwg
   $script:LatestCadStatusCode = $statusCode
   $script:LatestCadRecommendedCommand = $recommended
+}
+
+function Write-DirectActualWorkcopyProbeSummary {
+  param(
+    [string]$WorkDir,
+    [string]$SourceWorkCopyPath
+  )
+
+  $candidateLogs = @(
+    (Join-Path $WorkDir "swtitle_actual_workcopy_direct_status_260705.txt"),
+    (Join-Path $WorkDir "swtitle_actual_workcopy_status_main56_diagnostics.txt")
+  )
+  $logPath = $candidateLogs | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+  if (-not $logPath) {
+    Write-Output "Direct actual work-copy probe: <missing>"
+    return
+  }
+
+  $item = Get-Item -LiteralPath $logPath
+  $text = Read-TextWithFallback -Path $logPath
+  $dwg = Get-FirstRegexValue -Text $text -Pattern "^DWG[^:]*:\s*(.+)$"
+  $statusAfterStatus = Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-status:\s*(\S+)"
+  $statusAfterVerify = Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-verify:\s*(\S+)"
+  $nextFrame = Get-FirstRegexValue -Text $text -Pattern "^\s*next-bootstrap-frame:\s*(\S+)"
+  $nextTitle = Get-FirstRegexValue -Text $text -Pattern "^\s*next-bootstrap-title:\s*(\S+)"
+  $sourceTitleCount = Get-FirstRegexValue -Text $text -Pattern "^\s*source-title-count:\s*(\d+)"
+  $sourceFrameCount = Get-FirstRegexValue -Text $text -Pattern "^\s*source-frame-count:\s*(\d+)"
+  $frameOnlyCount = Get-FirstRegexValue -Text $text -Pattern "^\s*frame-only-count:\s*(\d+)"
+  $targetTitleCount = Get-FirstRegexValue -Text $text -Pattern "^\s*target-title-count:\s*(\d+)"
+  $targetFrameCount = Get-FirstRegexValue -Text $text -Pattern "^\s*target-frame-count:\s*(\d+)"
+
+  $trusted = $false
+  if ($dwg) {
+    try {
+      $trusted = (
+        [System.IO.Path]::GetFullPath($dwg).Equals(
+          [System.IO.Path]::GetFullPath($SourceWorkCopyPath),
+          [System.StringComparison]::OrdinalIgnoreCase
+        )
+      )
+    } catch {
+      $trusted = $false
+    }
+  }
+
+  Write-Output "Direct actual work-copy probe:"
+  Write-Output ("  Path: {0}" -f $logPath)
+  Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
+  if ($dwg) { Write-Output ("  DWG: {0}" -f $dwg) }
+  Write-Output ("  Trusted for goal: {0}" -f ($(if ($trusted) { "yes" } else { "no" })))
+  if ($statusAfterStatus) { Write-Output ("  status-after-status: {0}" -f $statusAfterStatus) }
+  if ($statusAfterVerify) { Write-Output ("  status-after-verify: {0}" -f $statusAfterVerify) }
+  if ($sourceTitleCount) { Write-Output ("  source-title-count: {0}" -f $sourceTitleCount) }
+  if ($sourceFrameCount) { Write-Output ("  source-frame-count: {0}" -f $sourceFrameCount) }
+  if ($frameOnlyCount) { Write-Output ("  frame-only-count: {0}" -f $frameOnlyCount) }
+  if ($targetTitleCount) { Write-Output ("  target-title-count: {0}" -f $targetTitleCount) }
+  if ($targetFrameCount) { Write-Output ("  target-frame-count: {0}" -f $targetFrameCount) }
+  if ($nextFrame) { Write-Output ("  next-bootstrap-frame: {0}" -f $nextFrame) }
+  if ($nextTitle) { Write-Output ("  next-bootstrap-title: {0}" -f $nextTitle) }
+
+  if ($trusted) {
+    $script:DirectWorkcopyProbeTrusted = $true
+    $script:DirectWorkcopyStatusCode = $statusAfterStatus
+    $script:DirectWorkcopyVerifyStatus = $statusAfterVerify
+    $script:DirectWorkcopyNextFrame = $nextFrame
+    $script:DirectWorkcopyNextTitle = $nextTitle
+  }
 }
 
 function Write-A4FrameOnlyEvidenceSummary {
@@ -514,6 +586,9 @@ Write-Output ""
 Write-LatestCadLogSummary -WorkDir (Join-Path $repoRoot "work")
 
 Write-Output ""
+Write-DirectActualWorkcopyProbeSummary -WorkDir (Join-Path $repoRoot "work") -SourceWorkCopyPath $SourceWorkCopyPath
+
+Write-Output ""
 Write-NativeFrameProgressSummary -WorkDir (Join-Path $repoRoot "work")
 
 Write-Output ""
@@ -570,7 +645,16 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair with official small outside markers."
     Write-Output "    2. SWTITLEPREPARE now accepts that definition as ready-native-outside-markers when geometry/raw-selection checks pass."
     Write-Output "    3. The A4 frame-only convert probe finalized one DR_A4_Outline frame with zero DR_titlea_3rd title inserts."
-    Write-Output "    4. Next visible-CAD work should return to the normal four-command workflow on the real work-copy, starting from SWTITLESTATUS."
+    if ($script:DirectWorkcopyProbeTrusted -and $script:DirectWorkcopyStatusCode) {
+      Write-Output ("    4. Direct actual work-copy probe says next state is {0}." -f $script:DirectWorkcopyStatusCode)
+      if ($script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") {
+        Write-Output ("    5. In visible CAD, run SWTITLECONVERT and create the first native GMTITLE with {0} / {1}." -f $script:DirectWorkcopyNextFrame, $script:DirectWorkcopyNextTitle)
+      } else {
+        Write-Output "    5. In visible CAD, follow SWTITLESTATUS for the next four-command workflow step."
+      }
+    } else {
+      Write-Output "    4. Next visible-CAD work should return to the normal four-command workflow on the real work-copy, starting from SWTITLESTATUS."
+    }
     Write-Output ""
     Write-Output "  Hidden suite verification path only if you changed code again:"
   } elseif ($a4NativeOutsideMarkerPolicyReady) {
@@ -660,10 +744,22 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "    3. The A4 frame-only convert probe finalized one DR_A4_Outline frame with zero DR_titlea_3rd title inserts."
     Write-Output "    4. The full hidden suite includes this probe and has a verified A4 convert expectation."
     Write-Output "  Next real work-copy step:"
-    Write-Output "    1. Open or activate the real work-copy DWG in GstarCAD."
-    Write-Output "    2. APPLOAD the current swcad_title_scale.lsp if needed."
-    Write-Output "    3. Run SWTITLESTATUS."
-    Write-Output "    4. Follow the four-command flow through SWTITLECONVERT and SWTITLEVERIFY."
+    if ($script:DirectWorkcopyProbeTrusted -and $script:DirectWorkcopyStatusCode) {
+      Write-Output ("    1. Direct actual work-copy probe says: {0}." -f $script:DirectWorkcopyStatusCode)
+      Write-Output "    2. Open or activate the real work-copy DWG in GstarCAD."
+      Write-Output "    3. APPLOAD the current swcad_title_scale.lsp if needed."
+      if ($script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") {
+        Write-Output ("    4. Run SWTITLECONVERT and create the first native GMTITLE with {0} / {1}." -f $script:DirectWorkcopyNextFrame, $script:DirectWorkcopyNextTitle)
+        Write-Output "    5. Then run SWTITLESTATUS and continue the four-command flow."
+      } else {
+        Write-Output "    4. Run SWTITLESTATUS and follow the four-command flow through SWTITLECONVERT and SWTITLEVERIFY."
+      }
+    } else {
+      Write-Output "    1. Open or activate the real work-copy DWG in GstarCAD."
+      Write-Output "    2. APPLOAD the current swcad_title_scale.lsp if needed."
+      Write-Output "    3. Run SWTITLESTATUS."
+      Write-Output "    4. Follow the four-command flow through SWTITLECONVERT and SWTITLEVERIFY."
+    }
   } elseif ($a4NativeOutsideMarkerPolicyReady) {
     Write-Output "  A4 native outside-marker policy is implemented:"
     Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair with official small outside markers."
