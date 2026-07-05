@@ -186,6 +186,8 @@ Object move ON 상태로 확인
 
 수동 `SWTITLECONVERT`가 명령창 입력을 물으면 아래 기준만 사용합니다.
 
+`SWTITLECONVERTNEXT`를 사용하는 경우에는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않습니다. 아래 응답은 수동 `SWTITLECONVERT`에서 직접 고를 때만 사용합니다.
+
 ```text
 첫 native GMTITLE 기준 객체 생성: YES
 누락된 용지 크기의 첫 native GMTITLE 생성: YES

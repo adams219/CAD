@@ -376,6 +376,8 @@ SWTITLECONVERT
 
 `SWTITLECONVERTNEXT`는 아래의 `YES`/`OPEN` 선택만 자동으로 고르고, GMTITLE 창에서 DR 용지/제목블록/옵션을 확인하는 일은 그대로 남깁니다.
 
+따라서 `SWTITLECONVERTNEXT`를 쓴 경우에는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않습니다. 아래 응답표는 수동 `SWTITLECONVERT`로 직접 고를 때만 봅니다.
+
 `SWTITLECONVERT` 안에서 입력을 물으면 상태별로 아래처럼 답합니다.
 
 ```text

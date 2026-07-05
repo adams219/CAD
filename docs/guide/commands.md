@@ -78,7 +78,7 @@ GMTITLE 창 선택까지 완전 자동으로 켜지 않는 이유는 GstarCAD가
 | --- | --- | --- |
 | `SWTITLESTATUS` | 현재 DWG 상태를 읽기 전용으로 진단하고 다음에 실행할 명령을 안내합니다. work 복사본 여부, 원본 시트 수, A2/A3/A4 예상 수량, GMTITLE target 수량, 도면틀 정의 상태, A4 frame-only 상태를 확인합니다. | 없음 |
 | `SWTITLEPREPARE` | 변환 전에 필요한 정리만 수행합니다. 실수로 들어간 명령어 텍스트, 겹친 GMTITLE target, 오염 의심 도면틀 정의, 위험한 raw bbox 등을 후보로 보여주고 `YES` 확인 뒤 처리합니다. | 있음 |
-| `SWTITLECONVERTNEXT` | 상태에 맞는 변환 단계를 실행하면서 `YES`/`OPEN` 같은 반복 응답만 자동 선택합니다. GMTITLE 창의 DR 용지/제목블록/옵션 확인은 사람이 합니다. | 있음 |
+| `SWTITLECONVERTNEXT` | 상태에 맞는 변환 단계를 실행하면서 `YES`/`OPEN` 같은 반복 응답만 자동 선택합니다. 사용자는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않고, GMTITLE 창의 DR 용지/제목블록/옵션만 확인합니다. | 있음 |
 | `SWTITLECONVERT` | `SWTITLECONVERTNEXT`와 같은 변환 흐름을 사용하되, `YES`/`OPEN`/`BATCH`/`MANUAL` 응답을 사용자가 직접 고릅니다. | 있음 |
 | `SWTITLEVERIFY` | 변환 결과를 읽기 전용으로 검증합니다. 남은 원본, 누락/중복, A2/A3/A4 수량, native-like 상태, 최종 OK/WARN/FAIL을 확인합니다. | 없음 |
 
@@ -143,6 +143,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 ```
 
 수동 명령인 `SWTITLECONVERT` 안에서 입력을 물으면 상태별로 아래처럼 답합니다.
+
+`SWTITLECONVERTNEXT`를 사용하는 경우에는 아래 응답을 직접 입력하지 않습니다. 아래 표는 수동 `SWTITLECONVERT`를 쓸 때만 적용합니다.
 
 ```text
 첫 native GMTITLE 생성: YES

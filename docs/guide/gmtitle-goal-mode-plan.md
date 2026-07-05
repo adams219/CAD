@@ -674,6 +674,9 @@ SWTITLECONVERTNEXT
 `SWTITLECONVERTNEXT`는 현재 상태의 다음 응답을 자동으로 선택한다. 수동 응답을 직접 고르기 위해
 `SWTITLECONVERT`를 사용할 때의 응답은 상태별로 다르다.
 
+따라서 `SWTITLECONVERTNEXT`를 사용한 경우에는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않는다.
+아래 응답표는 수동 `SWTITLECONVERT`를 사용할 때만 적용한다.
+
 ```text
 YES
   NEXT_CREATE_FIRST_NATIVE_GMTITLE 또는 NEXT_CREATE_MISSING_NATIVE_EXEMPLAR 상태에서 쓴다.
