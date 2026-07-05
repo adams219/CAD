@@ -74,7 +74,7 @@ SWTITLEVERIFY     최종 검증 단계에서
 첫 native GMTITLE 생성: YES
 누락된 용지 크기의 첫 native GMTITLE 생성: YES
 A3/A4 native 교체 1장 처리: OPEN
-A3/A4 같은 선택값을 여러 장 이어서 처리: BATCH
+BATCH는 OPEN으로 최소 1장 성공한 뒤, 같은 DR 용지/제목블록/옵션이 반복된다는 걸 눈으로 확인할 수 있을 때만 사용
 OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복됨: MANUAL
 판단이 애매하거나 현재 DWG가 다름: Enter로 중단
 ```
@@ -112,6 +112,8 @@ SWTITLESTATUS
 ```
 
 후보 수가 줄어들면 정상 진행입니다. 후보 수가 줄지 않고 같은 경고가 반복되면 변환을 계속 누르기보다 `SWTITLEVERIFY` 로그와 해당 제목블록 더블클릭 동작을 확인합니다.
+
+`BATCH`는 처음부터 쓰는 빠른 길이 아닙니다. 먼저 `OPEN`으로 A3/A4 후보 1장이 실제로 줄어드는지 확인한 뒤, 다음 후보들이 같은 DR 용지/제목블록/옵션으로 반복된다는 걸 눈으로 확인할 수 있을 때만 사용합니다.
 
 ## A4 frame-only
 

@@ -188,7 +188,7 @@ Object move ON 상태로 확인
 첫 native GMTITLE 기준 객체 생성: YES
 누락된 용지 크기의 첫 native GMTITLE 생성: YES
 A3/A4 native 교체 1장 처리: OPEN
-A3/A4 같은 선택값을 여러 장 이어서 처리: BATCH
+BATCH는 OPEN으로 최소 1장 성공한 뒤, 같은 DR 용지/제목블록/옵션이 반복된다는 걸 눈으로 확인할 수 있을 때만 사용
 OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복됨: MANUAL
 판단이 애매하거나 현재 DWG가 다름: Enter로 중단
 ```
@@ -221,6 +221,8 @@ A3/A4 native 교체 후보 수가 줄어듦
 ```
 
 후보 수가 줄지 않으면 같은 명령을 반복하지 말고 `SWTITLEVERIFY`와 해당 로그를 확인합니다.
+
+`BATCH`는 `OPEN`으로 최소 1장 성공한 뒤에만 사용합니다. 첫 후보부터 `BATCH`를 쓰면 잘못된 용지/제목블록/옵션을 여러 장에 반복 적용할 수 있으므로, 후보 수 감소를 먼저 확인합니다.
 
 ## 6. A4 frame-only
 

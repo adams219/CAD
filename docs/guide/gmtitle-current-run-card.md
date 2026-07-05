@@ -280,10 +280,12 @@ SWTITLESTATUS
 첫 native GMTITLE 생성: YES
 누락된 용지 크기의 첫 native GMTITLE 생성: YES
 A3/A4 native 교체 1장 처리: OPEN
-A3/A4 같은 선택값을 여러 장 이어서 처리: BATCH
+BATCH는 OPEN으로 최소 1장 성공한 뒤, 같은 DR 용지/제목블록/옵션이 반복된다는 걸 눈으로 확인할 수 있을 때만 사용
 OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복됨: MANUAL
 판단이 애매하거나 현재 DWG가 다름: Enter로 중단
 ```
+
+처음부터 `BATCH`를 쓰지 않습니다. 먼저 `OPEN`으로 후보 수가 줄어드는지 확인한 뒤, 같은 선택값이 반복되는 구간에서만 사용합니다.
 
 최종 검증:
 

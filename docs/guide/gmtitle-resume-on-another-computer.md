@@ -129,7 +129,7 @@ Object move: OFF
 첫 native GMTITLE 생성: YES
 누락된 용지 크기의 첫 native GMTITLE 생성: YES
 A3/A4 native 교체 1장 처리: OPEN
-A3/A4 같은 선택값을 여러 장 이어서 처리: BATCH
+BATCH는 OPEN으로 최소 1장 성공한 뒤, 같은 DR 용지/제목블록/옵션이 반복된다는 걸 눈으로 확인할 수 있을 때만 사용
 OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복됨: MANUAL
 판단이 애매하거나 현재 DWG가 다름: Enter로 중단
 ```
@@ -142,6 +142,7 @@ SWTITLESTATUS가 겹친 GMTITLE target 쌍을 표시하면 SWTITLECONVERT를 반
 같은 위치에 기존 native GMTITLE 쌍이 있으면 SWTITLECONVERT가 새로 만들지 않고 그 쌍을 채택합니다.
 DR_A3_Outline 안의 native-format title-like 형상은 그 자체만으로 삭제하지 않습니다.
 A3/A4 native 교체 후보가 남아 있으면 SWTITLESTATUS는 A4 frame-only보다 그 후보를 먼저 안내합니다.
+BATCH는 첫 후보부터 쓰지 말고, OPEN으로 후보 수가 줄어든 증거를 먼저 확인한 뒤 사용합니다.
 핵심 상태/검증 안내는 한국어로 표시됩니다.
 ```
 

@@ -146,7 +146,7 @@ function Write-ConvertPromptGuidance {
     }
     "NativeReplacement" {
       Write-Output "  OPEN: 다음 A3/A4 후보 1장만 fresh native GMTITLE로 교체합니다."
-      Write-Output "  BATCH: 같은 선택값을 눈으로 확인할 수 있을 때 여러 장을 이어서 처리합니다."
+      Write-Output "  BATCH: OPEN으로 최소 1장 성공한 뒤, 같은 DR 용지/제목블록/옵션이 반복된다는 걸 눈으로 확인할 수 있을 때만 여러 장을 이어서 처리합니다."
       Write-Output "  MANUAL: OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복될 때만 사용합니다."
       Write-Output "  Enter: 기존 쌍을 보존하고 중단합니다."
     }
