@@ -365,7 +365,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 
 The session wrapper opens the work-copy through `run_open_workcopy_for_manual_convert.ps1`, prints the manual CAD commands, waits for GstarCAD to close, and then runs `run_after_manual_gmtitle_step.ps1`. It does not run `SWTITLECONVERTNEXT`, does not click the GMTITLE dialog, and does not save the drawing.
 
-Use `-SkipOpenWorkcopy` if you already opened the work-copy yourself and only want the wait-and-check part. Use `-DryRun` to verify the wrapper sequence without launching visible GstarCAD.
+Use `-SkipOpenWorkcopy` only if the work-copy is already open in a running GstarCAD process and you only want the wait-and-check part. If no GstarCAD process is detected, the wrapper stops with `SKIP_OPEN_NO_GSTARCAD` instead of running a stale after-manual check. Use `-DryRun` to verify the wrapper sequence without launching visible GstarCAD.
 
 ## A4 Outline Prepare Probe
 

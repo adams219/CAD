@@ -105,6 +105,26 @@ function Wait-ForGstarCADToClose {
   return $false
 }
 
+function Assert-GstarCADRunningBeforeManualStep {
+  param([string]$Context)
+
+  $existing = @(Get-Process -Name gcad -ErrorAction SilentlyContinue)
+  if ($existing.Count -eq 0) {
+    if ($Context -eq "SkipOpenWorkcopy") {
+      Write-Step "Result: SKIP_OPEN_NO_GSTARCAD"
+      Write-Step "Reason: -SkipOpenWorkcopy was used, but no running GstarCAD process was detected."
+      Write-Step "Next: open the work-copy in GstarCAD first, or run this session wrapper without -SkipOpenWorkcopy."
+    } else {
+      Write-Step "Result: GSTARCAD_CLOSED_BEFORE_MANUAL_STEP"
+      Write-Step "Reason: the visible open helper returned, but no running GstarCAD process was detected before the manual step."
+      Write-Step "Next: open the work-copy manually and run run_after_manual_gmtitle_step.ps1 after saving and closing, or rerun this wrapper."
+    }
+    exit 1
+  }
+
+  Write-Step ("Observed GstarCAD process before manual step: {0}" -f (($existing | ForEach-Object { $_.Id }) -join ", "))
+}
+
 Write-Step "===== GMTITLE manual visible-CAD session ====="
 Write-Step ("Repo root: {0}" -f $repoRoot)
 Write-Step ("Source work copy: {0}" -f $SourceWorkCopyPath)
@@ -157,8 +177,11 @@ if (-not $SkipOpenWorkcopy) {
     Write-Step "If you opened the work-copy manually, rerun this script with -SkipOpenWorkcopy after CAD is open, or close CAD and use run_after_manual_gmtitle_step.ps1."
     exit $openExitCode
   }
+
+  Assert-GstarCADRunningBeforeManualStep -Context "OpenHelper"
 } else {
   Write-Step "SkipOpenWorkcopy: assuming GstarCAD is already open or will be opened manually."
+  Assert-GstarCADRunningBeforeManualStep -Context "SkipOpenWorkcopy"
 }
 
 Write-Step ""
