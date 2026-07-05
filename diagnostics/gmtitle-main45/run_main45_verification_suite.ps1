@@ -16,6 +16,105 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
 $workDir = Join-Path $repoRoot "work"
 $compareDir = Join-Path $workDir "lsp_compare"
+$suiteLastRunLog = Join-Path $workDir "main56_verification_suite_last_run.txt"
+
+function Write-SuiteLastRunLine {
+  param([string]$Text)
+
+  Add-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value $Text
+}
+
+function Get-SuiteFirstRegexValue {
+  param(
+    [string]$Text,
+    [string]$Pattern
+  )
+
+  $match = [regex]::Match($Text, $Pattern, [System.Text.RegularExpressions.RegexOptions]::Multiline)
+  if ($match.Success -and $match.Groups.Count -gt 1) {
+    return $match.Groups[1].Value.Trim()
+  }
+  return $null
+}
+
+function Write-SuiteStatusSummary {
+  param(
+    [string]$StatusLogPath,
+    [string]$A4OutlinePrepareLogPath,
+    [string]$A4OutlineConvertLogPath,
+    [string]$A3StatusGuidanceLogPath,
+    [string]$A3A4BatchGuardLogPath
+  )
+
+  Write-SuiteLastRunLine ""
+  Write-SuiteLastRunLine "Actual work-copy status summary:"
+  if (Test-Path -LiteralPath $StatusLogPath) {
+    $statusText = Get-Content -LiteralPath $StatusLogPath -Raw
+    foreach ($name in @(
+      "status-after-status",
+      "status-after-verify",
+      "source-title-count",
+      "source-frame-count",
+      "frame-only-count",
+      "target-title-count",
+      "target-frame-count",
+      "next-bootstrap-frame",
+      "next-bootstrap-title"
+    )) {
+      $value = Get-SuiteFirstRegexValue -Text $statusText -Pattern ("^\s*" + [regex]::Escape($name) + ":\s*(.+)$")
+      if ($value) {
+        Write-SuiteLastRunLine ("  {0}: {1}" -f $name, $value)
+      }
+    }
+    $missingFrames = [regex]::Matches($statusText, "^\s*missing-native-frame:\s*(.+)$", [System.Text.RegularExpressions.RegexOptions]::Multiline)
+    foreach ($match in $missingFrames) {
+      Write-SuiteLastRunLine ("  missing-native-frame: {0}" -f $match.Groups[1].Value.Trim())
+    }
+  } else {
+    Write-SuiteLastRunLine ("  status log missing: {0}" -f $StatusLogPath)
+  }
+
+  Write-SuiteLastRunLine ""
+  Write-SuiteLastRunLine "A4 frame-only evidence:"
+  if (Test-Path -LiteralPath $A4OutlinePrepareLogPath) {
+    $prepareText = Get-Content -LiteralPath $A4OutlinePrepareLogPath -Raw
+    $prepareResult = Get-SuiteFirstRegexValue -Text $prepareText -Pattern "^Prepare result:\s*(.+)$"
+    $prepareStatus = Get-SuiteFirstRegexValue -Text $prepareText -Pattern "^After definition status:\s*(.+)$"
+    if ($prepareResult) { Write-SuiteLastRunLine ("  prepare-result: {0}" -f $prepareResult) }
+    if ($prepareStatus) { Write-SuiteLastRunLine ("  after-definition-status: {0}" -f $prepareStatus) }
+  }
+  if (Test-Path -LiteralPath $A4OutlineConvertLogPath) {
+    $convertText = Get-Content -LiteralPath $A4OutlineConvertLogPath -Raw
+    foreach ($name in @(
+      "Convert result",
+      "After frame-only-count",
+      "After target title count",
+      "After DR_A4_Outline target frame count"
+    )) {
+      $value = Get-SuiteFirstRegexValue -Text $convertText -Pattern ("^" + [regex]::Escape($name) + ":\s*(.+)$")
+      if ($value) {
+        Write-SuiteLastRunLine ("  {0}: {1}" -f $name, $value)
+      }
+    }
+  }
+
+  Write-SuiteLastRunLine ""
+  Write-SuiteLastRunLine "Native replacement guidance evidence:"
+  if (Test-Path -LiteralPath $A3StatusGuidanceLogPath) {
+    $a3Text = Get-Content -LiteralPath $A3StatusGuidanceLogPath -Raw
+    $a3Status = Get-SuiteFirstRegexValue -Text $a3Text -Pattern "^Status after SWTITLESTATUS:\s*(.+)$"
+    $a3Passed = Get-SuiteFirstRegexValue -Text $a3Text -Pattern "^A3 status guidance probe passed:\s*(.+)$"
+    if ($a3Status) { Write-SuiteLastRunLine ("  A3 status after SWTITLESTATUS: {0}" -f $a3Status) }
+    if ($a3Passed) { Write-SuiteLastRunLine ("  A3 status guidance probe passed: {0}" -f $a3Passed) }
+  }
+  if (Test-Path -LiteralPath $A3A4BatchGuardLogPath) {
+    $batchText = Get-Content -LiteralPath $A3A4BatchGuardLogPath -Raw
+    $batchStatus = Get-SuiteFirstRegexValue -Text $batchText -Pattern "^Status after batch:\s*(.+)$"
+    $batchPreserved = Get-SuiteFirstRegexValue -Text $batchText -Pattern "^Batch guard preserved candidates:\s*(.+)$"
+    if ($batchStatus) { Write-SuiteLastRunLine ("  Status after batch: {0}" -f $batchStatus) }
+    if ($batchPreserved) { Write-SuiteLastRunLine ("  Batch guard preserved candidates: {0}" -f $batchPreserved) }
+  }
+}
 
 function Assert-NoExistingGstarCAD {
   param(
@@ -90,6 +189,16 @@ if (-not $SourceWorkCopyPath) {
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
   throw "Source work-copy DWG not found: $SourceWorkCopyPath"
 }
+
+Set-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value @(
+  "===== GMTITLE main56 verification suite last run =====",
+  ("Generated: {0}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss K")),
+  ("Repo root: {0}" -f $repoRoot),
+  ("Source work copy: {0}" -f $SourceWorkCopyPath),
+  ("Probe window style: {0}" -f $ProbeWindowStyle),
+  ("Timeout seconds: {0}" -f $TimeoutSeconds),
+  "Result: RUNNING_OR_FAILED_BEFORE_PASS"
+)
 
 Write-Output "===== Preflight. Next CAD action card probe (no CAD) ====="
 & (Join-Path $PSScriptRoot "run_next_cad_action_card_probe.ps1")
@@ -645,3 +754,44 @@ Assert-LogContains `
 Write-Output ""
 Write-Output "All expected log markers were verified."
 Write-Output "===== GMTITLE main56 verification suite complete ====="
+
+Set-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value @(
+  "===== GMTITLE main56 verification suite last run =====",
+  ("Generated: {0}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss K")),
+  ("Repo root: {0}" -f $repoRoot),
+  ("Source work copy: {0}" -f $SourceWorkCopyPath),
+  ("Probe window style: {0}" -f $ProbeWindowStyle),
+  ("Timeout seconds: {0}" -f $TimeoutSeconds),
+  "Result: PASS",
+  "Verified markers:",
+  "  no-CAD next-action card probe: PASS",
+  "  visible work-copy opener dry-run: PASS",
+  "  GstarCAD /b script smoke probe: PASS",
+  "  Loader probe: PASS",
+  "  Current LSP copy compare probe: PASS",
+  "  Actual work-copy status probe: PASS",
+  "  A4 native exemplar gap probe: PASS",
+  "  A4 outline native outside marker prepare probe: PASS",
+  "  A4 outline frame-only convert probe: PASS",
+  "  SWTITLECONVERT script guard probe: PASS",
+  "  Common A2/A3/A4 frame-definition probe: PASS",
+  "  A2/A3/A4 style-normalization rebuild cleanup probe: PASS",
+  "  Command-text guard comparison probe: PASS",
+  "  Sheet residue protection probe: PASS",
+  "  Embedded-title prepare comparison probe: PASS",
+  "  Duplicate target pair comparison probe: PASS",
+  "  Native adoption gate comparison probe: PASS",
+  "  Post-first-native marker gate probe: PASS",
+  "  A3 status guidance probe: PASS",
+  "  A3/A4 batch guard probe: PASS",
+  "  GMTITLE selection config probe: PASS",
+  "All expected log markers were verified.",
+  "===== GMTITLE main56 verification suite complete ====="
+)
+Write-SuiteStatusSummary `
+  -StatusLogPath $actualStatusLog `
+  -A4OutlinePrepareLogPath $a4OutlinePrepareLog `
+  -A4OutlineConvertLogPath $a4OutlineConvertLog `
+  -A3StatusGuidanceLogPath $a3StatusGuidanceLog `
+  -A3A4BatchGuardLogPath $a3a4BatchGuardLog
+Write-Output ("Suite last-run summary: {0}" -f $suiteLastRunLog)
