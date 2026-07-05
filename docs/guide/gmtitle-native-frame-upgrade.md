@@ -2,22 +2,24 @@
 
 이 문서는 이전의 A3/A4 native 교체 실험을 현재 4단계 흐름 기준으로 정리한 참고 문서입니다.
 
-현재 일반 사용자는 아래 4개 명령만 사용합니다.
+현재 일반 사용자는 아래 권장 4개 명령만 사용합니다.
 
 ```text
 SWTITLESTATUS
 SWTITLEPREPARE
-SWTITLECONVERT
+SWTITLECONVERTNEXT
 SWTITLEVERIFY
 ```
 
-옛 명령인 `SWTITLEUPGRADENATIVEA3A4BATCH`, `SWTITLEA3A4NEXT`, `SWTITLEFRAMEONLYAPPLY` 같은 이름은 일반 작업에서 직접 입력하지 않습니다. 필요한 내부 단계는 `SWTITLECONVERT`가 상태에 맞춰 안내합니다.
+수동 응답을 직접 고르고 싶을 때만 `SWTITLECONVERT`를 대신 사용합니다.
+
+옛 명령인 `SWTITLEUPGRADENATIVEA3A4BATCH`, `SWTITLEA3A4NEXT`, `SWTITLEFRAMEONLYAPPLY` 같은 이름은 일반 작업에서 직접 입력하지 않습니다. 필요한 내부 단계는 `SWTITLECONVERTNEXT`가 상태에 맞춰 안내합니다.
 
 ## 왜 native 교체가 필요했나
 
 GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 표 편집창이 열려야 합니다.
 
-초기 preserve-copy 방식은 빠르게 여러 장을 만들 수 있었지만, 일부 복제본이 GMTITLE 표 편집창 대신 고급 속성 편집기로 열렸습니다. 그래서 A2/A3/A4 각각 같은 크기의 실제 native GMTITLE 기준 객체를 만들고, 신뢰하기 어려운 복제 쌍은 `SWTITLECONVERT` 안에서 한 장씩 native 교체하도록 방향을 잡았습니다.
+초기 preserve-copy 방식은 빠르게 여러 장을 만들 수 있었지만, 일부 복제본이 GMTITLE 표 편집창 대신 고급 속성 편집기로 열렸습니다. 그래서 A2/A3/A4 각각 같은 크기의 실제 native GMTITLE 기준 객체를 만들고, 신뢰하기 어려운 복제 쌍은 `SWTITLECONVERTNEXT` 안에서 한 장씩 native 교체하도록 방향을 잡았습니다.
 
 ## 현재 기준
 
@@ -51,7 +53,7 @@ native-format-with-title-geometry + 별도 DR_titlea_3rd 실제 겹침
 
 `native-format-with-title-geometry` 자체는 설치 원본 A3처럼 정상 native 형상일 수 있으므로 일반 삭제 후보로 보지 않습니다.
 
-즉 A3에서 도면틀 안에 표제란처럼 보이는 형상이 들어 있어 별도 `DR_titlea_3rd`와 겹칠 수 있으면, `SWTITLECONVERT`를 반복하지 않고 먼저 `SWTITLEPREPARE`로 정규화합니다.
+즉 A3에서 도면틀 안에 표제란처럼 보이는 형상이 들어 있어 별도 `DR_titlea_3rd`와 겹칠 수 있으면, `SWTITLECONVERTNEXT`를 반복하지 않고 먼저 `SWTITLEPREPARE`로 정규화합니다.
 
 ## 현재 실행 흐름
 
@@ -71,7 +73,7 @@ SWTITLESTATUS
 상태가 변환을 요구하면:
 
 ```text
-SWTITLECONVERT
+SWTITLECONVERTNEXT
 SWTITLESTATUS
 ```
 
@@ -83,7 +85,7 @@ SWTITLEVERIFY
 
 ## GMTITLE 창에서 확인할 값
 
-`SWTITLECONVERT` 중 GMTITLE 창이 열리면 로그가 요구한 용지와 제목블록을 선택합니다.
+`SWTITLECONVERTNEXT` 또는 수동 `SWTITLECONVERT` 중 GMTITLE 창이 열리면 로그가 요구한 용지와 제목블록을 선택합니다.
 
 ```text
 용지/도면틀: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline 중 로그가 요구한 것
@@ -119,7 +121,7 @@ SWTITLEPREPARE가 작업복사본에서만 실제 겹치는 도면틀 정의 내
 정상 DR_titlea_3rd 제목블록은 보존한다.
 별도 제목블록과 겹치지 않는 native-format 내부 형상은 일반 cleanup에서 제외한다.
 같은 위치에 이미 생성된 DR_A*_Outline + DR_titlea_3rd target 쌍이 2개 있으면 중복 target 쌍으로 따로 표시한다.
-SWTITLECONVERT는 같은 bbox에 기존 native GMTITLE 쌍이 있으면 새로 만들지 않고 그 쌍을 채택한다.
+SWTITLECONVERTNEXT는 같은 bbox에 기존 native GMTITLE 쌍이 있으면 새로 만들지 않고 그 쌍을 채택한다.
 A3/A4 native 교체 후보가 남아 있으면 SWTITLESTATUS는 A4 frame-only보다 그 후보를 먼저 안내한다.
 핵심 상태/검증 안내는 CAD 명령창에서 한국어로 확인한다.
 ```

@@ -38,19 +38,19 @@ SWTITLEVERSION
 
 ## GMTITLE 변환 명령
 
-SolidWorks DWG의 도면틀/표제란을 GstarCAD Mechanical GMTITLE 구조로 바꾸는 일반 작업은 아래 4개 명령만 사용합니다.
+SolidWorks DWG의 도면틀/표제란을 GstarCAD Mechanical GMTITLE 구조로 바꾸는 일반 작업은 아래 권장 4개 명령만 사용합니다.
 
 ```text
 SWTITLESTATUS
 SWTITLEPREPARE
-SWTITLECONVERT
+SWTITLECONVERTNEXT
 SWTITLEVERIFY
 ```
 
-일반 작업에서는 반복 확인 입력을 줄이기 위해 `SWTITLECONVERTNEXT`를 권장합니다. 수동 응답을 직접 고르고 싶을 때만 `SWTITLECONVERT`를 사용합니다.
+수동 응답을 직접 고르고 싶을 때만 `SWTITLECONVERT`를 대신 사용합니다.
 
 ```text
-SWTITLECONVERTNEXT
+SWTITLECONVERT
 ```
 
 `SWTITLECONVERTNEXT`는 현재 상태에서 안전한 다음 응답만 자동 선택합니다. 첫 native 생성/누락 크기 생성/빠른 변환은 `YES`, A3/A4 native 교체는 다음 후보 1장 `OPEN`으로 처리합니다. 단, GMTITLE 창에서 `DR_A*_Outline`, `DR_titlea_3rd`, `Frame positioning: ON`, `Object move: OFF`를 눈으로 확인하는 단계는 그대로 필요합니다.
@@ -59,10 +59,11 @@ SWTITLECONVERTNEXT
 | --- | --- | --- |
 | `SWTITLESTATUS` | 현재 DWG 상태를 읽기 전용으로 진단하고 다음에 실행할 명령을 안내합니다. work 복사본 여부, 원본 시트 수, A2/A3/A4 예상 수량, GMTITLE target 수량, 도면틀 정의 상태, A4 frame-only 상태를 확인합니다. | 없음 |
 | `SWTITLEPREPARE` | 변환 전에 필요한 정리만 수행합니다. 실수로 들어간 명령어 텍스트, 겹친 GMTITLE target, 오염 의심 도면틀 정의, 위험한 raw bbox 등을 후보로 보여주고 `YES` 확인 뒤 처리합니다. | 있음 |
-| `SWTITLECONVERT` | 상태에 맞는 변환 단계를 실행합니다. 첫 native GMTITLE 생성, 남은 원본 시트 변환, 기존 native 쌍 채택, A3/A4 native 교체, A4 frame-only 처리를 한 명령 안에서 안내합니다. | 있음 |
+| `SWTITLECONVERTNEXT` | 상태에 맞는 변환 단계를 실행하면서 `YES`/`OPEN` 같은 반복 응답만 자동 선택합니다. GMTITLE 창의 DR 용지/제목블록/옵션 확인은 사람이 합니다. | 있음 |
+| `SWTITLECONVERT` | `SWTITLECONVERTNEXT`와 같은 변환 흐름을 사용하되, `YES`/`OPEN`/`BATCH`/`MANUAL` 응답을 사용자가 직접 고릅니다. | 있음 |
 | `SWTITLEVERIFY` | 변환 결과를 읽기 전용으로 검증합니다. 남은 원본, 누락/중복, A2/A3/A4 수량, native-like 상태, 최종 OK/WARN/FAIL을 확인합니다. | 없음 |
 
-여러 DWG가 열려 있으면 `SWTITLEPREPARE`와 `SWTITLECONVERT`가 현재 활성 DWG 경로를 먼저 보여주고 `ACTIVE` 확인을 요구할 수 있습니다. 목표 work 복사본이 맞을 때만 `ACTIVE`를 입력하고, 조금이라도 다르면 Enter로 중단합니다.
+여러 DWG가 열려 있으면 `SWTITLEPREPARE`, `SWTITLECONVERTNEXT`, `SWTITLECONVERT`가 현재 활성 DWG 경로를 먼저 보여주고 `ACTIVE` 확인을 요구할 수 있습니다. 목표 work 복사본이 맞을 때만 `ACTIVE`를 입력하고, 조금이라도 다르면 Enter로 중단합니다.
 
 ## 권장 실행 순서
 
@@ -73,7 +74,7 @@ SWTITLEVERSION
 SWTITLESTATUS
 SWTITLEPREPARE    상태가 요구할 때만
 SWTITLESTATUS
-SWTITLECONVERT    상태가 요구할 때만
+SWTITLECONVERTNEXT    상태가 요구할 때만
 SWTITLESTATUS
 SWTITLEVERIFY     최종 검증 단계에서
 ```
@@ -82,7 +83,7 @@ SWTITLEVERIFY     최종 검증 단계에서
 
 `SWTITLESTATUS`가 `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX`를 안내하거나 `SWTITLECONVERT`가 `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK`로 멈추면 기존 도면을 지우지 않는 보호 중단입니다. 같은 변환을 반복하지 말고 로그를 확인합니다.
 
-`SWTITLECONVERT` 안에서 입력을 물으면 상태별로 아래처럼 답합니다.
+수동 명령인 `SWTITLECONVERT` 안에서 입력을 물으면 상태별로 아래처럼 답합니다.
 
 ```text
 첫 native GMTITLE 생성: YES
@@ -95,7 +96,7 @@ OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복됨: MANUAL
 
 ## GMTITLE 창에서 확인할 값
 
-`SWTITLECONVERT` 중 GMTITLE 창이 열리면 로그가 요구한 값만 선택합니다.
+`SWTITLECONVERTNEXT` 또는 수동 `SWTITLECONVERT` 중 GMTITLE 창이 열리면 로그가 요구한 값만 선택합니다.
 
 ```text
 용지/도면틀: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline 중 로그가 요구한 것
@@ -104,9 +105,9 @@ Frame positioning: ON
 Object move: OFF
 ```
 
-CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력하지 않습니다. 일반 `GMTITLE`/`TIT`는 내부 현재 선택 상태나 삽입점 프롬프트로 빠질 수 있고, `SWTITLECONVERT`가 수행하는 배치점 자동 전송, 값 복사, 원본 정리를 건너뜁니다.
+CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력하지 않습니다. 일반 `GMTITLE`/`TIT`는 내부 현재 선택 상태나 삽입점 프롬프트로 빠질 수 있고, `SWTITLECONVERTNEXT`/`SWTITLECONVERT`가 수행하는 배치점 자동 전송, 값 복사, 원본 정리를 건너뜁니다.
 
-주의: `SWTITLECONVERT` 안에서 물어보는 `OPEN` 응답은 CAD 일반 `OPEN` 명령이 아닙니다. 명령창에 직접 `OPEN`을 치는 흐름과 구분합니다.
+주의: 수동 `SWTITLECONVERT` 안에서 물어보는 `OPEN` 응답은 CAD 일반 `OPEN` 명령이 아닙니다. 명령창에 직접 `OPEN`을 치는 흐름과 구분합니다.
 
 사용하지 않을 것:
 
@@ -120,12 +121,12 @@ ISO 제목블록
 
 ## A3/A4 native 교체
 
-A3/A4 복제 GMTITLE은 화면상 비슷해도 일부가 고급 속성 편집기로 열릴 수 있습니다. 그래서 `SWTITLECONVERT`는 필요한 경우 복제/shared-link 쌍을 fresh native GMTITLE로 한 장씩 교체합니다.
+A3/A4 복제 GMTITLE은 화면상 비슷해도 일부가 고급 속성 편집기로 열릴 수 있습니다. 그래서 `SWTITLECONVERTNEXT`는 필요한 경우 복제/shared-link 쌍을 fresh native GMTITLE로 한 장씩 교체합니다.
 
 `SWTITLESTATUS`가 A3/A4 native 교체 후보를 표시하면 A4 frame-only보다 그 후보를 먼저 처리합니다.
 
 ```text
-SWTITLECONVERT
+SWTITLECONVERTNEXT
 SWTITLESTATUS
 ```
 
@@ -147,7 +148,7 @@ DR_A4_Outline 정의가 안전함
 기존 A4 도면 내용이 삭제되지 않음
 ```
 
-`WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION` 또는 `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`이 나오면 `SWTITLECONVERT`를 반복하지 말고 `SWTITLEPREPARE`로 정의 준비/검증을 먼저 합니다.
+`WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION` 또는 `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`이 나오면 `SWTITLECONVERTNEXT`를 반복하지 말고 `SWTITLEPREPARE`로 정의 준비/검증을 먼저 합니다.
 `ready-native-outside-markers`는 공식 native A4의 작은 바깥 마커만 허용된 상태입니다. 이 상태에서는 effective A4 형상과 raw selection 검사가 통과했는지 확인한 뒤 A4 frame-only 변환을 진행할 수 있습니다.
 
 ## 옛 GMTITLE 명령

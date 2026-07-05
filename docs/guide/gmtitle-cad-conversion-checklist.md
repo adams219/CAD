@@ -2,7 +2,7 @@
 
 이 문서는 GstarCAD 화면에서 SolidWorks DWG 작업복사본을 native GMTITLE 구조로 바꿀 때 따라가는 순서입니다.
 
-사용자는 아래 4개 명령만 직접 입력합니다.
+사용자는 아래 권장 4개 명령만 직접 입력합니다.
 
 ```text
 SWTITLESTATUS
@@ -149,10 +149,10 @@ SWTITLESTATUS
 `SWTITLESTATUS`가 변환을 안내할 때 실행합니다.
 
 ```text
-SWTITLECONVERT
+SWTITLECONVERTNEXT
 ```
 
-이 명령은 현재 상태에 맞춰 필요한 단계만 진행합니다.
+이 명령은 현재 상태에 맞춰 필요한 단계만 진행하고, `YES`/`OPEN` 같은 반복 응답만 자동 선택합니다. 수동 응답을 직접 고르고 싶을 때만 `SWTITLECONVERT`를 대신 사용합니다.
 
 ```text
 첫 native GMTITLE 기준 객체 생성
@@ -184,7 +184,7 @@ Object move ON 상태로 확인
 긴 소수점 좌표 수동 입력
 ```
 
-`SWTITLECONVERT`가 명령창 입력을 물으면 아래 기준만 사용합니다.
+수동 `SWTITLECONVERT`가 명령창 입력을 물으면 아래 기준만 사용합니다.
 
 ```text
 첫 native GMTITLE 기준 객체 생성: YES
@@ -208,7 +208,7 @@ A3/A4 target이 화면에 보여도 복제/shared-link 구조라면 더블클릭
 `SWTITLESTATUS`가 `NEXT_UPGRADE_A3_A4_NATIVE` 또는 A3/A4 native 교체 후보를 안내하면 A4 frame-only보다 먼저 처리합니다.
 
 ```text
-SWTITLECONVERT
+SWTITLECONVERTNEXT
 SWTITLESTATUS
 ```
 
