@@ -319,7 +319,7 @@ SWTITLEVERIFY_FINAL_OK -> manual representative title-block double-click check
 
 It also refuses stale direct-probe logs. If the work-copy DWG was saved after the direct-probe log, the card returns `REFRESH_DIRECT_PROBE_FIRST` before showing another CAD command.
 
-Use `-AutoRefreshDirectProbe` only after saving and closing visible GstarCAD. The card runs `run_actual_workcopy_direct_status_probe.ps1` when the direct-probe log is missing, points to a different DWG, or is older than the work-copy DWG save time. If the existing log already matches the same work-copy and is not stale, the card reuses it and prints that reuse decision instead of launching GstarCAD again.
+Use `-AutoRefreshDirectProbe` only after saving and closing visible GstarCAD. The card runs `run_actual_workcopy_direct_status_probe.ps1` when the direct-probe log is missing, points to a different DWG, is older than the work-copy DWG save time, or was generated with a different GMTITLE LSP version. If the existing log already matches the same work-copy, save time, and current LSP version, the card reuses it and prints that reuse decision instead of launching GstarCAD again.
 
 ## A4 Outline Prepare Probe
 

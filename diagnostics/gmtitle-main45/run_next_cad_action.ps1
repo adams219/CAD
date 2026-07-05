@@ -593,6 +593,8 @@ while ($true) {
 
   $probeItem = Get-Item -LiteralPath $DirectProbeLogPath
   $probeText = Read-TextWithFallback -Path $DirectProbeLogPath
+  $probeLoadedVersion = Get-FirstRegexValue -Text $probeText -Pattern "^Loaded version:\s*(.+)$"
+  $probeExpectedVersion = Get-FirstRegexValue -Text $probeText -Pattern "^Expected version:\s*(.+)$"
   $probeDwg = Get-FirstRegexValue -Text $probeText -Pattern "^DWG[^:]*:\s*(.+)$"
   $statusAfterStatus = Get-FirstRegexValue -Text $probeText -Pattern "^\s*status-after-status:\s*(\S+)"
   $statusAfterVerify = Get-FirstRegexValue -Text $probeText -Pattern "^\s*status-after-verify:\s*(\S+)"
@@ -627,13 +629,33 @@ while ($true) {
     $sourceItem = Get-Item -LiteralPath $SourceWorkCopyPath
   }
 
-  $trusted = Test-SamePath -Left $probeDwg -Right $SourceWorkCopyPath
-  $probeStale = $sourceItem.LastWriteTimeUtc -gt $probeItem.LastWriteTimeUtc.AddSeconds(2)
+  $currentExpectedVersion = Get-ExpectedGmtitleVersion
+  $pathTrusted = Test-SamePath -Left $probeDwg -Right $SourceWorkCopyPath
+  $probeVersionMismatch = $false
+  if ($currentExpectedVersion) {
+    if (-not $probeLoadedVersion) {
+      $probeVersionMismatch = $true
+    } elseif (-not $probeLoadedVersion.Equals($currentExpectedVersion, [System.StringComparison]::OrdinalIgnoreCase)) {
+      $probeVersionMismatch = $true
+    }
+    if ($probeExpectedVersion -and (-not $probeExpectedVersion.Equals($currentExpectedVersion, [System.StringComparison]::OrdinalIgnoreCase))) {
+      $probeVersionMismatch = $true
+    }
+  }
+  $trusted = $pathTrusted -and (-not $probeVersionMismatch)
+  $probeFileStale = $sourceItem.LastWriteTimeUtc -gt $probeItem.LastWriteTimeUtc.AddSeconds(2)
+  $probeStale = $probeFileStale -or $probeVersionMismatch
 
   Write-Output ("Direct probe 로그: {0}" -f $DirectProbeLogPath)
   Write-Output ("Direct probe 시간: {0}" -f $probeItem.LastWriteTime)
   Write-Output ("작업복사본 저장 시간: {0}" -f $sourceItem.LastWriteTime)
   if ($probeDwg) { Write-Output ("Direct probe DWG: {0}" -f $probeDwg) }
+  if ($probeLoadedVersion) { Write-Output ("Direct probe 로드 LSP 버전: {0}" -f $probeLoadedVersion) }
+  if ($probeExpectedVersion) { Write-Output ("Direct probe 생성 당시 기대 버전: {0}" -f $probeExpectedVersion) }
+  if ($currentExpectedVersion) { Write-Output ("현재 기대 LSP 버전: {0}" -f $currentExpectedVersion) }
+  if ($currentExpectedVersion) {
+    Write-Output ("Direct probe LSP 버전 일치: {0}" -f ($(if ($probeVersionMismatch) { "아니오" } else { "예" })))
+  }
   Write-Output ("Direct probe 신뢰 가능: {0}" -f ($(if ($trusted) { "예" } else { "아니오" })))
   Write-Output ("Direct probe 최신 상태: {0}" -f ($(if ($probeStale) { "아니오" } else { "예" })))
   if ($statusAfterStatus) { Write-Output ("현재 저장 상태: {0}" -f $statusAfterStatus) }
@@ -649,10 +671,10 @@ while ($true) {
   if ($duplicateTargetPairCount) { Write-Output ("중복 GMTITLE 쌍 수: {0}" -f $duplicateTargetPairCount) }
   if ($dbmodAfter) { Write-Output ("Direct probe 뒤 DBMOD: {0}" -f $dbmodAfter) }
   if ($AutoRefreshDirectProbe -and (-not $refreshAttempted) -and $trusted -and (-not $probeStale)) {
-    Write-Output "Direct probe 자동 갱신: 기존 로그가 대상 작업복사본과 일치하고 작업복사본보다 오래되지 않아 재사용합니다."
+    Write-Output "Direct probe 자동 갱신: 기존 로그가 대상 작업복사본, 저장 시간, 현재 LSP 버전과 일치해 재사용합니다."
   }
 
-  if (-not $trusted) {
+  if (-not $pathTrusted) {
     if ($AutoRefreshDirectProbe -and (-not $refreshAttempted)) {
       $refreshAttempted = $true
       [void](Invoke-DirectProbeRefresh)
@@ -664,7 +686,19 @@ while ($true) {
     exit 0
   }
 
-  if ($probeStale) {
+  if ($probeVersionMismatch) {
+    if ($AutoRefreshDirectProbe -and (-not $refreshAttempted)) {
+      $refreshAttempted = $true
+      [void](Invoke-DirectProbeRefresh)
+      continue
+    }
+    Write-Output "Result: REFRESH_DIRECT_PROBE_FIRST"
+    Write-Output "이유: direct probe 로그가 현재 로드해야 할 LSP 버전과 다릅니다."
+    Write-DirectProbeRefreshCommand
+    exit 0
+  }
+
+  if ($probeFileStale) {
     if ($AutoRefreshDirectProbe -and (-not $refreshAttempted)) {
       $refreshAttempted = $true
       [void](Invoke-DirectProbeRefresh)

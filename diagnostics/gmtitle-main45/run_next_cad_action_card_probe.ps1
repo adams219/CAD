@@ -92,10 +92,14 @@ function Write-FakeLog {
     [string]$Status,
     [string]$VerifyStatus = "SWTITLEVERIFY_FINAL_FAIL",
     [string]$Frame = "DR_A3_Outline",
-    [string]$Title = "DR_titlea_3rd"
+    [string]$Title = "DR_titlea_3rd",
+    [string]$LoadedVersion = "260705-convertnext-main-workflow",
+    [string]$ExpectedVersion = "260705-convertnext-main-workflow"
   )
 
   @(
+    "Loaded version: $LoadedVersion",
+    "Expected version: $ExpectedVersion",
     "DWG: $DwgPath",
     "status-after-status: $Status",
     "status-after-verify: $VerifyStatus",
@@ -148,6 +152,7 @@ function Invoke-CardCase {
     [string]$Status,
     [string[]]$Expected,
     [switch]$MakeStale,
+    [switch]$MakeVersionStale,
     [switch]$MissingLog,
     [string]$NextMissingFrame,
     [string]$NextMissingTitle,
@@ -158,7 +163,11 @@ function Invoke-CardCase {
   $log = Join-Path $caseRoot "$Name.txt"
 
   if (-not $MissingLog) {
-    Write-FakeLog -Path $log -DwgPath $dwg -Status $Status
+    if ($MakeVersionStale) {
+      Write-FakeLog -Path $log -DwgPath $dwg -Status $Status -LoadedVersion "260705-old-test-version" -ExpectedVersion "260705-old-test-version"
+    } else {
+      Write-FakeLog -Path $log -DwgPath $dwg -Status $Status
+    }
     if ($NextMissingFrame) {
       Add-Content -LiteralPath $log -Encoding UTF8 -Value "next-missing-native-frame: $NextMissingFrame"
     }
@@ -227,6 +236,12 @@ Invoke-CardCase `
   -Status "NEXT_UPGRADE_A3_A4_NATIVE" `
   -MakeStale `
   -Expected @("Result: REFRESH_DIRECT_PROBE_FIRST", "Direct probe 최신 상태: 아니오")
+
+Invoke-CardCase `
+  -Name "stale_version" `
+  -Status "NEXT_CREATE_FIRST_NATIVE_GMTITLE" `
+  -MakeVersionStale `
+  -Expected @("Result: REFRESH_DIRECT_PROBE_FIRST", "Direct probe LSP 버전 일치: 아니오", "이유: direct probe 로그가 현재 로드해야 할 LSP 버전과 다릅니다.")
 
 Invoke-CardCase `
   -Name "missing_log" `
