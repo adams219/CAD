@@ -24,6 +24,8 @@ $goalPlan = Join-Path $repoRoot "docs\guide\gmtitle-goal-mode-plan.md"
 $script:LatestCadDwg = $null
 $script:LatestCadStatusCode = $null
 $script:LatestCadRecommendedCommand = $null
+$script:LatestCadDwgTrustedForGoal = $false
+$script:LatestCadDwgTrustReason = "not evaluated"
 $script:A4PrepareProbeUnsafe = $false
 $script:A4NestedProbeMissing = $false
 $script:A4NestedProbeUnsafe = $false
@@ -94,6 +96,62 @@ function Get-FirstMatchingLine {
   return $null
 }
 
+function Test-PathUnderDirectoryString {
+  param(
+    [string]$Path,
+    [string]$Directory
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Path) -or [string]::IsNullOrWhiteSpace($Directory)) {
+    return $false
+  }
+
+  try {
+    $fullPath = [System.IO.Path]::GetFullPath($Path)
+    $fullDirectory = [System.IO.Path]::GetFullPath($Directory)
+    if (-not $fullDirectory.EndsWith([System.IO.Path]::DirectorySeparatorChar)) {
+      $fullDirectory += [System.IO.Path]::DirectorySeparatorChar
+    }
+    return $fullPath.StartsWith($fullDirectory, [System.StringComparison]::OrdinalIgnoreCase)
+  } catch {
+    return $false
+  }
+}
+
+function Get-GoalCadDwgTrustInfo {
+  param(
+    [string]$DwgPath,
+    [string]$WorkDir
+  )
+
+  if ([string]::IsNullOrWhiteSpace($DwgPath)) {
+    return [pscustomobject]@{
+      Trusted = $false
+      Reason = "latest log has no DWG path"
+    }
+  }
+
+  if (-not (Test-PathUnderDirectoryString -Path $DwgPath -Directory $WorkDir)) {
+    return [pscustomobject]@{
+      Trusted = $false
+      Reason = "DWG is outside the work folder"
+    }
+  }
+
+  $leaf = [System.IO.Path]::GetFileName($DwgPath)
+  if ($leaf -match "(?i)(^swtitle_|probe|compare|scratch|visible_gmtitle)") {
+    return [pscustomobject]@{
+      Trusted = $false
+      Reason = "DWG name looks like a scratch/probe/compare artifact"
+    }
+  }
+
+  return [pscustomobject]@{
+    Trusted = $true
+    Reason = "DWG is a work-folder conversion candidate"
+  }
+}
+
 function Write-LatestCadLogSummary {
   param([string]$WorkDir)
 
@@ -158,6 +216,14 @@ function Write-LatestCadLogSummary {
   }
   if ($recommended) {
     Write-Output ("  Recommended next command: {0}" -f $recommended)
+  }
+
+  $trustInfo = Get-GoalCadDwgTrustInfo -DwgPath $dwg -WorkDir $WorkDir
+  $script:LatestCadDwgTrustedForGoal = $trustInfo.Trusted
+  $script:LatestCadDwgTrustReason = $trustInfo.Reason
+  Write-Output ("  Goal-log trust: {0} ({1})" -f ($(if ($trustInfo.Trusted) { "yes" } else { "no" }), $trustInfo.Reason))
+  if (-not $trustInfo.Trusted) {
+    Write-Output "  Warning: latest CAD log is ignored for goal next-action selection. Re-run SWTITLESTATUS on the work-copy before following visible-CAD recommendations."
   }
 
   $script:LatestCadDwg = $dwg
@@ -245,7 +311,7 @@ function Write-A4FrameOnlyEvidenceSummary {
   if (($normalizationSummary -contains "nested-outside=not-run") -or ($normalizationSummary -contains "nested-direct-outside=not-run")) {
     $nestedProbeScript = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1"
     $nestedProbeSource = $script:LatestCadDwg
-    if (-not $nestedProbeSource) {
+    if ((-not $script:LatestCadDwgTrustedForGoal) -or (-not $nestedProbeSource)) {
       $nestedProbeSource = $SourceWorkCopyPath
     }
     Write-Output "  Next A4 investigation probe command:"
@@ -366,22 +432,31 @@ Write-A4FrameOnlyEvidenceSummary -WorkDir (Join-Path $repoRoot "work")
 Write-Output ""
 Write-Output "Next action:"
 $a4InvestigationPreferred = (
-  $script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" -and
+  (
+    ($script:LatestCadDwgTrustedForGoal -and $script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") -or
+    (-not $script:LatestCadDwgTrustedForGoal)
+  ) -and
   $script:A4PrepareProbeUnsafe -and
   $script:A4NestedProbeMissing
 )
 $a4CandidateSafeNeedsReview = (
-  $script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" -and
+  (
+    ($script:LatestCadDwgTrustedForGoal -and $script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") -or
+    (-not $script:LatestCadDwgTrustedForGoal)
+  ) -and
   $script:A4NormalizationCandidateSafe
 )
 $a4NativeA4ComparisonNeeded = (
-  $script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" -and
+  (
+    ($script:LatestCadDwgTrustedForGoal -and $script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") -or
+    (-not $script:LatestCadDwgTrustedForGoal)
+  ) -and
   $script:A4PrepareProbeUnsafe -and
   $script:A4NestedProbeUnsafe
 )
 $nestedProbeScript = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1"
 $nestedProbeSource = $script:LatestCadDwg
-if (-not $nestedProbeSource) {
+if ((-not $script:LatestCadDwgTrustedForGoal) -or (-not $nestedProbeSource)) {
   $nestedProbeSource = $SourceWorkCopyPath
 }
 if ($existingGstarCAD.Count -gt 0) {
@@ -411,7 +486,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "    5. Only if one nested probe is safe should SWTITLEPREPARE/SWTITLECONVERT production logic be changed."
     Write-Output ""
     Write-Output "  Hidden suite verification path after A4 probe/code changes:"
-  } elseif ($script:LatestCadRecommendedCommand) {
+  } elseif ($script:LatestCadDwgTrustedForGoal -and $script:LatestCadRecommendedCommand) {
     Write-Output "  Visible CAD continuation:"
     Write-Output ("    1. Confirm the open GstarCAD drawing matches: {0}" -f $script:LatestCadDwg)
     Write-Output ("    2. Run in GstarCAD: {0}" -f $script:LatestCadRecommendedCommand)
@@ -419,6 +494,14 @@ if ($existingGstarCAD.Count -gt 0) {
     if ($script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") {
       Write-Output "    4. Do not repeat SWTITLECONVERT before this prepare/status loop. A4 is frame-only and must not receive an extra title block."
     }
+    Write-Output ""
+    Write-Output "  Hidden suite verification path:"
+  } elseif (-not $script:LatestCadDwgTrustedForGoal) {
+    Write-Output "  Latest visible-CAD log is not trusted for the goal:"
+    Write-Output ("    1. Ignored DWG: {0}" -f $script:LatestCadDwg)
+    Write-Output ("    2. Reason: {0}" -f $script:LatestCadDwgTrustReason)
+    Write-Output "    3. Re-open or activate the actual work-copy DWG, then run SWTITLESTATUS to refresh the goal log."
+    Write-Output "    4. Do not follow the scratch log's SWTITLECONVERT recommendation."
     Write-Output ""
     Write-Output "  Hidden suite verification path:"
   }
