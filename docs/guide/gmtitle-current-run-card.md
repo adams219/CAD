@@ -230,6 +230,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 
 이 direct probe는 저장된 `work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg`를 읽고 `work\swtitle_actual_workcopy_direct_status_260705.txt`를 갱신합니다. 결과는 계속 `dbmod-after-commands: 0`이어야 합니다. 이 명령은 실제 CAD 변환을 대신하지 않고, `SWTITLECONVERT` 전에 저장된 기준 상태만 확인합니다.
 
+현재 PC에서는 실제 작업복사본 direct probe 기본 제한 시간을 180초로 둡니다. 90초 제한에서는 GstarCAD 시작은 됐지만 로그가 쓰이기 전에 timeout이 나서 근거 로그가 비는 경우가 있었습니다.
+
 작업복사본 DWG의 저장 시간이 direct probe 로그보다 최신이면 짧은 카드는 다음 명령을 안내하지 않고 먼저 direct probe 갱신을 요구합니다. CAD에서 변환하고 저장한 뒤 예전 로그를 보고 같은 명령을 반복하는 실수를 막기 위한 장치입니다.
 
 GstarCAD를 저장 후 닫은 상태라면 짧은 카드에 `-AutoRefreshDirectProbe`를 붙여 direct probe 갱신과 다음 행동 판단을 한 번에 할 수 있습니다. GstarCAD가 열려 있으면 hidden probe가 중단될 수 있으므로, 이 옵션은 닫힌 상태에서만 사용합니다.

@@ -1,11 +1,11 @@
-param(
+﻿param(
   [string]$SourceWorkCopyPath,
 
   [string]$LogPath,
 
   [string]$DetailSuffix = "_actual_workcopy_direct_260705",
 
-  [int]$TimeoutSeconds = 90
+  [int]$TimeoutSeconds = 180
 )
 
 $ErrorActionPreference = "Stop"

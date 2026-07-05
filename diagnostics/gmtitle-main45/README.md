@@ -209,6 +209,7 @@ verify-a4-frame-only-first-note-found: no
 Use `run_actual_workcopy_direct_status_probe.ps1` when the goal needs the saved state of the real work-copy DWG itself, not a copied diagnostic DWG. This probe opens the saved work-copy with the tracked read-only status fixture, runs `SWTITLEVERSION`, `SWTITLESTATUS`, and `SWTITLEVERIFY`, writes the status log, and does not save the DWG.
 
 Run it only after saving the work-copy and closing visible GstarCAD, because hidden `/b` probes can be routed to an already-open GstarCAD session.
+The default timeout is 180 seconds. On this workstation a 90 second direct work-copy probe can occasionally time out before the status log is written, even though the shorter smoke probe passes.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `

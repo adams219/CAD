@@ -5,7 +5,7 @@
 
   [switch]$AutoRefreshDirectProbe,
 
-  [int]$AutoRefreshTimeoutSeconds = 90
+  [int]$AutoRefreshTimeoutSeconds = 180
 )
 
 $ErrorActionPreference = "Stop"
@@ -192,6 +192,7 @@ function Invoke-DirectProbeRefresh {
   Write-Output ""
   Write-Output "Direct probe 자동 갱신을 시작합니다."
   Write-Output "주의: GstarCAD가 열려 있으면 hidden probe가 중단될 수 있습니다. 저장 후 GstarCAD를 닫은 상태에서 사용하세요."
+  Write-Output ("Direct probe 제한 시간: {0}초" -f $AutoRefreshTimeoutSeconds)
   try {
     & (Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1") `
       -SourceWorkCopyPath $SourceWorkCopyPath `
