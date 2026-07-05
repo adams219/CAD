@@ -65,6 +65,21 @@ function Get-FirstRegexValue {
   return $null
 }
 
+function Get-AllRegexValues {
+  param(
+    [string]$Text,
+    [string]$Pattern
+  )
+
+  $values = New-Object System.Collections.Generic.List[string]
+  foreach ($match in [regex]::Matches($Text, $Pattern, [System.Text.RegularExpressions.RegexOptions]::Multiline)) {
+    if ($match.Groups.Count -gt 1) {
+      [void]$values.Add($match.Groups[1].Value.Trim())
+    }
+  }
+  return @($values)
+}
+
 function Test-SamePath {
   param(
     [string]$Left,
@@ -121,6 +136,61 @@ function Write-GmtitleDialogGuidance {
   Write-Output "  - 긴 좌표를 사람이 직접 치지 마세요. SWTITLECONVERT가 GMTITLE 창 뒤에 왼쪽 아래 배치점을 자동 전송합니다."
   Write-Output "  - 커서가 화면 중앙에 남아 보여도, 명령줄이 삽입점을 기다리는 상태면 잠시 기다렸다가 자동 입력을 확인하세요."
   Write-Output "  - 자동 입력 후에도 삽입점 입력이 남아 있으면 기존 원본 도면틀의 왼쪽 아래 끝점을 OSNAP으로 찍고, 객체/새 위치 프롬프트가 나오면 취소하세요."
+}
+
+function Write-ManualSelectionForecast {
+  param(
+    [string]$StatusCode,
+    [string]$FrameName,
+    [string]$TitleName,
+    [string]$ProbeText
+  )
+
+  $sourceTitleCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*source-title-count:\s*(\d+)"
+  $frameOnlyCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*frame-only-count:\s*(\d+)"
+  $missingFrames = @(Get-AllRegexValues -Text $ProbeText -Pattern "^\s*missing-native-frame:\s*(DR_A[0-4]_Outline)")
+  $hasA3Missing = $missingFrames -contains "DR_A3_Outline"
+  $hasA4Missing = $missingFrames -contains "DR_A4_Outline"
+
+  Write-Output ""
+  Write-Output "예상 수동 GMTITLE 확인량:"
+  switch -Regex ($StatusCode) {
+    "^NEXT_CREATE_FIRST_NATIVE_GMTITLE$" {
+      Write-Output ("  - 지금 필요한 확인: {0} / {1} 1회" -f ($(if ($FrameName) { $FrameName } else { "DR_A2_Outline" })), ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" })))
+      if ($hasA3Missing) {
+        Write-Output "  - 이후 예상: A3 첫 native 기준 객체 1회가 추가로 필요할 수 있습니다."
+      }
+      if (($frameOnlyCount -as [int]) -gt 0 -or $hasA4Missing) {
+        Write-Output "  - A4 frame-only는 제목블록 생성 대상이 아닙니다. 검증된 DR_A4_Outline 도면틀-only 경로로 처리합니다."
+      }
+      Write-Output "  - 좌표 입력, 값 복사, 기존 원본 정리는 SWTITLECONVERT가 자동 처리합니다."
+      return
+    }
+    "^NEXT_CREATE_MISSING_NATIVE_EXEMPLAR$" {
+      Write-Output ("  - 지금 필요한 확인: {0} / {1} 1회" -f ($(if ($FrameName) { $FrameName } else { "SWTITLESTATUS가 요구한 DR 용지" })), ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" })))
+      Write-Output "  - 이 크기의 기준 객체가 생긴 뒤 같은 크기 나머지는 자동/일괄 처리 후보가 됩니다."
+      return
+    }
+    "^NEXT_UPGRADE_A3_A4_NATIVE$" {
+      Write-Output "  - 지금은 OPEN으로 A3/A4 후보 1장을 먼저 교체해 후보 수가 줄어드는지 확인합니다."
+      Write-Output "  - BATCH는 OPEN 1회 성공 뒤 같은 DR 용지/제목블록/옵션이 반복된다는 걸 확인했을 때만 사용합니다."
+      Write-Output "  - 도면틀이 INSERT처럼 보이는 것 자체는 실패 기준이 아니며, 대표 DR_titlea_3rd 제목블록을 확인합니다."
+      return
+    }
+    "^SWTITLEVERIFY_FINAL_OK$" {
+      Write-Output "  - 새 GMTITLE 생성은 끝난 상태입니다."
+      Write-Output "  - 대표 A2/A3 DR_titlea_3rd 제목블록 더블클릭 확인만 남았습니다. A4 frame-only는 도면틀 수량/형상으로 확인합니다."
+      return
+    }
+    default {
+      if (($sourceTitleCount -as [int]) -gt 0 -or ($frameOnlyCount -as [int]) -gt 0) {
+        Write-Output "  - 현재 상태는 먼저 SWTITLESTATUS/SWTITLEPREPARE 안내를 따라야 합니다."
+        Write-Output "  - 같은 SWTITLECONVERT를 반복하기 전에 후보 수나 경고가 줄었는지 확인하세요."
+      } else {
+        Write-Output "  - 현재 상태에서는 추가 GMTITLE 창 선택보다 SWTITLEVERIFY/더블클릭 검증이 우선입니다."
+      }
+    }
+  }
 }
 
 function Write-GmtitleAbortGuards {
@@ -451,5 +521,7 @@ if ($dbmodAfter -and $dbmodAfter -ne "0") {
   exit 0
 }
 
+Write-Output ""
+Write-ManualSelectionForecast -StatusCode $statusAfterStatus -FrameName $nextFrame -TitleName $nextTitle -ProbeText $probeText
 Write-Output ""
 Write-StatusBasedAction -StatusCode $statusAfterStatus -VerifyCode $statusAfterVerify -FrameName $nextFrame -TitleName $nextTitle

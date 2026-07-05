@@ -253,6 +253,7 @@ CAD 화면 옆에서 다음 명령, GMTITLE 선택값, 즉시 중단 조건, 바
 현재 PC에서는 Codex Computer Use가 GstarCAD 화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다. 따라서 실제 `SWTITLECONVERT`의 GMTITLE 창 선택은 사용자가 직접 하고, Codex는 로그/문서/검증 기준을 정리하는 쪽으로 사용합니다.
 
 이 카드는 direct probe의 현재 상태 코드를 보고 아래처럼 다음 행동을 바로 나눕니다.
+또한 `예상 수동 GMTITLE 확인량`을 같이 출력해서, 지금 한 번만 확인할 용지와 나중에 추가로 확인될 수 있는 용지를 분리해 보여줍니다. A4 frame-only는 제목블록 생성 대상이 아니므로 이 예측에서도 별도로 표시합니다.
 
 ```text
 NEXT_CREATE_FIRST_NATIVE_GMTITLE -> SWTITLECONVERT
