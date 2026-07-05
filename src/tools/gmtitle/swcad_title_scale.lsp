@@ -18363,5 +18363,7 @@
 (princ (strcat "\nswcad_title_scale 통합 흐름 로드 완료 " *swcad-title-scale-version*))
 (princ "\n권장 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLEVERIFY")
 (princ "\n수동 응답을 직접 고를 때만 SWTITLECONVERT를 사용하세요.")
+(princ "\n중요: 변환 전에는 SWTITLESTATUS 결과가 안내한 다음 명령만 실행하세요.")
+(princ "\n금지: CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력해 우회하지 마세요.")
 (princ "\n예전 SWTITLE transfer/fast/A3A4/frame-only 공개 명령은 비활성화됩니다.")
 (princ)

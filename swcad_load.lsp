@@ -64,24 +64,24 @@
       (setq result (vl-catch-all-apply 'load (list path)))
       (if (vl-catch-all-error-p result)
         (progn
-          (princ (strcat "\nSWCAD load failed: " relative))
+          (princ (strcat "\nSWCAD 모듈 로드 실패: " relative))
           (princ (strcat "\n  " (vl-catch-all-error-message result)))
           nil
         )
         (progn
-          (princ (strcat "\nSWCAD loaded: " relative))
+          (princ (strcat "\nSWCAD 모듈 로드 완료: " relative))
           T
         )
       )
     )
     (T
-      (princ (strcat "\nSWCAD missing module: " relative))
+      (princ (strcat "\nSWCAD 모듈 없음: " relative))
       nil
     )
   )
 )
 
-(princ (strcat "\nLoading SWCAD tool set " *swcad-version* "..."))
+(princ (strcat "\nSWCAD 도구 모음 로드 중 " *swcad-version* "..."))
 
 (swcad-load-file "src/lsp/swcad_common.lsp")
 (swcad-load-file "src/lsp/swcad_config.lsp")
@@ -99,6 +99,8 @@
 (princ "\n도움말: SWHELP")
 (princ "\nGMTITLE 작업 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLEVERIFY")
 (princ "\nGMTITLE 수동 응답을 직접 고를 때만 SWTITLECONVERT를 사용하세요.")
+(princ "\nGMTITLE 중요: 변환 전에는 항상 SWTITLESTATUS로 현재 열린 DWG와 다음 상태를 먼저 확인하세요.")
+(princ "\nGMTITLE 금지: CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력해 우회하지 마세요.")
 (princ "\nGMTITLE 참고: 예전 SWTITLE transfer/fast/A3A4/frame-only 직접 명령은 사용하지 말고 위 흐름을 사용하세요.")
 (princ "\n로드된 LSP 확인: SWTITLEVERSION")
 (princ)
