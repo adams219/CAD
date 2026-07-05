@@ -507,6 +507,7 @@ function Write-NativeFrameProgressSummary {
   $item = Get-Item -LiteralPath $nativeFrameLog
   $text = Read-TextWithFallback -Path $nativeFrameLog
   $dwg = Get-FirstRegexValue -Text $text -Pattern "^DWG[^:]*:\s*(.+)$"
+  $trustInfo = Get-GoalCadDwgTrustInfo -DwgPath $dwg -WorkDir $WorkDir
   $result = Get-FirstMatchingLine -Text $text -Pattern "WARN_|OK_|FAIL_|SWTITLEVERIFY_FINAL_"
   $completion = Get-FirstMatchingLine -Text $text -Pattern "^A3/A4 native-like"
   $a3NativeLikeCount = [regex]::Matches($text, "sheet=A3,.*native-like=yes").Count
@@ -514,16 +515,23 @@ function Write-NativeFrameProgressSummary {
   $untrustedCount = [regex]::Matches($text, "native-like=no").Count
   $a4Missing = [regex]::IsMatch($text, "(?m)^\s*-\s*A4\s*$")
 
-  Write-Output "Native frame progress from latest CAD log:"
+  Write-Output "Native frame progress log:"
   Write-Output ("  Path: {0}" -f $nativeFrameLog)
   Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
   if ($dwg) { Write-Output ("  DWG: {0}" -f $dwg) }
+  Write-Output ("  Trusted for goal: {0} ({1})" -f ($(if ($trustInfo.Trusted) { "yes" } else { "no" }), $trustInfo.Reason))
   Write-Output ("  A3 native-like frame/title pairs found: {0}" -f $a3NativeLikeCount)
   Write-Output ("  A4 native-like frame/title pairs found: {0}" -f $a4NativeLikeCount)
   Write-Output ("  A4 target frame still missing: {0}" -f ($(if ($a4Missing) { "yes" } else { "no" })))
   if ($completion) { Write-Output ("  {0}" -f $completion) }
   Write-Output ("  Non-native-like records found by record scan: {0}" -f $untrustedCount)
   if ($result) { Write-Output ("  {0}" -f $result) }
+
+  if (-not $trustInfo.Trusted) {
+    Write-Output "  Interpretation: ignored for goal next-action selection because this native-frame log belongs to a scratch/probe/compare DWG."
+    Write-Output "  Use the Direct actual work-copy probe and the real work-copy SWTITLESTATUS log for the next CAD action."
+    return
+  }
 
   if ($a3NativeLikeCount -gt 0 -and $untrustedCount -eq 0) {
     Write-Output "  Interpretation: A3 is no longer the main blocker in the latest CAD evidence. DR_A*_Outline frames still select as INSERT/block references; check the paired DR_titlea_3rd title block for the GMTITLE table editor."
