@@ -67,7 +67,7 @@ SWTITLEVERSION
 
 ### 최신 CAD 진행 상태
 
-2026-07-05 07:26 기준 최신 CAD 로그는 아래 상태입니다.
+2026-07-05 08:55 기준 최신 CAD 로그는 아래 상태입니다.
 
 ```text
 DWG:
@@ -89,6 +89,10 @@ SWTITLESTATUS
 
 이 상태에서는 `SWTITLECONVERT`를 반복하지 않습니다.
 먼저 `SWTITLEPREPARE`가 A4 도면틀 정의를 안전하게 만들 수 있는지 확인해야 합니다.
+
+이미 같은 열린 DWG 상태에서 `SWTITLEPREPARE`를 한 번 실행했고, 바로 이어서 `SWTITLESTATUS`가 다시
+`NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`을 표시한다면 같은 명령을 계속 반복하지 않습니다.
+그 경우 현재 증거는 "CAD 조작을 더 하면 해결"이 아니라 "A4 도면틀 정의 정규화 전략을 복사본에서 비교해야 함"입니다.
 
 A3 참고:
 
@@ -136,6 +140,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 이 명령은 visible GstarCAD가 닫힐 때까지 기다렸다가 복사본 probe를 실행합니다. 먼저 실행해 둔 뒤 CAD에서 작업복사본을 저장하고 GstarCAD를 종료하면 됩니다.
 
 `-SourceWorkCopyPath`는 혼동 방지를 위해 명시한 값입니다. 생략하면 wrapper가 최신 `work\swcad_title_next_step_last.txt` 안의 DWG 경로를 먼저 사용합니다.
+
+중요:
+
+```text
+nested probe safe=yes 전에는 production SWTITLEPREPARE/SWTITLECONVERT에 A4 정규화 방식을 넣지 않습니다.
+safe=no가 계속 나오면 더 많이 지우는 방식으로 가지 않고, 실제 native A4 GMTITLE/frame 정의와 비교하는 방향으로 전환합니다.
+```
 
 ### 기본 작업복사본 초기 상태
 

@@ -24,6 +24,10 @@ $goalPlan = Join-Path $repoRoot "docs\guide\gmtitle-goal-mode-plan.md"
 $script:LatestCadDwg = $null
 $script:LatestCadStatusCode = $null
 $script:LatestCadRecommendedCommand = $null
+$script:A4PrepareProbeUnsafe = $false
+$script:A4NestedProbeMissing = $false
+$script:A4NestedProbeUnsafe = $false
+$script:A4NormalizationCandidateSafe = $false
 
 if (-not $SourceWorkCopyPath) {
   $SourceWorkCopyPath = Join-Path $repoRoot "work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg"
@@ -194,6 +198,9 @@ function Write-A4FrameOnlyEvidenceSummary {
 
     if ($prepareResult) {
       Write-Output ("  Installed DR_A4_Outline prepare probe: {0}" -f $prepareResult)
+      if ($prepareResult -match "WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE") {
+        $script:A4PrepareProbeUnsafe = $true
+      }
     }
     if ($rawWarning) {
       Write-Output ("  A4 raw-selection warning: {0}" -f $rawWarning)
@@ -226,10 +233,13 @@ function Write-A4FrameOnlyEvidenceSummary {
   }
   Write-Output ("  A4 normalization probes: {0}" -f ($normalizationSummary -join ", "))
   if ($safeNormalizationStrategies.Count -gt 0) {
+    $script:A4NormalizationCandidateSafe = $true
     Write-Output ("  A4 normalization decision: candidate safe probe result found ({0}). Do not promote it directly; inspect the copied-DWG log and then decide whether SWTITLEPREPARE can adopt that definition path." -f ($safeNormalizationStrategies -join ", "))
   } elseif (($normalizationSummary -contains "nested-outside=no") -and ($normalizationSummary -contains "nested-direct-outside=no")) {
+    $script:A4NestedProbeUnsafe = $true
     Write-Output "  A4 normalization decision: nested cleanup probes are both unsafe. Next investigation should compare against a real native A4 GMTITLE/frame definition instead of deleting more imported objects."
   } elseif (($normalizationSummary -contains "nested-outside=not-run") -or ($normalizationSummary -contains "nested-direct-outside=not-run")) {
+    $script:A4NestedProbeMissing = $true
     Write-Output "  A4 normalization decision: nested cleanup comparison is still missing. Run the copied-DWG probe before changing production conversion logic."
   }
   if (($normalizationSummary -contains "nested-outside=not-run") -or ($normalizationSummary -contains "nested-direct-outside=not-run")) {
@@ -247,8 +257,13 @@ function Write-A4FrameOnlyEvidenceSummary {
   }
 
   if ($script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") {
-    Write-Output "  Interpretation: current CAD still needs SWTITLEPREPARE for live evidence, but known probes expect the installed DR_A4_Outline to fail the strict A4 raw-bbox guard."
-    Write-Output "  If SWTITLEPREPARE returns WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE, do not repeat SWTITLECONVERT; continue with the A4 definition strategy investigation."
+    if ($script:A4PrepareProbeUnsafe -and $script:A4NestedProbeMissing) {
+      Write-Output "  Interpretation: the current live state still reports SWTITLEPREPARE, but the copied-DWG prepare probe already shows the installed DR_A4_Outline path is expected to fail the strict A4 raw-bbox guard."
+      Write-Output "  If SWTITLEPREPARE has already been tried in the open CAD and SWTITLESTATUS still reports this same state, do not keep looping CAD commands. Save/close GstarCAD and run the nested A4 normalization probe."
+    } else {
+      Write-Output "  Interpretation: current CAD still needs SWTITLEPREPARE for live evidence, but known probes expect the installed DR_A4_Outline to fail the strict A4 raw-bbox guard."
+      Write-Output "  If SWTITLEPREPARE returns WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE, do not repeat SWTITLECONVERT; continue with the A4 definition strategy investigation."
+    }
   }
 }
 
@@ -350,8 +365,51 @@ Write-A4FrameOnlyEvidenceSummary -WorkDir (Join-Path $repoRoot "work")
 
 Write-Output ""
 Write-Output "Next action:"
+$a4InvestigationPreferred = (
+  $script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" -and
+  $script:A4PrepareProbeUnsafe -and
+  $script:A4NestedProbeMissing
+)
+$a4CandidateSafeNeedsReview = (
+  $script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" -and
+  $script:A4NormalizationCandidateSafe
+)
+$a4NativeA4ComparisonNeeded = (
+  $script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" -and
+  $script:A4PrepareProbeUnsafe -and
+  $script:A4NestedProbeUnsafe
+)
+$nestedProbeScript = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1"
+$nestedProbeSource = $script:LatestCadDwg
+if (-not $nestedProbeSource) {
+  $nestedProbeSource = $SourceWorkCopyPath
+}
 if ($existingGstarCAD.Count -gt 0) {
-  if ($script:LatestCadRecommendedCommand) {
+  if ($a4CandidateSafeNeedsReview) {
+    Write-Output "  A4 normalization candidate review:"
+    Write-Output "    1. Inspect the copied-DWG nested A4 normalization probe log that reported safe=yes."
+    Write-Output "    2. Do not run more CAD conversion commands until that strategy is promoted into SWTITLEPREPARE/SWTITLECONVERT production logic."
+    Write-Output "    3. After code changes, save/close GstarCAD and run the focused A4 probe plus hidden suite."
+    Write-Output ""
+    Write-Output "  Hidden suite verification path after A4 production code changes:"
+  } elseif ($a4NativeA4ComparisonNeeded) {
+    Write-Output "  A4 native comparison investigation:"
+    Write-Output "    1. Do not repeat SWTITLEPREPARE/SWTITLECONVERT; the installed outline and nested cleanup probes are both unsafe."
+    Write-Output "    2. Save/close GstarCAD before hidden probes."
+    Write-Output "    3. Compare against a real native A4 GMTITLE/frame definition instead of deleting more imported objects."
+    Write-Output ""
+    Write-Output "  Hidden suite verification path after A4 comparison/code changes:"
+  } elseif ($a4InvestigationPreferred) {
+    Write-Output "  A4 investigation continuation:"
+    Write-Output ("    1. Confirm the open GstarCAD drawing matches: {0}" -f $script:LatestCadDwg)
+    Write-Output "    2. If SWTITLEPREPARE was not tried in this exact open DWG state, run SWTITLEPREPARE once and then SWTITLESTATUS."
+    Write-Output "    3. If SWTITLESTATUS still reports NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION, do not repeat SWTITLEPREPARE/SWTITLECONVERT."
+    Write-Output "    4. Save the work-copy DWG, close GstarCAD, then run the copied-DWG nested A4 probe:"
+    Write-Output ("       powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside,nested-direct-outside" -f $nestedProbeScript, $nestedProbeSource)
+    Write-Output "    5. Only if one nested probe is safe should SWTITLEPREPARE/SWTITLECONVERT production logic be changed."
+    Write-Output ""
+    Write-Output "  Hidden suite verification path after A4 probe/code changes:"
+  } elseif ($script:LatestCadRecommendedCommand) {
     Write-Output "  Visible CAD continuation:"
     Write-Output ("    1. Confirm the open GstarCAD drawing matches: {0}" -f $script:LatestCadDwg)
     Write-Output ("    2. Run in GstarCAD: {0}" -f $script:LatestCadRecommendedCommand)
@@ -369,8 +427,24 @@ if ($existingGstarCAD.Count -gt 0) {
   Write-Output "  Or start the suite in waiting mode first:"
   Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -WaitForGstarCADClose" -f $suite)
 } else {
-  Write-Output "  Run the full hidden suite now:"
-  Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f $suite)
+  if ($a4CandidateSafeNeedsReview) {
+    Write-Output "  A4 normalization candidate review:"
+    Write-Output "    1. Inspect the copied-DWG nested A4 normalization probe log that reported safe=yes."
+    Write-Output "    2. Promote the safe strategy into SWTITLEPREPARE/SWTITLECONVERT only after confirming it preserves the A4 frame."
+    Write-Output "    3. Then run the focused A4 probe and the full hidden suite."
+  } elseif ($a4NativeA4ComparisonNeeded) {
+    Write-Output "  A4 native comparison investigation:"
+    Write-Output "    1. Do not run more SWTITLEPREPARE/SWTITLECONVERT attempts on the work-copy."
+    Write-Output "    2. Compare against a real native A4 GMTITLE/frame definition; the installed outline and nested cleanup probes are both unsafe."
+    Write-Output "    3. After a safer A4 definition strategy is implemented, rerun the focused A4 probe and full hidden suite."
+  } elseif ($a4InvestigationPreferred) {
+    Write-Output "  Run the copied-DWG nested A4 probe now:"
+    Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside,nested-direct-outside" -f $nestedProbeScript, $nestedProbeSource)
+    Write-Output "  Do not run the full hidden suite first; it cannot prove the A4 blocker until this probe closes the DR_A4_Outline raw-bbox question."
+  } else {
+    Write-Output "  Run the full hidden suite now:"
+    Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f $suite)
+  }
 }
 
 Write-Output ""

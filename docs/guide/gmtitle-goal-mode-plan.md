@@ -156,7 +156,7 @@ Object move가 OFF인지 확인
 
 목표모드에서는 "기본 작업복사본의 시작 상태"보다 "현재 열린 CAD가 방금 남긴 로그"를 우선한다.
 
-2026-07-05 07:26 기준 최신 CAD next-step 로그는 아래 상태다.
+2026-07-05 08:55 기준 최신 CAD next-step 로그는 아래 상태다.
 
 ```text
 로그:
@@ -219,6 +219,10 @@ A4 definition normalization probe:
 따라서 현재까지 검증된 범위에서는 "틀 밖 객체만 지우면 된다"는 단순 정규화 전략을 채택하지 않는다.
 `SWTITLEPREPARE`가 같은 WARN을 반환하면 변환을 반복하지 말고, A4 정의를 native 방식으로 다시 만들 수 있는지 또는 검증 가능한 outline-only 정의를 별도 설계할지 판단한다.
 
+이미 같은 열린 DWG 상태에서 `SWTITLEPREPARE`를 한 번 실행했고, 이어서 `SWTITLESTATUS`가 다시
+`NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`을 표시하면 `SWTITLEPREPARE`를 계속 반복하지 않는다.
+그 상태는 "A4 준비 명령을 더 눌러야 함"이 아니라 "현재 설치 원본 정의 경로가 raw bbox guard를 통과하지 못함"으로 판단한다.
+
 다음 조사 후보:
 
 ```text
@@ -252,6 +256,10 @@ nested-direct-outside probe:
   이 명령은 visible GstarCAD 종료를 기다린 뒤 hidden copied-DWG probe를 실행한다.
   현재 CAD 작업복사본을 저장하고 GstarCAD를 닫은 뒤 결과 로그를 확인한다.
   SourceWorkCopyPath를 생략하면 wrapper가 최신 work\swcad_title_next_step_last.txt 안의 DWG 경로를 먼저 사용한다.
+
+중단 기준:
+  nested probe safe=yes 전에는 production SWTITLEPREPARE/SWTITLECONVERT에 A4 정규화 방식을 넣지 않는다.
+  nested probe도 safe=no라면 더 많이 지우는 방식으로 가지 않고, 실제 native A4 GMTITLE/frame 정의와 비교하는 방향으로 전환한다.
 ```
 
 따라서 이 상태에서의 실제 순서는 아래다.
@@ -261,7 +269,7 @@ nested-direct-outside probe:
 2. SWTITLEPREPARE 실행
 3. SWTITLESTATUS 실행
 4. 상태가 SWTITLECONVERT를 안내하면 A4 frame-only 변환 진행
-5. WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE 또는 raw bbox 위험이 나오면 중단
+5. 같은 NEXT_PREPARE 상태 또는 raw bbox 위험이 그대로면 저장/종료 후 nested probe
 ```
 
 이 단계에서는 `SWTITLECONVERT`를 반복해서 누르지 않는다. A4 정의가 준비되지 않은 상태에서 변환을 반복하면, 원본에 없던 제목블록이 생기거나 A4 원본 도면틀이 잘못 삭제될 수 있다.
