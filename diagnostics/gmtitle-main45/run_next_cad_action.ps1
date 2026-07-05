@@ -486,8 +486,8 @@ function Write-AfterStatusRefresh {
   Write-Output "변환/정리 후:"
   Write-Output "  SWTITLESTATUS"
   Write-Output "  작업복사본을 저장하고 GstarCAD를 닫은 뒤 아래 래퍼를 실행하세요."
-  Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Get-DisplayDiagnosticScriptPath -ScriptName "run_after_manual_gmtitle_step.ps1"))
-  Write-Output "  이 래퍼가 direct probe 갱신, 다음 작업 카드 출력, 필요 시 final completion gate 실행을 묶어서 처리합니다."
+  Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -Compact" -f (Get-DisplayDiagnosticScriptPath -ScriptName "run_after_manual_gmtitle_step.ps1"))
+  Write-Output "  이 래퍼가 direct probe를 갱신하고, 화면에는 다음 한 단계 요약만 보여줍니다."
   Write-Output "  GstarCAD를 계속 열어 둔 상태에서는 hidden probe가 현재 화면 상태와 엇갈릴 수 있습니다."
   Write-Output "  직접 갱신하려면 이 카드를 -AutoRefreshDirectProbe 옵션으로 다시 실행해도 됩니다."
 }

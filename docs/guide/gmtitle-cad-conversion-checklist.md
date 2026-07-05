@@ -204,10 +204,10 @@ SWTITLESTATUS
 CAD에서 한 장을 처리하고 저장/닫기까지 했다면, CAD 밖 PowerShell에서 아래 래퍼를 실행합니다.
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1 -Compact
 ```
 
-이 래퍼가 direct probe를 갱신하고 다음 작업 카드를 보여주므로, 오래된 로그를 보고 같은 변환을 반복하지 않습니다.
+이 래퍼가 direct probe를 갱신하고 다음 한 단계 요약을 보여주므로, 오래된 로그를 보고 같은 변환을 반복하지 않습니다. 긴 next-action card 전체는 로그 파일에 남습니다.
 
 처음부터 작업복사본 열기와 한 장 처리 후 점검까지 묶고 싶으면 아래 세션 래퍼를 사용할 수 있습니다.
 

@@ -350,10 +350,11 @@ After one visible-CAD GMTITLE step is finished, save the work-copy DWG and close
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
-  "diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1"
+  "diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1" `
+  -Compact
 ```
 
-This wrapper does not edit the DWG. It checks that visible GstarCAD is closed, runs `run_next_cad_action.ps1 -AutoRefreshDirectProbe`, writes `work\swtitle_after_manual_gmtitle_step_last.txt`, and prints the next action card from fresh direct-probe evidence. If the refreshed card indicates final verification is ready, it also runs `run_final_completion_gate.ps1` and reports whether automated completion evidence passed.
+This wrapper does not edit the DWG. It checks that visible GstarCAD is closed, runs `run_next_cad_action.ps1 -AutoRefreshDirectProbe`, writes `work\swtitle_after_manual_gmtitle_step_last.txt`, and prints a short next-step summary from fresh direct-probe evidence. The full next-action card is kept in the log. If the refreshed card indicates final verification is ready, it also runs `run_final_completion_gate.ps1` and reports whether automated completion evidence passed.
 
 Use `-WaitForGstarCADClose` if the command should wait while you save and close GstarCAD:
 

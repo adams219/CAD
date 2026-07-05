@@ -1011,7 +1011,7 @@ Write-Output "  GstarCAD를 저장하고 닫은 뒤 최신 direct probe까지 �
 Write-Output "작업복사본 열기부터 수동 한 장 처리 후 점검까지 한 번에 대기:"
 Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1"))
 Write-Output "수동 GMTITLE 한 장 처리 후 권장 점검:"
-Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1"))
-Write-Output "  이 래퍼는 작업복사본 저장/닫기 뒤 direct probe 갱신, 다음 작업 카드 출력, 필요 시 final completion gate 실행을 한 번에 묶습니다."
+Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -Compact" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1"))
+Write-Output "  이 래퍼는 작업복사본 저장/닫기 뒤 direct probe를 갱신하고, 화면에는 다음 한 단계 요약만 보여줍니다."
 Write-Output ""
 Write-Output "목표 상태: 실제 작업복사본이 SWTITLEVERIFY_FINAL_OK에 도달하고 대표 CAD 더블클릭 확인이 끝나기 전까지는 완료가 아닙니다."
