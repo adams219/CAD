@@ -3,14 +3,15 @@
 ;;; Main workflow:
 ;;;   APPLOAD this file directly, then run:
 ;;;     SWTITLESTATUS
-;;;     SWTITLEPREPARE
-;;;     SWTITLECONVERT
+;;;     SWTITLEPREPARE     ; only when SWTITLESTATUS asks for preparation
+;;;     SWTITLECONVERTNEXT ; recommended next safe conversion step
 ;;;     SWTITLEVERIFY
-;;; Optional shortcut:
-;;;     SWTITLECONVERTNEXT
-;;;   runs the same conversion decision tree, but automatically chooses the
-;;;   conservative next response for the current state (YES or one-sheet OPEN).
-;;;   GMTITLE dialog paper/title/options still require visual confirmation.
+;;; Manual fallback:
+;;;     SWTITLECONVERT
+;;;   uses the same conversion decision tree, but asks the operator to choose
+;;;   YES, OPEN, BATCH, or MANUAL. Use it only when you intentionally need to
+;;;   override the SWTITLECONVERTNEXT default. GMTITLE dialog paper/title/options
+;;;   still require visual confirmation.
 ;;;
 ;;; Older transfer, batch, frame-only, and A3/A4 recovery routines remain
 ;;; as internal implementation helpers. They are intentionally not the user
@@ -23,9 +24,10 @@
 ;;; targets an internal recognition handle, not a visible cloned frame insert.
 ;;; Verifiers warn when multiple title blocks share one internal GMTITLE link,
 ;;; because that preserve-copy pattern can still fail GMPOWEREDIT.
-;;; A3/A4 native-recheck or cloned GMTITLE pairs are handled through
-;;; SWTITLECONVERT, one sheet at a time, so the GMTITLE dialog can be
-;;; visually verified before the next sheet is touched.
+;;; A3/A4 native-recheck or cloned GMTITLE pairs are normally handled through
+;;; SWTITLECONVERTNEXT, one sheet at a time, so the GMTITLE dialog can be
+;;; visually verified before the next sheet is touched. SWTITLECONVERT remains
+;;; the manual-response fallback.
 ;;; Command-line -GMTITLE selection is disabled by default. Local CAD
 ;;; history showed it can choose ordinary ISO/A-series defaults instead
 ;;; of the required DR_A*_Outline + DR_titlea_3rd pair.
@@ -36,7 +38,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260705-convertnext-selection-guide")
+(setq *swcad-title-scale-version* "260705-convertnext-main-workflow")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -18340,7 +18342,7 @@
   (setq *swcad-title-last-apply-status* "SWTITLEVERSION_OK")
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-convertnext-selection-guide")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-convertnext-main-workflow")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)

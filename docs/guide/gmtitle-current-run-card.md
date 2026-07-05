@@ -63,7 +63,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260705-convertnext-selection-guide
+260705-convertnext-main-workflow
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.

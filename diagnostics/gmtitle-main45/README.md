@@ -346,7 +346,7 @@ work\swtitle_a4_outline_prepare_probe_260705.txt
 Expected result for the current installed `DR_A4_Outline` state:
 
 ```text
-Loaded version: 260705-convertnext-selection-guide
+Loaded version: 260705-convertnext-main-workflow
 Before definition status: missing
 Prepare result: OK status=OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
 After definition status: ready-native-outside-markers
@@ -595,7 +595,7 @@ Expected result:
 
 ```text
 Loaded loader version: 260705-4step-gmtitle-a4-outline-preflight
-Loaded GMTITLE version: 260705-convertnext-selection-guide
+Loaded GMTITLE version: 260705-convertnext-main-workflow
 Command-line -GMTITLE default enabled: no
 SCRIPT command-line -GMTITLE enabled: no
 Command c:SWTITLESTATUS: yes
@@ -617,7 +617,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260705-convertnext-selection-guide
+Loaded version: 260705-convertnext-main-workflow
 A3/A4 candidate count before SWTITLESTATUS: 1
 SWTITLESTATUS result: OK
 Status after SWTITLESTATUS: NEXT_UPGRADE_A3_A4_NATIVE
@@ -639,7 +639,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260705-convertnext-selection-guide
+Loaded version: 260705-convertnext-main-workflow
 Script active: yes
 Status after batch: ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE
 Candidates before/after: 2/2
@@ -660,7 +660,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260705-convertnext-selection-guide
+Loaded version: 260705-convertnext-main-workflow
 Script active before convert: yes
 Status after convert: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE
 Source titles before/after: 13/13

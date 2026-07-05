@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260705-convertnext-selection-guide",
+  [string]$ExpectedGmtitleVersion = "260705-convertnext-main-workflow",
 
   [string]$ExpectedLoaderVersion = "260705-4step-gmtitle-a4-outline-preflight"
 )
@@ -287,6 +287,10 @@ Assert-Contains -Text $mainText -Needle "ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE" 
 Assert-Contains -Text $mainText -Needle "c:SWTITLECONVERTNEXT" -Label "SWTITLECONVERTNEXT public command"
 Assert-Contains -Text $mainText -Needle "*swcad-title-convert-next-mode*" -Label "SWTITLECONVERTNEXT auto-next mode flag"
 Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT auto response" -Label "SWTITLECONVERTNEXT auto response log"
+Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT ; recommended next safe conversion step" -Label "GMTITLE header convert-next main workflow"
+Assert-Contains -Text $mainText -Needle "Manual fallback:" -Label "GMTITLE header manual fallback section"
+Assert-Contains -Text $mainText -Needle "Use it only when you intentionally need to" -Label "GMTITLE header manual fallback guard"
+Assert-Contains -Text $mainText -Needle "A3/A4 native-recheck or cloned GMTITLE pairs are normally handled through" -Label "GMTITLE header A3/A4 convert-next wording"
 Assert-Contains -Text $mainText -Needle "권장 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLEVERIFY" -Label "GMTITLE load convert-next workflow guidance"
 Assert-Contains -Text $mainText -Needle "수동 응답을 직접 고를 때만 SWTITLECONVERT를 사용하세요" -Label "GMTITLE load manual convert fallback guidance"
 Assert-Contains -Text $mainText -Needle "중요: 변환 전에는 SWTITLESTATUS 결과가 안내한 다음 명령만 실행하세요" -Label "GMTITLE load status-result-only guidance"
