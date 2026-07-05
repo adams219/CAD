@@ -96,6 +96,10 @@ Frame positioning: ON
 Object move: OFF
 ```
 
+CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력하지 않습니다. 일반 `GMTITLE`/`TIT`는 내부 현재 선택 상태나 삽입점 프롬프트로 빠질 수 있고, `SWTITLECONVERT`가 수행하는 배치점 자동 전송, 값 복사, 원본 정리를 건너뜁니다.
+
+주의: `SWTITLECONVERT` 안에서 물어보는 `OPEN` 응답은 CAD 일반 `OPEN` 명령이 아닙니다. 명령창에 직접 `OPEN`을 치는 흐름과 구분합니다.
+
 사용하지 않을 것:
 
 ```text

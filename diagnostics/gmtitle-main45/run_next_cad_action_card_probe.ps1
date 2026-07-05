@@ -94,7 +94,7 @@ function Invoke-CardCase {
 Invoke-CardCase `
   -Name "first_native" `
   -Status "NEXT_CREATE_FIRST_NATIVE_GMTITLE" `
-  -Expected @("Result: READY_FOR_FIRST_NATIVE_GMTITLE", "SWTITLECONVERT", "DR_A3_Outline", "YES: 첫 native GMTITLE 1장을 만들고 마무리합니다.", "긴 좌표를 사람이 직접 치지 마세요", "커서가 화면 중앙에 남아 보여도")
+  -Expected @("Result: READY_FOR_FIRST_NATIVE_GMTITLE", "SWTITLECONVERT", "DR_A3_Outline", "YES: 첫 native GMTITLE 1장을 만들고 마무리합니다.", "GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요", "SWTITLECONVERT 안에서 물어보는 YES/OPEN/BATCH/MANUAL 응답과 CAD 일반 OPEN 명령은 다릅니다", "긴 좌표를 사람이 직접 치지 마세요", "커서가 화면 중앙에 남아 보여도")
 
 Invoke-CardCase `
   -Name "prepare_a4" `
