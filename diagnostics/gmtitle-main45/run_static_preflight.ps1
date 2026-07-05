@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260705-status-manual-forecast",
+  [string]$ExpectedGmtitleVersion = "260705-convertnext-selection-guide",
 
   [string]$ExpectedLoaderVersion = "260705-4step-gmtitle-a4-outline-preflight"
 )
@@ -291,6 +291,7 @@ Assert-Contains -Text $mainText -Needle "예상 수동 GMTITLE 확인량:" -Labe
 Assert-Contains -Text $mainText -Needle "A4 표제란 없는 도면틀 " -Label "SWTITLESTATUS A4 frame-only no-title forecast"
 Assert-Contains -Text $mainText -Needle "swcad-title-next-missing-native-selection-record" -Label "SWTITLESTATUS missing-native selection helper"
 Assert-Contains -Text $mainText -Needle "다음 누락 크기 native GMTITLE 선택:" -Label "SWTITLESTATUS missing-native selection heading"
+Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록" -Label "SWTITLECONVERTNEXT exact dialog selection guidance"
 Assert-Contains -Text $mainText -Needle '(swcad-title-auto-next-answer "OPEN"' -Label "SWTITLECONVERTNEXT native one-sheet default"
 Assert-Contains -Text $mainText -Needle "다음 명령: SWTITLECONVERTNEXT" -Label "SWTITLESTATUS recommends convert-next command"
 Assert-Contains -Text $mainText -Needle "다음: SWTITLECONVERTNEXT를 실행하세요" -Label "SWTITLESTATUS next action recommends convert-next"

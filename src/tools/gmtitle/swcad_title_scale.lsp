@@ -36,7 +36,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260705-status-manual-forecast")
+(setq *swcad-title-scale-version* "260705-convertnext-selection-guide")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -17872,7 +17872,7 @@
   (swcad-title-princ-text "\nGMTITLE 창이 열리면 로그가 요구한 DR_A*_Outline, DR_titlea_3rd, Frame positioning ON, Object move OFF를 눈으로 확인하세요.")
 )
 
-(defun swcad-title-integrated-convert (/ summary source-count frame-only-count command-text-records command-text-count a3a4-count style-records frame-definition-blockers definition-raw-risk-records old-batch-mode apply-result answer)
+(defun swcad-title-integrated-convert (/ summary source-count frame-only-count command-text-records command-text-count a3a4-count style-records frame-definition-blockers definition-raw-risk-records missing-required-native old-batch-mode apply-result answer)
   (swcad-title-integrated-command-header "SWTITLECONVERT" "변환 실행")
   (if (swcad-title-script-active-p)
     (swcad-title-abort-interactive-gmtitle-script-active
@@ -17984,7 +17984,8 @@
         )
         ((not (swcad-title-native-example-title))
           (swcad-title-princ-text "\n첫 native GMTITLE 기준 객체가 없습니다. SWTITLECONVERT 내부에서 첫 native 생성 단계를 진행합니다.")
-          (swcad-title-princ-text "\nGMTITLE 창이 열리면 출력된 DR_A*_Outline 용지와 DR_titlea_3rd를 선택하고, Frame positioning은 ON, Object move는 OFF로 두세요.")
+          (swcad-title-print-next-bootstrap-selection)
+          (swcad-title-princ-text "\nSWTITLECONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록을 고르고, Frame positioning은 ON, Object move는 OFF로 두세요.")
           (if (swcad-title-script-active-p)
             (swcad-title-abort-interactive-gmtitle-script-active
               "첫 native GMTITLE 기준 객체 생성은 GMTITLE 창 선택을 사람이 확인해야 합니다."
@@ -17995,7 +17996,9 @@
         ((and (> source-count 0) (not (swcad-title-next-fast-target-ready-p)))
           (swcad-title-princ-text "\n다음 원본 표제란 시트와 같은 크기의 native GMTITLE 기준 객체가 아직 없습니다.")
           (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 이 크기의 실제 native GMTITLE 한 장을 먼저 생성합니다.")
-          (swcad-title-princ-text "\nGMTITLE 창이 열리면 출력된 DR_A*_Outline 용지와 DR_titlea_3rd를 선택하고, Frame positioning은 ON, Object move는 OFF로 두세요.")
+          (setq missing-required-native (swcad-title-missing-required-native-frame-blocks summary))
+          (swcad-title-print-next-missing-native-selection summary missing-required-native)
+          (swcad-title-princ-text "\nSWTITLECONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록을 고르고, Frame positioning은 ON, Object move는 OFF로 두세요.")
           (if (swcad-title-script-active-p)
             (swcad-title-abort-interactive-gmtitle-script-active
               "누락 크기의 첫 native GMTITLE 기준 객체 생성은 GMTITLE 창 선택을 사람이 확인해야 합니다."
@@ -18337,7 +18340,7 @@
   (setq *swcad-title-last-apply-status* "SWTITLEVERSION_OK")
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-status-manual-forecast")
+  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-convertnext-selection-guide")
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)
