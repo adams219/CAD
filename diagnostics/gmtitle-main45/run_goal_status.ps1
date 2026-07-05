@@ -691,7 +691,8 @@ if ($existingGstarCAD.Count -gt 0) {
     if ($script:DirectWorkcopyProbeTrusted -and $script:DirectWorkcopyStatusCode) {
       Write-Output ("    4. 실제 작업복사본 direct probe의 다음 상태: {0}" -f $script:DirectWorkcopyStatusCode)
       if ($script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") {
-        Write-Output ("    5. 열린 CAD에서 SWTITLECONVERTNEXT를 실행하고 첫 native GMTITLE을 {0} / {1}로 만드세요." -f $script:DirectWorkcopyNextFrame, $script:DirectWorkcopyNextTitle)
+        Write-Output "    5. 열린 CAD에서 SWTITLESTATUS로 현재 활성 DWG와 다음 상태를 먼저 확인하세요."
+        Write-Output ("    6. 상태가 그대로면 SWTITLECONVERTNEXT를 실행하고 첫 native GMTITLE을 {0} / {1}로 만드세요." -f $script:DirectWorkcopyNextFrame, $script:DirectWorkcopyNextTitle)
         Write-Output "       수동 응답을 직접 고르고 싶을 때만 SWTITLECONVERT를 사용하세요."
       } else {
         Write-Output "    5. 열린 CAD에서는 SWTITLESTATUS가 안내하는 4단계 흐름의 다음 작업만 따르세요."
@@ -793,9 +794,10 @@ if ($existingGstarCAD.Count -gt 0) {
       Write-Output "    2. GstarCAD에서 실제 작업복사본 DWG를 열거나 활성화하세요."
       Write-Output "    3. 필요하면 최신 swcad_title_scale.lsp를 APPLOAD 하세요."
       if ($script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") {
-        Write-Output ("    4. SWTITLECONVERTNEXT를 실행하고 첫 native GMTITLE을 {0} / {1}로 만드세요." -f $script:DirectWorkcopyNextFrame, $script:DirectWorkcopyNextTitle)
+        Write-Output "    4. SWTITLESTATUS를 실행해서 현재 활성 DWG와 다음 상태를 먼저 확인하세요."
+        Write-Output ("    5. 상태가 그대로면 SWTITLECONVERTNEXT를 실행하고 첫 native GMTITLE을 {0} / {1}로 만드세요." -f $script:DirectWorkcopyNextFrame, $script:DirectWorkcopyNextTitle)
         Write-Output "       수동 응답을 직접 고르고 싶을 때만 SWTITLECONVERT를 사용하세요."
-        Write-Output "    5. 그 다음 SWTITLESTATUS를 실행하고 4단계 흐름을 계속하세요."
+        Write-Output "    6. 그 다음 SWTITLESTATUS를 실행하고 4단계 흐름을 계속하세요."
       } else {
         Write-Output "    4. SWTITLESTATUS를 실행하고 SWTITLECONVERTNEXT/SWTITLEVERIFY까지 이어지는 4단계 흐름만 따르세요."
       }

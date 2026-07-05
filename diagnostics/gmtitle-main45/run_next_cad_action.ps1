@@ -193,6 +193,7 @@ function Write-ManualLoadStep {
   Write-Output "  APPLOAD"
   Write-Output ("  {0}" -f (Join-Path $displayRepoRoot "swcad_load.lsp"))
   Write-Output "  SWTITLEVERSION"
+  Write-Output "  SWTITLESTATUS  (현재 열린 DWG와 다음 상태 확인)"
 }
 
 function Write-ConvertCommandStep {
