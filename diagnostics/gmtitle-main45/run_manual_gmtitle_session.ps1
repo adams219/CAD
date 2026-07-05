@@ -15,6 +15,8 @@ param(
 
   [int]$FinalGateTimeoutSeconds = 180,
 
+  [switch]$SkipInitialNextActionCard,
+
   [switch]$SkipFinalCompletionGate,
 
   [switch]$DryRun
@@ -86,6 +88,58 @@ function Invoke-ChildPowerShell {
   return $exitCode
 }
 
+function Invoke-ChildPowerShellCapture {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$ScriptPath,
+
+    [string[]]$Arguments = @(),
+
+    [Parameter(Mandatory = $true)]
+    [string]$Label
+  )
+
+  $powershellExe = Join-Path $PSHOME "powershell.exe"
+  $fullArgs = @(
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    $ScriptPath
+  ) + $Arguments
+
+  Write-Step ""
+  Write-Step ("----- {0} -----" -f $Label)
+  Write-Step ("Command: {0}" -f (Get-QuotedCommandPreview -Parts (@($powershellExe) + $fullArgs)))
+
+  $rawOutput = & $powershellExe @fullArgs 2>&1
+  $exitCode = $LASTEXITCODE
+  $lines = @($rawOutput | ForEach-Object { $_.ToString() })
+  foreach ($line in $lines) {
+    Write-Step $line
+  }
+  Write-Step ("{0} exit code: {1}" -f $Label, $exitCode)
+
+  return @{
+    ExitCode = $exitCode
+    Text = ($lines -join "`n")
+  }
+}
+
+function Assert-ManualSessionConversionReady {
+  param([string]$CardText)
+
+  if ($CardText -match "(?m)^Result:\s*(READY_FOR_FIRST_NATIVE_GMTITLE|CREATE_MISSING_NATIVE_GMTITLE_SIZE|RUN_NATIVE_REPLACEMENT|RUN_REMAINING_CONVERSION)\s*$") {
+    Write-Step "Initial next-action card is conversion-ready for one visible GMTITLE step."
+    return
+  }
+
+  Write-Step "Result: MANUAL_SESSION_NOT_CONVERSION_READY"
+  Write-Step "Reason: the refreshed next-action card does not ask for a visible GMTITLE conversion step."
+  Write-Step "Next: follow the Result and guidance in the card above instead of opening CAD through this session wrapper."
+  exit 1
+}
+
 function Wait-ForGstarCADToClose {
   param([int]$TimeoutSeconds)
 
@@ -130,6 +184,7 @@ Write-Step ("Repo root: {0}" -f $repoRoot)
 Write-Step ("Source work copy: {0}" -f $SourceWorkCopyPath)
 Write-Step "Purpose: open the work-copy, let the user run one visible GMTITLE step, then wait for GstarCAD to close and refresh the next action card."
 Write-Step "Safety: this script does not run SWTITLECONVERTNEXT, does not click the GMTITLE dialog, and does not save the DWG."
+Write-Step "Preflight: unless skipped, this script refreshes the next-action card before opening visible CAD and stops if the saved DWG is not conversion-ready."
 Write-Step "Manual CAD commands:"
 Write-Step "  APPLOAD"
 Write-Step ("  {0}" -f (Join-Path $repoRoot "swcad_load.lsp"))
@@ -146,11 +201,39 @@ if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
 
 if ($DryRun) {
   Write-Step "Dry run: visible GstarCAD is not launched and hidden probes are not run."
-  Write-Step "1. Optionally run run_open_workcopy_for_manual_convert.ps1."
-  Write-Step "2. Wait for GstarCAD to close."
-  Write-Step "3. Run run_after_manual_gmtitle_step.ps1."
+  Write-Step "1. Unless -SkipInitialNextActionCard is used, run run_next_cad_action.ps1 -AutoRefreshDirectProbe and require a conversion-ready Result."
+  Write-Step "2. Optionally run run_open_workcopy_for_manual_convert.ps1."
+  Write-Step "3. Wait for GstarCAD to close."
+  Write-Step "4. Run run_after_manual_gmtitle_step.ps1."
   Write-Step "Result: DRY_RUN_READY"
   exit 0
+}
+
+if ($SkipInitialNextActionCard) {
+  Write-Step "SkipInitialNextActionCard: not refreshing the saved-DWG next-action card before visible CAD."
+  Write-Step "Use this only when you already confirmed SWTITLESTATUS in the currently open work-copy."
+} elseif ($SkipOpenWorkcopy) {
+  Write-Step "Initial next-action card skipped because -SkipOpenWorkcopy means a visible GstarCAD process should already be open."
+  Write-Step "Before converting, run SWTITLESTATUS in that visible CAD session and follow its current next action."
+} else {
+  $cardArgs = @(
+    "-SourceWorkCopyPath",
+    $SourceWorkCopyPath,
+    "-AutoRefreshDirectProbe",
+    "-AutoRefreshTimeoutSeconds",
+    [string]$AutoRefreshTimeoutSeconds
+  )
+  $cardResult = Invoke-ChildPowerShellCapture `
+    -ScriptPath (Join-Path $PSScriptRoot "run_next_cad_action.ps1") `
+    -Arguments $cardArgs `
+    -Label "Initial next-action card"
+
+  if ($cardResult.ExitCode -ne 0) {
+    Write-Step "Result: INITIAL_NEXT_ACTION_CARD_FAILED"
+    Write-Step "Reason: could not refresh the saved-DWG next-action card before opening visible CAD."
+    exit $cardResult.ExitCode
+  }
+  Assert-ManualSessionConversionReady -CardText $cardResult.Text
 }
 
 if (-not $SkipOpenWorkcopy) {

@@ -363,9 +363,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1"
 ```
 
+Before opening visible CAD, the session wrapper refreshes `run_next_cad_action.ps1 -AutoRefreshDirectProbe` and continues only when the refreshed card asks for one visible conversion step, such as `READY_FOR_FIRST_NATIVE_GMTITLE`, `CREATE_MISSING_NATIVE_GMTITLE_SIZE`, `RUN_NATIVE_REPLACEMENT`, or `RUN_REMAINING_CONVERSION`.
+
 The session wrapper opens the work-copy through `run_open_workcopy_for_manual_convert.ps1`, prints the manual CAD commands, waits for GstarCAD to close, and then runs `run_after_manual_gmtitle_step.ps1`. It does not run `SWTITLECONVERTNEXT`, does not click the GMTITLE dialog, and does not save the drawing.
 
-Use `-SkipOpenWorkcopy` only if the work-copy is already open in a running GstarCAD process and you only want the wait-and-check part. If no GstarCAD process is detected, the wrapper stops with `SKIP_OPEN_NO_GSTARCAD` instead of running a stale after-manual check. Use `-DryRun` to verify the wrapper sequence without launching visible GstarCAD.
+Use `-SkipOpenWorkcopy` only if the work-copy is already open in a running GstarCAD process and you only want the wait-and-check part. In that mode, the initial hidden next-action card is skipped because visible CAD is already open; run `SWTITLESTATUS` in that visible session before converting. If no GstarCAD process is detected, the wrapper stops with `SKIP_OPEN_NO_GSTARCAD` instead of running a stale after-manual check. Use `-SkipInitialNextActionCard` only after you have already confirmed the current visible CAD status. Use `-DryRun` to verify the wrapper sequence without launching visible GstarCAD.
 
 ## A4 Outline Prepare Probe
 

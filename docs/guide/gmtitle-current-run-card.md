@@ -269,9 +269,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1
 ```
 
-이 세션 래퍼도 `SWTITLECONVERTNEXT`를 대신 실행하거나 GMTITLE 창을 클릭하지 않습니다. 작업복사본을 열고, 사람이 CAD에서 한 장을 처리해 저장/닫기 할 때까지 기다린 뒤 `run_after_manual_gmtitle_step.ps1`를 이어서 실행합니다.
+이 세션 래퍼도 `SWTITLECONVERTNEXT`를 대신 실행하거나 GMTITLE 창을 클릭하지 않습니다. 먼저 `run_next_cad_action.ps1 -AutoRefreshDirectProbe`로 저장된 작업복사본의 다음 작업 카드를 갱신하고, 카드가 실제 변환 1장을 요구할 때만 작업복사본을 엽니다. 작업복사본을 열고, 사람이 CAD에서 한 장을 처리해 저장/닫기 할 때까지 기다린 뒤 `run_after_manual_gmtitle_step.ps1`를 이어서 실행합니다.
 
 이미 CAD를 직접 열어 둔 상태에서만 `-SkipOpenWorkcopy`를 붙입니다. CAD가 열려 있지 않으면 세션 래퍼는 `SKIP_OPEN_NO_GSTARCAD`로 멈추고, 오래된 상태 점검을 실행하지 않습니다.
+
+이미 보이는 CAD에서 `SWTITLESTATUS`를 확인한 경우에만 `-SkipInitialNextActionCard`를 붙입니다. 이 옵션은 hidden next-action 갱신을 건너뛰므로, 현재 열린 DWG가 work 복사본인지 직접 확인한 뒤에만 사용합니다.
 
 CAD가 닫혀 있고 작업복사본을 여는 단계부터 줄이고 싶으면 아래 helper를 사용할 수 있습니다.
 

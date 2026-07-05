@@ -110,6 +110,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 
 이 래퍼는 DWG를 편집하지 않고 direct probe 갱신, 다음 작업 카드 출력, 필요 시 final completion gate 실행을 한 번에 묶습니다. 그래서 예전 로그를 보고 같은 `SWTITLECONVERTNEXT`를 반복하는 실수를 줄입니다.
 
+작업복사본 열기부터 한 장 처리 후 점검까지 한 번에 묶으려면 아래 세션 래퍼를 사용할 수 있습니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1
+```
+
+이 세션 래퍼는 먼저 `run_next_cad_action.ps1 -AutoRefreshDirectProbe`로 저장된 작업복사본이 실제로 변환 가능한 상태인지 확인합니다. 카드가 정리/검토를 요구하면 CAD를 열지 않고 멈추므로, 상태가 바뀌었는데도 `SWTITLECONVERTNEXT`를 반복하는 실수를 줄입니다.
+
 수동 명령인 `SWTITLECONVERT` 안에서 입력을 물으면 상태별로 아래처럼 답합니다.
 
 ```text
