@@ -531,6 +531,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_final_completion_gate.ps1"
 ```
 
+Save and close GstarCAD first, or use `-WaitForGstarCADClose` and close GstarCAD while the gate waits:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_final_completion_gate.ps1" `
+  -WaitForGstarCADClose
+```
+
 This gate is expected to fail before conversion. It requires:
 
 ```text
@@ -549,6 +557,10 @@ When it fails, it now prints:
 Final completion gate result: FAIL
 Current status-after-status: ...
 Current status-after-verify: ...
+Current source counts: source-title-count=..., source-frame-count=..., frame-only-count=...
+Current target counts: target-title-count=..., target-frame-count=...
+Next first native GMTITLE selection: source-sheet=..., frame=..., title=...
+Missing native frames: ...
 Missing completion evidence:
 Next: run_next_cad_action.ps1
 ```
