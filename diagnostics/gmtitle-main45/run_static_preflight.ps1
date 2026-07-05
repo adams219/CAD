@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260706-after-manual-step-guidance",
+  [string]$ExpectedGmtitleVersion = "260706-status-compact-card",
 
   [string]$ExpectedLoaderVersion = "260705-4step-gmtitle-a4-outline-preflight"
 )
@@ -326,6 +326,11 @@ Assert-Contains -Text $mainText -Needle 'SWTITLEVERSION_OK' -Label "SWTITLEVERSI
 Assert-Contains -Text $mainText -Needle "다음 첫 native GMTITLE 선택:" -Label "SWTITLESTATUS first-native selection heading"
 Assert-Contains -Text $mainText -Needle "GMTITLE 창에서는 위 용지/도면틀과 제목블록을 고르고" -Label "SWTITLESTATUS first-native dialog guidance"
 Assert-Contains -Text $mainText -Needle "예상 수동 GMTITLE 확인량:" -Label "SWTITLESTATUS manual GMTITLE forecast heading"
+Assert-Contains -Text $mainText -Needle "swcad-title-print-compact-next-gmtitle-card" -Label "SWTITLESTATUS compact selection card helper"
+Assert-Contains -Text $mainText -Needle "짧은 GMTITLE 선택 카드:" -Label "SWTITLESTATUS compact selection card heading"
+Assert-Contains -Text $mainText -Needle "  다음 명령: SWTITLECONVERTNEXT" -Label "SWTITLESTATUS compact selection card command"
+Assert-Contains -Text $mainText -Needle "  켜둘 옵션: Frame positioning" -Label "SWTITLESTATUS compact selection card frame-positioning"
+Assert-Contains -Text $mainText -Needle "  꺼둘 옵션: Object move" -Label "SWTITLESTATUS compact selection card object-move"
 Assert-Contains -Text $mainText -Needle "A4 표제란 없는 도면틀 " -Label "SWTITLESTATUS A4 frame-only no-title forecast"
 Assert-Contains -Text $mainText -Needle "swcad-title-next-missing-native-selection-record" -Label "SWTITLESTATUS missing-native selection helper"
 Assert-Contains -Text $mainText -Needle "다음 누락 크기 native GMTITLE 선택:" -Label "SWTITLESTATUS missing-native selection heading"

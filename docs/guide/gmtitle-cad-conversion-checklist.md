@@ -59,7 +59,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260706-after-manual-step-guidance
+260706-status-compact-card
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 로드합니다.

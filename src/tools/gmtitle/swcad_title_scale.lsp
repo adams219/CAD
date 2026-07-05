@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260706-after-manual-step-guidance")
+(setq *swcad-title-scale-version* "260706-status-compact-card")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -4409,6 +4409,49 @@
   )
 )
 
+(defun swcad-title-print-compact-next-gmtitle-card (summary missing-required-native example-title a3a4-count / source-count record frame-block title-block role)
+  (setq source-count (swcad-title-fast-summary-value summary "source-title-count"))
+  (setq record nil)
+  (cond
+    ((and (not example-title) (> source-count 0))
+      (setq record (swcad-title-next-bootstrap-selection-record))
+    )
+    ((and missing-required-native (not (swcad-title-next-fast-target-ready-p)))
+      (setq record (swcad-title-next-missing-native-selection-record summary missing-required-native))
+    )
+  )
+  (if record
+    (progn
+      (setq frame-block (cadr record))
+      (setq title-block (caddr record))
+      (setq role (if (cadddr record) (cadddr record) "title-sheet"))
+      (swcad-title-princ-line "짧은 GMTITLE 선택 카드:")
+      (swcad-title-princ-line "  다음 명령: SWTITLECONVERTNEXT")
+      (swcad-title-princ-line (strcat "  용지/도면틀: " (if frame-block frame-block "<unknown>")))
+      (swcad-title-princ-line (strcat "  제목블록: " (if title-block title-block "<unknown>")))
+      (if (equal role "frame-only")
+        (swcad-title-princ-line "  참고: 이 대상은 표제란 없는 도면틀-only 흐름입니다. 원본에 없던 제목블록은 만들지 않습니다.")
+        (progn
+          (swcad-title-princ-line "  켜둘 옵션: Frame positioning")
+          (swcad-title-princ-line "  꺼둘 옵션: Object move")
+        )
+      )
+      (swcad-title-princ-line "  취소 조건: ISO 용지/제목블록, Object move ON, 예상과 다른 DR 용지가 보이면 확인하지 말고 취소하세요.")
+    )
+    (if (> a3a4-count 0)
+      (progn
+        (swcad-title-princ-line "짧은 GMTITLE 선택 카드:")
+        (swcad-title-princ-line "  다음 명령: SWTITLECONVERTNEXT")
+        (swcad-title-princ-line "  대상: 아래 A3/A4 후보 상세의 다음 1장")
+        (swcad-title-princ-line "  용지/제목블록: 출력된 DR_A*_Outline / DR_titlea_3rd")
+        (swcad-title-princ-line "  켜둘 옵션: Frame positioning")
+        (swcad-title-princ-line "  꺼둘 옵션: Object move")
+        (swcad-title-princ-line "  취소 조건: ISO 용지/제목블록, Object move ON, 예상과 다른 DR 용지가 보이면 확인하지 말고 취소하세요.")
+      )
+    )
+  )
+)
+
 (defun swcad-title-print-manual-gmtitle-forecast (summary expected-sheet-counts frame-only-count example-title a3a4-count missing-required-native / a2-count a3-count a4-count record frame-block title-block)
   (setq a2-count (swcad-title-count-value "A2" expected-sheet-counts))
   (setq a3-count (swcad-title-count-value "A3" expected-sheet-counts))
@@ -4690,6 +4733,7 @@
   (swcad-title-princ-line (strcat "오염 의심 대상 도면틀 정의: " (swcad-title-list-string contaminated)))
   (swcad-title-princ-line (strcat "native GMTITLE 제목블록 존재: " (swcad-title-native-example-description example-title)))
   (swcad-title-print-manual-gmtitle-forecast summary expected-sheet-counts frame-only-count example-title a3a4-count missing-required-native)
+  (swcad-title-print-compact-next-gmtitle-card summary missing-required-native example-title a3a4-count)
   (swcad-title-print-automation-policy-summary)
   (if a3a4-records
     (progn
@@ -18377,7 +18421,7 @@
   (setq *swcad-title-last-apply-status* "SWTITLEVERSION_OK")
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
-  (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260706-after-manual-step-guidance")
+  (swcad-title-princ-text (strcat "\n통합 흐름 기준 기대 버전: " *swcad-title-scale-version*))
   (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLESTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)
