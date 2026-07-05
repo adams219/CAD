@@ -202,6 +202,37 @@ function Get-ExpectedGmtitleVersion {
   return $null
 }
 
+function Write-SuiteLastRunSummary {
+  $suiteLog = Join-Path (Join-Path $displayRepoRoot "work") "main56_verification_suite_last_run.txt"
+  Write-Output ""
+  Write-Output "최근 hidden suite 요약:"
+  if (-not (Test-Path -LiteralPath $suiteLog)) {
+    Write-Output "  상태: 없음"
+    Write-Output "  참고: 실제 CAD 변환 전에도 static preflight와 SWTITLESTATUS를 먼저 확인하세요."
+    return
+  }
+
+  $suiteText = Read-TextWithFallback -Path $suiteLog
+  $generated = Get-FirstRegexValue -Text $suiteText -Pattern "^Generated:\s*(.+)$"
+  $resultValues = @(Get-AllRegexValues -Text $suiteText -Pattern "^Result:\s*(.+)$")
+  $result = if ($resultValues.Count -gt 0) { $resultValues[$resultValues.Count - 1] } else { "<unknown>" }
+  $failure = Get-FirstRegexValue -Text $suiteText -Pattern "^Failure:\s*(.+)$"
+  $failureCommand = Get-FirstRegexValue -Text $suiteText -Pattern "^Failure command:\s*(.+)$"
+
+  Write-Output ("  로그: {0}" -f $suiteLog)
+  if ($generated) { Write-Output ("  생성: {0}" -f $generated) }
+  Write-Output ("  결과: {0}" -f $result)
+  if ($failure) { Write-Output ("  실패 원인: {0}" -f $failure) }
+  if ($failureCommand) { Write-Output ("  실패 명령: {0}" -f $failureCommand) }
+  if ($result -eq "PASS") {
+    Write-Output "  의미: 자동화/guard 검증은 통과했습니다. 실제 work DWG 변환 완료 증거는 별도로 필요합니다."
+  } elseif ($result -eq "FAILED_BEFORE_PASS") {
+    Write-Output "  의미: suite가 최종 PASS 전에 멈췄습니다. 위 실패 원인을 먼저 확인하세요."
+  } else {
+    Write-Output "  의미: suite가 완료되지 않았거나 최신 PASS 증거가 아닙니다."
+  }
+}
+
 function Write-ManualLoadStep {
   $expectedVersion = Get-ExpectedGmtitleVersion
   Write-Output "수동 GstarCAD 단계:"
@@ -597,6 +628,7 @@ if (-not (Test-SamePath -Left $displayRepoRoot -Right $repoRoot)) {
   Write-Output ("실제 CAD용 저장소 폴더: {0}" -f $displayRepoRoot)
 }
 Write-Output ("대상 작업복사본: {0}" -f $SourceWorkCopyPath)
+Write-SuiteLastRunSummary
 
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
   Write-Output "Result: BLOCKED_WORKCOPY_MISSING"
