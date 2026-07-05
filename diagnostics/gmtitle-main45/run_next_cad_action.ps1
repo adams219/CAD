@@ -246,6 +246,30 @@ function Write-GmtitleDialogGuidance {
   Write-Output "  - 자동 입력 후에도 삽입점 입력이 남아 있으면 기존 원본 도면틀의 왼쪽 아래 끝점을 OSNAP으로 찍고, 객체/새 위치 프롬프트가 나오면 취소하세요."
 }
 
+function Write-AutomationBoundarySummary {
+  param([string]$Mode)
+
+  Write-Output ""
+  Write-Output "자동화 경계:"
+  Write-Output "  - LSP가 자동 처리: 현재 후보 판별, 왼쪽 아래 배치점 전송, 표제란 값 복사, 이전 SolidWorks 원본 정리, 새 결과 검사/rollback."
+  Write-Output "  - 사람이 확인: GMTITLE 창의 DR_A*_Outline 용지, DR_titlea_3rd 제목블록, Frame positioning ON, Object move OFF."
+  Write-Output "  - 아직 자동화하지 않는 이유: GstarCAD GMTITLE 창이 일반/ISO 기본값으로 열릴 수 있고, 리본/스크린 좌표 자동화는 안정 증거가 없습니다."
+  switch ($Mode) {
+    "FirstNative" {
+      Write-Output "  - 이번 단계: 첫 native GMTITLE 기준 객체 1장만 사람이 확인하고, 이후 정렬/값 복사/원본 정리는 LSP가 처리합니다."
+    }
+    "MissingNative" {
+      Write-Output "  - 이번 단계: 누락된 용지 크기 1장만 사람이 확인하면, 같은 크기 나머지는 빠른 변환 후보가 됩니다."
+    }
+    "NativeReplacement" {
+      Write-Output "  - 이번 단계: OPEN 1장 성공으로 후보 수 감소를 확인한 뒤에만 BATCH 반복 처리를 검토합니다."
+    }
+    "RemainingConversion" {
+      Write-Output "  - 이번 단계: 이미 검증된 native 기준 객체로 남은 시트를 처리하되, A4 frame-only에는 새 제목블록을 만들지 않습니다."
+    }
+  }
+}
+
 function Write-ManualSelectionForecast {
   param(
     [string]$StatusCode,
@@ -436,6 +460,7 @@ function Write-StatusBasedAction {
       Write-ManualLoadStep
       Write-ConvertCommandStep
       Write-Output "  참고: 현재 PC에서는 Codex Computer Use가 GstarCAD 화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다."
+      Write-AutomationBoundarySummary -Mode "FirstNative"
       Write-GmtitleDialogGuidance -FrameName ($(if ($FrameName) { $FrameName } else { "DR_A2_Outline" })) -TitleName ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" }))
       Write-ConvertPromptGuidance -Mode "FirstNative"
       Write-GmtitleAbortGuards
@@ -448,6 +473,7 @@ function Write-StatusBasedAction {
       Write-ManualLoadStep
       Write-ConvertCommandStep
       Write-Output "의미: 남은 용지 크기와 같은 native GMTITLE 기준 객체가 없어, 그 크기 1장을 먼저 실제 GMTITLE로 만들어야 합니다."
+      Write-AutomationBoundarySummary -Mode "MissingNative"
       Write-GmtitleDialogGuidance -FrameName $FrameName -TitleName ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" }))
       Write-ConvertPromptGuidance -Mode "MissingNative"
       Write-GmtitleAbortGuards
@@ -460,6 +486,7 @@ function Write-StatusBasedAction {
       Write-ManualLoadStep
       Write-ConvertCommandStep
       Write-Output "의미: A3/A4 복제 또는 shared-link 쌍을 실제 native GMTITLE 쌍으로 한 장씩 교체해야 합니다."
+      Write-AutomationBoundarySummary -Mode "NativeReplacement"
       Write-GmtitleDialogGuidance -FrameName "SWTITLESTATUS가 출력한 DR_A3_Outline 또는 DR_A4_Outline" -TitleName "DR_titlea_3rd"
       Write-ConvertPromptGuidance -Mode "NativeReplacement"
       Write-GmtitleAbortGuards
@@ -472,6 +499,7 @@ function Write-StatusBasedAction {
       Write-ManualLoadStep
       Write-ConvertCommandStep
       Write-Output "의미: 남은 SolidWorks 원본 시트 또는 부족한 GMTITLE 대상 시트를 변환해야 합니다."
+      Write-AutomationBoundarySummary -Mode "RemainingConversion"
       Write-GmtitleDialogGuidance -FrameName $FrameName -TitleName ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" }))
       Write-ConvertPromptGuidance -Mode "RemainingConversion"
       Write-GmtitleAbortGuards

@@ -55,6 +55,25 @@ SWTITLECONVERT
 
 `SWTITLECONVERTNEXT`는 현재 상태에서 안전한 다음 응답만 자동 선택합니다. 첫 native 생성/누락 크기 생성/빠른 변환은 `YES`, A3/A4 native 교체는 다음 후보 1장 `OPEN`으로 처리합니다. 단, GMTITLE 창에서 `DR_A*_Outline`, `DR_titlea_3rd`, `Frame positioning: ON`, `Object move: OFF`를 눈으로 확인하는 단계는 그대로 필요합니다.
 
+자동화 경계:
+
+```text
+LSP가 자동 처리:
+  현재 후보 판별
+  왼쪽 아래 배치점 전송
+  표제란 값 복사
+  이전 SolidWorks 원본 정리
+  새 결과 검사/rollback
+
+사람이 확인:
+  GMTITLE 창의 DR_A*_Outline 용지
+  DR_titlea_3rd 제목블록
+  Frame positioning ON
+  Object move OFF
+```
+
+GMTITLE 창 선택까지 완전 자동으로 켜지 않는 이유는 GstarCAD가 일반/ISO 기본값으로 열릴 수 있고, 리본/스크린 좌표 자동화는 안정 증거가 없기 때문입니다. 이 경계가 현재 가장 안전한 자동화 범위입니다.
+
 | 명령 | 용도 | 도면 변경 |
 | --- | --- | --- |
 | `SWTITLESTATUS` | 현재 DWG 상태를 읽기 전용으로 진단하고 다음에 실행할 명령을 안내합니다. work 복사본 여부, 원본 시트 수, A2/A3/A4 예상 수량, GMTITLE target 수량, 도면틀 정의 상태, A4 frame-only 상태를 확인합니다. | 없음 |

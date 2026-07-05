@@ -42,6 +42,27 @@ A4 frame-only가 제목블록 없이 도면틀만 남음
 probe 로그를 실제 작업 DWG 로그로 착각함
 ```
 
+## 자동화 경계
+
+현재 흐름은 완전 자동 변환이 아니라, 위험한 선택만 사람이 확인하고 나머지를 LSP가 처리하는 방식입니다.
+
+```text
+LSP가 자동 처리:
+  현재 후보 판별
+  기존 도면틀 왼쪽 아래 배치점 계산/전송
+  표제란 값 추출과 DR_titlea_3rd 속성값 입력
+  이전 SolidWorks 도면틀/표제란/허용된 잔여물 정리
+  새 결과 검사와 실패 시 보존/rollback
+
+사람이 확인:
+  GMTITLE 창의 DR_A*_Outline 용지
+  DR_titlea_3rd 제목블록
+  Frame positioning ON
+  Object move OFF
+```
+
+아직 GMTITLE 창 선택까지 완전 자동으로 켜지 않는 이유는, GstarCAD가 일반/ISO 기본값으로 열릴 수 있고 리본/스크린 좌표 자동화는 안정 증거가 없기 때문입니다. 그래서 `SWTITLECONVERTNEXT`는 `YES`/`OPEN` 같은 반복 응답만 자동으로 고르고, GMTITLE 창의 DR 선택은 사람이 눈으로 확인합니다.
+
 ## 시작 조건
 
 반드시 `work` 폴더 안의 작업복사본에서만 실행합니다.

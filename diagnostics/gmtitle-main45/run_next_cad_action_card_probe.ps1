@@ -196,7 +196,7 @@ function Invoke-CardCase {
 Invoke-CardCase `
   -Name "first_native" `
   -Status "NEXT_CREATE_FIRST_NATIVE_GMTITLE" `
-  -Expected @("예상 수동 GMTITLE 확인량", "저장된 시트 수량: A2 1장, A3 12장, A4 2장", "지금 필요한 확인", "A3 12장을 처리하기 위한 첫 native 기준 객체 1회", "A4 frame-only 2장은 제목블록 생성 대상이 아닙니다", "Result: READY_FOR_FIRST_NATIVE_GMTITLE", "run_open_workcopy_for_manual_convert.ps1", "SWTITLECONVERTNEXT  (권장: YES/OPEN 반복 응답 자동 선택)", "또는 수동 응답을 직접 고르려면: SWTITLECONVERT", "SWTITLECONVERTNEXT는 같은 흐름에서 YES/OPEN 같은 반복 응답만 자동 선택합니다", "SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 GMTITLE 호출", "좌표 입력, 값 복사, 기존 원본 정리는 SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 자동 처리합니다", "DR_A3_Outline", "SWTITLECONVERTNEXT는 아래 반복 응답 중 현재 상태의 안전한 다음 값만 자동 선택합니다.", "YES: 첫 native GMTITLE 1장을 만들고 마무리합니다.", "GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요", "SWTITLECONVERT 안에서 물어보는 YES/OPEN/BATCH/MANUAL 응답과 CAD 일반 OPEN 명령은 다릅니다", "긴 좌표를 사람이 직접 치지 마세요", "SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 GMTITLE 창 뒤에 왼쪽 아래 배치점을 자동 전송합니다", "커서가 화면 중앙에 남아 보여도")
+  -Expected @("예상 수동 GMTITLE 확인량", "저장된 시트 수량: A2 1장, A3 12장, A4 2장", "지금 필요한 확인", "A3 12장을 처리하기 위한 첫 native 기준 객체 1회", "A4 frame-only 2장은 제목블록 생성 대상이 아닙니다", "Result: READY_FOR_FIRST_NATIVE_GMTITLE", "run_open_workcopy_for_manual_convert.ps1", "SWTITLECONVERTNEXT  (권장: YES/OPEN 반복 응답 자동 선택)", "또는 수동 응답을 직접 고르려면: SWTITLECONVERT", "자동화 경계:", "LSP가 자동 처리: 현재 후보 판별", "사람이 확인: GMTITLE 창의 DR_A*_Outline 용지", "아직 자동화하지 않는 이유: GstarCAD GMTITLE 창이 일반/ISO 기본값으로 열릴 수 있고", "첫 native GMTITLE 기준 객체 1장만 사람이 확인", "SWTITLECONVERTNEXT는 같은 흐름에서 YES/OPEN 같은 반복 응답만 자동 선택합니다", "SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 GMTITLE 호출", "좌표 입력, 값 복사, 기존 원본 정리는 SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 자동 처리합니다", "DR_A3_Outline", "SWTITLECONVERTNEXT는 아래 반복 응답 중 현재 상태의 안전한 다음 값만 자동 선택합니다.", "YES: 첫 native GMTITLE 1장을 만들고 마무리합니다.", "GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요", "SWTITLECONVERT 안에서 물어보는 YES/OPEN/BATCH/MANUAL 응답과 CAD 일반 OPEN 명령은 다릅니다", "긴 좌표를 사람이 직접 치지 마세요", "SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 GMTITLE 창 뒤에 왼쪽 아래 배치점을 자동 전송합니다", "커서가 화면 중앙에 남아 보여도")
 
 Invoke-CardCase `
   -Name "prepare_a4" `
@@ -214,7 +214,7 @@ Invoke-CardCase `
 Invoke-CardCase `
   -Name "native_upgrade" `
   -Status "NEXT_UPGRADE_A3_A4_NATIVE" `
-  -Expected @("Result: RUN_NATIVE_REPLACEMENT", "SWTITLECONVERTNEXT  (권장: YES/OPEN 반복 응답 자동 선택)", "또는 수동 응답을 직접 고르려면: SWTITLECONVERT", "A3/A4 native 교체 후보 수: 12", "현재 A3/A4 native 교체 후보: 12개", "현재 GMTITLE 쌍: 전체 13개, native-like 1개, 교체 필요 12개", "복제/공유 링크 후보: 12개", "OPEN 1회 성공 뒤 direct probe를 갱신해서 후보 수가 줄었는지 먼저 확인하세요.", "OPEN: 다음 A3/A4 후보 1장만 fresh native GMTITLE로 교체합니다.", "BATCH: OPEN으로 최소 1장 성공한 뒤", "MANUAL: OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복될 때만 사용합니다.")
+  -Expected @("Result: RUN_NATIVE_REPLACEMENT", "SWTITLECONVERTNEXT  (권장: YES/OPEN 반복 응답 자동 선택)", "또는 수동 응답을 직접 고르려면: SWTITLECONVERT", "자동화 경계:", "OPEN 1장 성공으로 후보 수 감소를 확인한 뒤에만 BATCH", "A3/A4 native 교체 후보 수: 12", "현재 A3/A4 native 교체 후보: 12개", "현재 GMTITLE 쌍: 전체 13개, native-like 1개, 교체 필요 12개", "복제/공유 링크 후보: 12개", "OPEN 1회 성공 뒤 direct probe를 갱신해서 후보 수가 줄었는지 먼저 확인하세요.", "OPEN: 다음 A3/A4 후보 1장만 fresh native GMTITLE로 교체합니다.", "BATCH: OPEN으로 최소 1장 성공한 뒤", "MANUAL: OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복될 때만 사용합니다.")
 
 Invoke-CardCase `
   -Name "structure_review" `
