@@ -221,6 +221,99 @@ function Add-PaperSetLanguageSummary {
   Add-Line
 }
 
+function Add-CommandSurfaceLanguageSummary {
+  param([string]$Path)
+
+  Add-Line "[GMTITLE command/dialog language surface]"
+  Add-Line ("Path: {0}" -f $Path)
+  if (-not (Test-Path -LiteralPath $Path)) {
+    Add-Line "Status: missing"
+    Add-Line
+    return
+  }
+
+  try {
+    [xml]$xml = Read-TextWithFallback -Path $Path
+  } catch {
+    Add-Line ("Status: unreadable, skipped ({0})" -f $_.Exception.Message)
+    Add-Line
+    return
+  }
+
+  $patterns = @(
+    "Drawing Borders with Title Block",
+    "Select title block automatically",
+    "Automatic placement",
+    "Select extension title blocks",
+    "Select the drawing border",
+    "Select the title border",
+    "Frame and title block layers"
+  )
+
+  foreach ($pattern in $patterns) {
+    $nodes = @($xml.SelectNodes("//Item[contains(translate(@en-us, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '$($pattern.ToLowerInvariant())')]"))
+    if ($nodes.Count -gt 0) {
+      $node = $nodes[0]
+      Add-Line ("Label hit: en-us={0}, ko-kr={1}" -f $node.'en-us', $node.'ko-kr')
+    }
+  }
+
+  Add-Line "Command surface language note: these hits are labels/prompts, not a documented command-line preselection API for DR_A*_Outline / DR_titlea_3rd."
+  Add-Line
+}
+
+function Add-TextTreeMarkerSummary {
+  param(
+    [string]$Label,
+    [string]$Root
+  )
+
+  Add-Line ("[{0}]" -f $Label)
+  Add-Line ("Root: {0}" -f $Root)
+  if (-not $Root -or -not (Test-Path -LiteralPath $Root)) {
+    Add-Line "Status: missing"
+    Add-Line
+    return
+  }
+
+  $extensions = @(".xml", ".ini", ".cfg", ".lsp", ".dcl", ".pgp", ".mnu", ".cui", ".cuix", ".txt", ".dat")
+  $files = @(
+    Get-ChildItem -LiteralPath $Root -Recurse -File -ErrorAction SilentlyContinue |
+      Where-Object { ($extensions -contains $_.Extension.ToLowerInvariant()) -and ($_.Length -le 1048576) } |
+      Select-Object -First 600
+  )
+
+  $hits = New-Object System.Collections.Generic.List[string]
+  foreach ($file in $files) {
+    try {
+      $text = Read-TextWithFallback -Path $file.FullName
+    } catch {
+      continue
+    }
+
+    if ($text -match "DR_A[0-4]_Outline|DR_titlea_3rd|GMTITLE|IMTITLE|HC_SBLOCKE|GMSBLOCKE|PAPERSET") {
+      $markers = [regex]::Matches($text, "DR_A[0-4]_Outline|DR_titlea_3rd|GMTITLE|IMTITLE|HC_SBLOCKE|GMSBLOCKE|PAPERSET", "IgnoreCase") |
+        ForEach-Object { $_.Value } |
+        Sort-Object -Unique
+      [void]$hits.Add(("{0} :: {1}" -f $file.FullName, ($markers -join ", ")))
+    }
+  }
+
+  Add-Line ("Files scanned: {0}" -f $files.Count)
+  if ($hits.Count -gt 0) {
+    foreach ($hit in $hits | Select-Object -First 20) {
+      Add-Line ("  {0}" -f $hit)
+    }
+    if ($hits.Count -gt 20) {
+      Add-Line ("  ... {0} more hit(s) omitted" -f ($hits.Count - 20))
+    }
+  } else {
+    Add-Line "Markers: <none among readable scanned files>"
+  }
+  Add-Line "AppData text marker scan note: this broad scan is read-only and advisory; hits here must be inspected manually and are not treated as active preselection evidence by themselves."
+  Add-Line
+}
+
 function Add-RegistryKeySummary {
   param(
     [string]$Label,
@@ -312,12 +405,15 @@ Add-TextFileSummary -Label "Program PaperSet.dat" -Path (Join-Path $installRoot 
 Add-BinaryStringSummary -Label "Program PaperSet.grx ASCII string scan" -Path (Join-Path $installRoot "Professional\GRX8X64\PaperSet.grx")
 Add-CuiCommandMapSummary -Path (Join-Path $installRoot "Common\ImCuiTranslate.xml")
 Add-PaperSetLanguageSummary -Path (Join-Path $installRoot "Common\ImLanguage.xml")
+Add-CommandSurfaceLanguageSummary -Path (Join-Path $installRoot "Common\ImLanguage.xml")
 
 if ($env:APPDATA) {
   Add-TextFileSummary -Label "Roaming impro.ini" -Path (Join-Path $env:APPDATA "Gstarsoft\GstarMechStd\R24\ko-KR\Gcadm\MCADSetting\pro\impro.ini")
+  Add-TextTreeMarkerSummary -Label "Roaming Gstarsoft text marker scan" -Root (Join-Path $env:APPDATA "Gstarsoft")
 }
 if ($env:LOCALAPPDATA) {
   Add-TextFileSummary -Label "Local gm_iso.dwt side config marker check" -Path (Join-Path $env:LOCALAPPDATA "Gstarsoft\GstarMechStd\R24\ko-KR\Template\gm_iso.dwt")
+  Add-TextTreeMarkerSummary -Label "Local Gstarsoft text marker scan" -Root (Join-Path $env:LOCALAPPDATA "Gstarsoft")
 }
 
 Add-RegistryKeySummary -Label "HKCU PAPERSET dialog geometry key" -Path "Registry::HKEY_CURRENT_USER\Software\Gstarsoft\GstarMechStd\R24\ko-KR\Profiles\GstarMech2024Pro\Dialogs\PAPERSET.GRX-66"

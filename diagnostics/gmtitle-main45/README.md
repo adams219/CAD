@@ -58,10 +58,13 @@ This is a read-only config probe. It does not open CAD and does not touch any DW
 
 It also records the command-map distinction discovered in the GstarCAD XML files: the ribbon/menu entry exposes an `IMTITLE` macro for the drawing title/border command, while `GMSBLOCKE` maps to the `PAPERSET` super attribute block editor rather than paper/title preselection. The 2026-07-05 scratch CAD check found `IMTITLE` is not an executable command in the current command line, and `TIT` falls back into the same insertion-point flow as `GMTITLE`. A follow-up accessibility check on the visible GstarCAD ribbon did not expose a stable drawing-title/border element either, so screenshot-coordinate ribbon clicks are not accepted as automation evidence.
 
+The probe also summarizes nearby GstarCAD language labels such as "Drawing Borders with Title Block", "Select title block automatically", and "Automatic placement". These are treated as dialog labels/prompts, not as a documented command-line preselection API. The AppData text marker scan is advisory only; any hit there must be inspected manually and is not accepted by itself as proof that `DR_A*_Outline` / `DR_titlea_3rd` can be preselected safely.
+
 Durable conclusion:
 
 ```text
 docs/history/gmtitle-a4-native-selection-config-probe-2026-07-05.md
+docs/history/gmtitle-command-surface-probe-2026-07-05.md
 ```
 
 ## Runner
