@@ -169,7 +169,7 @@ embedded-title prepare comparison proves the plan copy routes native-format titl
 post-first-native marker gate probe proves the code does not mistake marker-only synthetic target pairs for real native GMTITLE evidence
 A3 status guidance probe proves SWTITLESTATUS explains that DR_A3_Outline remains an INSERT/block reference and clone/shared-link candidates are the real unfinished condition
 A3/A4 batch guard probe proves BATCH does not run inside SCRIPT automation and preserves existing candidates
-GMTITLE selection config probe records that the checked PaperSet/config/registry locations do not expose an active DR_A*_Outline / DR_titlea_3rd preselection value
+GMTITLE selection config probe records that the checked PaperSet/config/deep-registry locations do not expose an active DR_A*_Outline / DR_titlea_3rd preselection value; Recent File List hits are ignored as direct-file open history
 ```
 
 ## Actual Work-Copy Status Probe

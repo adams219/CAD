@@ -775,7 +775,8 @@ Assert-LogContains `
 Write-Output ""
 Write-Output "===== 18. GMTITLE selection config probe ====="
 & (Join-Path $PSScriptRoot "run_gmtitle_selection_config_probe.ps1") `
-  -OutputPath $selectionConfigLog
+  -OutputPath $selectionConfigLog `
+  -DeepRegistrySearch
 Assert-LogContains `
   -Path $selectionConfigLog `
   -Label "GMTITLE selection config probe" `
@@ -783,6 +784,8 @@ Assert-LogContains `
     "No DWG is opened or changed.",
     "[Program PaperSet.ini]",
     "[Program PaperSet.grx ASCII string scan]",
+    "[HKCU Gstarsoft deep DR marker search]",
+    "Deep registry policy: only non-recent DR marker(s) are review evidence; recent-file history alone is ignored.",
     "No active persistent DR_A*_Outline / DR_titlea_3rd preselection config was found in the checked locations.",
     "Direct GMTITLE may still reuse an internal/current command state and ask only for an insertion point.",
     "Do not assume a scratch native A4 sample was created unless the saved DWG passes run_a4_native_exemplar_probe.ps1.",
@@ -822,7 +825,7 @@ Set-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value @(
   "  Post-first-native marker gate probe: PASS",
   "  A3 status guidance probe: PASS",
   "  A3/A4 batch guard probe: PASS",
-  "  GMTITLE selection config probe: PASS",
+  "  GMTITLE selection config deep registry probe: PASS",
   "All expected log markers were verified.",
   "===== GMTITLE main56 verification suite complete ====="
 )

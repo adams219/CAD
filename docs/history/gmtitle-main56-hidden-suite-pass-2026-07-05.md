@@ -2,16 +2,14 @@
 
 ## 최신 검증
 
-2026-07-06 00:23 KST 기준으로 `diagnostics\gmtitle-main45\run_main45_verification_suite.ps1 -TimeoutSeconds 180`를 다시 실행했고, 전체 hidden verification suite가 통과했다.
+2026-07-06 00:55 KST 기준으로 `diagnostics\gmtitle-main45\run_main45_verification_suite.ps1 -TimeoutSeconds 180`를 다시 실행했고, 전체 hidden verification suite가 통과했다.
 
-이번 재검증은 커밋 `5a75f86 Record GMTITLE suite failure reason` 이후에 실행했다. 목적은 A3/A4 native 교체 단계의 BATCH 안전 안내, 자동화 경계 안내, suite 실패 원인 요약 보강이 기존 변환 guard, A4 frame-only 경로, native 인식 검증을 깨지 않는지 확인하는 것이었다.
+이번 재검증은 GMTITLE 선택값 자동화 한계 조사 중 `-DeepRegistrySearch`를 suite 18번 단계에 포함한 뒤 실행했다. 목적은 registry에 `DR_A*_Outline` / `DR_titlea_3rd` 흔적이 보이더라도 `Recent File List`뿐이면 자동 선택 근거로 쓰지 않는다는 판단을 full suite 안에서도 검증하는 것이다.
 
 ## 실행 조건
 
 ```text
 브랜치: codex/gm-title
-기준 커밋: 5a75f86 Record GMTITLE suite failure reason
-GstarCAD: closed
 Source work copy:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
 Probe window style: Minimized
@@ -43,7 +41,7 @@ Native adoption gate comparison probe: PASS
 Post-first-native marker gate probe: PASS
 A3 status guidance probe: PASS
 A3/A4 batch guard probe: PASS
-GMTITLE selection config probe: PASS
+GMTITLE selection config deep registry probe: PASS
 All expected log markers were verified.
 ===== GMTITLE main56 verification suite complete =====
 ```
@@ -67,19 +65,19 @@ missing-native-frame: DR_A3_Outline
 missing-native-frame: DR_A4_Outline
 ```
 
-즉 suite PASS는 구현 방향과 guard가 깨지지 않았다는 증거이지, 실제 작업복사본 변환 완료 증거는 아니다.
+즉 suite PASS는 구현 방향과 guard가 깨지지 않았다는 증거이지, 실제 작업복사본 변환 완료 증거가 아니다.
 
 최신 suite 요약 파일:
 
 ```text
 work\main56_verification_suite_last_run.txt
 Result: PASS
-Generated: 2026-07-06 00:23:06 +09:00
+Generated: 2026-07-06 00:55:12 +09:00
 ```
 
-이 파일은 실패 시 `FAILED_BEFORE_PASS`와 실패 원인/명령을 남기고, 성공 시에만 `PASS`로 덮어쓴다.
+이 파일은 실패 시 `FAILED_BEFORE_PASS`와 실패 원인/명령을 남기고, 성공 시에만 `PASS`로 끝난다.
 
-## 이번 재검증에서 특히 확인한 점
+## 이번 재검증에서 특히 확인한 것
 
 ```text
 SWTITLECONVERTNEXT는 첫 native GMTITLE 생성 단계에서 DR_A2_Outline / DR_titlea_3rd 1회를 안내한다.
@@ -91,12 +89,13 @@ source-contaminated 도면틀 정의와 native-format-with-title-geometry 정의
 marker-only A2 target은 첫 native GMTITLE로 인정하지 않는다.
 A3 도면틀이 INSERT처럼 선택되는 현상만으로 실패 판정하지 않고, 짝 DR_titlea_3rd 제목블록의 GMTITLE 표 편집창 동작을 확인 대상으로 둔다.
 A3/A4 BATCH는 SCRIPT 모드에서 ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE로 멈추고 후보를 보존한다.
-GMTITLE 선택값을 안정적으로 미리 지정할 persistent config는 발견되지 않았다.
+GMTITLE 선택값을 안정적으로 미리 지정할 persistent config는 발견하지 못했다.
+Deep registry search에서 DR 파일 경로가 보이더라도 Recent File List뿐이면 자동 선택 근거로 쓰지 않는다.
 ```
 
 ## BATCH 안전 안내 결론
 
-이번 커밋 이후 CAD 안 안내는 다음 원칙을 반복해서 출력한다.
+현재 기준:
 
 ```text
 BATCH는 첫 후보부터 바로 쓰지 않는다.
@@ -106,7 +105,7 @@ SWTITLESTATUS 또는 direct probe로 A3/A4 native 교체 후보 수가 줄었는
 GMTITLE 창이 ISO 또는 일반 A3/A4 기본값이면 확인하지 않고 취소한다.
 ```
 
-이 방향은 반복 선택을 줄이되, 잘못된 용지/제목블록 선택을 여러 장에 퍼뜨리지 않기 위한 현재의 안전 기준이다.
+이 방향은 반복 선택은 줄이되, 잘못된 용지/제목블록 선택이 여러 장에 일괄 적용되지 않게 하기 위한 현재의 안전 기준이다.
 
 ## 아직 남은 실제 CAD 작업
 

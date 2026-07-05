@@ -392,6 +392,7 @@ function Add-DeepRegistrySearchSummary {
   } else {
     Add-Line "  <none>"
   }
+  Add-Line "Deep registry policy: only non-recent DR marker(s) are review evidence; recent-file history alone is ignored."
   Add-Line
 }
 

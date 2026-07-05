@@ -350,6 +350,8 @@ Assert-Contains -Text $suiteText -Needle "Native GMTITLE A4 pair evidence: no" -
 Assert-Contains -Text $suiteText -Needle "WaitForGstarCADClose" -Label "Suite GstarCAD-close wait option"
 Assert-Contains -Text $suiteText -Needle "Assert-NoExistingGstarCAD" -Label "Suite open-GstarCAD preflight"
 Assert-Contains -Text $suiteText -Needle "main56_verification_suite_last_run.txt" -Label "Suite latest run summary log path"
+Assert-Contains -Text $suiteText -Needle "-DeepRegistrySearch" -Label "Suite selection config deep registry search"
+Assert-Contains -Text $suiteText -Needle "Deep registry policy: only non-recent DR marker(s) are review evidence" -Label "Suite selection config deep registry policy"
 Assert-Contains -Text $suiteText -Needle "Result: RUNNING_OR_FAILED_BEFORE_PASS" -Label "Suite latest run starts incomplete"
 Assert-Contains -Text $suiteText -Needle "Result: FAILED_BEFORE_PASS" -Label "Suite latest run failed-before-pass marker"
 Assert-Contains -Text $suiteText -Needle "Failure command:" -Label "Suite latest run failure command summary"
@@ -649,18 +651,20 @@ Assert-NotContains -Text $runCardText -Needle "2026-07-05 08:55 기준 최신 CA
 Assert-NotContains -Text $runCardText -Needle "0000_A_DRP125 CP_ALL_260704_test.dwg" -Label "Run card stale 260704 workcopy path"
 Assert-Contains -Text $goalPlanText -Needle "RIBBON_ACCESSIBILITY_NOT_STABLE" -Label "Goal plan ribbon accessibility finding"
 Assert-Contains -Text $goalPlanText -Needle "특정 과거 로그를 `"최신 CAD 진행 상태`"로 고정하지 않는다" -Label "Goal plan no stale latest-state wording"
-Assert-Contains -Text $goalPlanText -Needle "hidden verification suite: PASS (2026-07-06 00:23, all expected log markers verified)" -Label "Goal plan hidden suite pass promoted"
+Assert-Contains -Text $goalPlanText -Needle "hidden verification suite: PASS (2026-07-06 00:55, all expected log markers verified, selection config deep registry included)" -Label "Goal plan hidden suite pass promoted"
 Assert-Contains -Text $goalPlanText -Needle "상태 코드:" -Label "Goal plan current direct-probe status block"
 Assert-Contains -Text $goalPlanText -Needle "NEXT_CREATE_FIRST_NATIVE_GMTITLE" -Label "Goal plan current direct-probe first-native status"
 Assert-NotContains -Text $goalPlanText -Needle "hidden verification suite 전체 통과" -Label "Goal plan stale hidden-suite unproven wording"
 Assert-NotContains -Text $goalPlanText -Needle "2026-07-05 08:55 기준 최신 CAD next-step 로그" -Label "Goal plan stale timestamp latest state"
 Assert-NotContains -Text $goalPlanText -Needle "0000_A_DRP125 CP_ALL_260704_test.dwg" -Label "Goal plan stale 260704 workcopy path"
-Assert-Contains -Text $runCardText -Needle '2026-07-06 00:23 기준 `run_main45_verification_suite.ps1 -TimeoutSeconds 180`는 PASS입니다' -Label "Run card hidden suite pass summary"
+Assert-Contains -Text $runCardText -Needle '2026-07-06 00:55 기준 `run_main45_verification_suite.ps1 -TimeoutSeconds 180`는 PASS입니다' -Label "Run card hidden suite pass summary"
 Assert-Contains -Text $runCardText -Needle "All expected log markers were verified." -Label "Run card hidden suite verified markers"
 Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "===== GMTITLE main56 verification suite complete =====" -Label "Hidden suite pass history completion marker"
 Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "All expected log markers were verified." -Label "Hidden suite pass history verified markers"
-Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "2026-07-06 00:23 KST" -Label "Hidden suite pass history latest timestamp"
-Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "5a75f86 Record GMTITLE suite failure reason" -Label "Hidden suite pass history latest commit"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "2026-07-06 00:55 KST" -Label "Hidden suite pass history latest timestamp"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "Generated: 2026-07-06 00:55:12 +09:00" -Label "Hidden suite pass history last-run timestamp"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "GMTITLE selection config deep registry probe: PASS" -Label "Hidden suite pass history deep registry marker"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "Recent File List" -Label "Hidden suite pass history recent-file distinction"
 Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "Result: PASS" -Label "Hidden suite pass history last-run pass marker"
 Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "FAILED_BEFORE_PASS" -Label "Hidden suite pass history failure-summary behavior"
 Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "status-after-status: NEXT_CREATE_FIRST_NATIVE_GMTITLE" -Label "Hidden suite pass history actual workcopy status"
@@ -710,6 +714,7 @@ if (($suiteStepNumbers.Count -eq $expectedSuiteStepNumbers.Count) -and (@(Compar
 }
 
 Assert-Contains -Text $readmeText -Needle "18. GMTITLE selection config probe" -Label "README suite step list"
+Assert-Contains -Text $readmeText -Needle "deep-registry" -Label "README suite selection config deep-registry wording"
 
 foreach ($guidePath in $guidePaths) {
   $label = "Guide version " + (Resolve-Path -LiteralPath $guidePath).Path.Substring($repoRoot.Length + 1)

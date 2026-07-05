@@ -273,7 +273,7 @@ SWTITLECONVERTNEXT
 
 ## Hidden Suite 검증 상태
 
-2026-07-06 00:23 기준 `run_main45_verification_suite.ps1 -TimeoutSeconds 180`는 PASS입니다.
+2026-07-06 00:55 기준 `run_main45_verification_suite.ps1 -TimeoutSeconds 180`는 PASS입니다.
 
 ```text
 no-CAD next-action card probe: PASS
@@ -281,7 +281,7 @@ GstarCAD /b script smoke probe: PASS
 actual work-copy status probe: NEXT_CREATE_FIRST_NATIVE_GMTITLE
 A4 outline prepare: OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
 A4 frame-only convert: FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
-selection config: GMTITLE_SELECTION_CONFIG_NOT_FOUND
+selection config deep registry: GMTITLE_SELECTION_CONFIG_NOT_FOUND
 All expected log markers were verified.
 ```
 
