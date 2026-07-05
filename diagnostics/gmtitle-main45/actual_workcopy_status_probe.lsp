@@ -82,7 +82,7 @@
   )
 )
 
-(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count pair-records pair-count native-like-pair-count non-native-like-pair-count cloned-pair-count a3a4-native-upgrade-count orphan-target-frame-count duplicate-target-pair-count record bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note structure-log a4-deferred-note verify-summary-log verify-source-priority verify-a4-first)
+(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count pair-records pair-count native-like-pair-count non-native-like-pair-count cloned-pair-count a3a4-native-upgrade-count orphan-target-frame-count duplicate-target-pair-count record bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note first-native-selection-log-note structure-log a4-deferred-note verify-summary-log verify-source-priority verify-a4-first)
   (setq load-result
     (vl-catch-all-apply
       'load
@@ -199,6 +199,13 @@
               "사람 확인:"
             )
           )
+          (setq first-native-selection-log-note
+            (and
+              (swtitle-diag45-file-contains-p next-step-log "다음 첫 native GMTITLE 선택:")
+              (swtitle-diag45-file-contains-p next-step-log "용지/도면틀: DR_A2_Outline")
+              (swtitle-diag45-file-contains-p next-step-log "제목블록: DR_titlea_3rd")
+            )
+          )
           (setq structure-log (swcad-title-work-log-path "swcad_title_structure_diagnosis_last.txt"))
           (setq a4-deferred-note
             (swtitle-diag45-file-contains-p
@@ -236,6 +243,7 @@
           (swtitle-diag45-write-line handle (strcat "  log-evidence-note-found: " (if log-evidence-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  automation-split-note-found: " (if automation-split-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  human-check-note-found: " (if human-check-note "yes" "no")))
+          (swtitle-diag45-write-line handle (strcat "  first-native-selection-log-note-found: " (if first-native-selection-log-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  structure-log: " structure-log))
           (swtitle-diag45-write-line handle (strcat "  a4-frame-only-deferred-note-found: " (if a4-deferred-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  verify-summary-log: " verify-summary-log))
