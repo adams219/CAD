@@ -135,6 +135,7 @@ $residueProtectionLog = Join-Path $workDir "swtitle_residue_protection_current_m
 $embeddedPrepareLog = Join-Path $workDir "swtitle_embedded_title_prepare_compare_current_main56_embedded_prepare.txt"
 $duplicateTargetPairLog = Join-Path $workDir "swtitle_duplicate_target_pair_compare_current_main56_duplicate_target_pair.txt"
 $adoptionGateLog = Join-Path $workDir "swtitle_adoption_gate_compare_current_main56_adoption_gate.txt"
+$postFirstNativeTransitionLog = Join-Path $workDir "swtitle_post_first_native_transition_probe.txt"
 $a3StatusGuidanceLog = Join-Path $workDir "swtitle_a3_status_guidance_probe.txt"
 $a3a4BatchGuardLog = Join-Path $workDir "swtitle_a3a4_batch_guard_probe.txt"
 $selectionConfigLog = Join-Path $workDir "swtitle_gmtitle_selection_config_probe_260705.txt"
@@ -540,7 +541,30 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 15. A3 status guidance probe ====="
+Write-Output "===== 15. Post-first-native marker gate probe ====="
+& (Join-Path $PSScriptRoot "run_post_first_native_transition_probe.ps1") `
+  -SourceWorkCopyPath $SourceWorkCopyPath `
+  -LogPath $postFirstNativeTransitionLog `
+  -TimeoutSeconds $TimeoutSeconds
+Assert-LogContains `
+  -Path $postFirstNativeTransitionLog `
+  -Label "post-first-native marker gate probe" `
+  -Patterns @(
+    "Loaded version: 260705-convertnext-selection-guide",
+    "Bootstrap before fixture: A2 / DR_A2_Outline / DR_titlea_3rd",
+    "A2 marker-only title native-link kinds: <none>",
+    "Source title count after fixture: 12",
+    "Native-like pair count after fixture: 0",
+    "Missing native frames after fixture: DR_A3_Outline, DR_A4_Outline",
+    "Next missing native selection after fixture: A3 / DR_A3_Outline / DR_titlea_3rd / title-sheet",
+    "Status after SWTITLESTATUS: NEXT_CREATE_FIRST_NATIVE_GMTITLE",
+    "Expected gate: marker-only A2 target is not accepted as the first native GMTITLE.",
+    "Post-first-native marker gate probe passed: yes",
+    "Runtime check completed: yes"
+  )
+
+Write-Output ""
+Write-Output "===== 16. A3 status guidance probe ====="
 & (Join-Path $PSScriptRoot "run_a3_status_guidance_probe.ps1") `
   -SourceWorkCopyPath $SourceWorkCopyPath `
   -LogPath $a3StatusGuidanceLog `
@@ -560,7 +584,7 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 16. A3/A4 batch guard probe ====="
+Write-Output "===== 17. A3/A4 batch guard probe ====="
 & (Join-Path $PSScriptRoot "run_a3a4_batch_guard_probe.ps1") `
   -SourceWorkCopyPath $SourceWorkCopyPath `
   -LogPath $a3a4BatchGuardLog `
@@ -581,7 +605,7 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 17. GMTITLE selection config probe ====="
+Write-Output "===== 18. GMTITLE selection config probe ====="
 & (Join-Path $PSScriptRoot "run_gmtitle_selection_config_probe.ps1") `
   -OutputPath $selectionConfigLog
 Assert-LogContains `

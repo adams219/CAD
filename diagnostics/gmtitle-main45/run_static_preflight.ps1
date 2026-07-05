@@ -21,6 +21,8 @@ $a4OutlineConvertProbePath = Join-Path $PSScriptRoot "a4_outline_convert_probe.l
 $a4OutlineConvertRunnerPath = Join-Path $PSScriptRoot "run_a4_outline_convert_probe.ps1"
 $actualDirectStatusProbePath = Join-Path $PSScriptRoot "actual_workcopy_status_probe.lsp"
 $actualDirectStatusRunnerPath = Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"
+$postFirstNativeProbePath = Join-Path $PSScriptRoot "post_first_native_transition_probe.lsp"
+$postFirstNativeRunnerPath = Join-Path $PSScriptRoot "run_post_first_native_transition_probe.ps1"
 $nextCadActionRunnerPath = Join-Path $PSScriptRoot "run_next_cad_action.ps1"
 $nextCadActionCardProbePath = Join-Path $PSScriptRoot "run_next_cad_action_card_probe.ps1"
 $finalCompletionGatePath = Join-Path $PSScriptRoot "run_final_completion_gate.ps1"
@@ -194,6 +196,8 @@ $a4OutlineConvertProbeText = Read-Text $a4OutlineConvertProbePath
 $a4OutlineConvertRunnerText = Read-Text $a4OutlineConvertRunnerPath
 $actualDirectStatusProbeText = Read-Text $actualDirectStatusProbePath
 $actualDirectStatusRunnerText = Read-Text $actualDirectStatusRunnerPath
+$postFirstNativeProbeText = Read-Text $postFirstNativeProbePath
+$postFirstNativeRunnerText = Read-Text $postFirstNativeRunnerPath
 $nextCadActionRunnerText = Read-Text $nextCadActionRunnerPath
 $nextCadActionCardProbeText = Read-Text $nextCadActionCardProbePath
 $finalCompletionGateText = Read-Text $finalCompletionGatePath
@@ -209,6 +213,7 @@ Test-LispBalance -Text $loaderText -Label "swcad_load.lsp"
 Test-LispBalance -Text $a4NormProbeText -Label "a4_outline_normalization_probe.lsp"
 Test-LispBalance -Text $a4OutlineConvertProbeText -Label "a4_outline_convert_probe.lsp"
 Test-LispBalance -Text $actualDirectStatusProbeText -Label "actual_workcopy_status_probe.lsp"
+Test-LispBalance -Text $postFirstNativeProbeText -Label "post_first_native_transition_probe.lsp"
 
 $gmtitleVersion = Get-VersionValue -Text $mainText -VariableName "*swcad-title-scale-version*"
 if ($gmtitleVersion -eq $ExpectedGmtitleVersion) {
@@ -318,6 +323,8 @@ Assert-Contains -Text $suiteText -Needle "run_hidden_script_smoke_probe.ps1" -La
 Assert-Contains -Text $suiteText -Needle "ProbeWindowStyle = ""Minimized""" -Label "Suite minimized probe window default"
 Assert-Contains -Text $suiteText -Needle "Next CAD action card probe (no CAD)" -Label "Suite next-action card no-CAD preflight"
 Assert-Contains -Text $suiteText -Needle "run_next_cad_action_card_probe.ps1" -Label "Suite next-action card probe runner"
+Assert-Contains -Text $suiteText -Needle "Post-first-native marker gate probe" -Label "Suite post-first-native marker gate step"
+Assert-Contains -Text $suiteText -Needle "Post-first-native marker gate probe passed: yes" -Label "Suite post-first-native marker gate expectation"
 Assert-Contains -Text $suiteText -Needle "Structure next action: SWTITLECONVERTNEXT" -Label "Suite structure next action recommends convert-next"
 Assert-NotContains -Text $suiteText -Needle "Structure next action: SWTITLECONVERT`"," -Label "Suite stale structure next action"
 Assert-Contains -Text $readmeText -Needle "-WaitForGstarCADClose" -Label "README waiting-mode guidance"
@@ -373,6 +380,9 @@ Assert-Contains -Text $actualDirectStatusProbeText -Needle "duplicate-target-pai
 Assert-Contains -Text $actualDirectStatusProbeText -Needle "first-native-selection-log-note-found" -Label "Actual workcopy probe first-native selection log check"
 Assert-Contains -Text $actualDirectStatusProbeText -Needle "manual-forecast-log-note-found" -Label "Actual workcopy probe manual forecast log check"
 Assert-Contains -Text $actualDirectStatusProbeText -Needle "next-missing-native-frame" -Label "Actual workcopy probe missing-native frame output"
+Assert-Contains -Text $postFirstNativeProbeText -Needle "marker-only A2 target is not accepted as the first native GMTITLE" -Label "Post-first-native marker gate negative evidence"
+Assert-Contains -Text $postFirstNativeProbeText -Needle "Next missing native selection after fixture" -Label "Post-first-native marker gate next missing selection evidence"
+Assert-Contains -Text $postFirstNativeRunnerText -Needle "post_first_native_transition_probe.lsp" -Label "Post-first-native marker gate runner"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "A3/A4 native 교체 후보 수" -Label "Next CAD action native-upgrade candidate output"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "현재 GMTITLE 쌍: 전체" -Label "Next CAD action target-pair forecast"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "OPEN 1회 성공 뒤 direct probe를 갱신해서 후보 수가 줄었는지 먼저 확인하세요." -Label "Next CAD action native OPEN refresh guidance"
@@ -569,14 +579,14 @@ $suiteStepNumbers = @(
   [regex]::Matches($suiteText, "Write-Output\s+.===== ([0-9]+)\. ") |
     ForEach-Object { [int]$_.Groups[1].Value }
 )
-$expectedSuiteStepNumbers = 1..17
+$expectedSuiteStepNumbers = 1..18
 if (($suiteStepNumbers.Count -eq $expectedSuiteStepNumbers.Count) -and (@(Compare-Object $suiteStepNumbers $expectedSuiteStepNumbers).Count -eq 0)) {
   Write-Output ("Suite step numbers: {0}" -f ($suiteStepNumbers -join ", "))
 } else {
   Add-Failure ("Suite step numbers mismatch: expected {0}, got {1}" -f (($expectedSuiteStepNumbers -join ", ")), (($suiteStepNumbers -join ", ")))
 }
 
-Assert-Contains -Text $readmeText -Needle "17. GMTITLE selection config probe" -Label "README suite step list"
+Assert-Contains -Text $readmeText -Needle "18. GMTITLE selection config probe" -Label "README suite step list"
 
 foreach ($guidePath in $guidePaths) {
   $label = "Guide version " + (Resolve-Path -LiteralPath $guidePath).Path.Substring($repoRoot.Length + 1)

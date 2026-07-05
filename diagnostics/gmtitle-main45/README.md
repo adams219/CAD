@@ -103,9 +103,10 @@ Before the hidden GstarCAD probes, the suite now runs the no-CAD next-action car
 12. embedded-title prepare copy-comparison probe
 13. duplicate target pair comparison probe
 14. native adoption gate comparison probe
-15. A3 status guidance probe
-16. A3/A4 batch guard probe
-17. GMTITLE selection config probe
+15. post-first-native marker gate probe
+16. A3 status guidance probe
+17. A3/A4 batch guard probe
+18. GMTITLE selection config probe
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
@@ -142,6 +143,7 @@ representative legacy commands disabled
 actual work-copy source/target counts
 A2/A3/A4 expected sheet counts
 actual work-copy first native guidance: A2 -> DR_A2_Outline + DR_titlea_3rd
+post-first-native marker gate proves an A2 target pair with only SWTITLE markers is not accepted as the first native GMTITLE; real GMTITLE internal native-link evidence is still required before the workflow can advance to the A3 native exemplar step
 A4 native exemplar gap: saved default work-copy has two frame-only sources but no DR_A4_Outline definition or target insert yet
 A4 clean scratch evidence: `work\scratch_native_a4_clean_260705.dwg` was saved from a clean gcadiso.dwt CAD test after DR_A4_Outline / DR_titlea_3rd inserted at 0,0 without the frame creation error; it still needs the focused A4 native exemplar probe after GstarCAD is closed
 A4 native outside marker prepare: imported DR_A4_Outline definitions with official small native outside markers are accepted when effective geometry/raw-selection checks pass; excessive raw bbox or raw-selection warnings still preserve the original A4 source frames
@@ -151,6 +153,7 @@ A2/A3/A4 style-normalization record count 3 -> 0 after rebuild cleanup
 command-text guard blocks conversion before any stubbed conversion path
 sheet residue protection keeps real text, small SW_NOTE balloons, and BOM-like inserts
 embedded-title prepare comparison proves the plan copy routes native-format title geometry to SWTITLEPREPARE before conversion
+post-first-native marker gate probe proves the code does not mistake marker-only synthetic target pairs for real native GMTITLE evidence
 A3 status guidance probe proves SWTITLESTATUS explains that DR_A3_Outline remains an INSERT/block reference and clone/shared-link candidates are the real unfinished condition
 A3/A4 batch guard probe proves BATCH does not run inside SCRIPT automation and preserves existing candidates
 GMTITLE selection config probe records that the checked PaperSet/config/registry locations do not expose an active DR_A*_Outline / DR_titlea_3rd preselection value
