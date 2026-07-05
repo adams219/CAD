@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$ExpectedGmtitleVersion = "260705-verify-source-priority-a4stepnote",
 
   [string]$ExpectedLoaderVersion = "260705-4step-gmtitle-a4-outline-preflight"
@@ -273,11 +273,11 @@ Assert-Contains -Text $actualDirectStatusRunnerText -Needle "run_readonly_probe.
 Assert-Contains -Text $actualDirectStatusRunnerText -Needle "SWCAD_ACTUAL_WORKCOPY_LOG_SUFFIX" -Label "Actual direct work-copy suffix override"
 Assert-Contains -Text $actualDirectStatusRunnerText -Needle "swtitle_actual_workcopy_direct_status_260705.txt" -Label "Actual direct work-copy log path"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "READY_FOR_FIRST_NATIVE_GMTITLE" -Label "Next CAD action first-native readiness"
-Assert-Contains -Text $nextCadActionRunnerText -Needle "Manual visible-GstarCAD step" -Label "Next CAD action manual visible CAD wording"
-Assert-Contains -Text $nextCadActionRunnerText -Needle "can capture GstarCAD but cannot reliably activate/click/type" -Label "Next CAD action Computer Use limitation wording"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "수동 GstarCAD 단계" -Label "Next CAD action Korean manual visible CAD wording"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다" -Label "Next CAD action Korean Computer Use limitation wording"
 Assert-Contains -Text $computerUseHistoryText -Needle "failed to activate captured window" -Label "Computer Use activation failure history"
 Assert-Contains -Text $computerUseHistoryText -Needle "Do not repeat the same visible-CAD Computer Use click/type attempt as a default path" -Label "Computer Use no-repeat guidance"
-Assert-Contains -Text $nextCadActionRunnerText -Needle "Paper/frame:" -Label "Next CAD action dialog paper guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "용지/도면틀:" -Label "Next CAD action Korean dialog paper guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "Object move: OFF" -Label "Next CAD action Object move guard"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "REFRESH_DIRECT_PROBE_FIRST" -Label "Next CAD action direct-probe refresh guard"
 Assert-Contains -Text $selectionConfigProbeText -Needle "GMTITLE_SELECTION_CONFIG_NOT_FOUND" -Label "Selection config probe negative result"

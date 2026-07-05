@@ -192,21 +192,23 @@ target 도면틀/제목블록: 0
   DR_A4_Outline
 ```
 
-Direct actual work-copy refresh command:
+실제 작업복사본 direct probe 갱신 명령:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_actual_workcopy_direct_status_probe.ps1
 ```
 
-This direct probe reads the saved `work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg`, writes `work\swtitle_actual_workcopy_direct_status_260705.txt`, and must still report `dbmod-after-commands: 0`. It does not replace the visible CAD step; it only confirms the saved baseline before running `SWTITLECONVERT`.
+이 direct probe는 저장된 `work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg`를 읽고 `work\swtitle_actual_workcopy_direct_status_260705.txt`를 갱신합니다. 결과는 계속 `dbmod-after-commands: 0`이어야 합니다. 이 명령은 실제 CAD 변환을 대신하지 않고, `SWTITLECONVERT` 전에 저장된 기준 상태만 확인합니다.
 
-Short visible-CAD action card:
+짧은 CAD 실행 카드:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_next_cad_action.ps1
 ```
 
-Use this short card at the CAD screen when you only need the next command, required GMTITLE selection, abort conditions, and the immediate verification step.
+CAD 화면 옆에서 다음 명령, GMTITLE 선택값, 즉시 중단 조건, 바로 확인할 명령만 보고 싶을 때 이 카드를 사용합니다.
+
+현재 PC에서는 Codex Computer Use가 GstarCAD 화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다. 따라서 실제 `SWTITLECONVERT`의 GMTITLE 창 선택은 사용자가 직접 하고, Codex는 로그/문서/검증 기준을 정리하는 쪽으로 사용합니다.
 
 이 상태에서 다음 실제 CAD 명령은 `SWTITLECONVERT`입니다. 첫 대상은 보통 A2입니다.
 

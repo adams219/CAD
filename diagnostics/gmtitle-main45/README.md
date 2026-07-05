@@ -280,7 +280,7 @@ click on the recovery panel close button failed with: failed to activate capture
 No work-copy DWG was opened and no drawing data was changed.
 ```
 
-So this card intentionally says `Manual visible-GstarCAD step`. Use Computer Use screenshots for inspection only unless a later session proves activation and input work reliably.
+So this card intentionally says `수동 GstarCAD 단계`. Use Computer Use screenshots for inspection only unless a later session proves activation and input work reliably.
 
 ## A4 Outline Prepare Probe
 
