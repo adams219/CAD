@@ -100,6 +100,7 @@ Write-Output ("열림 후 유지 확인 시간(초): {0}" -f $PostVisibleCheckSe
 Write-Output "이 helper는 작업복사본을 보이는 GstarCAD로 여는 것까지만 합니다."
 Write-Output "기본값에서는 /b 시작 스크립트를 쓰지 않습니다. 이 PC에서는 그 경로가 보이는 CAD 창을 안정적으로 남기지 못할 수 있기 때문입니다."
 Write-Output "중요: 이 helper는 SWTITLECONVERTNEXT를 실행하지 않고, GMTITLE 창을 열지 않고, 도면을 저장하지 않습니다."
+Write-Output "SafetyMarker: no-run-SWTITLECONVERTNEXT no-open-GMTITLE no-save-DWG"
 Write-Output "CAD 창이 준비되면 GstarCAD 명령창에 아래 순서만 입력하세요:"
 Write-Output "  APPLOAD"
 Write-Output ("  {0}" -f $loaderPath)
@@ -109,6 +110,7 @@ Write-Output "  SWTITLECONVERTNEXT"
 Write-Output "GMTITLE 창에서 고를 용지/제목블록/옵션은 SWTITLESTATUS 또는 짧은 선택 카드의 값을 따르세요."
 Write-Output "필수 옵션: Frame positioning ON, Object move OFF"
 Write-Output "주의: CAD 명령창에 GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요."
+Write-Output "GuardMarker: no-raw-GMTITLE no-raw-TIT no-raw-OPEN"
 if ($RunStartupStatusScript) {
   Write-Output "시작 상태 스크립트 모드가 켜져 있습니다. 시작 뒤 보이는 창이 사라지면 -RunStartupStatusScript 없이 다시 실행하세요."
 }

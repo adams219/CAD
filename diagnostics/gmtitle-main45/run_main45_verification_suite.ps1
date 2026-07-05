@@ -250,10 +250,12 @@ $openWorkcopyDryRunText = ($openWorkcopyDryRunOutput -join "`n")
 $openWorkcopyDryRunOutput | Write-Output
 foreach ($pattern in @(
   "Result: DRY_RUN_READY",
-  "이 helper는 SWTITLECONVERTNEXT를 실행하지 않고, GMTITLE 창을 열지 않고, 도면을 저장하지 않습니다.",
-  "CAD 창이 준비되면 GstarCAD 명령창에 아래 순서만 입력하세요:",
-  "필수 옵션: Frame positioning ON, Object move OFF",
-  "CAD 명령창에 GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요.",
+  "SafetyMarker: no-run-SWTITLECONVERTNEXT no-open-GMTITLE no-save-DWG",
+  "GuardMarker: no-raw-GMTITLE no-raw-TIT no-raw-OPEN",
+  "Frame positioning ON",
+  "Object move OFF",
+  "APPLOAD",
+  "swcad_load.lsp",
   "SWTITLEVERSION",
   "SWTITLESTATUS",
   "SWTITLECONVERTNEXT"
