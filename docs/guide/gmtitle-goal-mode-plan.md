@@ -2,7 +2,7 @@
 
 이 문서는 SolidWorks DWG를 GstarCAD Mechanical native GMTITLE 구조로 안정 변환하기 위한 목표모드 실행 기준이다.
 
-목표는 명령어를 계속 늘리는 것이 아니다. 목표는 `SWTITLESTATUS`, `SWTITLEPREPARE`, `SWTITLECONVERT`, `SWTITLEVERIFY` 흐름 안에서 사람이 반복 선택하는 일을 줄이되, GstarCAD native GMTITLE 인식이 깨지지 않게 만드는 것이다.
+목표는 명령어를 계속 늘리는 것이 아니다. 목표는 `SWTITLESTATUS`, `SWTITLEPREPARE`, `SWTITLECONVERTNEXT`, `SWTITLEVERIFY` 흐름 안에서 사람이 반복 선택하는 일을 줄이되, GstarCAD native GMTITLE 인식이 깨지지 않게 만드는 것이다. 수동 응답을 직접 고를 때만 `SWTITLECONVERT`를 사용한다.
 
 ## 현재 목표 진행판
 
@@ -14,9 +14,9 @@
 브랜치: codex/gm-title
 작업트리: clean
 정적 preflight: PASS
-GMTITLE LSP 버전: 260705-convert-next-a3a4-auto-open
+GMTITLE LSP 버전: 260705-status-convert-next-guidance
 loader 버전: 260705-4step-gmtitle-a4-outline-preflight
-공개 사용자 명령: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERT, SWTITLEVERIFY, SWTITLEVERSION, SWSCALESCAN
+공개 사용자 명령: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLECONVERT, SWTITLEVERIFY, SWTITLEVERSION, SWSCALESCAN
 A4 raw bbox guard: 있음
 SCRIPT/숨김 CAD interactive GMTITLE guard: 있음
 ```
@@ -92,7 +92,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
    SWTITLESTATUS 결과를 보고 첫 native 부재, A3/A4 native 교체, A4 frame-only, 정규화/위험 상태 중 하나로 분류한다.
 
 3. 최소 변경
-   상태가 요구하는 명령 하나만 실행한다. 보통 SWTITLEPREPARE 또는 SWTITLECONVERT 중 하나다.
+   상태가 요구하는 명령 하나만 실행한다. 보통 SWTITLEPREPARE 또는 SWTITLECONVERTNEXT 중 하나다.
 
 4. 재검증
    바로 SWTITLESTATUS 또는 SWTITLEVERIFY를 다시 실행해 수량, 후보 수, 경고 수가 실제로 바뀌었는지 확인한다.
@@ -319,7 +319,7 @@ nested-direct-outside probe:
 ```text
 LSP 기준:
 loader: 260705-4step-gmtitle-a4-outline-preflight
-gmtitle: 260705-convert-next-a3a4-auto-open
+gmtitle: 260705-status-convert-next-guidance
 
 작업 도면:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
@@ -360,7 +360,7 @@ work\swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
 ```text
 신뢰 가능:
   DWG 파일이 현재 열린 work 복사본과 같음
-  SWTITLE LSP 버전이 260705-convert-next-a3a4-auto-open
+  SWTITLE LSP 버전이 260705-status-convert-next-guidance
   방금 실행한 명령 결과임
 
 신뢰 보류:
@@ -401,7 +401,7 @@ BATCH 자동화:
 
 ```text
 1. 먼저 SWTITLEVERSION / SWTITLESTATUS로 현재 workcopy와 LSP 버전을 확인한다.
-2. SWTITLECONVERT로 첫 native GMTITLE 기준 객체를 만든다. 현재 기본 workcopy의 첫 대상은 A2다.
+2. SWTITLECONVERTNEXT로 첫 native GMTITLE 기준 객체를 만든다. 현재 기본 workcopy의 첫 대상은 A2다.
 3. GMTITLE 창에서는 로그가 요구한 DR_A*_Outline, DR_titlea_3rd, Frame positioning ON, Object move OFF만 허용한다.
 4. 한 장이 끝나면 SWTITLESTATUS로 다음 missing exact-size native 기준 객체를 확인한다.
 5. 같은 선택값이 반복되는 구간에서만 BATCH를 쓰고, 숨김/SCRIPT 자동화에는 쓰지 않는다.
@@ -414,7 +414,7 @@ BATCH 자동화:
 
 | 작업 단위 | 해결하려는 질문 | 통과 증거 | 통과 전 금지 |
 | --- | --- | --- | --- |
-| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260705-convert-next-a3a4-auto-open`, `작업 폴더 복사본: 예` | `SWTITLECONVERT` 실행 |
+| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260705-status-convert-next-guidance`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
 | 첫 native 기준 객체 | 이 DWG 안에 실제 GMTITLE 쌍이 최소 1개 있는가 | `target-title-count > 0`, 같은 크기 `DR_A*_Outline` 기준 객체 존재 | clone/fast batch 완료 판단 |
 | A3/A4 native 교체 | 겉보기 복제본이 아니라 fresh native 쌍인가 | `A3/A4 native 교체 후보: 0`, clone/shared-link 경고 0 | 도면틀 더블클릭만 보고 성공 판정 |
 | A4 frame-only | 원본에 없는 제목블록 없이 도면틀만 교체됐는가 | `A4 도면틀-only 대상 수`와 예상 A4 수량 일치, 불필요한 `DR_titlea_3rd` 없음 | A4에 제목블록 생성 |
@@ -583,7 +583,7 @@ SWTITLEVERIFY_FINAL_OK가 나오는지
 ```text
 SWTITLESTATUS
 SWTITLEPREPARE
-SWTITLECONVERT
+SWTITLECONVERTNEXT
 SWTITLEVERIFY
 ```
 
@@ -601,7 +601,7 @@ SWSCALESCAN
 | 종류 | 의미 | 판단 증거 | 다음 행동 |
 | --- | --- | --- | --- |
 | 버전/도면 문제 | CAD가 최신 LSP나 work 복사본을 보고 있지 않음 | `SWTITLEVERSION` 불일치, DWG 경로가 `work`가 아님 | APPLOAD 후 다시 상태 확인 |
-| native 구조 문제 | 겉모양은 맞지만 복제/shared-link라 GMTITLE 인식이 불확실함 | `A3/A4 native 교체 후보`, `복제`, `shared-native-link-handle` | `SWTITLECONVERT`로 한 장씩 fresh native 교체 |
+| native 구조 문제 | 겉모양은 맞지만 복제/shared-link라 GMTITLE 인식이 불확실함 | `A3/A4 native 교체 후보`, `복제`, `shared-native-link-handle` | `SWTITLECONVERTNEXT`로 한 장씩 fresh native 교체 |
 | A4 frame-only 문제 | 원본 A4에는 표제란이 없고 도면틀만 있음 | `표제란 없는 도면틀 시트`, `A4 대상 도면틀 누락` | A3/A4 native 교체 뒤 A4 도면틀-only 처리 |
 | 잔여물/오염 문제 | 실수 텍스트, 겹친 target, raw bbox 위험, 도면틀 정의 오염 | `SWTITLESTATUS`의 prepare/위험 안내 | 변환 반복 금지, `SWTITLEPREPARE` 또는 원인 분석 |
 
@@ -622,7 +622,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260705-convert-next-a3a4-auto-open
+260705-status-convert-next-guidance
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...
@@ -640,11 +640,11 @@ C:\Users\DR-DESIGN\Documents\CAD tool\work\...
 ```text
 NEXT_CREATE_FIRST_NATIVE_GMTITLE
   -> 아직 이 도면 안에 실제 GstarCAD native GMTITLE 기준 객체가 없다.
-  -> 다음 명령은 SWTITLECONVERT.
+  -> 다음 명령은 SWTITLECONVERTNEXT.
 
 NEXT_UPGRADE_A3_A4_NATIVE
   -> A3/A4 복제 또는 shared-link 쌍을 fresh native GMTITLE로 교체해야 한다.
-  -> 다음 명령은 SWTITLECONVERT.
+  -> 다음 명령은 SWTITLECONVERTNEXT.
 
 NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX
   -> 도면틀 정의 자체가 위험하다.
@@ -667,10 +667,10 @@ SWTITLEVERIFY 안내
 현재 작업복사본의 다음 실제 작업은 이 단계다.
 
 ```text
-SWTITLECONVERT
+SWTITLECONVERTNEXT
 ```
 
-`SWTITLECONVERT`가 선택지를 물으면 기본은 `OPEN`이다.
+`SWTITLECONVERTNEXT`는 현재 상태의 다음 응답을 자동으로 선택한다. 수동 응답을 직접 고르기 위해 `SWTITLECONVERT`를 사용한다면 기본은 `OPEN`이다.
 
 ```text
 OPEN
@@ -681,7 +681,7 @@ MANUAL
   이번 후보의 기존 값과 왼쪽 아래 기준점을 저장한다.
   GstarCAD GMTITLE로 안내된 한 장을 만든다.
   삽입점은 긴 소수점 좌표를 직접 치지 말고 기존 도면틀 왼쪽 아래 끝점/스냅으로 지정한다.
-  그 뒤 SWTITLECONVERT를 다시 실행하면 마무리한다.
+  그 뒤 SWTITLECONVERTNEXT를 다시 실행하면 마무리한다.
 
 BATCH
   여러 장을 이어서 처리한다.
@@ -715,7 +715,7 @@ OFF
 실제 CAD 확인상 기본값은 A3 (297x420mm) / ISO 제목 블록 A / Object move ON으로 뜰 수 있다.
 이 상태에서 확인을 누르면 목표와 다른 도면틀/제목블록이 생성될 수 있다.
 소수점 좌표를 사람이 직접 입력하지 않는다.
-SWTITLECONVERT가 GMTITLE 이후 왼쪽 아래 기준점을 자동으로 보낸다.
+SWTITLECONVERTNEXT가 GMTITLE 이후 왼쪽 아래 기준점을 자동으로 보낸다.
 Object move는 OFF여야 도면 내부 형상이 움직이지 않는다.
 ```
 
@@ -735,7 +735,7 @@ A3/A4 native 교체 후보 수가 줄어든다.
 
 후보 수가 줄지 않으면 같은 명령을 반복하지 않는다. 최신 `swcad_title_native_frame_check_last.txt`와 `swcad_title_next_step_last.txt`를 보고 원인을 먼저 분류한다.
 
-특히 `ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS`가 반복되면, `OPEN` 자동 흐름이 GstarCAD가 만든 INSERT를 잡지 못한 것이다. 이때는 다음 후보에서 `MANUAL`을 선택해 pending prepare를 만들고, GstarCAD `GMTITLE`로 안내된 DR 용지/제목블록을 한 장 만든 뒤 `SWTITLECONVERT`를 다시 실행한다. 이때 삽입점은 긴 좌표를 치지 말고 기존 도면틀 왼쪽 아래 끝점/스냅으로 지정한다. 다시 실행된 `SWTITLECONVERT`는 일반 상태 분류보다 pending finish를 먼저 수행한다.
+특히 `ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS`가 반복되면, `OPEN` 자동 흐름이 GstarCAD가 만든 INSERT를 잡지 못한 것이다. 이때는 수동 `SWTITLECONVERT`에서 다음 후보 `MANUAL`을 선택해 pending prepare를 만들고, GstarCAD `GMTITLE`로 안내된 DR 용지/제목블록을 한 장 만든 뒤 `SWTITLECONVERTNEXT`를 다시 실행한다. 이때 삽입점은 긴 좌표를 치지 말고 기존 도면틀 왼쪽 아래 끝점/스냅으로 지정한다. 다시 실행된 `SWTITLECONVERTNEXT`는 일반 상태 분류보다 pending finish를 먼저 수행한다.
 
 ### 4단계: A4 frame-only 처리
 
@@ -818,7 +818,7 @@ A4 frame-only -> 제목블록 없이 도면틀만 정상
 ```text
 SWTITLESTATUS가 다음 후보와 필요한 DR 용지를 안내한다.
 SWTITLEVERIFY가 왜 완료가 아닌지 설명한다.
-SWTITLECONVERT가 좌표 계산과 기존 값 복사를 처리한다.
+SWTITLECONVERTNEXT가 좌표 계산과 기존 값 복사를 처리한다.
 ```
 
 ### 자동화 2단계: 배치 보조
@@ -832,7 +832,7 @@ SWTITLECONVERT가 좌표 계산과 기존 값 복사를 처리한다.
 방법:
 
 ```text
-SWTITLECONVERT 안의 OPEN/BATCH 흐름을 사용한다.
+기본은 SWTITLECONVERTNEXT를 사용한다. BATCH처럼 응답을 직접 고를 때만 SWTITLECONVERT 안의 OPEN/BATCH 흐름을 사용한다.
 OPEN 성공 뒤 BATCH로 여러 후보를 이어서 처리한다.
 OPEN이 `NO_INSERTS`로 반복되면 MANUAL prepare/finish 복구 흐름을 사용한다.
 각 GMTITLE 창의 DR 선택은 사람이 눈으로 확인한다.
@@ -962,14 +962,14 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 
 ```text
 1. APPLOAD로 C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp 로드
-2. SWTITLEVERSION으로 gmtitle 버전이 260705-convert-next-a3a4-auto-open인지 확인
+2. SWTITLEVERSION으로 gmtitle 버전이 260705-status-convert-next-guidance인지 확인
 3. SWTITLESTATUS로 현재 상태 확인
 4. 기본 workcopy라면 NEXT_CREATE_FIRST_NATIVE_GMTITLE인지 확인
-5. SWTITLECONVERT 실행
+5. SWTITLECONVERTNEXT 실행
 6. 첫 GMTITLE 창에서 로그가 요구한 용지를 선택한다. 현재 기본 workcopy의 첫 대상은 DR_A2_Outline이다.
 7. 제목블록은 DR_titlea_3rd, Frame positioning은 ON, Object move는 OFF로 확인
 8. 변환이 끝나면 SWTITLESTATUS 실행
-9. 다음 missing exact-size native 기준 객체가 있으면 SWTITLECONVERT로 한 장씩 만든다.
+9. 다음 missing exact-size native 기준 객체가 있으면 SWTITLECONVERTNEXT로 한 장씩 만든다.
 10. 같은 선택값이 반복되는 A3 후보 구간에서만 BATCH를 사용한다.
 11. BATCH도 각 GMTITLE 창 선택을 대신하지 않으므로 DR 용지/제목블록/옵션을 눈으로 확인한다.
 12. A4 frame-only 단계에서는 원본에 없는 DR_titlea_3rd가 생기면 중단한다.
@@ -981,14 +981,14 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 ```text
 1. SWTITLEVERSION으로 현재 기준 버전 확인
 2. SWTITLESTATUS로 현재 후보 수 확인
-3. SWTITLECONVERT 실행
+3. SWTITLECONVERTNEXT 실행
 4. OPEN 선택
 5. GMTITLE 창에서 DR_A3_Outline / DR_titlea_3rd / Frame positioning ON / Object move OFF 확인
 6. 변환이 끝나면 SWTITLESTATUS 실행
 7. A3/A4 native 교체 후보가 11에서 줄었는지 확인
-8. 후보 수가 줄지 않고 `NO_INSERTS`가 반복되면 다음에는 SWTITLECONVERT에서 MANUAL 선택
+8. 후보 수가 줄지 않고 `NO_INSERTS`가 반복되면 다음에는 수동 `SWTITLECONVERT`에서 MANUAL 선택
 9. MANUAL 안내값으로 GstarCAD GMTITLE 한 장 생성, 삽입점은 기존 도면틀 왼쪽 아래 끝점/스냅 사용
-10. SWTITLECONVERT 재실행으로 pending finish 수행
+10. SWTITLECONVERTNEXT 재실행으로 pending finish 수행
 11. 줄었으면 같은 방식으로 다음 후보 진행
 12. A3/A4 후보가 0이 된 뒤 A4 frame-only 처리
 13. SWTITLEVERIFY_FINAL_OK와 대표 더블클릭 확인

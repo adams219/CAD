@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260705-convert-next-a3a4-auto-open",
+  [string]$ExpectedGmtitleVersion = "260705-status-convert-next-guidance",
 
   [string]$ExpectedLoaderVersion = "260705-4step-gmtitle-a4-outline-preflight"
 )
@@ -150,6 +150,20 @@ function Assert-Contains {
   }
 }
 
+function Assert-NotContains {
+  param(
+    [string]$Text,
+    [string]$Needle,
+    [string]$Label
+  )
+
+  if ($Text.Contains($Needle)) {
+    Add-Failure "$Label should not contain: $Needle"
+  } else {
+    Write-Output "${Label}: absent"
+  }
+}
+
 function Assert-VersionInFile {
   param(
     [string]$Path,
@@ -264,6 +278,10 @@ Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT auto response" -Labe
 Assert-Contains -Text $mainText -Needle "권장 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLEVERIFY" -Label "GMTITLE load convert-next workflow guidance"
 Assert-Contains -Text $mainText -Needle "수동 응답을 직접 고를 때만 SWTITLECONVERT를 사용하세요" -Label "GMTITLE load manual convert fallback guidance"
 Assert-Contains -Text $mainText -Needle '(swcad-title-auto-next-answer "OPEN"' -Label "SWTITLECONVERTNEXT native one-sheet default"
+Assert-Contains -Text $mainText -Needle "다음 명령: SWTITLECONVERTNEXT" -Label "SWTITLESTATUS recommends convert-next command"
+Assert-Contains -Text $mainText -Needle "다음: SWTITLECONVERTNEXT를 실행하세요" -Label "SWTITLESTATUS next action recommends convert-next"
+Assert-NotContains -Text $mainText -Needle "다음: SWTITLECONVERT를 실행하세요." -Label "Stale direct convert next-action wording"
+Assert-NotContains -Text $mainText -Needle "일반 흐름은 SWTITLECONVERT를 사용하세요." -Label "Stale direct convert general-flow wording"
 $a3a4NextStart = $mainText.IndexOf("(defun swcad-title-upgrade-native-a3a4-next")
 $a3a4AutoOpen = if ($a3a4NextStart -ge 0) { $mainText.IndexOf('(swcad-title-auto-next-answer "OPEN"', $a3a4NextStart) } else { -1 }
 $a3a4Prompt = if ($a3a4NextStart -ge 0) { $mainText.IndexOf("(getstring", $a3a4NextStart) } else { -1 }
@@ -285,6 +303,8 @@ Assert-Contains -Text $suiteText -Needle "run_hidden_script_smoke_probe.ps1" -La
 Assert-Contains -Text $suiteText -Needle "ProbeWindowStyle = ""Minimized""" -Label "Suite minimized probe window default"
 Assert-Contains -Text $suiteText -Needle "Next CAD action card probe (no CAD)" -Label "Suite next-action card no-CAD preflight"
 Assert-Contains -Text $suiteText -Needle "run_next_cad_action_card_probe.ps1" -Label "Suite next-action card probe runner"
+Assert-Contains -Text $suiteText -Needle "Structure next action: SWTITLECONVERTNEXT" -Label "Suite structure next action recommends convert-next"
+Assert-NotContains -Text $suiteText -Needle "Structure next action: SWTITLECONVERT`"," -Label "Suite stale structure next action"
 Assert-Contains -Text $readmeText -Needle "-WaitForGstarCADClose" -Label "README waiting-mode guidance"
 Assert-Contains -Text $readmeText -Needle "GstarCAD /b Script Smoke Probe" -Label "README GstarCAD /b script smoke probe guidance"
 Assert-Contains -Text $readonlyProbeRunnerText -Needle "WindowStyle = ""Minimized""" -Label "Readonly probe minimized window default"
@@ -293,6 +313,8 @@ Assert-Contains -Text $hiddenScriptSmokeProbeRunnerText -Needle "HIDDEN_SCRIPT_S
 Assert-Contains -Text $hiddenScriptSmokeProbeRunnerText -Needle "WindowStyle=Hidden fails with no log" -Label "Hidden script smoke minimized fallback guidance"
 Assert-Contains -Text $hiddenScriptSmokeProbeRunnerText -Needle "Do not interpret later loader/probe log-missing failures as GMTITLE logic failures" -Label "Hidden script smoke failure interpretation"
 Assert-Contains -Text $readmeText -Needle "no-CAD next-action card probe" -Label "README next-action card suite preflight guidance"
+Assert-Contains -Text $readmeText -Needle "Structure next action: SWTITLECONVERTNEXT" -Label "README structure next action recommends convert-next"
+Assert-NotContains -Text $readmeText -Needle "Structure next action: SWTITLECONVERT`r`n" -Label "README stale structure next action"
 Assert-Contains -Text $readmeText -Needle "A4 native outside marker prepare" -Label "README A4 native marker prepare guidance"
 Assert-Contains -Text $readmeText -Needle "nested-direct-outside" -Label "README nested-direct A4 probe guidance"
 Assert-Contains -Text $readmeText -Needle "run_gmtitle_selection_config_probe.ps1" -Label "README GMTITLE selection config probe guidance"
@@ -488,7 +510,7 @@ Assert-Contains -Text $resumeGuideText -Needle "docs/investigations" -Label "Res
 Assert-Contains -Text $resumeGuideText -Needle 'CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력해서 우회하지 않습니다' -Label "Resume guide raw GMTITLE/TIT/OPEN guard"
 
 $suiteStepNumbers = @(
-  [regex]::Matches($suiteText, 'Write-Output\s+"===== ([0-9]+)\. ') |
+  [regex]::Matches($suiteText, "Write-Output\s+.===== ([0-9]+)\. ") |
     ForEach-Object { [int]$_.Groups[1].Value }
 )
 $expectedSuiteStepNumbers = 1..17
