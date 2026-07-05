@@ -94,7 +94,7 @@ function Invoke-CardCase {
 Invoke-CardCase `
   -Name "first_native" `
   -Status "NEXT_CREATE_FIRST_NATIVE_GMTITLE" `
-  -Expected @("Result: READY_FOR_FIRST_NATIVE_GMTITLE", "SWTITLECONVERT", "DR_A3_Outline")
+  -Expected @("Result: READY_FOR_FIRST_NATIVE_GMTITLE", "SWTITLECONVERT", "DR_A3_Outline", "YES: 첫 native GMTITLE 1장을 만들고 마무리합니다.")
 
 Invoke-CardCase `
   -Name "prepare_a4" `
@@ -104,7 +104,7 @@ Invoke-CardCase `
 Invoke-CardCase `
   -Name "native_upgrade" `
   -Status "NEXT_UPGRADE_A3_A4_NATIVE" `
-  -Expected @("Result: RUN_NATIVE_REPLACEMENT", "SWTITLECONVERT")
+  -Expected @("Result: RUN_NATIVE_REPLACEMENT", "SWTITLECONVERT", "OPEN: 다음 A3/A4 후보 1장만 fresh native GMTITLE로 교체합니다.", "MANUAL: OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복될 때만 사용합니다.")
 
 Invoke-CardCase `
   -Name "structure_review" `
