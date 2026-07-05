@@ -126,11 +126,12 @@ if ($dbmodAfter -and $dbmodAfter -ne "0") {
 Write-Output ""
 if ($statusAfterStatus -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") {
   Write-Output "Result: READY_FOR_FIRST_NATIVE_GMTITLE"
-  Write-Output "Run in visible GstarCAD:"
+  Write-Output "Manual visible-GstarCAD step:"
   Write-Output "  APPLOAD"
   Write-Output ("  {0}" -f (Join-Path $repoRoot "swcad_load.lsp"))
   Write-Output "  SWTITLEVERSION"
   Write-Output "  SWTITLECONVERT"
+  Write-Output "  Note: current Codex Computer Use can capture GstarCAD but cannot reliably activate/click/type into it on this PC."
   Write-Output ""
   Write-Output "In the GMTITLE dialog choose exactly:"
   Write-Output ("  Paper/frame: {0}" -f ($(if ($nextFrame) { $nextFrame } else { "DR_A2_Outline" })))
@@ -152,7 +153,7 @@ if ($statusAfterStatus -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") {
   Write-Output "Next: double-click representative A2/A3/A4 DR_titlea_3rd title blocks and confirm the GMTITLE table editor opens."
 } else {
   Write-Output "Result: FOLLOW_SWTITLESTATUS"
-  Write-Output "Run in visible GstarCAD:"
+  Write-Output "Manual visible-GstarCAD step:"
   Write-Output "  SWTITLESTATUS"
   Write-Output "Then follow the four-command flow shown by that command."
 }

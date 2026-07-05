@@ -270,6 +270,18 @@ Object move: OFF
 After conversion: SWTITLESTATUS
 ```
 
+2026-07-05 visible-CAD Computer Use check:
+
+```text
+GstarCAD launched as Drawing1.dwg.
+get_window_state captured the GstarCAD window and recovery panel.
+activate_window timed out.
+click on the recovery panel close button failed with: failed to activate captured window.
+No work-copy DWG was opened and no drawing data was changed.
+```
+
+So this card intentionally says `Manual visible-GstarCAD step`. Use Computer Use screenshots for inspection only unless a later session proves activation and input work reliably.
+
 ## A4 Outline Prepare Probe
 
 Use `run_a4_outline_prepare_probe.ps1` to copy a work DWG, load the current GMTITLE LSP, and run the internal A4 frame-only `DR_A4_Outline` definition preflight on the copy.

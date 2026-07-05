@@ -21,6 +21,7 @@ $actualDirectStatusRunnerPath = Join-Path $PSScriptRoot "run_actual_workcopy_dir
 $nextCadActionRunnerPath = Join-Path $PSScriptRoot "run_next_cad_action.ps1"
 $selectionConfigProbePath = Join-Path $PSScriptRoot "run_gmtitle_selection_config_probe.ps1"
 $goalStatusPath = Join-Path $PSScriptRoot "run_goal_status.ps1"
+$computerUseHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-computer-use-visible-cad-activation-failure-2026-07-05.md"
 $guidePaths = @(
   "docs\guide\commands.md",
   "docs\guide\gmtitle-cad-conversion-checklist.md",
@@ -173,6 +174,7 @@ $actualDirectStatusRunnerText = Read-Text $actualDirectStatusRunnerPath
 $nextCadActionRunnerText = Read-Text $nextCadActionRunnerPath
 $selectionConfigProbeText = Read-Text $selectionConfigProbePath
 $goalStatusText = Read-Text $goalStatusPath
+$computerUseHistoryText = Read-Text $computerUseHistoryPath
 
 Write-Output "===== GMTITLE static preflight ====="
 Write-Output ("Repo root: {0}" -f $repoRoot)
@@ -271,6 +273,10 @@ Assert-Contains -Text $actualDirectStatusRunnerText -Needle "run_readonly_probe.
 Assert-Contains -Text $actualDirectStatusRunnerText -Needle "SWCAD_ACTUAL_WORKCOPY_LOG_SUFFIX" -Label "Actual direct work-copy suffix override"
 Assert-Contains -Text $actualDirectStatusRunnerText -Needle "swtitle_actual_workcopy_direct_status_260705.txt" -Label "Actual direct work-copy log path"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "READY_FOR_FIRST_NATIVE_GMTITLE" -Label "Next CAD action first-native readiness"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Manual visible-GstarCAD step" -Label "Next CAD action manual visible CAD wording"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "can capture GstarCAD but cannot reliably activate/click/type" -Label "Next CAD action Computer Use limitation wording"
+Assert-Contains -Text $computerUseHistoryText -Needle "failed to activate captured window" -Label "Computer Use activation failure history"
+Assert-Contains -Text $computerUseHistoryText -Needle "Do not repeat the same visible-CAD Computer Use click/type attempt as a default path" -Label "Computer Use no-repeat guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "Paper/frame:" -Label "Next CAD action dialog paper guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "Object move: OFF" -Label "Next CAD action Object move guard"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "REFRESH_DIRECT_PROBE_FIRST" -Label "Next CAD action direct-probe refresh guard"
