@@ -2,6 +2,14 @@
 
 다른 PC에서 현재 GMTITLE 작업을 이어받을 때 확인할 기준 문서입니다.
 
+## 먼저 볼 기준
+
+현재 작업 기준은 이 문서, `docs/guide/gmtitle-current-run-card.md`, `docs/guide/commands.md`, `diagnostics/gmtitle-main45/run_next_cad_action.ps1` 출력입니다.
+
+`docs/history`와 `docs/investigations`는 이전 실험 이력입니다. 같은 시행착오를 반복하지 않기 위한 근거로만 보고, 현재 순서와 다르면 현재 기준 문서를 우선합니다.
+
+A2/A3는 `DR_titlea_3rd` 제목블록 더블클릭으로 GMTITLE 표 편집창을 확인합니다. 표제란 없는 A4 frame-only는 더블클릭할 제목블록이 없으므로 `DR_A4_Outline` 도면틀 수량/형상으로 검증합니다.
+
 ## Git 기준
 
 저장소:

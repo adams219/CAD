@@ -389,7 +389,13 @@ Assert-Contains -Text $runCardText -Needle "GMTITLE 배치점 원칙" -Label "Ru
 Assert-Contains -Text $runCardText -Needle "긴 좌표를 사람이 직접 치지 않습니다" -Label "Run card no manual long coordinate guidance"
 Assert-Contains -Text $runCardText -Needle "마우스 커서가 화면 중앙에 남아 보여도" -Label "Run card center-cursor guidance"
 Assert-Contains -Text $runCardText -Needle "BATCH는 OPEN으로 최소 1장 성공한 뒤" -Label "Run card BATCH after OPEN guidance"
+Assert-Contains -Text $runCardText -Needle "docs/history" -Label "Run card history-doc warning"
+Assert-Contains -Text $runCardText -Needle "docs/investigations" -Label "Run card investigations-doc warning"
+Assert-Contains -Text $runCardText -Needle '표제란 없는 A4 frame-only는 `DR_A4_Outline` 수량과 형상만 `SWTITLEVERIFY`로 검증합니다' -Label "Run card A4 frame-only current standard"
 Assert-Contains -Text $goalPlanText -Needle "RIBBON_ACCESSIBILITY_NOT_STABLE" -Label "Goal plan ribbon accessibility finding"
+Assert-Contains -Text $commandsGuideText -Needle "docs/history" -Label "Commands guide history-doc warning"
+Assert-Contains -Text $commandsGuideText -Needle "docs/investigations" -Label "Commands guide investigations-doc warning"
+Assert-Contains -Text $commandsGuideText -Needle "A4 frame-only는 원본에 표제란이 없는 시트입니다" -Label "Commands guide A4 frame-only current standard"
 Assert-Contains -Text $commandsGuideText -Needle "첫 native GMTITLE 생성: YES" -Label "Commands guide convert YES prompt"
 Assert-Contains -Text $commandsGuideText -Needle "A3/A4 native 교체 1장 처리: OPEN" -Label "Commands guide convert OPEN prompt"
 Assert-Contains -Text $commandsGuideText -Needle "BATCH는 OPEN으로 최소 1장 성공한 뒤" -Label "Commands guide BATCH after OPEN guidance"
@@ -401,6 +407,9 @@ Assert-Contains -Text $resumeGuideText -Needle "첫 native GMTITLE 생성: YES" 
 Assert-Contains -Text $resumeGuideText -Needle "A3/A4 native 교체 1장 처리: OPEN" -Label "Resume guide convert OPEN prompt"
 Assert-Contains -Text $resumeGuideText -Needle "BATCH는 OPEN으로 최소 1장 성공한 뒤" -Label "Resume guide BATCH after OPEN guidance"
 Assert-Contains -Text $resumeGuideText -Needle "NO_INSERTS가 반복됨: MANUAL" -Label "Resume guide convert MANUAL prompt"
+Assert-Contains -Text $resumeGuideText -Needle "현재 작업 기준은 이 문서" -Label "Resume guide current-doc priority"
+Assert-Contains -Text $resumeGuideText -Needle "docs/history" -Label "Resume guide history-doc warning"
+Assert-Contains -Text $resumeGuideText -Needle "docs/investigations" -Label "Resume guide investigations-doc warning"
 
 $suiteStepNumbers = @(
   [regex]::Matches($suiteText, 'Write-Output\s+"===== ([0-9]+)\. ') |

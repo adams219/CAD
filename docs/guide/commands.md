@@ -2,6 +2,12 @@
 
 이 문서는 사용자가 CAD 명령창에 직접 입력하는 공개 명령만 정리합니다.
 
+## 현재 기준 문서
+
+이 문서와 `docs/guide/gmtitle-current-run-card.md`가 현재 실행 기준입니다. `docs/history`와 `docs/investigations`는 과거 실험/실패/조사 기록이므로, 거기에 나온 낡은 순서를 그대로 실행하지 않습니다.
+
+A4 frame-only는 원본에 표제란이 없는 시트입니다. 따라서 완료 확인도 제목블록 더블클릭이 아니라 `DR_A4_Outline` 도면틀 수량과 형상 검증입니다.
+
 ## 기본 로드
 
 GstarCAD에서 `APPLOAD`를 실행한 뒤 아래 파일을 로드합니다.

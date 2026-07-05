@@ -2,6 +2,16 @@
 
 CAD 화면 옆에 열어두고 따라가는 짧은 실행 순서입니다.
 
+## 현재 기준 문서
+
+이 문서가 지금 따라야 할 실행 기준입니다.
+
+`docs/history`와 `docs/investigations`는 과거 실험, 실패, 조사 기록입니다. 같은 실수를 피하기 위한 증거로만 보고 그대로 따라 하지 않습니다.
+
+예전 기록에 A2/A3/A4 제목블록을 모두 더블클릭하라는 표현이 있어도 현재 기준은 다릅니다. A2/A3는 실제 `DR_titlea_3rd` 제목블록을 더블클릭해서 GMTITLE 표 편집창을 확인하고, 표제란 없는 A4 frame-only는 `DR_A4_Outline` 수량과 형상만 `SWTITLEVERIFY`로 검증합니다.
+
+판단이 갈리면 이 문서, `docs/guide/commands.md`, `diagnostics/gmtitle-main45/run_next_cad_action.ps1` 출력 순서로 따릅니다.
+
 ## 목표모드 판단 루프
 
 명령을 많이 누르는 것이 목표가 아닙니다. 아래 순서를 한 번씩만 반복합니다.
