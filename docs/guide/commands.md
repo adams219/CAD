@@ -117,6 +117,7 @@ DR_A4_Outline 정의가 안전함
 ```
 
 `WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION` 또는 `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`이 나오면 `SWTITLECONVERT`를 반복하지 말고 `SWTITLEPREPARE`로 정의 준비/검증을 먼저 합니다.
+`ready-native-outside-markers`는 공식 native A4의 작은 바깥 마커만 허용된 상태입니다. 이 상태에서는 effective A4 형상과 raw selection 검사가 통과했는지 확인한 뒤 A4 frame-only 변환을 진행할 수 있습니다.
 
 ## 옛 GMTITLE 명령
 

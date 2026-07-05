@@ -136,53 +136,30 @@ After DR_A4_Outline target frame count: 1
 즉 A4 frame-only 변환은 제목블록을 새로 만들지 않고 `DR_A4_Outline` 도면틀만 교체하는 쪽으로 검증됐습니다.
 다만 큰 raw bbox 위험이나 raw selection warning이 나오면 여전히 안전 중단입니다.
 
-따라서 지금 다음 단계는 `SWTITLEPREPARE`나 `SWTITLECONVERT`를 더 누르는 것이 아닙니다. 별도 scratch DWG에서 GstarCAD가 실제 `GMTITLE`로 만든 native A4 결과를 확보하고, 그 안의 `DR_A4_Outline` 정의를 비교해야 합니다.
-
-scratch native A4 비교는 production 변환이 아닙니다. scratch 샘플에는 비교를 위해 `DR_titlea_3rd`가 생길 수 있지만, 실제 A4 frame-only 생산 결과에는 원본에 없던 제목블록을 만들면 안 됩니다.
-
-주의:
+scratch native A4 비교는 이미 완료된 과거 조사입니다. 같은 scratch A4를 다시 만들 필요는 없습니다.
 
 ```text
-직접 GMTITLE만 실행해서 바로 삽입 지점만 묻는 상태는 A4 native 샘플 확보로 보지 않습니다.
-FILEDIA=1, CMDDIA=1이어도 현재 로컬에서는 GMTITLE이 선택창 없이 기존/default 상태로 삽입 흐름에 들어갈 수 있습니다.
-이 경우 DR_A4_Outline을 새로 고른 것이 아니므로 저장해도 비교 기준이 되지 않습니다.
-2026-07-05 CAD 확인 결과, IMTITLE은 알 수 없는 명령이고 TIT는 GMTITLE과 같은 삽입점 흐름으로 들어갔습니다.
+2026-07-05 clean scratch 결과:
+  scratch_native_a4_clean_260705.dwg
+  Native GMTITLE A4 pair evidence: yes
+  Result: A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS
 
-2026-07-05 CAD 추가 확인:
-GMTITLE 창에서 DR_A4_Outline / DR_titlea_3rd / Frame positioning ON / Object move OFF까지 맞춰도
-명령줄에 "프레임 작성 오류"가 나오고, 바로 이어서 SWTITLESTATUS가
-native GMTITLE 제목블록 존재: 아니요
-DR_titlea_3rd inserts=0
-을 보이면 A4 scratch native 샘플 생성 실패로 판단합니다.
-이 상태의 Drawing1.dwg 또는 저장본은 A4 비교 기준으로 쓰지 않습니다.
-
-2026-07-05 CAD clean scratch 확인:
-새 `gcadiso.dwt` 기반 Drawing2에서 GMTITLE 창을 직접 열고
-DR_A4_Outline / DR_titlea_3rd / Frame positioning ON / Object move OFF를 선택한 뒤
-삽입점 `0,0`을 입력하면 "프레임 작성 오류" 없이 A4 도면틀과 제목블록이 생성되었습니다.
-이 도면은 `C:\Users\DR-DESIGN\Documents\CAD tool\work\scratch_native_a4_clean_260705.dwg`로 저장했습니다.
-따라서 A4 실패는 DR_A4_Outline 자체가 항상 고장난 것이 아니라,
-기존 Drawing1/work-copy 상태나 이미 로드된 정의/컨텍스트에 따라 달라지는 문제로 봅니다.
-이 scratch DWG를 닫은 뒤 `run_a4_native_exemplar_probe.ps1`를 실행한 결과,
-native 쌍 자체는 확인됐지만 공식 A4 정의 안에 작은 바깥 마커가 있음이 확인됐습니다.
-결과는 `A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS`입니다.
+2026-07-05 production A4 frame-only probe:
+  FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
+  After frame-only-count: 1
+  After target title count: 0
+  After DR_A4_Outline target frame count: 1
 ```
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg" -LogPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt" -WaitForGstarCADClose
-```
+즉 지금은 scratch 비교를 반복하지 않고 실제 work-copy에서 일반 4단계 흐름으로 돌아갑니다.
 
 중요:
 
 ```text
-이 명령은 먼저 실행해둔 뒤 GstarCAD에서 scratch DWG를 저장하고 닫아도 됩니다.
-현재 work DWG에 더 많은 삭제/정규화를 시도하지 않습니다.
-실제 native A4 비교가 READY 계열로 나오기 전에는 A4 frame-only production 변환을 연결하지 않습니다.
-현재 clean scratch 기준 결과는 `Native GMTITLE A4 pair evidence: yes`와 `Result: A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS`입니다.
-전체 suite가 기본 A4 probe 로그를 덮어쓸 수 있으므로 clean scratch 결과는 `work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt` 전용 로그로 봅니다.
-이는 native A4 자체가 작은 바깥 선/텍스트를 갖는다는 뜻이므로, strict raw bbox mismatch만으로 오염이라고 판단하지 않습니다.
-다만 production A4 frame-only에서 이 마커를 허용할지, crop할지, 보존할지는 별도 구현 결정이 필요합니다.
-`DR_A4_Outline`만 있고 native link가 있는 `DR_titlea_3rd` 쌍이 없으면 `A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR`가 정상 중단입니다.
+현재 work DWG에 더 많은 삭제/정규화 실험을 시도하지 않습니다.
+`ready-native-outside-markers`는 공식 A4의 작은 바깥 마커를 허용한다는 뜻입니다.
+A4 frame-only source에는 원본에 없던 `DR_titlea_3rd` 제목블록을 만들면 안 됩니다.
+전체 suite가 기본 A4 probe 로그를 덮어쓸 수 있으므로 clean scratch 증거는 `work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt` 전용 로그로 봅니다.
 ```
 
 설정값을 다시 확인해야 할 때:

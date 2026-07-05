@@ -222,6 +222,7 @@ A4 처리 전 조건:
 A3/A4 native 교체 후보가 0이거나 먼저 처리됨
 DR_A4_Outline 정의가 준비됨
 DR_A4_Outline raw bbox 위험이 없음
+또는 공식 native A4의 작은 바깥 마커만 있어 `ready-native-outside-markers`로 판정됨
 ```
 
 `WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION` 또는 `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`이 나오면 변환을 반복하지 않고 먼저 준비합니다.
@@ -238,6 +239,7 @@ DR_A4_Outline 도면틀만 원본 A4 위치/크기에 맞게 들어감
 불필요한 DR_titlea_3rd 제목블록이 생기지 않음
 기존 A4 도면 내용이나 빈 도면틀이 삭제되지 않음
 SWTITLEVERIFY에서 A4 target 수량이 2로 맞음
+ready-native-outside-markers는 실패가 아니라 공식 native A4 마커 허용 상태로 처리됨
 ```
 
 ## 7. 보호 중단으로 봐야 하는 결과

@@ -295,7 +295,7 @@ Assert-Contains -Text $goalStatusText -Needle "run_gmtitle_selection_config_prob
 
 $runCardText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-current-run-card.md")
 $goalPlanText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-goal-mode-plan.md")
-Assert-Contains -Text $runCardText -Needle "2026-07-05 CAD clean scratch" -Label "Run card clean A4 scratch evidence"
+Assert-Contains -Text $runCardText -Needle "scratch_native_a4_clean_260705.dwg" -Label "Run card clean A4 scratch evidence"
 Assert-Contains -Text $goalPlanText -Needle "2026-07-05 clean scratch CAD" -Label "Goal plan clean A4 scratch evidence"
 Assert-Contains -Text $runCardText -Needle "A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS" -Label "Run card clean A4 outside marker result"
 Assert-Contains -Text $goalPlanText -Needle "official native outside marker" -Label "Goal plan A4 official marker decision"
