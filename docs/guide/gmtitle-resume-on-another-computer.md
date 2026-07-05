@@ -131,6 +131,14 @@ SWTITLESTATUS
 SWTITLEVERIFY
 ```
 
+수동으로 GMTITLE 창에서 한 장을 처리한 뒤에는 작업복사본을 저장하고 GstarCAD를 닫은 다음, CAD 밖 PowerShell에서 아래 명령으로 상태를 다시 잠급니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1
+```
+
+이 명령은 DWG를 직접 편집하지 않고 direct probe를 갱신한 뒤 다음 작업 카드를 보여줍니다. 최종 검증 단계라면 final completion gate도 이어서 확인합니다.
+
 ## GMTITLE 창에서 선택
 
 `SWTITLECONVERT` 중 GMTITLE 창이 열리면 로그가 요구한 값만 선택합니다.

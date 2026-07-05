@@ -164,8 +164,9 @@ Object move가 OFF인지 확인
 ```text
 1. CAD가 열려 있으면 현재 열린 work 복사본에서 SWTITLESTATUS를 실행한다.
 2. work\swcad_title_next_step_last.txt 안의 DWG 경로가 현재 열린 도면과 같은지 확인한다.
-3. CAD를 저장하고 닫은 상태라면 run_next_cad_action.ps1 또는 -AutoRefreshDirectProbe로 direct probe를 갱신한다.
-4. 로그가 probe/diagnostics/예전 복사본을 가리키면 현재 작업 기준으로 쓰지 않는다.
+3. 수동 GMTITLE 한 장을 처리했다면 작업복사본을 저장하고 GstarCAD를 닫은 뒤 run_after_manual_gmtitle_step.ps1로 direct probe와 다음 카드를 갱신한다.
+4. 단순히 카드만 다시 보고 싶을 때만 run_next_cad_action.ps1 또는 -AutoRefreshDirectProbe를 사용한다.
+5. 로그가 probe/diagnostics/예전 복사본을 가리키면 현재 작업 기준으로 쓰지 않는다.
 ```
 
 따라서 과거에 어떤 도면이 `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`이었더라도, 그 상태를 현재 열린 도면에 그대로 적용하지 않는다. 현재 도면의 `SWTITLESTATUS` 또는 direct probe 카드가 요구하는 한 단계만 실행한다.
