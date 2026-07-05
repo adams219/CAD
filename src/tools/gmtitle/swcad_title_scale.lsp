@@ -18213,6 +18213,7 @@
 )
 
 (defun c:SWTITLEVERSION ()
+  (setq *swcad-title-last-apply-status* "SWTITLEVERSION_OK")
   (swcad-title-princ-text "\n----- SWTITLEVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-text "\n통합 흐름 기준 기대 버전: 260705-status-convert-next-guidance")
