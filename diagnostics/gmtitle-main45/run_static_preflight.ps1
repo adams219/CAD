@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-11",
+  [string]$ExpectedGmtitleVersion = "260707-unified-title-missing-12",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -369,6 +369,19 @@ if (($titleMissingPolicyStart -lt 0) -or ($titleMissingPolicyEnd -le $titleMissi
   }
   if ($titleMissingPolicyText -match "DR_A4_Outline|\(equal\s+[^\r\n]*`"A4`"") {
     Add-Failure "title-missing policy must not branch on A4 or DR_A4_Outline."
+  }
+}
+$titleOffsetStart = $mainText.IndexOf("(defun swcad-title-frame-only-title-offset")
+$titleOffsetEnd = if ($titleOffsetStart -ge 0) { $mainText.IndexOf("(defun swcad-title-transfer-source-bbox", $titleOffsetStart) } else { -1 }
+if (($titleOffsetStart -lt 0) -or ($titleOffsetEnd -le $titleOffsetStart)) {
+  Add-Failure "swcad-title-frame-only-title-offset function block not found."
+} else {
+  $titleOffsetText = $mainText.Substring($titleOffsetStart, $titleOffsetEnd - $titleOffsetStart)
+  if ($titleOffsetText -match "`"A4`"|DR_A4_Outline|\(equal\s+[^\r\n]*normalized\s+`"A4`"") {
+    Add-Failure "title/frame offset calculation must not special-case A4."
+  }
+  if ($titleOffsetText -notmatch '\(list \(max 20\.0 \(- width 190\.0\)\) 10\.0\)') {
+    Add-Failure "title/frame offset calculation must use the common sheet-width formula."
   }
 }
 $titleMissingApplyStart = $mainText.IndexOf("(defun swcad-title-transfer-title-missing-outline-apply")

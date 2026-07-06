@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260706-unified-title-missing-11")
+(setq *swcad-title-scale-version* "260707-unified-title-missing-12")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -12822,10 +12822,7 @@
   (setq normalized (swcad-title-normalized-sheet-size sheet-size))
   (setq dims (swcad-title-sheet-dimensions normalized))
   (setq width (if dims (car dims) 210.0))
-  (cond
-    ((equal normalized "A4") '(20.0 10.0))
-    (T (list (max 20.0 (- width 190.0)) 10.0))
-  )
+  (list (max 20.0 (- width 190.0)) 10.0)
 )
 
 (defun swcad-title-transfer-source-bbox (/ source)
