@@ -11,6 +11,7 @@ $mainLspPath = Join-Path $repoRoot "src\tools\gmtitle\swcad_title_scale.lsp"
 $loaderPath = Join-Path $repoRoot "swcad_load.lsp"
 $suitePath = Join-Path $PSScriptRoot "run_main45_verification_suite.ps1"
 $readmePath = Join-Path $PSScriptRoot "README.md"
+$rootReadmePath = Join-Path $repoRoot "README.md"
 $readonlyProbeRunnerPath = Join-Path $PSScriptRoot "run_readonly_probe.ps1"
 $hiddenScriptSmokeProbeRunnerPath = Join-Path $PSScriptRoot "run_hidden_script_smoke_probe.ps1"
 $a4NormProbePath = Join-Path $PSScriptRoot "a4_outline_normalization_probe.lsp"
@@ -211,6 +212,7 @@ $mainText = Read-Text $mainLspPath
 $loaderText = Read-Text $loaderPath
 $suiteText = Read-Text $suitePath
 $readmeText = Read-Text $readmePath
+$rootReadmeText = Read-Text $rootReadmePath
 $readonlyProbeRunnerText = Read-Text $readonlyProbeRunnerPath
 $hiddenScriptSmokeProbeRunnerText = Read-Text $hiddenScriptSmokeProbeRunnerPath
 $a4NormProbeText = Read-Text $a4NormProbePath
@@ -733,6 +735,8 @@ Assert-Contains -Text $automationBoundaryHistoryText -Needle "CAD 명령줄에 G
 Assert-Contains -Text $unifiedFlowResetGuideText -Needle "A2, A3, A4는 모두 같은 GMTITLE입니다" -Label "Unified reset A2/A3/A4 same-flow rule"
 Assert-Contains -Text $unifiedFlowResetGuideText -Needle '`A4`라는 용지 크기만으로 별도 frame-only 흐름을 선택하지 않습니다' -Label "Unified reset no A4-only frame-only rule"
 Assert-Contains -Text $unifiedFlowResetGuideText -Needle '`frame-only`는 A4 전용 정책이 아닙니다' -Label "Unified reset title-missing exception rule"
+Assert-Contains -Text $rootReadmeText -Needle '`frame-only`는 A4 전용이 아니라 원본 표제란/제목블록 부재가 검증된 경우에만 예외로 처리합니다.' -Label "Root README title-missing exception rule"
+Assert-NotContains -Text $rootReadmeText -Needle "A4처럼 표제란 없는 frame-only" -Label "Root README no stale A4-only frame-only wording"
 Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "Recent File List" -Label "Selection config deep registry recent-file evidence"
 Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "최근 직접 열었던 파일 기록" -Label "Selection config deep registry non-evidence conclusion"
 Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "자동 선택할 근거가 없다" -Label "Selection config deep registry no-preselection conclusion"
