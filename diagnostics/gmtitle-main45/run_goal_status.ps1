@@ -24,8 +24,11 @@ $goalPlan = Join-Path $repoRoot "docs\guide\gmtitle-goal-mode-plan.md"
 $script:LatestCadDwg = $null
 $script:LatestCadStatusCode = $null
 $script:LatestCadRecommendedCommand = $null
+$script:LatestCadNextFrame = $null
+$script:LatestCadNextTitle = $null
 $script:LatestCadDwgTrustedForGoal = $false
 $script:LatestCadDwgTrustReason = "not evaluated"
+$script:ExpectedGmtitleVersion = "260706-unified-title-missing-4"
 $script:A4PrepareProbeUnsafe = $false
 $script:A4NestedProbeMissing = $false
 $script:A4NestedProbeUnsafe = $false
@@ -111,6 +114,30 @@ function Get-FirstMatchingLine {
     }
   }
   return $null
+}
+
+function Convert-LegacyTitleMissingStatusLine {
+  param([string]$Line)
+
+  if (-not $Line) {
+    return $Line
+  }
+
+  $normalized = $Line
+  $normalized = $normalized -replace "FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER", "FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER"
+  $normalized = $normalized -replace "READY_FOR_A4_FRAME_ONLY_OUTLINE", "READY_FOR_TITLE_MISSING_OUTLINE"
+  $normalized = $normalized -replace "WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION", "WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION"
+  $normalized = $normalized -replace "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION", "NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION"
+  $normalized = $normalized -replace "OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED", "OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED"
+  $normalized = $normalized -replace "WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE", "WARN_TITLE_MISSING_OUTLINE_DEFINITION_UNSAFE"
+  $normalized = $normalized -replace "ABORT_A4_FRAME_ONLY_OUTLINE_DEFINITION_USER", "ABORT_TITLE_MISSING_OUTLINE_DEFINITION_USER"
+  $normalized = $normalized -replace "ABORT_A4_FRAME_ONLY_OUTLINE_UNAVAILABLE", "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE"
+  $normalized = $normalized -replace "ABORT_A4_FRAME_ONLY_OUTLINE_INVALID_GEOMETRY", "ABORT_TITLE_MISSING_OUTLINE_INVALID_GEOMETRY"
+
+  if ($normalized -ne $Line) {
+    return ("{0} (legacy A4 status normalized)" -f $normalized)
+  }
+  return $normalized
 }
 
 function Get-AllRegexValues {
@@ -347,6 +374,15 @@ function Write-LatestCadLogSummary {
     }
   }
 
+  $nextPairMatch = [regex]::Match($text, ":\s*(DR_A[0-4]_Outline)\s*/\s*(DR_titlea_3rd)\s*1")
+  if ($nextPairMatch.Success) {
+    $nextFrameFromLog = $nextPairMatch.Groups[1].Value
+    $nextTitleFromLog = $nextPairMatch.Groups[2].Value
+  } else {
+    $nextFrameFromLog = Get-FirstRegexValue -Text $text -Pattern "(DR_A[0-4]_Outline)"
+    $nextTitleFromLog = Get-FirstRegexValue -Text $text -Pattern "(DR_titlea_3rd)"
+  }
+
   $missingLines = @()
   foreach ($line in $lines) {
     if ($line -match "^\s*A[0-4]:\D+\d+,\D+\d+") {
@@ -359,6 +395,7 @@ function Write-LatestCadLogSummary {
   Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
   if ($dwg) { Write-Output ("  DWG: {0}" -f $dwg) }
   if ($statusCode) { Write-Output ("  Status code: {0}" -f $statusCode) }
+  if ($nextFrameFromLog) { Write-Output ("  Next frame/title hint: {0} / {1}" -f $nextFrameFromLog, $(if ($nextTitleFromLog) { $nextTitleFromLog } else { "<unknown>" })) }
   if ($visibleCounts.Count -gt 0) {
     Write-Output ("  Sheet-count lines mentioned: {0}" -f ($visibleCounts -join ", "))
   }
@@ -380,6 +417,8 @@ function Write-LatestCadLogSummary {
   $script:LatestCadDwg = $dwg
   $script:LatestCadStatusCode = $statusCode
   $script:LatestCadRecommendedCommand = $recommended
+  $script:LatestCadNextFrame = $nextFrameFromLog
+  $script:LatestCadNextTitle = $nextTitleFromLog
 }
 
 function Write-DirectActualWorkcopyProbeSummary {
@@ -417,6 +456,13 @@ function Write-DirectActualWorkcopyProbeSummary {
   $frameOnlyCount = Get-FirstRegexValue -Text $text -Pattern "^\s*frame-only-count:\s*(\d+)"
   $targetTitleCount = Get-FirstRegexValue -Text $text -Pattern "^\s*target-title-count:\s*(\d+)"
   $targetFrameCount = Get-FirstRegexValue -Text $text -Pattern "^\s*target-frame-count:\s*(\d+)"
+  $versionTrusted = $true
+  if ($loadedVersion -and ($loadedVersion -ne $script:ExpectedGmtitleVersion)) {
+    $versionTrusted = $false
+  }
+  if ($expectedVersion -and ($expectedVersion -ne $script:ExpectedGmtitleVersion)) {
+    $versionTrusted = $false
+  }
 
   $trusted = $false
   if ($dwg) {
@@ -431,12 +477,18 @@ function Write-DirectActualWorkcopyProbeSummary {
       $trusted = $false
     }
   }
+  if (-not $versionTrusted) {
+    $trusted = $false
+  }
 
   Write-Output "Direct actual work-copy probe:"
   Write-Output ("  Path: {0}" -f $logPath)
   Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
   if ($dwg) { Write-Output ("  DWG: {0}" -f $dwg) }
   Write-Output ("  Trusted for goal: {0}" -f ($(if ($trusted) { "yes" } else { "no" })))
+  if (-not $versionTrusted) {
+    Write-Output ("  Stale direct-probe version: expected current {0}; rerun direct probe after saving/closing CAD before using it as authoritative." -f $script:ExpectedGmtitleVersion)
+  }
   if ($loadedVersion) { Write-Output ("  loaded-version: {0}" -f $loadedVersion) }
   if ($expectedVersion) { Write-Output ("  expected-version: {0}" -f $expectedVersion) }
   if ($statusAfterStatus) { Write-Output ("  status-after-status: {0}" -f $statusAfterStatus) }
@@ -500,11 +552,12 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
       -Pattern "^After definition status:"
 
     if ($prepareResult) {
-      Write-Output ("  Installed DR_A4_Outline prepare probe: {0}" -f $prepareResult)
-      if ($prepareResult -match "WARN_(TITLE_MISSING|A4_FRAME_ONLY)_OUTLINE_DEFINITION_UNSAFE") {
+      $prepareResultDisplay = Convert-LegacyTitleMissingStatusLine -Line $prepareResult
+      Write-Output ("  Installed DR_A4_Outline prepare probe: {0}" -f $prepareResultDisplay)
+      if ($prepareResultDisplay -match "WARN_TITLE_MISSING_OUTLINE_DEFINITION_UNSAFE") {
         $script:A4PrepareProbeUnsafe = $true
       }
-      if ($prepareResult -match "OK_(TITLE_MISSING|A4_FRAME_ONLY)_OUTLINE_DEFINITION_IMPORTED") {
+      if ($prepareResultDisplay -match "OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED") {
         Write-Output "  Installed DR_A4_Outline prepare probe: imported definition accepted for source-title-missing/frame-only readiness."
       }
     }
@@ -628,7 +681,8 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
     $afterA4Frame = Get-FirstMatchingLine -Text $convertText -Pattern "^After DR_A4_Outline target frame count:"
 
     if ($convertResult) {
-      Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $convertResult)
+      $convertResultDisplay = Convert-LegacyTitleMissingStatusLine -Line $convertResult
+      Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $convertResultDisplay)
       Write-Output ("  title-missing/frame-only convert log (A4 sample): {0}" -f $convertProbeLog)
     }
     if ($afterFrameOnly) {
@@ -873,6 +927,11 @@ $directWorkcopyNeedsNativeExemplar = (
     $script:DirectWorkcopyNextMissingFrame
   )
 )
+$latestCadNeedsNativeExemplar = (
+  $script:LatestCadDwgTrustedForGoal -and
+  ($script:LatestCadStatusCode -in @("NEXT_CREATE_FIRST_NATIVE_GMTITLE", "NEXT_CREATE_MISSING_NATIVE_EXEMPLAR")) -and
+  $script:LatestCadNextFrame
+)
 $nestedProbeScript = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1"
 $nestedProbeSource = $script:LatestCadDwg
 if ((-not $script:LatestCadDwgTrustedForGoal) -or (-not $nestedProbeSource)) {
@@ -894,6 +953,14 @@ if ($existingGstarCAD.Count -gt 0) {
         Write-Output ("       처리 유형: {0}" -f $script:DirectWorkcopyNextMissingRole)
       }
     }
+    Write-Output "    4. title-missing/frame-only A4 샘플 증거는 배경 정보입니다. SWTITLESTATUS가 요구하기 전에는 그 단계로 건너뛰지 않습니다."
+    Write-Output ""
+    Write-Output "  Hidden suite verification path only after saving/closing CAD or changing code:"
+  } elseif ($latestCadNeedsNativeExemplar) {
+    Write-Output "  실제 작업복사본 우선 단계:"
+    Write-Output ("    1. 최신 열린 CAD 로그 상태: {0}" -f $script:LatestCadStatusCode)
+    Write-Output "    2. direct probe 로그는 오래됐을 수 있으므로, 열린 CAD에서 SWTITLESTATUS로 현재 활성 DWG와 다음 상태를 먼저 확인하세요."
+    Write-Output ("    3. 상태가 그대로면 SWTITLECONVERTNEXT를 실행하고 누락된 native GMTITLE 기준 객체를 {0} / {1}로 만드세요." -f $script:LatestCadNextFrame, $(if ($script:LatestCadNextTitle) { $script:LatestCadNextTitle } else { "DR_titlea_3rd" }))
     Write-Output "    4. title-missing/frame-only A4 샘플 증거는 배경 정보입니다. SWTITLESTATUS가 요구하기 전에는 그 단계로 건너뛰지 않습니다."
     Write-Output ""
     Write-Output "  Hidden suite verification path only after saving/closing CAD or changing code:"
