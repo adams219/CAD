@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260706-unified-title-missing-10")
+(setq *swcad-title-scale-version* "260706-unified-title-missing-11")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -708,7 +708,7 @@
           ("Fix: replace each listed A3/A4 pair with one fresh native GMTITLE dialog result; the command copies values and deletes the old untrusted pair." . "해결: 목록의 각 A2/A3/A4 쌍을 새 native GMTITLE 창 결과로 교체합니다. 명령이 값을 복사하고 신뢰할 수 없는 기존 쌍을 삭제합니다.")
           ("For every GMTITLE dialog: choose the printed DR_A*_Outline paper, choose DR_titlea_3rd, keep Frame positioning ON, turn Object move OFF, then OK." . "모든 GMTITLE 창에서 표시된 DR_A*_Outline 용지와 DR_titlea_3rd를 고르고, Frame positioning은 ON, Object move는 OFF로 둔 뒤 OK를 누르세요.")
           ("Next: create/finalize the missing sheet size before final double-click checks." . "다음: 최종 더블클릭 확인 전에 누락된 용지 크기를 생성/마무리하세요.")
-          ("Note: remaining untrusted/non-marker pairs are outside the A3/A4 upgrade queue, usually the pre-existing A2 baseline." . "참고: 남은 신뢰 불가/non-marker 쌍은 현재 A2/A3/A4 교체 후보 규칙 밖의 legacy 기준 객체일 수 있습니다.")
+          ("Note: remaining untrusted/non-marker pairs are outside the A2/A3/A4 upgrade queue, usually the pre-existing A2 baseline." . "참고: 남은 신뢰 불가/non-marker 쌍은 현재 A2/A3/A4 교체 후보 규칙 밖의 legacy 기준 객체일 수 있습니다.")
           ("Next: rerun the command and let GMTITLE accept the lower-left placement point, with Object move OFF." . "다음: 명령을 다시 실행하고 Object move를 OFF로 둔 상태에서 GMTITLE이 왼쪽 아래 배치점을 받도록 하세요.")
           ("Next: rerun with Frame positioning ON and Object move OFF, then let GMTITLE accept the lower-left placement point." . "다음: Frame positioning을 ON, Object move를 OFF로 둔 상태에서 명령을 다시 실행하고, GMTITLE이 왼쪽 아래 배치점을 받도록 하세요.")
           ("Next: recreate this sheet with the expected DR paper size before retrying the A3/A4 native upgrade." . "다음: A2/A3/A4 native 교체를 다시 시도하기 전에 이 시트를 예상 DR 용지 크기로 다시 만드세요.")
@@ -16374,7 +16374,7 @@
         (setq reason (swcad-title-target-pair-upgrade-reason record))
         (swcad-title-princ-line
           (strcat
-            "  A3/A4 #"
+            "  A2/A3/A4 #"
             (itoa index)
             " sheet="
             (if sheet sheet "<unknown>")
@@ -16435,8 +16435,8 @@
     (setq reason-counts (swcad-title-count-put reason reason-counts))
   )
   (swcad-title-princ-line (strcat "A2/A3/A4 target pairs needing native replacement: " (itoa total)))
-  (swcad-title-print-counts "A3/A4 fix candidates by sheet:" sheet-counts)
-  (swcad-title-print-counts "A3/A4 fix candidates by reason:" reason-counts)
+  (swcad-title-print-counts "A2/A3/A4 fix candidates by sheet:" sheet-counts)
+  (swcad-title-print-counts "A2/A3/A4 fix candidates by reason:" reason-counts)
   (if records
     (progn
       (swcad-title-princ-line "Candidate detail:")
@@ -16684,7 +16684,7 @@
     ((= a3a4-total 0)
       (swcad-title-apply-result "OK_NATIVE_GMTITLE_UPGRADE_COMPLETE")
       (if (> untrusted 0)
-        (swcad-title-princ-line "Note: remaining untrusted/non-marker pairs are outside the A3/A4 upgrade queue, usually the pre-existing A2 baseline.")
+        (swcad-title-princ-line "Note: remaining untrusted/non-marker pairs are outside the A2/A3/A4 upgrade queue, usually the pre-existing A2 baseline.")
       )
       (swcad-title-princ-line "다음: SWTITLEVERIFY를 실행한 뒤, 실제 DR_titlea_3rd 제목블록이 있는 대표 용지만 더블클릭해 최종 CAD 동작을 확인하세요.")
     )
@@ -17010,7 +17010,7 @@
   (setq values (if old-title-object (swcad-title-title-attribute-pairs old-title-object) nil))
   (setq before-handles (swcad-title-insert-handle-list))
   (setq placement-point (swcad-title-bbox-lower-left-point old-frame-bbox))
-  (swcad-title-princ-line "----- internal A3/A4 manual native GMTITLE prepare -----")
+  (swcad-title-princ-line "----- internal A2/A3/A4 manual native GMTITLE prepare -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -17093,7 +17093,7 @@
   (setq old-frame-bbox (swcad-title-pending-manual-native-value "old-frame-bbox"))
   (setq values (swcad-title-pending-manual-native-value "values"))
   (setq before-handles (swcad-title-pending-manual-native-value "before-handles"))
-  (swcad-title-princ-line "----- internal A3/A4 manual native GMTITLE finish -----")
+  (swcad-title-princ-line "----- internal A2/A3/A4 manual native GMTITLE finish -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -17400,7 +17400,7 @@
           )
         )
         ((= (strcase answer) "MANUAL")
-          (swcad-title-princ-line "A3/A4 MANUAL 복구 모드로 전환합니다.")
+          (swcad-title-princ-line "A2/A3/A4 MANUAL 복구 모드로 전환합니다.")
           (swcad-title-princ-line "이번 실행은 대상/값/왼쪽 아래 기준점만 저장합니다. GMTITLE로 안내된 한 장을 만든 뒤 SWTITLECONVERTNEXT를 다시 실행하면 마무리합니다.")
           (swcad-title-upgrade-native-a3a4-prepare)
         )

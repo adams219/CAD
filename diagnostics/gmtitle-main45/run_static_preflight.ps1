@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-10",
+  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-11",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -173,6 +173,20 @@ function Assert-NotContains {
 
   if ($Text.Contains($Needle)) {
     Add-Failure "$Label should not contain: $Needle"
+  } else {
+    Write-Output "${Label}: absent"
+  }
+}
+
+function Assert-NotMatches {
+  param(
+    [string]$Text,
+    [string]$Pattern,
+    [string]$Label
+  )
+
+  if ([regex]::IsMatch($Text, $Pattern)) {
+    Add-Failure "$Label should not match: $Pattern"
   } else {
     Write-Output "${Label}: absent"
   }
@@ -423,6 +437,11 @@ Assert-NotContains -Text $mainText -Needle "교체된 A3/A4 native 도면틀" -L
 Assert-NotContains -Text $mainText -Needle "SCRIPT 실행 중에는 A3/A4 대화식 교체" -Label "No stale visible A3/A4-only interactive wording"
 Assert-NotContains -Text $mainText -Needle '("NEEDS_NATIVE_GMTITLE_UPGRADE" . "A3/A4 GMTITLE 중' -Label "No stale visible A3/A4-only trusted-pair wording"
 Assert-NotContains -Text $mainText -Needle "이미 만들어진 A3/A4 GMTITLE" -Label "No stale visible A3/A4-only created-pair wording"
+Assert-NotMatches -Text $mainText -Pattern '(?<!A2/)A3/A4 #' -Label "No stale visible A3/A4-only native replacement row labels"
+Assert-NotMatches -Text $mainText -Pattern '(?<!A2/)A3/A4 fix candidates by' -Label "No stale visible A3/A4-only fix candidate count labels"
+Assert-NotContains -Text $mainText -Needle "outside the A3/A4 upgrade queue" -Label "No stale visible A3/A4-only upgrade queue wording"
+Assert-NotMatches -Text $mainText -Pattern '(?<!A2/)internal A3/A4 manual native GMTITLE' -Label "No stale visible A3/A4-only manual native headings"
+Assert-NotMatches -Text $mainText -Pattern '(?<!A2/)A3/A4 MANUAL 복구 모드' -Label "No stale visible A3/A4-only manual fallback wording"
 Assert-NotContains -Text $mainText -Needle "일반 A3/A4 또는 ISO" -Label "No stale visible ordinary A3/A4 default wording"
 Assert-NotContains -Text $mainText -Needle "SWTITLECONVERT A3/A4" -Label "No stale visible A3/A4-only convert heading"
 Assert-NotContains -Text $mainText -Needle 'swcad-title-frame-name-matches-p frame-name "DR_A4_Outline"' -Label "No A4-only trusted-frame exception"
