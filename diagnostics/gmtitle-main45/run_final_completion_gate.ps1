@@ -195,7 +195,7 @@ Assert-LogContains `
   -Label "final completion status probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260706-unified-title-missing-8",
+    "Loaded version: 260706-unified-title-missing-9",
     "Result: OK SWTITLESTATUS",
     "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_OK",
     "source-title-count: 0",

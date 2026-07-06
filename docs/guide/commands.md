@@ -33,7 +33,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260706-unified-title-missing-8
+260706-unified-title-missing-9
 ```
 
 다른 버전이 보이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.

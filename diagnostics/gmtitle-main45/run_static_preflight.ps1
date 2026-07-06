@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-8",
+  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-9",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -322,6 +322,10 @@ Assert-Contains -Text $mainText -Needle "swcad-title-title-missing-outline-defin
 Assert-Contains -Text $mainText -Needle "swcad-title-title-missing-outline-policy-blocked-p" -Label "Generic title-missing outline policy gate"
 Assert-Contains -Text $mainText -Needle "swcad-title-title-missing-outline-frame-block-present-p" -Label "Generic title-missing outline frame-block presence guard"
 Assert-Contains -Text $mainText -Needle "swcad-title-title-missing-outline-risk-message" -Label "Generic title-missing outline risk message"
+Assert-Contains -Text $mainText -Needle "swcad-title-frame-only-source-for-frame-block" -Label "Title-missing warnings select same-size frame-only source"
+if ([regex]::IsMatch($mainText, "\(swcad-title-title-missing-outline-risk-message\s*\r?\n\s*\(car\s+\(swcad-title-frame-only-source-candidates\)\)")) {
+  Add-Failure "Title-missing per-size warning must not reuse the first frame-only source."
+}
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-prepare-title-missing-outline-definition (/ frame-block" -Label "Generic title-missing outline prepare implementation"
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-transfer-title-missing-outline-apply (/ *error*" -Label "Generic title-missing outline transfer implementation"
 Assert-Contains -Text $mainText -Needle "swcad-title-transfer-title-missing-outline-apply" -Label "Generic title-missing outline transfer wrapper"

@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260706-unified-title-missing-8")
+(setq *swcad-title-scale-version* "260706-unified-title-missing-9")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -4068,7 +4068,7 @@
             )
             (setq risk-message
               (swcad-title-title-missing-outline-risk-message
-                (car (swcad-title-frame-only-source-candidates))
+                (swcad-title-frame-only-source-for-frame-block frame-block)
                 frame-block
               )
             )
@@ -12677,6 +12677,29 @@
     )
   )
   result
+)
+
+(defun swcad-title-frame-only-source-for-frame-block (frame-block / target-sheet frames found frame)
+  (setq target-sheet (swcad-title-sheet-size-from-block-name frame-block))
+  (setq frames (swcad-title-frame-only-source-candidates))
+  (setq found nil)
+  (foreach frame frames
+    (if
+      (and
+        (not found)
+        target-sheet
+        (equal
+          (swcad-title-normalized-sheet-size (nth 5 frame))
+          (swcad-title-normalized-sheet-size target-sheet)
+        )
+      )
+      (setq found frame)
+    )
+  )
+  (if found
+    found
+    (car frames)
+  )
 )
 
 (defun swcad-title-title-missing-outline-risk-message (source-frame frame-block / bbox sheet width height long-edge short-edge dims expected-long expected-short)
