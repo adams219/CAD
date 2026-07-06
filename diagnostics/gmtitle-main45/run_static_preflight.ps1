@@ -326,6 +326,35 @@ Assert-Contains -Text $mainText -Needle "swcad-title-frame-only-source-for-frame
 if ([regex]::IsMatch($mainText, "\(swcad-title-title-missing-outline-risk-message\s*\r?\n\s*\(car\s+\(swcad-title-frame-only-source-candidates\)\)")) {
   Add-Failure "Title-missing per-size warning must not reuse the first frame-only source."
 }
+$frameOnlySourceCandidatesStart = $mainText.IndexOf("(defun swcad-title-frame-only-source-candidates")
+$frameOnlySourceCandidatesEnd = if ($frameOnlySourceCandidatesStart -ge 0) { $mainText.IndexOf("(defun swcad-title-frame-only-source-for-frame-block", $frameOnlySourceCandidatesStart) } else { -1 }
+if (($frameOnlySourceCandidatesStart -lt 0) -or ($frameOnlySourceCandidatesEnd -le $frameOnlySourceCandidatesStart)) {
+  Add-Failure "swcad-title-frame-only-source-candidates function block not found."
+} else {
+  $frameOnlySourceCandidatesText = $mainText.Substring($frameOnlySourceCandidatesStart, $frameOnlySourceCandidatesEnd - $frameOnlySourceCandidatesStart)
+  if ($frameOnlySourceCandidatesText -notmatch "swcad-title-source-title-candidates") {
+    Add-Failure "frame-only source candidates must inspect source-title candidates."
+  }
+  if ($frameOnlySourceCandidatesText -notmatch "\(not\s+\(swcad-title-frame-has-source-title-p") {
+    Add-Failure "frame-only source candidates must be based on absence of a contained source title."
+  }
+  if ($frameOnlySourceCandidatesText -match "DR_A4_Outline|`"A4`"") {
+    Add-Failure "frame-only source candidates must not special-case A4."
+  }
+}
+$titleMissingPolicyStart = $mainText.IndexOf("(defun swcad-title-title-missing-outline-policy-active-p")
+$titleMissingPolicyEnd = if ($titleMissingPolicyStart -ge 0) { $mainText.IndexOf("(defun swcad-title-title-missing-outline-policy-blocked-p", $titleMissingPolicyStart) } else { -1 }
+if (($titleMissingPolicyStart -lt 0) -or ($titleMissingPolicyEnd -le $titleMissingPolicyStart)) {
+  Add-Failure "swcad-title-title-missing-outline-policy-active-p function block not found."
+} else {
+  $titleMissingPolicyText = $mainText.Substring($titleMissingPolicyStart, $titleMissingPolicyEnd - $titleMissingPolicyStart)
+  if ($titleMissingPolicyText -notmatch "swcad-title-frame-only-source-candidates") {
+    Add-Failure "title-missing policy must start from verified frame-only/source-title-missing candidates."
+  }
+  if ($titleMissingPolicyText -match "DR_A4_Outline|\(equal\s+[^\r\n]*`"A4`"") {
+    Add-Failure "title-missing policy must not branch on A4 or DR_A4_Outline."
+  }
+}
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-prepare-title-missing-outline-definition (/ frame-block" -Label "Generic title-missing outline prepare implementation"
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-transfer-title-missing-outline-apply (/ *error*" -Label "Generic title-missing outline transfer implementation"
 Assert-Contains -Text $mainText -Needle "swcad-title-transfer-title-missing-outline-apply" -Label "Generic title-missing outline transfer wrapper"
