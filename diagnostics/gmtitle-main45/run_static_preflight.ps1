@@ -336,6 +336,13 @@ Assert-Contains -Text $mainText -Needle "수동 응답을 직접 고를 때만 S
 Assert-Contains -Text $mainText -Needle "중요: 변환 전에는 SWTITLESTATUS 결과가 안내한 다음 명령만 실행하세요" -Label "GMTITLE load status-result-only guidance"
 Assert-Contains -Text $mainText -Needle "금지: CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력해 우회하지 마세요" -Label "GMTITLE load raw GMTITLE/TIT/OPEN guard"
 Assert-Contains -Text $mainText -Needle 'SWTITLEVERSION_OK' -Label "SWTITLEVERSION read-only status marker"
+Assert-Contains -Text $mainText -Needle "swcad-title-princ-raw-line" -Label "GMTITLE raw output helper for exact version strings"
+Assert-Contains -Text $mainText -Needle "SWTITLE LSP 버전: " -Label "GMTITLE exact Korean version label"
+if ([regex]::IsMatch($mainText, "\(defun\s+swcad-title-print-loaded-version\s*\(\)\s*\r?\n\s*\(swcad-title-princ-line")) {
+  Add-Failure "swcad-title-print-loaded-version must use raw output; translated output changes version tokens such as missing -> 없음."
+} else {
+  Write-Output "GMTITLE version output raw guard: OK"
+}
 Assert-Contains -Text $mainText -Needle "다음 첫 native GMTITLE 선택:" -Label "SWTITLESTATUS first-native selection heading"
 Assert-Contains -Text $mainText -Needle "GMTITLE 창에서는 위 용지/도면틀과 제목블록을 고르고" -Label "SWTITLESTATUS first-native dialog guidance"
 Assert-Contains -Text $mainText -Needle "예상 수동 GMTITLE 확인량:" -Label "SWTITLESTATUS manual GMTITLE forecast heading"
