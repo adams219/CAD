@@ -753,6 +753,21 @@ Assert-Contains -Text $readmeText -Needle "screenshot-coordinate ribbon clicks a
 Assert-Contains -Text $readmeText -Needle "AppData text marker scan is advisory" -Label "README AppData advisory scan guidance"
 Assert-Contains -Text $goalStatusText -Needle "Write-NativeFrameProgressSummary" -Label "Goal status native-frame progress summary"
 Assert-Contains -Text $goalStatusText -Needle "Convert-LegacyTitleMissingStatusLine" -Label "Goal status legacy title-missing status normalization"
+Assert-Contains -Text $goalStatusText -Needle "[System.Text.UTF8Encoding]::new(`$true, `$true)" -Label "Goal status strict UTF-8 log fallback"
+Assert-Contains -Text $goalStatusText -Needle "[System.Text.Encoding]::GetEncoding(949)" -Label "Goal status CP949 log fallback"
+Assert-Contains -Text $goalStatusText -Needle "function Test-TextLooksMojibake" -Label "Goal status mojibake detector"
+Assert-Contains -Text $goalStatusText -Needle "function Convert-SheetCountLine" -Label "Goal status sheet-count sanitizer"
+Assert-Contains -Text $goalStatusText -Needle "function Convert-SafeCadLogLine" -Label "Goal status safe CAD log formatter"
+Assert-Contains -Text $goalStatusText -Needle '$safeLine = Convert-SafeCadLogLine -Line $line.Trim()' -Label "Goal status missing-count safe formatter use"
+Assert-Contains -Text $goalStatusText -Needle '$safeCompletion = Convert-SafeCadLogLine -Line $completion' -Label "Goal status native completion safe formatter use"
+Assert-Contains -Text $goalStatusText -Needle 'Result code: {0}' -Label "Goal status mojibake result-code fallback"
+$goalStatusUtf8Index = $goalStatusText.IndexOf("[System.Text.UTF8Encoding]::new(`$true, `$true)", [System.StringComparison]::Ordinal)
+$goalStatusCp949Index = $goalStatusText.IndexOf("[System.Text.Encoding]::GetEncoding(949)", [System.StringComparison]::Ordinal)
+if ($goalStatusUtf8Index -ge 0 -and $goalStatusCp949Index -ge 0 -and $goalStatusUtf8Index -lt $goalStatusCp949Index) {
+  Write-Output "Goal status log fallback order: UTF-8 before CP949"
+} else {
+  Add-Failure "Goal status log fallback order must try strict UTF-8 before CP949 to avoid mojibake in UTF-8 CAD logs."
+}
 Assert-Contains -Text $goalStatusText -Needle "Stale direct-probe version" -Label "Goal status stale direct-probe version warning"
 Assert-Contains -Text $goalStatusText -Needle "최신 열린 CAD 로그 상태" -Label "Goal status latest CAD fallback for stale direct probe"
 Assert-Contains -Text $goalStatusText -Needle "DR_A4_Outline definition decision" -Label "Goal status DR_A4 definition decision guidance"

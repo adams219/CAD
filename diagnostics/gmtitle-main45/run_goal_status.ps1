@@ -73,20 +73,31 @@ function Read-TextWithFallback {
   param([string]$Path)
 
   $bytes = [System.IO.File]::ReadAllBytes($Path)
+  if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+    return ([System.Text.UTF8Encoding]::new($true, $true).GetString($bytes)).TrimStart([char]0xFEFF)
+  }
+  if ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) {
+    return ([System.Text.Encoding]::Unicode.GetString($bytes)).TrimStart([char]0xFEFF)
+  }
+  if ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF) {
+    return ([System.Text.Encoding]::BigEndianUnicode.GetString($bytes)).TrimStart([char]0xFEFF)
+  }
+
   $encodings = @(
-    [System.Text.Encoding]::GetEncoding(949),
     [System.Text.UTF8Encoding]::new($true, $true),
-    [System.Text.Encoding]::Unicode
+    [System.Text.Encoding]::GetEncoding(949),
+    [System.Text.Encoding]::Unicode,
+    [System.Text.Encoding]::Default
   )
 
   foreach ($encoding in $encodings) {
     try {
-      return $encoding.GetString($bytes)
+      return $encoding.GetString($bytes).TrimStart([char]0xFEFF)
     } catch {
     }
   }
 
-  return [System.Text.Encoding]::Default.GetString($bytes)
+  return ([System.Text.Encoding]::Default.GetString($bytes)).TrimStart([char]0xFEFF)
 }
 
 function Get-FirstRegexValue {
@@ -138,6 +149,75 @@ function Convert-LegacyTitleMissingStatusLine {
     return ("{0} (legacy A4 status normalized)" -f $normalized)
   }
   return $normalized
+}
+
+function Test-TextLooksMojibake {
+  param([string]$Text)
+
+  if ([string]::IsNullOrWhiteSpace($Text)) {
+    return $false
+  }
+
+  return ($Text.IndexOf([char]0xFFFD) -ge 0) -or ($Text.IndexOf([char]0x5360) -ge 0)
+}
+
+function Convert-SheetCountLine {
+  param([string]$Line)
+
+  if ([string]::IsNullOrWhiteSpace($Line)) {
+    return $Line
+  }
+
+  if ($Line -match "^\s*(A[0-4])\D+(\d+)\D+(\d+)\s*$") {
+    return ("{0}: 필요 {1}, 현재 {2}" -f $Matches[1], $Matches[2], $Matches[3])
+  }
+
+  return $Line
+}
+
+function Convert-NativeCompletionLine {
+  param([string]$Line)
+
+  if ([string]::IsNullOrWhiteSpace($Line)) {
+    return $Line
+  }
+
+  if ($Line -match "^A3/A4\s+native-like.*?(\d+)\s*/\s*(\d+)") {
+    return ("A3/A4 native-like 완료: {0} / {1}" -f $Matches[1], $Matches[2])
+  }
+
+  return $Line
+}
+
+function Convert-SafeCadLogLine {
+  param([string]$Line)
+
+  if ([string]::IsNullOrWhiteSpace($Line)) {
+    return $Line
+  }
+
+  $sheetLine = Convert-SheetCountLine -Line $Line
+  if ($sheetLine -ne $Line) {
+    return $sheetLine
+  }
+
+  $completionLine = Convert-NativeCompletionLine -Line $Line
+  if ($completionLine -ne $Line) {
+    return $completionLine
+  }
+
+  if ($Line -match "(SWTITLEVERIFY_FINAL_[A-Z]+|NEXT_[A-Z0-9_]+|WARN_[A-Z0-9_]+|FAIL_[A-Z0-9_]+|OK_[A-Z0-9_]+|ABORT_[A-Z0-9_]+)") {
+    $code = $Matches[1]
+    if (Test-TextLooksMojibake -Text $Line) {
+      return ("Result code: {0}" -f $code)
+    }
+  }
+
+  if (Test-TextLooksMojibake -Text $Line) {
+    return $null
+  }
+
+  return $Line
 }
 
 function Get-AllRegexValues {
@@ -386,7 +466,10 @@ function Write-LatestCadLogSummary {
   $missingLines = @()
   foreach ($line in $lines) {
     if ($line -match "^\s*A[0-4]:\D+\d+,\D+\d+") {
-      $missingLines += $line.Trim()
+      $safeLine = Convert-SafeCadLogLine -Line $line.Trim()
+      if (-not [string]::IsNullOrWhiteSpace($safeLine)) {
+        $missingLines += $safeLine
+      }
     }
   }
 
@@ -761,6 +844,8 @@ function Write-NativeFrameProgressSummary {
   $a4NativeLikeCount = [regex]::Matches($text, "sheet=A4,.*native-like=yes").Count
   $untrustedCount = [regex]::Matches($text, "native-like=no").Count
   $a4Missing = [regex]::IsMatch($text, "(?m)^\s*-\s*A4\s*$")
+  $safeCompletion = Convert-SafeCadLogLine -Line $completion
+  $safeResult = Convert-SafeCadLogLine -Line $result
 
   Write-Output "Native frame progress log:"
   Write-Output ("  Path: {0}" -f $nativeFrameLog)
@@ -770,9 +855,9 @@ function Write-NativeFrameProgressSummary {
   Write-Output ("  A3 native-like frame/title pairs found: {0}" -f $a3NativeLikeCount)
   Write-Output ("  A4 native-like frame/title pairs found: {0}" -f $a4NativeLikeCount)
   Write-Output ("  A4 target frame still missing: {0}" -f ($(if ($a4Missing) { "yes" } else { "no" })))
-  if ($completion) { Write-Output ("  {0}" -f $completion) }
+  if ($safeCompletion) { Write-Output ("  {0}" -f $safeCompletion) }
   Write-Output ("  Non-native-like records found by record scan: {0}" -f $untrustedCount)
-  if ($result) { Write-Output ("  {0}" -f $result) }
+  if ($safeResult) { Write-Output ("  {0}" -f $safeResult) }
 
   if (-not $trustInfo.Trusted) {
     Write-Output "  Interpretation: ignored for goal next-action selection because this native-frame log belongs to a scratch/probe/compare DWG."
