@@ -32,6 +32,9 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
 $workDir = Join-Path $repoRoot "work"
+$script:InitialNextActionResult = $null
+$script:InitialNextActionNeedsReload = $false
+$script:InitialNextActionAllowsConversion = $false
 
 if (-not $SourceWorkCopyPath) {
   $SourceWorkCopyPath = Join-Path $workDir "0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg"
@@ -234,19 +237,28 @@ function Write-InitialCardShortSummary {
   Write-Step "  금지: GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요."
   Write-Step "  금지: 긴 명령/경로를 자동 입력하거나 붙여넣지 마세요. CAD가 `_pasteclip` 삽입으로 해석할 수 있습니다."
   Write-Step "  배치점: 긴 좌표를 직접 치지 말고 자동 입력을 기다리세요."
-  Write-Step "  처리 후: 작업복사본을 저장하고 GstarCAD를 닫으세요."
+  if ($needsReload) {
+    Write-Step "  처리 후: 상태 로그만 갱신했다면 저장하지 않아도 됩니다. GstarCAD를 닫거나 SWTITLESTATUS 출력만 공유하세요."
+  } else {
+    Write-Step "  처리 후: 작업복사본을 저장하고 GstarCAD를 닫으세요."
+  }
 }
 
 function Assert-ManualSessionConversionReady {
   param([string]$CardText)
 
-  if ($CardText -match "(?m)^Result:\s*RELOAD_LSP_AND_CONFIRM_STATUS\s*$") {
+  $result = Get-LastRegexValue -Text $CardText -Pattern "^Result:\s*(\S+)\s*$"
+  $script:InitialNextActionResult = $result
+  $script:InitialNextActionNeedsReload = $result -eq "RELOAD_LSP_AND_CONFIRM_STATUS"
+  $script:InitialNextActionAllowsConversion = $result -match "^(READY_FOR_FIRST_NATIVE_GMTITLE|CREATE_MISSING_NATIVE_GMTITLE_SIZE|RUN_NATIVE_REPLACEMENT|RUN_REMAINING_CONVERSION)$"
+
+  if ($script:InitialNextActionNeedsReload) {
     Write-Step "처음 다음 작업 카드는 visible CAD에서 최신 LSP와 현재 상태를 다시 확인해야 하는 상태입니다."
     Write-Step "참고: direct probe 버전은 오래됐습니다. CAD 안에서 APPLOAD, SWTITLEVERSION, SWTITLESTATUS를 먼저 실행하고, 그 결과가 안내할 때만 SWTITLECONVERTNEXT를 진행하세요."
     return
   }
 
-  if ($CardText -match "(?m)^Result:\s*(READY_FOR_FIRST_NATIVE_GMTITLE|CREATE_MISSING_NATIVE_GMTITLE_SIZE|RUN_NATIVE_REPLACEMENT|RUN_REMAINING_CONVERSION)\s*$") {
+  if ($script:InitialNextActionAllowsConversion) {
     Write-Step "처음 다음 작업 카드는 visible CAD에서 GMTITLE 한 장을 처리할 준비가 된 상태입니다."
     return
   }
@@ -304,7 +316,7 @@ if ($Compact) {
   Write-Step "===== GMTITLE 수동 visible-CAD 세션 ====="
   Write-Step ("저장소 루트: {0}" -f $repoRoot)
   Write-Step ("대상 작업복사본: {0}" -f $SourceWorkCopyPath)
-  Write-Step "목적: 작업복사본을 열고 사용자가 GMTITLE 한 장만 처리한 뒤, GstarCAD가 닫히면 다음 작업 카드를 다시 갱신합니다."
+  Write-Step "목적: 작업복사본을 열기 전에 다음 작업 카드를 확인하고, 카드가 요구하는 경우에만 사용자가 GMTITLE 한 장을 처리합니다."
   Write-Step "안전: 이 스크립트는 SWTITLECONVERTNEXT를 대신 실행하지 않고, GMTITLE 창을 클릭하지 않고, DWG를 저장하지 않습니다."
   Write-Step "입력 주의: 긴 명령/경로를 자동 입력하거나 붙여넣으면 CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있으므로 CAD 명령은 사용자가 직접 입력합니다."
   Write-Step "금지: Codex가 Computer Use로 SWTITLECONVERTNEXT를 대신 타이핑하지 않습니다. CAD 동적 입력이 도면 문자 삽입으로 해석될 수 있으므로 사용자가 명령줄에 직접 입력합니다."
@@ -317,8 +329,8 @@ if ($Compact) {
   Write-Step ("  {0}" -f (Join-Path $repoRoot "swcad_load.lsp"))
   Write-Step "  SWTITLEVERSION"
   Write-Step "  SWTITLESTATUS"
-  Write-Step "  SWTITLECONVERTNEXT"
-  Write-Step "GMTITLE 한 장을 끝낸 뒤: 작업복사본 DWG를 저장하고 GstarCAD를 닫으세요. 그 다음 이 스크립트가 후속 점검을 실행합니다."
+  Write-Step "  SWTITLECONVERTNEXT  (SWTITLESTATUS가 변환을 안내할 때만)"
+  Write-Step "작업 후: 변환을 실제로 했다면 작업복사본 DWG를 저장하고 GstarCAD를 닫으세요. 그 다음 이 스크립트가 후속 점검을 실행합니다."
 }
 
 if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
@@ -417,7 +429,16 @@ if (-not $SkipOpenWorkcopy) {
 }
 
 Write-Step ""
-Write-Step "이제 GstarCAD에서 GMTITLE 한 장만 처리하고, DWG를 저장한 뒤 GstarCAD를 닫으세요."
+if ($script:InitialNextActionNeedsReload) {
+  Write-Step "이제 GstarCAD에서 최신 LSP와 현재 상태만 확인하세요."
+  Write-Step "CAD 명령: APPLOAD -> swcad_load.lsp -> SWTITLEVERSION -> SWTITLESTATUS"
+  Write-Step "SWTITLESTATUS가 변환을 안내하기 전에는 GMTITLE 창을 열거나 용지/제목블록을 고르지 마세요."
+  Write-Step "상태 확인만 했다면 DWG를 저장할 필요가 없습니다. GstarCAD를 닫으면 이 스크립트가 direct-probe 증거를 갱신합니다."
+} elseif ($script:InitialNextActionAllowsConversion) {
+  Write-Step "이제 GstarCAD에서 GMTITLE 한 장만 처리하고, DWG를 저장한 뒤 GstarCAD를 닫으세요."
+} else {
+  Write-Step "이제 GstarCAD에서 SWTITLESTATUS가 안내한 다음 단계만 처리하고, 필요할 때만 DWG를 저장한 뒤 GstarCAD를 닫으세요."
+}
 Write-Step "이 스크립트는 기다렸다가 direct-probe 증거를 갱신합니다."
 
 if (-not (Wait-ForGstarCADToClose -TimeoutSeconds $WaitForGstarCADCloseTimeoutSeconds)) {
