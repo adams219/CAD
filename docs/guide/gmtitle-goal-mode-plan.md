@@ -20,7 +20,7 @@
 정적 preflight: PASS
 hidden verification suite: PASS 여부는 `run_goal_status.ps1`가 최신 `work\main56_verification_suite_last_run.txt`의 Generated/Result를 읽어 판단
 GstarCAD /b script smoke probe: PASS
-GMTITLE LSP 버전: 260706-unified-title-missing
+GMTITLE LSP 버전: 260706-unified-title-missing-2
 loader 버전: 260706-loader-convert-next-response-guidance
 공개 사용자 명령: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLECONVERT, SWTITLEVERIFY, SWTITLEVERSION, SWSCALESCAN
 A4 raw bbox guard: 있음
@@ -98,7 +98,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
    현재 열린 DWG가 work 복사본인지, 최신 LSP인지, 로그가 현재 도면을 가리키는지 확인한다.
 
 2. 상태 분류
-   SWTITLESTATUS 결과를 보고 첫 native 부재, A3/A4 native 교체, A4 frame-only, 정규화/위험 상태 중 하나로 분류한다.
+   SWTITLESTATUS 결과를 보고 첫 native 부재, A3/A4 native 교체, title-missing/frame-only 예외, 정규화/위험 상태 중 하나로 분류한다.
 
 3. 최소 변경
    상태가 요구하는 명령 하나만 실행한다. 보통 SWTITLEPREPARE 또는 SWTITLECONVERTNEXT 중 하나다.
@@ -150,14 +150,14 @@ Object move가 OFF인지 확인
   target title/frame 수가 기대 수량에 가까워짐
   A3/A4 native 교체 후보가 줄어듦
   clone/shared-link 경고가 줄어듦
-  frame-only A4가 제목블록 없이 도면틀만 남음
+  title-missing/frame-only 예외 시트가 원본처럼 제목블록 없이 도면틀만 남음
   SWTITLEVERIFY_FINAL_OK에 가까워짐
 
 진행 아님:
   도면 모양만 비슷해짐
   새 명령어가 늘어남
   같은 경고가 그대로인데 변환을 반복함
-  A4에 원본에 없던 제목블록이 생김
+  원본에 없던 제목블록이 생김
   probe 로그를 실제 작업도면 로그로 착각함
 ```
 
@@ -251,7 +251,7 @@ nested-direct-outside probe:
 다음 실행법:
   1. work 아래 별도 scratch DWG에서 GMTITLE로 DR_A4_Outline native A4를 한 장 만든다.
   2. 이 scratch는 비교용이므로 DR_titlea_3rd가 생겨도 된다.
-  3. production A4 frame-only 변환에서는 여전히 새 DR_titlea_3rd를 만들면 안 된다.
+  3. production title-missing/frame-only 변환에서는 여전히 새 DR_titlea_3rd를 만들면 안 된다.
   4. scratch DWG 저장 후 아래 probe를 실행한다.
 
   powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1 -SourceWorkCopyPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\<scratch-native-a4>.dwg" -LogPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt" -WaitForGstarCADClose
@@ -285,7 +285,7 @@ nested-direct-outside probe:
   따라서 strict raw bbox mismatch만으로 오염이라고 판단하지 않는다.
   구현 정책은 큰 raw bbox/선택 위험은 계속 중단하되, official native outside marker만 있는 경우는 ready-native-outside-markers로 허용하는 쪽으로 정했다.
 
-2026-07-05 A4 frame-only convert probe:
+2026-07-05 title-missing/frame-only convert probe:
   run_a4_outline_convert_probe.ps1가 복사본에서 준비와 변환을 함께 실행했다.
   결과:
     Prepare result: OK status=OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
@@ -294,7 +294,7 @@ nested-direct-outside probe:
     After frame-only-count: 1
     After target title count: 0
     After DR_A4_Outline target frame count: 1
-  즉 production A4 frame-only 경로는 원본에 없던 DR_titlea_3rd 제목블록을 만들지 않고 도면틀만 교체하는 것으로 검증됐다.
+  즉 production title-missing/frame-only 경로는 원본에 없던 DR_titlea_3rd 제목블록을 만들지 않고 도면틀만 교체하는 것으로 검증됐다.
 ```
 
 `DR_A4_Outline` 프레임만 안전해 보여도 native link가 있는 `DR_titlea_3rd` 쌍이 없으면 비교 기준으로 인정하지 않는다. 이 경우 `A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR`가 정상 중단이다.
@@ -318,7 +318,7 @@ nested-direct-outside probe:
 ```text
 LSP 기준:
 loader: 260706-loader-convert-next-response-guidance
-gmtitle: 260706-unified-title-missing
+gmtitle: 260706-unified-title-missing-2
 
 작업 도면:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
@@ -359,7 +359,7 @@ work\swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
 ```text
 신뢰 가능:
   DWG 파일이 현재 열린 work 복사본과 같음
-  SWTITLE LSP 버전이 260706-unified-title-missing
+  SWTITLE LSP 버전이 260706-unified-title-missing-2
   방금 실행한 명령 결과임
 
 신뢰 보류:
@@ -383,8 +383,8 @@ A3/A4 native 인식 문제:
   아직 기본 workcopy에서는 시작 전
   근거: A2/A3/A4 native 기준 객체가 모두 missing
 
-A4 frame-only 미처리:
-  별도 주의 대상
+title-missing/frame-only 미처리:
+  원본 표제란 부재가 검증된 경우에만 별도 주의 대상
   근거: 표제란 없는 도면틀 시트=2, DR_A4_Outline raw bbox 안전성은 별도 검증 필요
 
 BATCH 자동화:
@@ -404,7 +404,7 @@ BATCH 자동화:
 3. GMTITLE 창에서는 로그가 요구한 DR_A*_Outline, DR_titlea_3rd, Frame positioning ON, Object move OFF만 허용한다.
 4. 한 장이 끝나면 SWTITLESTATUS로 다음 missing exact-size native 기준 객체를 확인한다.
 5. 같은 선택값이 반복되는 구간에서만 BATCH를 쓰고, 숨김/SCRIPT 자동화에는 쓰지 않는다.
-6. A4는 원본에 표제란이 없으므로 A4 frame-only 단계에서 불필요한 DR_titlea_3rd가 생기면 중단한다.
+6. 원본에 표제란이 없는 시트는 title-missing/frame-only 단계에서 불필요한 DR_titlea_3rd가 생기면 중단한다.
 ```
 
 ## 목표모드 작업 단위
@@ -413,10 +413,10 @@ BATCH 자동화:
 
 | 작업 단위 | 해결하려는 질문 | 통과 증거 | 통과 전 금지 |
 | --- | --- | --- | --- |
-| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260706-unified-title-missing`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
+| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260706-unified-title-missing-2`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
 | 첫 native 기준 객체 | 이 DWG 안에 실제 GMTITLE 쌍이 최소 1개 있는가 | `target-title-count > 0`, 같은 크기 `DR_A*_Outline` 기준 객체 존재 | clone/fast batch 완료 판단 |
 | A3/A4 native 교체 | 겉보기 복제본이 아니라 fresh native 쌍인가 | `A3/A4 native 교체 후보: 0`, clone/shared-link 경고 0 | 도면틀 더블클릭만 보고 성공 판정 |
-| A4 frame-only | 원본에 없는 제목블록 없이 도면틀만 교체됐는가 | `A4 도면틀-only 대상 수`와 예상 A4 수량 일치, 불필요한 `DR_titlea_3rd` 없음 | A4에 제목블록 생성 |
+| title-missing/frame-only | 원본에 없는 제목블록 없이 도면틀만 교체됐는가 | title-missing 도면틀-only 대상 수와 예상 수량 일치, 불필요한 `DR_titlea_3rd` 없음 | 원본에 없던 제목블록 생성 |
 | 잔여물 보호 | 도면 내부 번호/주석/BOM/치수가 삭제되지 않았는가 | cleanup 후보 로그와 화면 확인이 일치 | cleanup 범위 확대 |
 | 최종 검증 | 전체 도면 수량과 native 동작이 맞는가 | `SWTITLEVERIFY_FINAL_OK`, 대표 제목블록 더블클릭 성공 | 목표 완료 처리 |
 
@@ -561,7 +561,7 @@ LSP가 왼쪽 아래 배치점을 자동 입력했고, 위치 이동값은 dx=0,
 ```text
 남은 A3 후보 10개 전체가 같은 방식으로 모두 처리되는지
 대표 A3 제목블록 더블클릭이 GMTITLE 표 편집창으로 열리는지
-A4 frame-only 2장이 제목블록 없이 DR_A4_Outline만으로 안전하게 처리되는지
+title-missing/frame-only 예외 시트 2장이 제목블록 없이 같은 크기 DR_A*_Outline만으로 안전하게 처리되는지
 SWTITLEVERIFY_FINAL_OK가 나오는지
 ```
 
@@ -601,7 +601,7 @@ SWSCALESCAN
 | --- | --- | --- | --- |
 | 버전/도면 문제 | CAD가 최신 LSP나 work 복사본을 보고 있지 않음 | `SWTITLEVERSION` 불일치, DWG 경로가 `work`가 아님 | APPLOAD 후 다시 상태 확인 |
 | native 구조 문제 | 겉모양은 맞지만 복제/shared-link라 GMTITLE 인식이 불확실함 | `A3/A4 native 교체 후보`, `복제`, `shared-native-link-handle` | `SWTITLECONVERTNEXT`로 한 장씩 fresh native 교체 |
-| A4 frame-only 문제 | 원본 A4에는 표제란이 없고 도면틀만 있음 | `표제란 없는 도면틀 시트`, `A4 대상 도면틀 누락` | A3/A4 native 교체 뒤 A4 도면틀-only 처리 |
+| title-missing/frame-only 문제 | 원본 시트에는 표제란이 없고 도면틀만 있음 | `표제란 없는 도면틀 시트`, 대상 도면틀 누락 | native 교체 뒤 같은 크기 도면틀-only 처리 |
 | 잔여물/오염 문제 | 실수 텍스트, 겹친 target, raw bbox 위험, 도면틀 정의 오염 | `SWTITLESTATUS`의 prepare/위험 안내 | 변환 반복 금지, `SWTITLEPREPARE` 또는 원인 분석 |
 
 ## 목표모드 실행 순서
@@ -621,7 +621,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260706-unified-title-missing
+260706-unified-title-missing-2
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...
@@ -653,8 +653,8 @@ SWTITLEPREPARE 안내
   -> 실수 텍스트, 겹침, 오염, 정규화 후보가 있다.
   -> SWTITLEPREPARE 뒤 다시 SWTITLESTATUS.
 
-표제란 없는 A4 시트 안내
-  -> A4 frame-only 처리 단계다.
+표제란 없는 시트 안내
+  -> title-missing/frame-only 처리 단계다.
   -> A3/A4 native 교체 후보가 남아 있으면 A3/A4가 먼저다.
 
 SWTITLEVERIFY 안내
@@ -752,22 +752,22 @@ A3/A4 native 교체 후보 수가 줄어든다.
 
 특히 `ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS`가 반복되면, `OPEN` 자동 흐름이 GstarCAD가 만든 INSERT를 잡지 못한 것이다. 이때는 수동 `SWTITLECONVERT`에서 다음 후보 `MANUAL`을 선택해 pending prepare를 만들고, GstarCAD `GMTITLE`로 안내된 DR 용지/제목블록을 한 장 만든 뒤 `SWTITLECONVERTNEXT`를 다시 실행한다. 이때 삽입점은 긴 좌표를 치지 말고 기존 도면틀 왼쪽 아래 끝점/스냅으로 지정한다. 다시 실행된 `SWTITLECONVERTNEXT`는 일반 상태 분류보다 pending finish를 먼저 수행한다.
 
-### 4단계: A4 frame-only 처리
+### 4단계: title-missing/frame-only 처리
 
-A3/A4 native 교체 후보가 0이 된 뒤 A4를 처리한다.
+A3/A4 native 교체 후보가 0이 된 뒤 원본 표제란 부재가 검증된 시트를 처리한다.
 
-A4는 원본에 표제란이 없는 시트가 있을 수 있다. 따라서 A4에 `DR_titlea_3rd`가 생기면 성공이 아니라 잘못된 추가일 수 있다.
+원본에 표제란이 없는 시트가 있을 수 있다. 따라서 해당 시트에 `DR_titlea_3rd`가 생기면 성공이 아니라 잘못된 추가일 수 있다.
 
-A4는 보이는 도면틀 크기만 보지 않는다. `DR_A4_Outline` 블록 정의의 raw bbox가 커도, 그것이 공식 native A4의 작은 바깥 마커인지 과도한 raw-selection 위험인지 구분한다.
+title-missing/frame-only 예외는 보이는 도면틀 크기만 보지 않는다. DR_A*_Outline 블록 정의의 raw bbox가 커도, 그것이 공식 native의 작은 바깥 마커인지 과도한 raw-selection 위험인지 구분한다.
 `ready-native-outside-markers`는 effective A4 형상과 raw selection 검사가 통과한 상태다.
-반대로 raw/effective 비율이 크거나 raw selection warning이 남으면, 원본 A4에는 없던 선/글자가 변환 후 같이 딸려올 수 있으므로 `SWTITLEPREPARE`가 `WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`로 멈추는 것이 정상이다.
+반대로 raw/effective 비율이 크거나 raw selection warning이 남으면, 원본에는 없던 선/글자가 변환 후 같이 딸려올 수 있으므로 `SWTITLEPREPARE`가 도면틀 정의 위험으로 멈추는 것이 정상이다.
 
 기대 결과:
 
 ```text
-DR_A4_Outline 도면틀이 필요한 수량만큼 생김
-A4 위치에 불필요한 DR_titlea_3rd 제목블록이 생기지 않음
-DR_A4_Outline raw definition bbox가 A4 범위 안에 있음
+같은 크기 DR_A*_Outline 도면틀이 필요한 수량만큼 생김
+title-missing 위치에 불필요한 DR_titlea_3rd 제목블록이 생기지 않음
+DR_A*_Outline raw definition bbox가 해당 용지 범위 안에 있음
 기존 A4 도면 내용이나 빈 도면틀이 삭제되지 않음
 도면 밖의 이상한 선/블록이 딸려오지 않음
 ```
@@ -782,10 +782,10 @@ SWTITLEVERIFY
 멈춤 조건:
 
 ```text
-DR_A4_Outline raw bbox 위험
-A4에 불필요한 제목블록 생성
-A4 도면이 삭제됨
-A4 수량이 원본 기준과 맞지 않음
+DR_A*_Outline raw bbox 위험
+원본에 없던 제목블록 생성
+title-missing 시트의 도면 내용 삭제
+title-missing/frame-only 수량이 원본 기준과 맞지 않음
 ```
 
 이 경우 새 변환을 반복하지 말고 work 복사본을 보존한 상태에서 원인 로그를 먼저 본다.
@@ -818,7 +818,7 @@ native-like가 아닌 대상 쌍: 0
 ```text
 대표 A2 제목블록 더블클릭 -> GMTITLE 표 편집창
 대표 A3 제목블록 더블클릭 -> GMTITLE 표 편집창
-A4 frame-only -> 제목블록 없이 도면틀만 정상
+title-missing/frame-only 예외 -> 제목블록 없이 도면틀만 정상
 빨간 네모로 표시했던 도면 내부 번호/주석/치수/BOM 유지
 ```
 
@@ -894,7 +894,7 @@ GstarCAD native 구조는 paperset.grx 같은 내부 Mechanical 모듈이 만드
 ```text
 work 복사본에서만 실행
 실패 시 새 INSERT rollback 가능
-A2 1회, A3 1회, A4 frame-only 1회, 반복 A3 3회 검증
+A2 1회, A3 1회, title-missing/frame-only 대표 1회, 반복 A3 3회 검증
 SWTITLEVERIFY와 더블클릭 결과까지 확인
 생성된 scratch DWG가 run_a4_native_exemplar_probe.ps1에서 A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON을 반환
 ```
@@ -904,7 +904,7 @@ SWTITLEVERIFY와 더블클릭 결과까지 확인
 ```text
 요청한 DR_A*_Outline이 정확히 들어감
 DR_titlea_3rd가 필요한 시트에만 들어감
-A4 frame-only에는 불필요한 제목블록이 생기지 않음
+title-missing/frame-only 예외에는 불필요한 제목블록이 생기지 않음
 shared-native-link-handle이 생기지 않음
 SWTITLEVERIFY_FINAL_OK로 이어짐
 ```
@@ -919,7 +919,7 @@ SWTITLEVERIFY_FINAL_OK로 이어짐
 1. GMTITLE 창 선택값을 화면 좌표가 아니라 UI 상태/명령 응답/생성 INSERT 검증으로 확인할 수 있음
 2. 잘못된 ISO 용지/제목블록이 생성되면 즉시 감지하고 새 INSERT를 제거할 수 있음
 3. DR_A2_Outline, DR_A3_Outline, DR_A4_Outline 각각에서 같은 검증이 반복 성공함
-4. A4 frame-only는 제목블록 없이 도면틀만 들어오는 경로가 별도 검증됨
+4. title-missing/frame-only 예외는 제목블록 없이 도면틀만 들어오는 경로가 별도 검증됨
 5. 자동 흐름 뒤 `SWTITLEVERIFY_FINAL_OK`와 대표 더블클릭 확인이 모두 통과함
 ```
 
@@ -933,7 +933,7 @@ SWTITLEVERIFY_FINAL_OK로 이어짐
 후보 수가 줄지 않음
 새 target 쌍이 겹침
 raw bbox 위험 발생
-A4에 제목블록이 새로 생김
+원본에 없던 제목블록이 새로 생김
 도면 내부 형상이 움직임
 SWTITLEVERSION이 기대 버전과 다름
 현재 DWG가 work 복사본이 아님
@@ -946,7 +946,7 @@ SWTITLESTATUS 실행
 SWTITLEVERIFY 실행
 work\swcad_title_next_step_last.txt 확인
 work\swcad_title_native_frame_check_last.txt 확인
-원인을 native 구조, A4 frame-only, 잔여물/오염, 버전/도면 문제 중 하나로 분류
+원인을 native 구조, title-missing/frame-only 예외, 잔여물/오염, 버전/도면 문제 중 하나로 분류
 ```
 
 ## Codex가 CAD를 조작할 때의 안전 규칙
@@ -977,7 +977,7 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 
 ```text
 1. APPLOAD로 C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp 로드
-2. SWTITLEVERSION으로 gmtitle 버전이 260706-unified-title-missing인지 확인
+2. SWTITLEVERSION으로 gmtitle 버전이 260706-unified-title-missing-2인지 확인
 3. SWTITLESTATUS로 현재 상태 확인
 4. 기본 workcopy라면 NEXT_CREATE_FIRST_NATIVE_GMTITLE인지 확인
 5. SWTITLECONVERTNEXT 실행
@@ -987,7 +987,7 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 9. 다음 missing exact-size native 기준 객체가 있으면 SWTITLECONVERTNEXT로 한 장씩 만든다.
 10. 같은 선택값이 반복되는 A3 후보 구간에서만 BATCH를 사용한다.
 11. BATCH도 각 GMTITLE 창 선택을 대신하지 않으므로 DR 용지/제목블록/옵션을 눈으로 확인한다.
-12. A4 frame-only 단계에서는 원본에 없는 DR_titlea_3rd가 생기면 중단한다.
+12. title-missing/frame-only 단계에서는 원본에 없는 DR_titlea_3rd가 생기면 중단한다.
 13. SWTITLEVERIFY_FINAL_OK와 대표 더블클릭 확인
 ```
 
@@ -1005,7 +1005,7 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 9. MANUAL 안내값으로 GstarCAD GMTITLE 한 장 생성, 삽입점은 기존 도면틀 왼쪽 아래 끝점/스냅 사용
 10. SWTITLECONVERTNEXT 재실행으로 pending finish 수행
 11. 줄었으면 같은 방식으로 다음 후보 진행
-12. A3/A4 후보가 0이 된 뒤 A4 frame-only 처리
+12. A3/A4 후보가 0이 된 뒤 title-missing/frame-only 예외 처리
 13. SWTITLEVERIFY_FINAL_OK와 대표 더블클릭 확인
 ```
 

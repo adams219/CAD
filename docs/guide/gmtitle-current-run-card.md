@@ -86,7 +86,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260706-unified-title-missing
+260706-unified-title-missing-2
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -135,7 +135,7 @@ A3 성공 여부는 도면틀 더블클릭이 아니라 짝 DR_titlea_3rd 제목
 
 `SWTITLEPREPARE`를 실행한 뒤에는 반드시 `SWTITLESTATUS`를 다시 실행합니다.
 그 결과가 `SWTITLECONVERTNEXT`를 안내하면 그때 변환을 진행합니다.
-`WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`가 나오면 멈추고, `OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED`와 `ready-native-outside-markers`가 나오면 A4 도면틀-only 변환 준비가 된 상태로 봅니다.
+`WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`가 나오면 멈추고, `OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED`와 `ready-native-outside-markers`가 나오면 title-missing/frame-only 도면틀-only 변환 준비가 된 상태로 봅니다. 상태 코드 이름에 A4가 남아 있어도 현재 해석은 원본 표제란 부재 예외입니다.
 
 현재 probe 기준으로는 설치 원본 `DR_A4_Outline`이 A4 바깥의 작은 native 마커를 포함합니다.
 이제 이 경우를 무조건 실패로 보지 않고, effective A4 형상과 raw selection 검사가 통과하면 `ready-native-outside-markers`로 허용합니다.
@@ -171,7 +171,7 @@ scratch native A4 비교는 이미 완료된 과거 조사입니다. 같은 scra
   Native GMTITLE A4 pair evidence: yes
   Result: A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS
 
-2026-07-05 production A4 frame-only probe:
+2026-07-05 production title-missing/frame-only probe:
   FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
   After frame-only-count: 1
   After target title count: 0
@@ -331,7 +331,7 @@ no-CAD next-action card probe: PASS
 GstarCAD /b script smoke probe: PASS
 actual work-copy status probe: NEXT_CREATE_FIRST_NATIVE_GMTITLE
 A4 outline prepare: OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
-A4 frame-only convert: FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
+title-missing/frame-only convert: FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
 selection config deep registry: GMTITLE_SELECTION_CONFIG_NOT_FOUND
 All expected log markers were verified.
 ```
@@ -463,24 +463,24 @@ SWTITLEVERIFY가 OK 쪽으로 진행
 
 도면틀 안에 표제란처럼 보이는 native-format 형상이 있어도, 별도 `DR_titlea_3rd`와 실제로 겹치는 문제가 아니라면 삭제하지 않습니다.
 
-## A4 판단
+## title-missing 판단
 
 원본 시트는 표제란 없는 도면틀-only 시트일 수 있습니다. 이 예외는 A4 전용이 아니며, 원본 표제란 부재가 검증된 경우에만 적용합니다.
 
-따라서 A4 성공 조건은 제목블록을 만드는 것이 아닙니다.
+따라서 title-missing/frame-only 성공 조건은 제목블록을 만드는 것이 아닙니다.
 
 ```text
-DR_A4_Outline 도면틀만 원본 A4 위치/크기에 맞음
+같은 크기 DR_A*_Outline 도면틀만 원본 위치/크기에 맞음
 불필요한 DR_titlea_3rd 제목블록 없음
-A4 target 수량: 2
-DR_A4_Outline raw definition bbox가 (0,0)-(210,297) 근처를 벗어나지 않음
-기존 A4 내용 삭제 없음
+title-missing/frame-only target 수량이 원본 기준과 맞음
+DR_A*_Outline raw definition bbox가 해당 용지 범위 근처를 벗어나지 않음
+기존 도면 내용 삭제 없음
 ```
 
-A4에서 `DR_titlea_3rd`가 생기면 멈추고 로그를 봅니다.
-`WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`는 원본 A4를 지키기 위해 변환을 중단했다는 뜻입니다.
-반대로 `ready-native-outside-markers`는 공식 native A4의 작은 바깥 마커는 있지만 effective A4 형상과 raw selection 검사가 통과했다는 뜻입니다.
-`run_a4_outline_convert_probe.ps1` 기준으로는 A4 frame-only 1장을 변환한 뒤에도 `After target title count: 0`, `After DR_A4_Outline target frame count: 1`이므로, 원본에 없던 표제란을 만들지 않는 조건을 만족합니다.
+원본에 표제란이 없던 위치에 `DR_titlea_3rd`가 생기면 멈추고 로그를 봅니다.
+`WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`는 원본 도면 내용을 지키기 위해 변환을 중단했다는 뜻입니다.
+반대로 `ready-native-outside-markers`는 공식 native 정의의 작은 바깥 마커는 있지만 effective 형상과 raw selection 검사가 통과했다는 뜻입니다.
+`run_a4_outline_convert_probe.ps1` 기준으로는 title-missing/frame-only 1장을 변환한 뒤에도 `After target title count: 0`, `After DR_A4_Outline target frame count: 1`이므로, 원본에 없던 표제란을 만들지 않는 조건을 만족합니다.
 
 ## 로그를 볼 때 우선순위
 

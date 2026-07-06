@@ -61,7 +61,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260706-unified-title-missing
+260706-unified-title-missing-2
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 로드합니다.
@@ -262,7 +262,7 @@ A3/A4 native 교체 후보 수가 줄어듦
 
 원본 시트에 표제란/제목블록이 없다고 검증된 경우만 title-missing/frame-only 예외로 처리합니다. A4라는 용지 크기만으로 이 경로를 선택하지 않습니다. 이 경우 `DR_titlea_3rd`가 생기면 성공이 아니라 잘못된 추가일 수 있습니다.
 
-A4 처리 전 조건:
+title-missing/frame-only 처리 전 조건:
 
 ```text
 원본 표제란 시트가 먼저 정리됨
@@ -279,7 +279,7 @@ SWTITLEPREPARE
 SWTITLESTATUS
 ```
 
-A4 성공 조건:
+title-missing/frame-only 성공 조건:
 
 ```text
 DR_A4_Outline 도면틀만 원본 A4 위치/크기에 맞게 들어감
