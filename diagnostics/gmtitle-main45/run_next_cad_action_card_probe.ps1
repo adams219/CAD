@@ -231,7 +231,7 @@ Invoke-CardCase `
   -Name "final_ok" `
   -Status "SWTITLEVERIFY_FINAL_OK" `
   -VerifyStatus "SWTITLEVERIFY_FINAL_OK" `
-  -Expected @("Result: READY_FOR_DOUBLE_CLICK_CHECK", "DR_titlea_3rd", "A4 frame-only")
+  -Expected @("Result: READY_FOR_DOUBLE_CLICK_CHECK", "DR_titlea_3rd", "title-missing/frame-only")
 
 Invoke-CardCase `
   -Name "stale_log" `
