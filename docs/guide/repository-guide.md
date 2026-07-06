@@ -18,6 +18,7 @@
 4. GMTITLE / FTAP 스케일 기능은 `src/tools/gmtitle/`에서 읽기 전용 진단부터 시작합니다.
 5. 자동 수정 기능은 진단 로그로 충분히 검증한 뒤 추가합니다.
 6. 채팅에서 나온 임시 작업물은 `work/chat-1`, `work/chat-2`, `work/chat-3` 중 해당 채팅 폴더에 먼저 둡니다.
+7. GMTITLE 변환 방향이 헷갈리면 `docs/guide/gmtitle-unified-flow-reset.md`를 최우선 기준으로 봅니다.
 
 ## Case Folder Pattern
 

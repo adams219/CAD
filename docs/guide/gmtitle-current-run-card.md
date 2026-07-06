@@ -1,16 +1,18 @@
 # GMTITLE 현재 실행 카드
 
+> 2026-07-06 기준 변경: `docs/guide/gmtitle-unified-flow-reset.md`가 GMTITLE 변환의 최우선 기준입니다. A2/A3/A4는 모두 같은 GMTITLE 흐름으로 보고, `frame-only`는 A4 전용 정책이 아니라 원본 표제란 부재가 검증된 경우의 예외로만 해석합니다.
+
 CAD 화면 옆에 열어두고 따라가는 짧은 실행 순서입니다.
 
 ## 현재 기준 문서
 
-이 문서가 지금 따라야 할 실행 기준입니다.
+`docs/guide/gmtitle-unified-flow-reset.md`가 최우선 기준이고, 이 문서는 CAD 화면 옆에서 따라가는 실행 카드입니다.
 
 `docs/history`와 `docs/investigations`는 과거 실험, 실패, 조사 기록입니다. 같은 실수를 피하기 위한 증거로만 보고 그대로 따라 하지 않습니다.
 
-예전 기록에 A2/A3/A4 제목블록을 모두 더블클릭하라는 표현이 있어도 현재 기준은 다릅니다. A2/A3는 실제 `DR_titlea_3rd` 제목블록을 더블클릭해서 GMTITLE 표 편집창을 확인하고, 표제란 없는 A4 frame-only는 `DR_A4_Outline` 수량과 형상만 `SWTITLEVERIFY`로 검증합니다.
+예전 기록에 A4를 별도 frame-only처럼 다룬 표현이 있어도 현재 기준은 다릅니다. A2/A3/A4는 모두 `DR_A*_Outline + DR_titlea_3rd` 공통 GMTITLE 흐름으로 판단하고, 원본 표제란 부재가 검증된 시트만 title-missing 예외로 봅니다.
 
-판단이 갈리면 이 문서, `docs/guide/commands.md`, `diagnostics/gmtitle-main45/run_next_cad_action.ps1` 출력 순서로 따릅니다.
+판단이 갈리면 `docs/guide/gmtitle-unified-flow-reset.md`, 이 문서, `docs/guide/commands.md`, `diagnostics/gmtitle-main45/run_next_cad_action.ps1` 출력 순서로 따릅니다.
 
 ## 목표모드 판단 루프
 
@@ -30,7 +32,7 @@ CAD 화면 옆에 열어두고 따라가는 짧은 실행 순서입니다.
 target title/frame 수가 기대 수량에 가까워짐
 A3/A4 native 교체 후보가 줄어듦
 clone/shared-link 경고가 줄어듦
-A4 frame-only가 제목블록 없이 도면틀만 남음
+title-missing 예외 시트가 제목블록 없이 도면틀만 남음
 ```
 
 진행으로 보지 않는 것:
@@ -84,7 +86,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260706-convert-next-quoted-pause
+260706-card-priority-a3a4
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -128,7 +130,7 @@ A3/A4 참고:
 DR_A3_Outline 도면틀 자체는 native GMTITLE에서도 INSERT/block 참조로 보일 수 있습니다.
 A3 성공 여부는 도면틀 더블클릭이 아니라 짝 DR_titlea_3rd 제목블록 더블클릭 표 편집창으로 확인합니다.
 
-표제란 없는 A4 frame-only는 원본에 없던 DR_titlea_3rd를 새로 만들면 안 됩니다.
+원본 표제란 부재가 검증된 title-missing 시트는 원본에 없던 DR_titlea_3rd를 새로 만들면 안 됩니다.
 ```
 
 `SWTITLEPREPARE`를 실행한 뒤에는 반드시 `SWTITLESTATUS`를 다시 실행합니다.
@@ -158,7 +160,7 @@ After target title count: 0
 After DR_A4_Outline target frame count: 1
 ```
 
-즉 A4 frame-only 변환은 제목블록을 새로 만들지 않고 `DR_A4_Outline` 도면틀만 교체하는 쪽으로 검증됐습니다.
+즉 당시 title-missing으로 감지된 A4 케이스는 제목블록을 새로 만들지 않고 `DR_A4_Outline` 도면틀만 교체하는 쪽으로 검증됐습니다. 이 결론은 A4 전체 정책이 아니라 해당 원본 상태에 대한 예외입니다.
 다만 큰 raw bbox 위험이나 raw selection warning이 나오면 여전히 안전 중단입니다.
 
 scratch native A4 비교는 이미 완료된 과거 조사입니다. 같은 scratch A4를 다시 만들 필요는 없습니다.
@@ -183,7 +185,7 @@ scratch native A4 비교는 이미 완료된 과거 조사입니다. 같은 scra
 ```text
 현재 work DWG에 더 많은 삭제/정규화 실험을 시도하지 않습니다.
 `ready-native-outside-markers`는 공식 A4의 작은 바깥 마커를 허용한다는 뜻입니다.
-A4 frame-only source에는 원본에 없던 `DR_titlea_3rd` 제목블록을 만들면 안 됩니다.
+title-missing source에는 원본에 없던 `DR_titlea_3rd` 제목블록을 만들면 안 됩니다.
 전체 suite가 기본 A4 probe 로그를 덮어쓸 수 있으므로 clean scratch 증거는 `work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt` 전용 로그로 봅니다.
 ```
 
@@ -337,7 +339,7 @@ All expected log markers were verified.
 이 결과는 구현 방향이 probe 복사본에서 깨지지 않았다는 증거입니다. 실제 작업복사본의 `SWTITLEVERIFY_FINAL_OK`와 대표 제목블록 더블클릭 확인은 아직 별도입니다.
 
 이 카드는 direct probe의 현재 상태 코드를 보고 아래처럼 다음 행동을 바로 나눕니다.
-또한 `예상 수동 GMTITLE 확인량`을 같이 출력해서, 지금 한 번만 확인할 용지와 나중에 추가로 확인될 수 있는 용지를 분리해 보여줍니다. A4 frame-only는 제목블록 생성 대상이 아니므로 이 예측에서도 별도로 표시합니다.
+또한 `예상 수동 GMTITLE 확인량`을 같이 출력해서, 지금 한 번만 확인할 용지와 나중에 추가로 확인될 수 있는 용지를 분리해 보여줍니다. title-missing 예외 시트는 제목블록 생성 대상이 아니므로 이 예측에서도 별도로 표시합니다.
 
 ```text
 NEXT_CREATE_FIRST_NATIVE_GMTITLE -> SWTITLECONVERTNEXT 권장, 수동 응답 직접 선택 시 SWTITLECONVERT
@@ -438,7 +440,7 @@ Object move ON
 | `NEXT_PREPARE_FRAME_STYLE_NORMALIZATION` | 도면틀 내부 형상과 별도 제목블록이 겹쳐 정규화 필요 | `SWTITLEPREPARE` |
 | `NEXT_REVIEW_ACCIDENTAL_COMMAND_TEXT` | 도면에 실수 명령어 텍스트 후보가 있음 | 후보 확인 후 `SWTITLEPREPARE` |
 | `NEXT_UPGRADE_A3_A4_NATIVE` | A3/A4 복제/shared-link 쌍을 fresh native로 교체해야 함 | `SWTITLECONVERTNEXT` |
-| `WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION` | A4 frame-only 전에 DR_A4_Outline 검증 필요 | `SWTITLEPREPARE` |
+| `WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION` | 과거 상태명. 현재 기준으로는 title-missing 예외 전에 해당 DR_A*_Outline 검증 필요 | `SWTITLEPREPARE` |
 | `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION` | A4 도면틀 정의 준비/검증 필요 | `SWTITLEPREPARE` |
 | `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX` | 도면틀 정의 선택 범위가 위험함 | 변환 반복 금지, 로그 확인 |
 | `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK` | 기존 도면 보호를 위해 중단됨 | 변환 반복 금지, 원인 분석 |
@@ -463,7 +465,7 @@ SWTITLEVERIFY가 OK 쪽으로 진행
 
 ## A4 판단
 
-A4 원본은 표제란 없는 도면틀-only 시트일 수 있습니다.
+원본 시트는 표제란 없는 도면틀-only 시트일 수 있습니다. 이 예외는 A4 전용이 아니며, 원본 표제란 부재가 검증된 경우에만 적용합니다.
 
 따라서 A4 성공 조건은 제목블록을 만드는 것이 아닙니다.
 
@@ -523,7 +525,7 @@ clone/shared-link 경고: 0
 
 ```text
 대표 A2/A3 제목블록 더블클릭 -> GMTITLE 표 편집창 열림
-A4 frame-only -> 제목블록 없이 DR_A4_Outline 도면틀만 있음
+title-missing 예외 시트 -> 제목블록 없이 해당 DR_A*_Outline 도면틀만 있음
 도면 내부 번호, 주석, BOM, 치수, 모델 형상 유지
 ```
 

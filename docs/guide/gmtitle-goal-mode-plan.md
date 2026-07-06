@@ -1,6 +1,10 @@
 # GMTITLE 목표모드 상세 계획
 
-이 문서는 SolidWorks DWG를 GstarCAD Mechanical native GMTITLE 구조로 안정 변환하기 위한 목표모드 실행 기준이다.
+> 2026-07-06 기준 변경: `docs/guide/gmtitle-unified-flow-reset.md`가 GMTITLE 변환의 최우선 기준입니다. A2/A3/A4는 모두 같은 GMTITLE 흐름으로 보고, `frame-only`는 A4 전용 정책이 아니라 원본 표제란 부재가 검증된 경우의 예외로만 해석합니다.
+
+이 문서는 SolidWorks DWG를 GstarCAD Mechanical native GMTITLE 구조로 안정 변환하기 위한 상세 계획과 검증 이력을 포함한다.
+
+2026-07-06 이후 실제 판단 기준은 `docs/guide/gmtitle-unified-flow-reset.md`이다. 아래 본문에 남아 있는 `A4 frame-only` 표현은 과거 특정 work-copy에서 A4가 표제란 없는 시트처럼 감지되던 시기의 기록이다. 현재 기준에서는 A4 전용 정책으로 보지 않고, 원본 표제란 부재가 검증된 title-missing 예외로만 재해석한다.
 
 목표는 명령어를 계속 늘리는 것이 아니다. 목표는 `SWTITLESTATUS`, `SWTITLEPREPARE`, `SWTITLECONVERTNEXT`, `SWTITLEVERIFY` 흐름 안에서 사람이 반복 선택하는 일을 줄이되, GstarCAD native GMTITLE 인식이 깨지지 않게 만드는 것이다. 수동 응답을 직접 고를 때만 `SWTITLECONVERT`를 사용한다.
 
@@ -16,7 +20,7 @@
 정적 preflight: PASS
 hidden verification suite: PASS 여부는 `run_goal_status.ps1`가 최신 `work\main56_verification_suite_last_run.txt`의 Generated/Result를 읽어 판단
 GstarCAD /b script smoke probe: PASS
-GMTITLE LSP 버전: 260706-convert-next-quoted-pause
+GMTITLE LSP 버전: 260706-card-priority-a3a4
 loader 버전: 260706-loader-convert-next-response-guidance
 공개 사용자 명령: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLECONVERT, SWTITLEVERIFY, SWTITLEVERSION, SWSCALESCAN
 A4 raw bbox guard: 있음
@@ -29,7 +33,7 @@ SCRIPT/숨김 CAD interactive GMTITLE guard: 있음
 실제 work DWG에서 SWTITLEVERIFY_FINAL_OK
 남은 SolidWorks 원본 표제란/도면틀 수 0
 target sheet counts A2=1, A3=12, A4=2
-A4 frame-only가 불필요한 DR_titlea_3rd 없이 처리됨
+원본 표제란 부재가 검증된 시트만 title-missing 예외로 처리됨
 대표 A2/A3 제목블록 더블클릭 시 GMTITLE 표 편집창
 A4 도면틀에 원본에 없던 외부 선/글자 없음
 도면 내부 번호, 주석, BOM, 치수, 모델 형상 보존
@@ -314,7 +318,7 @@ nested-direct-outside probe:
 ```text
 LSP 기준:
 loader: 260706-loader-convert-next-response-guidance
-gmtitle: 260706-convert-next-quoted-pause
+gmtitle: 260706-card-priority-a3a4
 
 작업 도면:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
@@ -355,7 +359,7 @@ work\swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
 ```text
 신뢰 가능:
   DWG 파일이 현재 열린 work 복사본과 같음
-  SWTITLE LSP 버전이 260706-convert-next-quoted-pause
+  SWTITLE LSP 버전이 260706-card-priority-a3a4
   방금 실행한 명령 결과임
 
 신뢰 보류:
@@ -409,7 +413,7 @@ BATCH 자동화:
 
 | 작업 단위 | 해결하려는 질문 | 통과 증거 | 통과 전 금지 |
 | --- | --- | --- | --- |
-| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260706-convert-next-quoted-pause`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
+| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260706-card-priority-a3a4`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
 | 첫 native 기준 객체 | 이 DWG 안에 실제 GMTITLE 쌍이 최소 1개 있는가 | `target-title-count > 0`, 같은 크기 `DR_A*_Outline` 기준 객체 존재 | clone/fast batch 완료 판단 |
 | A3/A4 native 교체 | 겉보기 복제본이 아니라 fresh native 쌍인가 | `A3/A4 native 교체 후보: 0`, clone/shared-link 경고 0 | 도면틀 더블클릭만 보고 성공 판정 |
 | A4 frame-only | 원본에 없는 제목블록 없이 도면틀만 교체됐는가 | `A4 도면틀-only 대상 수`와 예상 A4 수량 일치, 불필요한 `DR_titlea_3rd` 없음 | A4에 제목블록 생성 |
@@ -617,7 +621,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260706-convert-next-quoted-pause
+260706-card-priority-a3a4
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...
@@ -973,7 +977,7 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 
 ```text
 1. APPLOAD로 C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp 로드
-2. SWTITLEVERSION으로 gmtitle 버전이 260706-convert-next-quoted-pause인지 확인
+2. SWTITLEVERSION으로 gmtitle 버전이 260706-card-priority-a3a4인지 확인
 3. SWTITLESTATUS로 현재 상태 확인
 4. 기본 workcopy라면 NEXT_CREATE_FIRST_NATIVE_GMTITLE인지 확인
 5. SWTITLECONVERTNEXT 실행

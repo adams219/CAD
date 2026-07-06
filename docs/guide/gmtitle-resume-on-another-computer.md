@@ -1,5 +1,7 @@
 # GMTITLE 다른 컴퓨터에서 이어가기
 
+> 2026-07-06 기준 변경: `docs/guide/gmtitle-unified-flow-reset.md`가 GMTITLE 변환의 최우선 기준입니다. A2/A3/A4는 모두 같은 GMTITLE 흐름으로 보고, `frame-only`는 A4 전용 정책이 아니라 원본 표제란 부재가 검증된 경우의 예외로만 해석합니다.
+
 다른 PC에서 현재 GMTITLE 작업을 이어받을 때 확인할 기준 문서입니다.
 
 ## 먼저 볼 기준
@@ -8,7 +10,7 @@
 
 `docs/history`와 `docs/investigations`는 이전 실험 이력입니다. 같은 시행착오를 반복하지 않기 위한 근거로만 보고, 현재 순서와 다르면 현재 기준 문서를 우선합니다.
 
-A2/A3는 `DR_titlea_3rd` 제목블록 더블클릭으로 GMTITLE 표 편집창을 확인합니다. 표제란 없는 A4 frame-only는 더블클릭할 제목블록이 없으므로 `DR_A4_Outline` 도면틀 수량/형상으로 검증합니다.
+A2/A3/A4는 모두 공통 GMTITLE 흐름으로 봅니다. `frame-only`는 A4 전용이 아니라 원본 표제란 부재가 검증된 경우의 예외이며, 그런 예외 시트만 제목블록 더블클릭 대신 도면틀 수량/형상으로 검증합니다.
 
 ## Git 기준
 
@@ -27,7 +29,7 @@ codex/gm-title
 주의:
 
 ```text
-2026-07-05 현재 로컬 작업 기준은 `260706-convert-next-quoted-pause`입니다.
+2026-07-05 현재 로컬 작업 기준은 `260706-card-priority-a3a4`입니다.
 현재 로컬 브랜치는 GitHub보다 앞선 커밋이 있을 수 있으므로, 다른 PC에서 이어가기 전에 이 브랜치가 GitHub에 push됐는지 확인합니다.
 다른 PC에서는 `codex/gm-title` 브랜치를 받은 뒤, CAD에서 `SWTITLEVERSION`으로 실제 로드 버전을 확인합니다.
 ```
@@ -77,7 +79,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260706-convert-next-quoted-pause
+260706-card-priority-a3a4
 ```
 
 다른 버전이면 변환하지 말고 다시 APPLOAD 합니다. 그래도 다른 버전이면 다른 브랜치를 받았거나, 열린 CAD 세션이 예전 LSP를 유지하고 있을 수 있습니다.
@@ -172,7 +174,7 @@ SWTITLESTATUS가 겹친 GMTITLE target 쌍을 표시하면 SWTITLECONVERT를 반
 먼저 SWTITLEPREPARE로 정리합니다.
 같은 위치에 기존 native GMTITLE 쌍이 있으면 SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 새로 만들지 않고 그 쌍을 채택합니다.
 DR_A3_Outline 안의 native-format title-like 형상은 그 자체만으로 삭제하지 않습니다.
-A3/A4 native 교체 후보가 남아 있으면 SWTITLESTATUS는 A4 frame-only보다 그 후보를 먼저 안내합니다.
+A3/A4 native 교체 후보가 남아 있으면 SWTITLESTATUS는 title-missing/frame-only 예외보다 그 후보를 먼저 안내합니다.
 BATCH는 첫 후보부터 쓰지 말고, OPEN으로 후보 수가 줄어든 증거를 먼저 확인한 뒤 사용합니다.
 핵심 상태/검증 안내는 한국어로 표시됩니다.
 ```
@@ -192,11 +194,17 @@ target-sheet-counts:
   A4: 2
 겹친 GMTITLE target 쌍: 0
 실제 DR_titlea_3rd가 있는 대표 용지를 더블클릭하면 GMTITLE 표 편집창 열림
-표제란 없는 A4는 DR_A4_Outline 도면틀만 검증하고, 더블클릭할 제목블록은 없음
+원본 표제란 부재가 검증된 title-missing 시트는 해당 DR_A*_Outline 도면틀만 검증하고, 더블클릭할 제목블록은 없음
 도면 안 번호, 주석, BOM, 치수, 모델 형상 유지
 ```
 
 ## 함께 볼 문서
+
+최우선 기준:
+
+```text
+docs\guide\gmtitle-unified-flow-reset.md
+```
 
 짧은 실행 카드:
 

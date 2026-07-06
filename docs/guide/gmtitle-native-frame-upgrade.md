@@ -1,5 +1,7 @@
 # GMTITLE native 도면틀 교체 참고
 
+> 2026-07-06 기준 변경: `docs/guide/gmtitle-unified-flow-reset.md`가 GMTITLE 변환의 최우선 기준입니다. A2/A3/A4는 모두 같은 GMTITLE 흐름으로 보고, `frame-only`는 A4 전용 정책이 아니라 원본 표제란 부재가 검증된 경우의 예외로만 해석합니다.
+
 이 문서는 이전의 A3/A4 native 교체 실험을 현재 4단계 흐름 기준으로 정리한 참고 문서입니다.
 
 현재 일반 사용자는 아래 권장 4개 명령만 사용합니다.
@@ -26,7 +28,7 @@ GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 
 현재 LSP 버전:
 
 ```text
-260706-convert-next-quoted-pause
+260706-card-priority-a3a4
 ```
 
 현재 loader 버전은 `SWTITLEVERSION`에서 함께 확인합니다.
@@ -122,23 +124,23 @@ SWTITLEPREPARE가 작업복사본에서만 실제 겹치는 도면틀 정의 내
 별도 제목블록과 겹치지 않는 native-format 내부 형상은 일반 cleanup에서 제외한다.
 같은 위치에 이미 생성된 DR_A*_Outline + DR_titlea_3rd target 쌍이 2개 있으면 중복 target 쌍으로 따로 표시한다.
 SWTITLECONVERTNEXT는 같은 bbox에 기존 native GMTITLE 쌍이 있으면 새로 만들지 않고 그 쌍을 채택한다.
-A3/A4 native 교체 후보가 남아 있으면 SWTITLESTATUS는 A4 frame-only보다 그 후보를 먼저 안내한다.
+A3/A4 native 교체 후보가 남아 있으면 SWTITLESTATUS는 title-missing/frame-only 예외보다 그 후보를 먼저 안내한다.
 핵심 상태/검증 안내는 CAD 명령창에서 한국어로 확인한다.
 ```
 
-## A4 frame-only 문제
+## title-missing/frame-only 문제
 
-A4 원본은 표제란 없는 도면틀 시트일 수 있습니다.
+원본 시트는 표제란 없는 도면틀-only 시트일 수 있습니다. 이 예외는 A4 전용이 아니며, 원본 표제란 부재가 검증된 경우에만 적용합니다.
 
 이 경우 기존 표제란 텍스트를 추출해서 새 제목블록을 채우는 일반 title-sheet 흐름과 다르게 처리해야 합니다.
 
 원칙:
 
 ```text
-원본 A4에 표제란이 없으면 새 표제란을 억지로 만들지 않는다.
-같은 크기의 DR_A4_Outline 기준 객체로 도면틀만 교체한다.
-GstarCAD GMTITLE A4 선택 결과의 실제 bbox가 이상하면 기존 A4를 삭제하지 않는다.
-DR_A4_Outline block definition 자체의 raw bbox가 A4보다 과도하게 크면 변환을 시작하지 않는다.
+원본 시트에 표제란이 없으면 새 표제란을 억지로 만들지 않는다.
+같은 크기의 DR_A*_Outline 기준 객체로 도면틀만 교체한다.
+GstarCAD GMTITLE 선택 결과의 실제 bbox가 이상하면 기존 시트를 삭제하지 않는다.
+DR_A*_Outline block definition 자체의 raw bbox가 해당 용지보다 과도하게 크면 변환을 시작하지 않는다.
 ```
 
 `SWTITLESTATUS`가 `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX`를 안내하거나 `SWTITLECONVERT`가 `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK`로 멈추면, 이는 실패가 아니라 기존 A4를 보호하기 위한 중단입니다.
@@ -209,7 +211,7 @@ A3/A4 native 교체 후보: 10
 A4 대상 도면틀 누락: 필요 2, 현재 0
 ```
 
-이 실패는 코드 실패가 아니라 실제 work-copy가 변환 중간 상태라는 뜻입니다. A2와 A3 target은 보이지만, A3 중 10개는 복제/shared-link라 native-like로 증명되지 않았고 A4 frame-only target은 아직 없습니다.
+이 실패는 코드 실패가 아니라 실제 work-copy가 변환 중간 상태라는 뜻입니다. A2와 A3 target은 보이지만, A3 중 10개는 복제/shared-link라 native-like로 증명되지 않았고 title-missing/frame-only 예외 target은 아직 없습니다.
 
 ## 완료 기준
 
@@ -225,6 +227,6 @@ target-sheet-counts:
   A3: 12
   A4: 2
 실제 DR_titlea_3rd가 있는 대표 용지를 더블클릭하면 GMTITLE 표 편집창 열림
-표제란 없는 A4는 DR_A4_Outline 도면틀만 검증하고, 더블클릭할 제목블록은 없음
+원본 표제란 부재가 검증된 title-missing 시트는 해당 DR_A*_Outline 도면틀만 검증하고, 더블클릭할 제목블록은 없음
 도면 안 번호, 주석, BOM, 치수, 모델 형상 유지
 ```

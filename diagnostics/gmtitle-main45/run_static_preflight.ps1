@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260706-convert-next-quoted-pause",
+  [string]$ExpectedGmtitleVersion = "260706-card-priority-a3a4",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -314,10 +314,19 @@ Assert-Contains -Text $mainText -Needle "swcad-title-a4-frame-only-outline-raw-a
 Assert-Contains -Text $mainText -Needle "WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE" -Label "A4 unsafe definition status"
 Assert-Contains -Text $mainText -Needle "ready-native-outside-markers" -Label "A4 native outside marker ready status"
 Assert-Contains -Text $mainText -Needle "ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE" -Label "Interactive GMTITLE script guard"
+Assert-Contains -Text $mainText -Needle "INTERACTIVE_GMTITLE_EXCEPTION" -Label "Interactive GMTITLE exception guard status"
+Assert-Contains -Text $mainText -Needle "'swcad-title-run-native-gmtitle" -Label "Interactive GMTITLE exception wrapper"
+Assert-Contains -Text $mainText -Needle "기존 SOLIDWORKS 표제란/도면틀 내용은 삭제하지 않았습니다." -Label "Interactive GMTITLE exception preserves source"
 Assert-Contains -Text $mainText -Needle "ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE" -Label "A3/A4 batch script guard"
 Assert-Contains -Text $mainText -Needle "c:SWTITLECONVERTNEXT" -Label "SWTITLECONVERTNEXT public command"
 Assert-Contains -Text $mainText -Needle "*swcad-title-convert-next-mode*" -Label "SWTITLECONVERTNEXT auto-next mode flag"
 Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT auto response" -Label "SWTITLECONVERTNEXT auto response log"
+Assert-Contains -Text $mainText -Needle "swcad-title-auto-next-answer-or-prompt" -Label "SWTITLECONVERTNEXT string-preserving auto response helper"
+if ([regex]::IsMatch($mainText, "\(or\s*\r?\n\s*\(swcad-title-auto-next-answer")) {
+  Add-Failure "SWTITLECONVERTNEXT auto response must not be wrapped in AutoLISP or; or returns T instead of the answer string."
+} else {
+  Write-Output "SWTITLECONVERTNEXT auto response string preservation: OK"
+}
 Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT ; recommended next safe conversion step" -Label "GMTITLE header convert-next main workflow"
 Assert-Contains -Text $mainText -Needle "Manual fallback:" -Label "GMTITLE header manual fallback section"
 Assert-Contains -Text $mainText -Needle "Use it only when you intentionally need to" -Label "GMTITLE header manual fallback guard"
@@ -333,6 +342,7 @@ Assert-Contains -Text $mainText -Needle "예상 수동 GMTITLE 확인량:" -Labe
 Assert-Contains -Text $mainText -Needle "swcad-title-print-compact-next-gmtitle-card" -Label "SWTITLESTATUS compact selection card helper"
 Assert-Contains -Text $mainText -Needle "짧은 GMTITLE 선택 카드:" -Label "SWTITLESTATUS compact selection card heading"
 Assert-Contains -Text $mainText -Needle "  다음 명령: SWTITLECONVERTNEXT" -Label "SWTITLESTATUS compact selection card command"
+Assert-Contains -Text $mainText -Needle "우선순위: A3/A4 native 교체가 A4 frame-only 준비보다 먼저입니다." -Label "SWTITLESTATUS A3/A4 card priority over A4 frame-only"
 Assert-Contains -Text $mainText -Needle "  켜둘 옵션: Frame positioning" -Label "SWTITLESTATUS compact selection card frame-positioning"
 Assert-Contains -Text $mainText -Needle "  꺼둘 옵션: Object move" -Label "SWTITLESTATUS compact selection card object-move"
 Assert-Contains -Text $mainText -Needle "(setq example-title (swcad-title-native-example-title))" -Label "SWTITLECONVERT compact card native-example basis"
@@ -342,7 +352,7 @@ Assert-Contains -Text $mainText -Needle "A4 표제란 없는 도면틀 " -Label 
 Assert-Contains -Text $mainText -Needle "swcad-title-next-missing-native-selection-record" -Label "SWTITLESTATUS missing-native selection helper"
 Assert-Contains -Text $mainText -Needle "다음 누락 크기 native GMTITLE 선택:" -Label "SWTITLESTATUS missing-native selection heading"
 Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록" -Label "SWTITLECONVERTNEXT exact dialog selection guidance"
-Assert-Contains -Text $mainText -Needle '(swcad-title-auto-next-answer "OPEN"' -Label "SWTITLECONVERTNEXT native one-sheet default"
+Assert-Contains -Text $mainText -Needle '"A3/A4 native 교체 후보 1장 처리"' -Label "SWTITLECONVERTNEXT native one-sheet default"
 Assert-Contains -Text $mainText -Needle "swcad-title-print-native-batch-safety-guidance" -Label "Native batch safety guidance helper"
 Assert-Contains -Text $mainText -Needle "BATCH 안전 조건: 먼저 OPEN으로 1장을 성공시킨 뒤 SWTITLESTATUS/direct probe에서 후보 수가 줄었는지 확인하세요." -Label "Native batch OPEN-first guidance"
 Assert-Contains -Text $mainText -Needle "BATCH 금지 조건: 첫 후보부터 바로 BATCH를 쓰거나" -Label "Native batch no-first-batch guidance"
@@ -352,8 +362,8 @@ Assert-NotContains -Text $mainText -Needle "다음: SWTITLECONVERT를 실행하�
 Assert-NotContains -Text $mainText -Needle "일반 흐름은 SWTITLECONVERT를 사용하세요." -Label "Stale direct convert general-flow wording"
 Assert-NotContains -Text $mainText -Needle "(command pause)" -Label "GMTITLE interactive wait must use explicit pause string"
 $a3a4NextStart = $mainText.IndexOf("(defun swcad-title-upgrade-native-a3a4-next")
-$a3a4AutoOpen = if ($a3a4NextStart -ge 0) { $mainText.IndexOf('(swcad-title-auto-next-answer "OPEN"', $a3a4NextStart) } else { -1 }
-$a3a4Prompt = if ($a3a4NextStart -ge 0) { $mainText.IndexOf("(getstring", $a3a4NextStart) } else { -1 }
+$a3a4AutoOpen = if ($a3a4NextStart -ge 0) { $mainText.IndexOf('"A3/A4 native 교체 후보 1장 처리"', $a3a4NextStart) } else { -1 }
+$a3a4Prompt = if ($a3a4NextStart -ge 0) { $mainText.IndexOf("이 한 장의 GMTITLE 창을 열려면 OPEN", $a3a4NextStart) } else { -1 }
 if (($a3a4NextStart -ge 0) -and ($a3a4AutoOpen -gt $a3a4NextStart) -and ($a3a4Prompt -gt $a3a4AutoOpen)) {
   Write-Output "SWTITLECONVERTNEXT A3/A4 OPEN before prompt: found"
 } else {
@@ -800,7 +810,7 @@ Assert-Contains -Text $runCardText -Needle '| `NEXT_CREATE_FIRST_NATIVE_GMTITLE`
 Assert-Contains -Text $runCardText -Needle '| `NEXT_UPGRADE_A3_A4_NATIVE` | A3/A4 복제/shared-link 쌍을 fresh native로 교체해야 함 | `SWTITLECONVERTNEXT` |' -Label "Run card A3A4 recommends convert-next"
 Assert-Contains -Text $runCardText -Needle "docs/history" -Label "Run card history-doc warning"
 Assert-Contains -Text $runCardText -Needle "docs/investigations" -Label "Run card investigations-doc warning"
-Assert-Contains -Text $runCardText -Needle '표제란 없는 A4 frame-only는 `DR_A4_Outline` 수량과 형상만 `SWTITLEVERIFY`로 검증합니다' -Label "Run card A4 frame-only current standard"
+Assert-Contains -Text $runCardText -Needle 'A2/A3/A4는 모두 `DR_A*_Outline + DR_titlea_3rd` 공통 GMTITLE 흐름으로 판단' -Label "Run card unified GMTITLE current standard"
 Assert-Contains -Text $runCardText -Needle 'CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력해서 우회하지 않습니다' -Label "Run card raw GMTITLE/TIT/OPEN guard"
 Assert-Contains -Text $runCardText -Needle "이 문서는 특정 DWG의 과거 상태를 `"최신`"으로 고정하지 않습니다" -Label "Run card no stale latest-state wording"
 Assert-Contains -Text $runCardText -Needle '과거에 어떤 도면이 `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`이었더라도 지금 열린 도면에 그대로 적용하지 않습니다' -Label "Run card no stale A4 prepare carry-over"
@@ -833,7 +843,7 @@ Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "next-bootstrap-frame:
 Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "next-bootstrap-title: DR_titlea_3rd" -Label "Hidden suite pass history next title"
 Assert-Contains -Text $commandsGuideText -Needle "docs/history" -Label "Commands guide history-doc warning"
 Assert-Contains -Text $commandsGuideText -Needle "docs/investigations" -Label "Commands guide investigations-doc warning"
-Assert-Contains -Text $commandsGuideText -Needle "A4 frame-only는 원본에 표제란이 없는 시트입니다" -Label "Commands guide A4 frame-only current standard"
+Assert-Contains -Text $commandsGuideText -Needle '`frame-only`는 A4 전용 정책이 아니라' -Label "Commands guide unified GMTITLE current standard"
 Assert-Contains -Text $commandsGuideText -Needle "자동화 경계:" -Label "Commands guide automation boundary section"
 Assert-Contains -Text $commandsGuideText -Needle "LSP가 자동 처리:" -Label "Commands guide LSP automation scope"
 Assert-Contains -Text $commandsGuideText -Needle "사람이 확인:" -Label "Commands guide human GMTITLE scope"

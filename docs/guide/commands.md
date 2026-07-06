@@ -1,12 +1,14 @@
 # CAD Tool 명령어
 
+> 2026-07-06 기준 변경: `docs/guide/gmtitle-unified-flow-reset.md`가 GMTITLE 변환의 최우선 기준입니다. A2/A3/A4는 모두 같은 GMTITLE 흐름으로 보고, `frame-only`는 A4 전용 정책이 아니라 원본 표제란 부재가 검증된 경우의 예외로만 해석합니다.
+
 이 문서는 사용자가 CAD 명령창에 직접 입력하는 공개 명령만 정리합니다.
 
 ## 현재 기준 문서
 
-이 문서와 `docs/guide/gmtitle-current-run-card.md`가 현재 실행 기준입니다. `docs/history`와 `docs/investigations`는 과거 실험/실패/조사 기록이므로, 거기에 나온 낡은 순서를 그대로 실행하지 않습니다.
+`docs/guide/gmtitle-unified-flow-reset.md`가 최우선 기준이고, 이 문서와 `docs/guide/gmtitle-current-run-card.md`는 실제 입력 명령을 확인하는 실행 카드입니다. `docs/history`와 `docs/investigations`는 과거 실험/실패/조사 기록이므로, 거기에 나온 낡은 순서를 그대로 실행하지 않습니다.
 
-A4 frame-only는 원본에 표제란이 없는 시트입니다. 따라서 완료 확인도 제목블록 더블클릭이 아니라 `DR_A4_Outline` 도면틀 수량과 형상 검증입니다.
+`frame-only`는 A4 전용 정책이 아니라, 원본 시트에 표제란/제목블록이 실제로 없다고 검증된 경우에만 적용하는 예외입니다. 기본 변환은 A2/A3/A4 모두 `DR_A*_Outline + DR_titlea_3rd` 공통 GMTITLE 흐름입니다.
 
 ## 기본 로드
 
@@ -31,7 +33,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260706-convert-next-quoted-pause
+260706-card-priority-a3a4
 ```
 
 다른 버전이 보이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -76,7 +78,7 @@ GMTITLE 창 선택까지 완전 자동으로 켜지 않는 이유는 GstarCAD가
 
 | 명령 | 용도 | 도면 변경 |
 | --- | --- | --- |
-| `SWTITLESTATUS` | 현재 DWG 상태를 읽기 전용으로 진단하고 다음에 실행할 명령을 안내합니다. work 복사본 여부, 원본 시트 수, A2/A3/A4 예상 수량, GMTITLE target 수량, 도면틀 정의 상태, A4 frame-only 상태를 확인합니다. | 없음 |
+| `SWTITLESTATUS` | 현재 DWG 상태를 읽기 전용으로 진단하고 다음에 실행할 명령을 안내합니다. work 복사본 여부, 원본 시트 수, A2/A3/A4 예상 수량, GMTITLE target 수량, 도면틀 정의 상태, title-missing/frame-only 예외 상태를 확인합니다. | 없음 |
 | `SWTITLEPREPARE` | 변환 전에 필요한 정리만 수행합니다. 실수로 들어간 명령어 텍스트, 겹친 GMTITLE target, 오염 의심 도면틀 정의, 위험한 raw bbox 등을 후보로 보여주고 `YES` 확인 뒤 처리합니다. | 있음 |
 | `SWTITLECONVERTNEXT` | 상태에 맞는 변환 단계를 실행하면서 `YES`/`OPEN` 같은 반복 응답만 자동 선택합니다. 사용자는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않고, GMTITLE 창의 DR 용지/제목블록/옵션만 확인합니다. | 있음 |
 | `SWTITLECONVERT` | `SWTITLECONVERTNEXT`와 같은 변환 흐름을 사용하되, `YES`/`OPEN`/`BATCH`/`MANUAL` 응답을 사용자가 직접 고릅니다. | 있음 |
@@ -184,7 +186,7 @@ ISO 제목블록
 
 A3/A4 복제 GMTITLE은 화면상 비슷해도 일부가 고급 속성 편집기로 열릴 수 있습니다. 그래서 `SWTITLECONVERTNEXT`는 필요한 경우 복제/shared-link 쌍을 fresh native GMTITLE로 한 장씩 교체합니다.
 
-`SWTITLESTATUS`가 A3/A4 native 교체 후보를 표시하면 A4 frame-only보다 그 후보를 먼저 처리합니다.
+`SWTITLESTATUS`가 native 교체 후보를 표시하면 title-missing/frame-only 예외보다 그 후보를 먼저 처리합니다.
 
 ```text
 SWTITLECONVERTNEXT
@@ -195,22 +197,22 @@ SWTITLESTATUS
 
 `BATCH`는 처음부터 쓰는 빠른 길이 아닙니다. 먼저 `OPEN`으로 A3/A4 후보 1장이 실제로 줄어드는지 확인한 뒤, 다음 후보들이 같은 DR 용지/제목블록/옵션으로 반복된다는 걸 눈으로 확인할 수 있을 때만 사용합니다.
 
-## A4 frame-only
+## title-missing/frame-only 예외
 
-원본 A4가 표제란 없는 도면틀-only 시트일 수 있습니다. 이 경우 성공 조건은 `DR_titlea_3rd`를 만드는 것이 아니라 `DR_A4_Outline` 도면틀만 맞게 교체하는 것입니다.
+원본 시트에 표제란/제목블록이 실제로 없다고 검증된 경우만 title-missing/frame-only 예외로 봅니다. A4라는 용지 크기만으로 이 경로를 선택하지 않습니다.
 
-A4 frame-only 처리 조건:
+title-missing/frame-only 처리 조건:
 
 ```text
 원본 표제란 시트가 먼저 정리됨
-DR_A4_Outline 정의가 안전함
-새 A4 도면틀 bbox가 원본 A4와 맞음
+해당 크기의 DR_A*_Outline 정의가 안전함
+새 도면틀 bbox가 원본 도면틀과 맞음
 불필요한 DR_titlea_3rd 제목블록이 생기지 않음
-기존 A4 도면 내용이 삭제되지 않음
+기존 도면 내용이 삭제되지 않음
 ```
 
 `WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION` 또는 `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`이 나오면 `SWTITLECONVERTNEXT`를 반복하지 말고 `SWTITLEPREPARE`로 정의 준비/검증을 먼저 합니다.
-`ready-native-outside-markers`는 공식 native A4의 작은 바깥 마커만 허용된 상태입니다. 이 상태에서는 effective A4 형상과 raw selection 검사가 통과했는지 확인한 뒤 A4 frame-only 변환을 진행할 수 있습니다.
+현재 코드 상태명에 A4가 남아 있을 수 있지만 guide 기준으로는 "원본 표제란이 없는 시트의 도면틀 정의 준비"로 해석합니다. `ready-native-outside-markers`는 공식 native 도면틀의 작은 바깥 마커만 허용된 상태입니다. 이 상태에서는 effective 형상과 raw selection 검사가 통과했는지 확인한 뒤 예외 변환을 진행할 수 있습니다.
 
 ## 옛 GMTITLE 명령
 
@@ -264,7 +266,7 @@ target-sheet-counts:
 겹친 GMTITLE target 쌍: 0
 clone/native-upgrade/shared-link 경고: 0
 DR_titlea_3rd가 있는 대표 A2/A3 제목블록 더블클릭 시 GMTITLE 표 편집창 열림
-표제란 없는 A4는 DR_A4_Outline 도면틀만 검증하고 제목블록은 없음
+원본 표제란 부재가 검증된 title-missing 시트는 해당 DR_A*_Outline 도면틀만 검증하고 제목블록은 없음
 도면 내부 번호, 주석, BOM, 치수, 모델 형상 유지
 ```
 
