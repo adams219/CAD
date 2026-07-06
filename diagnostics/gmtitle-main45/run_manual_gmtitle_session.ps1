@@ -155,25 +155,53 @@ function Get-FirstRegexValue {
   return $null
 }
 
+function Get-LastRegexValue {
+  param(
+    [string]$Text,
+    [string]$Pattern
+  )
+
+  $matches = [regex]::Matches($Text, $Pattern, [System.Text.RegularExpressions.RegexOptions]::Multiline)
+  for ($i = $matches.Count - 1; $i -ge 0; $i--) {
+    $match = $matches[$i]
+    if ($match.Success -and $match.Groups.Count -gt 1) {
+      $value = $match.Groups[1].Value.Trim()
+      if (-not [string]::IsNullOrWhiteSpace($value)) {
+        return $value
+      }
+    }
+  }
+  return $null
+}
+
 function Write-InitialCardShortSummary {
   param([string]$CardText)
 
-  $result = Get-FirstRegexValue -Text $CardText -Pattern "^Result:\s*(\S+)\s*$"
-  $status = Get-FirstRegexValue -Text $CardText -Pattern "^\s*SWTITLESTATUS:\s*(\S+)"
-  $verify = Get-FirstRegexValue -Text $CardText -Pattern "^\s*SWTITLEVERIFY:\s*(\S+)"
+  $result = Get-LastRegexValue -Text $CardText -Pattern "^Result:\s*(\S+)\s*$"
+  $status = Get-LastRegexValue -Text $CardText -Pattern "^(?:\s*SWTITLESTATUS:|현재 저장 상태:)\s*(\S+)"
+  $verify = Get-LastRegexValue -Text $CardText -Pattern "^(?:\s*SWTITLEVERIFY:|검증 상태:)\s*(\S+)"
   $frame = $null
   $title = $null
 
-  $pairMatch = [regex]::Match($CardText, "\b(DR_A[1-4]_Outline)\s*/\s*(DR_titlea_3rd)\b", [System.Text.RegularExpressions.RegexOptions]::Multiline)
-  if ($pairMatch.Success) {
-    $frame = $pairMatch.Groups[1].Value.Trim()
-    $title = $pairMatch.Groups[2].Value.Trim()
+  $frame = Get-LastRegexValue -Text $CardText -Pattern "^\s*(?:용지/도면틀|다음 GMTITLE 용지/도면틀|GMTITLE에서 고를 용지/도면틀):\s*(DR_A[1-4]_Outline)\b"
+  $title = Get-LastRegexValue -Text $CardText -Pattern "^\s*(?:제목블록|다음 GMTITLE 제목블록|GMTITLE에서 고를 제목블록):\s*(DR_titlea_3rd)\b"
+
+  if ((-not $frame) -or (-not $title)) {
+    $pairMatches = [regex]::Matches($CardText, "\b(DR_A[1-4]_Outline)\s*/\s*(DR_titlea_3rd)\b", [System.Text.RegularExpressions.RegexOptions]::Multiline)
+    for ($i = $pairMatches.Count - 1; $i -ge 0; $i--) {
+      $pairMatch = $pairMatches[$i]
+      if ($pairMatch.Success) {
+        if (-not $frame) { $frame = $pairMatch.Groups[1].Value.Trim() }
+        if (-not $title) { $title = $pairMatch.Groups[2].Value.Trim() }
+        break
+      }
+    }
   }
   if (-not $frame) {
-    $frame = Get-FirstRegexValue -Text $CardText -Pattern "\b(DR_A[1-4]_Outline)\b"
+    $frame = Get-LastRegexValue -Text $CardText -Pattern "\b(DR_A[1-4]_Outline)\b"
   }
   if (-not $title) {
-    $title = Get-FirstRegexValue -Text $CardText -Pattern "\b(DR_titlea_3rd)\b"
+    $title = Get-LastRegexValue -Text $CardText -Pattern "\b(DR_titlea_3rd)\b"
   }
 
   Write-Step ""
