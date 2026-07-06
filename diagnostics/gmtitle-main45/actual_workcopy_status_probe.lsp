@@ -1,4 +1,4 @@
-﻿;;; Tracked read-only status/verify probe for a copied actual work DWG.
+;;; Tracked read-only status/verify probe for a copied actual work DWG.
 ;;; The PowerShell wrapper sets SWCAD_TOOL_ROOT before launching GstarCAD.
 ;;; This script does not save the drawing.
 
@@ -125,7 +125,7 @@
         (swtitle-diag45-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))
       )
       (swtitle-diag45-write-line handle (strcat "Loaded version: " version-value))
-      (swtitle-diag45-write-line handle "Expected version: 260707-unified-title-missing-14")
+      (swtitle-diag45-write-line handle "Expected version: 260707-unified-title-missing-15")
       (swtitle-diag45-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-diag45-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-diag45-write-line handle (strcat "DBMOD before commands: " (itoa (getvar "DBMOD"))))

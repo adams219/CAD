@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260707-unified-title-missing-14")
+(setq *swcad-title-scale-version* "260707-unified-title-missing-15")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -17945,6 +17945,9 @@
   (swcad-title-princ-line "----- SWTITLESTATUS 구조 판단 요약 -----")
   (swcad-title-princ-line (strcat "원본 표제란/도면틀: " (itoa source-count) " / " (itoa source-frame-count)))
   (swcad-title-princ-line (strcat "표제란 없는 도면틀 시트: " (itoa frame-only-count)))
+  (if (> frame-only-count 0)
+    (swcad-title-princ-line "title-missing/frame-only 기준: A2/A3/A4 중 어떤 용지든 원본 표제란 부재가 검증된 경우에만 예외로 처리합니다.")
+  )
   (swcad-title-princ-line (strcat "실수 명령어 텍스트 후보: " (itoa command-text-count)))
   (swcad-title-princ-line
     (strcat

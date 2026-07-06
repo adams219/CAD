@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260707-unified-title-missing-14",
+  [string]$ExpectedGmtitleVersion = "260707-unified-title-missing-15",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -370,6 +370,9 @@ if (($titleMissingPolicyStart -lt 0) -or ($titleMissingPolicyEnd -le $titleMissi
   if ($titleMissingPolicyText -match "DR_A4_Outline|\(equal\s+[^\r\n]*`"A4`"") {
     Add-Failure "title-missing policy must not branch on A4 or DR_A4_Outline."
   }
+}
+if ($mainText -notmatch "title-missing/frame-only 기준: A2/A3/A4 중 어떤 용지든 원본 표제란 부재가 검증된 경우에만 예외로 처리합니다\.") {
+  Add-Failure "SWTITLESTATUS must explain that title-missing/frame-only is based on verified missing source title, not A4 size."
 }
 $titleOffsetStart = $mainText.IndexOf("(defun swcad-title-frame-only-title-offset")
 $titleOffsetEnd = if ($titleOffsetStart -ge 0) { $mainText.IndexOf("(defun swcad-title-transfer-source-bbox", $titleOffsetStart) } else { -1 }
@@ -977,9 +980,9 @@ Assert-Contains -Text $goalStatusText -Needle "Title-missing/frame-only exceptio
 Assert-Contains -Text $goalStatusText -Needle "not a title-missing action yet. The trusted direct work-copy probe says the next missing native exemplar is" -Label "Goal status direct-probe priority over title-missing exception"
 Assert-NotContains -Text $goalStatusText -Needle "not an A4 action yet" -Label "Goal status stale A4 action wording"
 Assert-Contains -Text $goalStatusText -Needle "source-title-missing evidence, not an A4-only conversion policy" -Label "Goal status title-missing exception not A4 policy"
-Assert-Contains -Text $goalStatusText -Needle "source-title-missing 예외 경로는 현재 A4 크기 샘플로 검증됨(용지 전용 정책 아님)" -Label "Goal status Korean title-missing verified guidance"
+Assert-Contains -Text $goalStatusText -Needle "source-title-missing 예외 경로는 현재 샘플로 검증됨(이 샘플이 A4 크기일 뿐, 용지 전용 정책 아님)" -Label "Goal status Korean title-missing verified guidance"
 Assert-Contains -Text $goalStatusText -Needle "실제 작업복사본 우선 단계" -Label "Goal status direct work-copy priority heading"
-Assert-Contains -Text $goalStatusText -Needle "title-missing/frame-only A4 크기 샘플 증거는 source-title-missing 배경 정보입니다" -Label "Goal status A4-sized sample is background evidence"
+Assert-Contains -Text $goalStatusText -Needle "title-missing/frame-only 샘플 증거는 source-title-missing 배경 정보입니다. 현재 샘플이 A4 크기일 뿐" -Label "Goal status A4-sized sample is background evidence"
 Assert-NotContains -Text $goalStatusText -Needle "A4 native outside-marker policy is implemented" -Label "Goal status stale A4 policy wording"
 Assert-NotContains -Text $goalStatusText -Needle "Production A4 frame-only must still not create" -Label "Goal status stale production A4 wording"
 Assert-Contains -Text $goalStatusText -Needle "다음 실제 작업복사본 단계" -Label "Goal status Korean real work-copy step guidance"
