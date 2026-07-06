@@ -282,11 +282,11 @@ SWTITLESTATUS
 title-missing/frame-only 성공 조건:
 
 ```text
-DR_A4_Outline 도면틀만 원본 A4 위치/크기에 맞게 들어감
+같은 크기 DR_A*_Outline 도면틀만 원본 위치/크기에 맞게 들어감
 불필요한 DR_titlea_3rd 제목블록이 생기지 않음
-기존 A4 도면 내용이나 빈 도면틀이 삭제되지 않음
-SWTITLEVERIFY에서 A4 target 수량이 2로 맞음
-ready-native-outside-markers는 실패가 아니라 공식 native A4 마커 허용 상태로 처리됨
+기존 도면 내용이나 빈 도면틀이 삭제되지 않음
+SWTITLEVERIFY에서 title-missing/frame-only target 수량이 원본 기준과 맞음
+ready-native-outside-markers는 실패가 아니라 공식 native 도면틀의 작은 바깥 마커 허용 상태로 처리됨
 ```
 
 ## 7. 보호 중단으로 봐야 하는 결과
