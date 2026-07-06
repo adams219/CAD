@@ -1157,9 +1157,9 @@ if ($existingGstarCAD.Count -gt 0) {
   } elseif ($a4NativeOutsideMarkerDecisionNeeded) {
     Write-Output "  DR_A4_Outline native outside-marker decision for the current sample:"
     Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair, but native DR_A4_Outline itself has small geometry outside (0,0)-(210,297)."
-    Write-Output "    2. Do not keep creating more scratch A4 sheets; the next implementation decision is whether production source-title-missing/frame-only handling should tolerate, crop, or preserve those official native outside markers."
+    Write-Output "    2. Do not keep creating more scratch A4 sheets. Treat this as source-title-missing evidence only; accept official outside markers only when geometry/raw-selection checks pass."
     Write-Output "    3. Because a production source-title-missing sheet is frame-only, keep the rule that it must not receive an extra DR_titlea_3rd."
-    Write-Output "    4. After code changes, rerun the focused A4 probe and the full hidden suite."
+    Write-Output "    4. After any code or definition-readiness changes, rerun the focused source-title-missing probe and the full hidden suite."
     Write-Output ""
     Write-Output "  Hidden suite verification path after A4 production code changes:"
   } elseif ($a4CandidateSafeNeedsReview) {
@@ -1291,9 +1291,9 @@ if ($existingGstarCAD.Count -gt 0) {
   } elseif ($a4NativeOutsideMarkerDecisionNeeded) {
     Write-Output "  DR_A4_Outline native outside-marker decision for the current sample:"
     Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair, but native DR_A4_Outline itself has small geometry outside (0,0)-(210,297)."
-    Write-Output "    2. Do not keep creating more scratch A4 sheets; the next implementation decision is whether production source-title-missing/frame-only handling should tolerate, crop, or preserve those official native outside markers."
+    Write-Output "    2. Do not keep creating more scratch A4 sheets. Treat this as source-title-missing evidence only; accept official outside markers only when geometry/raw-selection checks pass."
     Write-Output "    3. Because a production source-title-missing sheet is frame-only, keep the rule that it must not receive an extra DR_titlea_3rd."
-    Write-Output "    4. After code changes, rerun the focused A4 probe and the full hidden suite."
+    Write-Output "    4. After any code or definition-readiness changes, rerun the focused source-title-missing probe and the full hidden suite."
   } elseif ($a4CandidateSafeNeedsReview) {
     Write-Output "  DR_A4_Outline normalization candidate review for the current sample:"
     Write-Output "    1. Inspect the copied-DWG nested A4 normalization probe log that reported safe=yes."
@@ -1321,7 +1321,7 @@ if ($existingGstarCAD.Count -gt 0) {
   } elseif ($a4InvestigationPreferred) {
     Write-Output "  지금은 복사본 DWG 기준 title-missing definition probe를 먼저 실행하세요:"
     Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside,nested-direct-outside" -f $nestedProbeScript, $nestedProbeSource)
-    Write-Output "  먼저 전체 hidden suite를 돌리지 마세요. 이 probe가 현재 source-title-missing 샘플의 DR_A4_Outline raw-bbox 의문을 닫기 전에는 title-missing blocker를 증명할 수 없습니다."
+    Write-Output "  전체 hidden suite 전에 focused source-title-missing definition probe를 먼저 확인하세요. 이 probe가 현재 샘플의 DR_A4_Outline raw-bbox 의문을 닫아야 title-missing blocker 판단이 강해집니다."
   } else {
     Write-Output "  지금 전체 hidden suite를 실행하세요:"
     Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f $suite)
