@@ -4073,7 +4073,7 @@
               )
             )
             (setq risk-message
-              (swcad-title-single-a4-frame-only-risk-message
+              (swcad-title-title-missing-outline-risk-message
                 (car (swcad-title-frame-only-source-candidates))
                 frame-block
               )
@@ -4186,7 +4186,7 @@
   (swcad-title-title-missing-outline-raw-sheet-warning frame-block)
 )
 
-(defun swcad-title-a4-frame-only-outline-native-outside-marker-p (frame-block / raw-risk strict-warning)
+(defun swcad-title-title-missing-outline-native-outside-marker-p (frame-block / raw-risk strict-warning)
   (and
     frame-block
     (swcad-title-block-exists-p frame-block)
@@ -4196,36 +4196,40 @@
   )
 )
 
-(defun swcad-title-a4-frame-only-outline-definition-status (/ frame-block raw-risk)
-  (setq frame-block (swcad-title-a4-frame-only-outline-target-block))
+(defun swcad-title-a4-frame-only-outline-native-outside-marker-p (frame-block)
+  (swcad-title-title-missing-outline-native-outside-marker-p frame-block)
+)
+
+(defun swcad-title-title-missing-outline-definition-status (/ frame-block raw-risk)
+  (setq frame-block (swcad-title-title-missing-outline-target-block))
   (cond
     ((not (swcad-title-title-missing-outline-policy-active-p)) "not-title-missing-outline")
     ((not (swcad-title-frame-name-matches-p frame-block (swcad-title-title-missing-outline-target-block))) "wrong-target")
     ((not (swcad-title-block-exists-p frame-block)) "missing")
     ((swcad-title-target-frame-block-contaminated-p frame-block) "contaminated")
     ((setq raw-risk (swcad-title-frame-definition-raw-bbox-risk-record frame-block)) "raw-bbox-risk")
-    ((swcad-title-a4-frame-only-outline-native-outside-marker-p frame-block) "ready-native-outside-markers")
+    ((swcad-title-title-missing-outline-native-outside-marker-p frame-block) "ready-native-outside-markers")
     (T "ready")
   )
 )
 
-(defun swcad-title-a4-frame-only-outline-definition-ready-p ()
+(defun swcad-title-title-missing-outline-definition-ready-p ()
   (member
-    (swcad-title-a4-frame-only-outline-definition-status)
+    (swcad-title-title-missing-outline-definition-status)
     '("ready" "ready-native-outside-markers")
   )
 )
 
-(defun swcad-title-a4-frame-only-outline-definition-needed-p ()
+(defun swcad-title-title-missing-outline-definition-needed-p ()
   (and
     (swcad-title-title-missing-outline-policy-active-p)
-    (not (swcad-title-a4-frame-only-outline-definition-ready-p))
+    (not (swcad-title-title-missing-outline-definition-ready-p))
   )
 )
 
-(defun swcad-title-print-a4-frame-only-outline-definition-status (/ frame-block status raw-risk strict-warning)
-  (setq frame-block (swcad-title-a4-frame-only-outline-target-block))
-  (setq status (swcad-title-a4-frame-only-outline-definition-status))
+(defun swcad-title-print-title-missing-outline-definition-status (/ frame-block status raw-risk strict-warning)
+  (setq frame-block (swcad-title-title-missing-outline-target-block))
+  (setq status (swcad-title-title-missing-outline-definition-status))
   (setq raw-risk
     (if (and frame-block (swcad-title-block-exists-p frame-block))
       (swcad-title-frame-definition-raw-bbox-risk-record frame-block)
@@ -4274,20 +4278,20 @@
   )
 )
 
-(defun swcad-title-title-missing-outline-definition-status ()
-  (swcad-title-a4-frame-only-outline-definition-status)
+(defun swcad-title-a4-frame-only-outline-definition-status ()
+  (swcad-title-title-missing-outline-definition-status)
 )
 
-(defun swcad-title-title-missing-outline-definition-ready-p ()
-  (swcad-title-a4-frame-only-outline-definition-ready-p)
+(defun swcad-title-a4-frame-only-outline-definition-ready-p ()
+  (swcad-title-title-missing-outline-definition-ready-p)
 )
 
-(defun swcad-title-title-missing-outline-definition-needed-p ()
-  (swcad-title-a4-frame-only-outline-definition-needed-p)
+(defun swcad-title-a4-frame-only-outline-definition-needed-p ()
+  (swcad-title-title-missing-outline-definition-needed-p)
 )
 
-(defun swcad-title-print-title-missing-outline-definition-status ()
-  (swcad-title-print-a4-frame-only-outline-definition-status)
+(defun swcad-title-print-a4-frame-only-outline-definition-status ()
+  (swcad-title-print-title-missing-outline-definition-status)
 )
 
 (defun swcad-title-next-fast-target-frame-block (/ bootstrap-record)
@@ -8621,13 +8625,13 @@
   )
 )
 
-(defun swcad-title-prepare-a4-frame-only-outline-definition (/ frame-block status answer doc existed imported test-frame test-bbox geometry-warning raw-warning raw-risk strict-warning native-outside-marker-ok cleanup-ok backup-name)
-  (setq frame-block (swcad-title-a4-frame-only-outline-target-block))
-  (setq status (swcad-title-a4-frame-only-outline-definition-status))
+(defun swcad-title-prepare-title-missing-outline-definition (/ frame-block status answer doc existed imported test-frame test-bbox geometry-warning raw-warning raw-risk strict-warning native-outside-marker-ok cleanup-ok backup-name)
+  (setq frame-block (swcad-title-title-missing-outline-target-block))
+  (setq status (swcad-title-title-missing-outline-definition-status))
   (swcad-title-princ-text "\ntitle-missing/frame-only DR 도면틀 정의 준비:")
-  (swcad-title-print-a4-frame-only-outline-definition-status)
+  (swcad-title-print-title-missing-outline-definition-status)
   (cond
-    ((swcad-title-a4-frame-only-outline-definition-ready-p)
+    ((swcad-title-title-missing-outline-definition-ready-p)
       (swcad-title-princ-text "\ntitle-missing/frame-only 정의 준비: 이미 준비됨")
     )
     ((not (equal status "missing"))
@@ -8689,7 +8693,7 @@
           )
           (setq strict-warning
             (if imported
-              (swcad-title-a4-frame-only-outline-raw-a4-warning frame-block)
+              (swcad-title-title-missing-outline-raw-sheet-warning frame-block)
               nil
             )
           )
@@ -8761,8 +8765,8 @@
   (princ)
 )
 
-(defun swcad-title-prepare-title-missing-outline-definition ()
-  (swcad-title-prepare-a4-frame-only-outline-definition)
+(defun swcad-title-prepare-a4-frame-only-outline-definition ()
+  (swcad-title-prepare-title-missing-outline-definition)
 )
 
 (defun swcad-title-frame-def-clean-safe (/ doc answer frame-name exists old-child-names raw-risk-record raw-risk-after insert-count children rename-names rename-results target-renamed target backup-name renamed imported imported-valid rollback any-contaminated cleaned skipped failed skipped-referenced skipped-missing)
@@ -12715,7 +12719,7 @@
   result
 )
 
-(defun swcad-title-single-a4-frame-only-risk-message (source-frame frame-block / bbox sheet width height long-edge short-edge dims expected-long expected-short)
+(defun swcad-title-title-missing-outline-risk-message (source-frame frame-block / bbox sheet width height long-edge short-edge dims expected-long expected-short)
   (setq sheet (if source-frame (nth 5 source-frame) nil))
   (setq bbox (if source-frame (caddr source-frame) nil))
   (setq dims (swcad-title-sheet-dimensions sheet))
@@ -12746,6 +12750,10 @@
     )
     nil
   )
+)
+
+(defun swcad-title-single-a4-frame-only-risk-message (source-frame frame-block)
+  (swcad-title-title-missing-outline-risk-message source-frame frame-block)
 )
 
 (defun swcad-title-moved-native-placement-allowed-p (source-sheet frame-block)
@@ -12795,7 +12803,7 @@
   )
 )
 
-(defun swcad-title-a4-frame-only-outline-frame-record-p (frame-record / frame-ename frame-block sheet role)
+(defun swcad-title-title-missing-outline-frame-record-p (frame-record / frame-ename frame-block sheet role)
   (setq frame-ename (if frame-record (car frame-record) nil))
   (setq frame-block (if frame-record (cadr frame-record) nil))
   (setq sheet (swcad-title-sheet-size-from-block-name frame-block))
@@ -12808,23 +12816,23 @@
   )
 )
 
-(defun swcad-title-a4-frame-only-outline-frame-count (/ records count record)
+(defun swcad-title-title-missing-outline-frame-count (/ records count record)
   (setq records (swcad-title-frame-records))
   (setq count 0)
   (foreach record records
-    (if (swcad-title-a4-frame-only-outline-frame-record-p record)
+    (if (swcad-title-title-missing-outline-frame-record-p record)
       (setq count (+ count 1))
     )
   )
   count
 )
 
-(defun swcad-title-title-missing-outline-frame-record-p (frame-record)
-  (swcad-title-a4-frame-only-outline-frame-record-p frame-record)
+(defun swcad-title-a4-frame-only-outline-frame-record-p (frame-record)
+  (swcad-title-title-missing-outline-frame-record-p frame-record)
 )
 
-(defun swcad-title-title-missing-outline-frame-count ()
-  (swcad-title-a4-frame-only-outline-frame-count)
+(defun swcad-title-a4-frame-only-outline-frame-count ()
+  (swcad-title-title-missing-outline-frame-count)
 )
 
 (defun swcad-title-title-missing-outline-frame-block-present-p (frame-block / records found record)
@@ -13600,7 +13608,7 @@
                 (if geometry-warning
                   (swcad-title-princ-line (strcat "Frame geometry warning: " geometry-warning))
                 )
-                (if (and (swcad-title-frame-name-matches-p actual-frame-name "DR_A4_Outline") (not (swcad-title-frame-name-matches-p frame-block "DR_A4_Outline")))
+                (if (and (> (strlen actual-frame-name) 0) (not (swcad-title-frame-name-matches-p actual-frame-name frame-block)))
                   (swcad-title-princ-line "선택된 GMTITLE 용지가 기대한 원본 용지와 다릅니다. SWTITLESTATUS로 상태를 확인한 뒤 로그가 요구한 DR 용지로 다시 진행하세요.")
                 )
                 (swcad-title-princ-line (strcat "Removed wrong/new GMTITLE inserts: " (itoa deleted-new-gmtitle-count)))
@@ -14301,7 +14309,7 @@
   (princ)
 )
 
-(defun swcad-title-transfer-a4-frame-only-outline-apply (/ *error* source-frame source-frame-ename source-frame-data source-frame-bbox source-frame-block source-sheet normalized-sheet frame-block placement-point answer doc new-frame-ename new-effective-bbox geometry-warning raw-selection-warning bbox-ok raw-definition-risk residue-records residue-handles deleted-residue-count marker-ok)
+(defun swcad-title-transfer-title-missing-outline-apply (/ *error* source-frame source-frame-ename source-frame-data source-frame-bbox source-frame-block source-sheet normalized-sheet frame-block placement-point answer doc new-frame-ename new-effective-bbox geometry-warning raw-selection-warning bbox-ok raw-definition-risk residue-records residue-handles deleted-residue-count marker-ok)
   (defun *error* (msg)
     (if doc
       (vl-catch-all-apply 'vla-EndUndoMark (list doc))
@@ -14458,8 +14466,8 @@
   (princ)
 )
 
-(defun swcad-title-transfer-title-missing-outline-apply ()
-  (swcad-title-transfer-a4-frame-only-outline-apply)
+(defun swcad-title-transfer-a4-frame-only-outline-apply ()
+  (swcad-title-transfer-title-missing-outline-apply)
 )
 
 (defun swcad-title-transfer-frame-only-apply (/ *error* source-frame source-frame-bbox source-sheet frame-block risk-message answer placement-point gmtitle-result gmtitle-title-ename gmtitle-frame-ename finalize-result)
@@ -14520,7 +14528,7 @@
       (swcad-title-close-log)
     )
     (T
-      (if (setq risk-message (swcad-title-single-a4-frame-only-risk-message source-frame frame-block))
+      (if (setq risk-message (swcad-title-title-missing-outline-risk-message source-frame frame-block))
         (progn
           (swcad-title-princ-line (strcat "title-missing/frame-only native template caution: " risk-message))
           (swcad-title-princ-line "새 GMTITLE 도면틀 bbox를 검사한 뒤에만 기존 title-missing/frame-only 내용을 제거합니다.")
@@ -14926,7 +14934,7 @@
                   (strcat "Frame-only clone failure detail: " *swcad-title-last-clone-failure*)
                 )
               )
-              (if (setq risk-message (swcad-title-single-a4-frame-only-risk-message source-frame target-frame-block))
+              (if (setq risk-message (swcad-title-title-missing-outline-risk-message source-frame target-frame-block))
                 (progn
                   (swcad-title-princ-line (strcat "title-missing native 템플릿 주의: " risk-message))
                   (swcad-title-princ-line "실제 같은 크기 DR_A*_Outline 기준 객체가 bbox 검사를 통과하기 전에는 이 용지 크기에 clone을 강제로 적용하지 마세요.")
@@ -14997,7 +15005,7 @@
                 " needs one real native GMTITLE exemplar first."
               )
             )
-            (if (setq risk-message (swcad-title-single-a4-frame-only-risk-message source-frame target-frame-block))
+            (if (setq risk-message (swcad-title-title-missing-outline-risk-message source-frame target-frame-block))
               (progn
                 (swcad-title-princ-text (strcat "\ntitle-missing/frame-only native template caution: " risk-message))
                 (swcad-title-princ-text "\n도면틀 형상 오류로 중단되면 clone/fast batch를 계속하지 말고 SWTITLESTATUS로 상태를 다시 확인하세요.")
@@ -15175,7 +15183,7 @@
               (if
                 (and
                   (setq source-frame (car (swcad-title-frame-only-source-candidates)))
-                  (setq risk-message (swcad-title-single-a4-frame-only-risk-message source-frame frame-only-target-frame-block))
+                  (setq risk-message (swcad-title-title-missing-outline-risk-message source-frame frame-only-target-frame-block))
                 )
                 (progn
                   (swcad-title-princ-text (strcat "\ntitle-missing/frame-only native template caution: " risk-message))
