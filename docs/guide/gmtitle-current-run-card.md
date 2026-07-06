@@ -30,7 +30,7 @@ CAD 화면 옆에 열어두고 따라가는 짧은 실행 순서입니다.
 
 ```text
 target title/frame 수가 기대 수량에 가까워짐
-A3/A4 native 교체 후보가 줄어듦
+A2/A3/A4 native 교체 후보가 줄어듦
 clone/shared-link 경고가 줄어듦
 title-missing 예외 시트가 제목블록 없이 도면틀만 남음
 ```
@@ -86,7 +86,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260706-unified-title-missing-5
+260706-unified-title-missing-6
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -392,7 +392,7 @@ SWTITLECONVERT
 ```text
 첫 native GMTITLE 생성: YES
 누락된 용지 크기의 첫 native GMTITLE 생성: YES
-A3/A4 native 교체 1장 처리: OPEN
+A2/A3/A4 native 교체 1장 처리: OPEN
 BATCH는 OPEN으로 최소 1장 성공한 뒤, 같은 DR 용지/제목블록/옵션이 반복된다는 걸 눈으로 확인할 수 있을 때만 사용
 OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복됨: MANUAL
 판단이 애매하거나 현재 DWG가 다름: Enter로 중단
@@ -439,7 +439,7 @@ Object move ON
 | `NEXT_CREATE_FIRST_NATIVE_GMTITLE` | 아직 실제 native GMTITLE 기준 객체가 없음 | `SWTITLECONVERTNEXT` |
 | `NEXT_PREPARE_FRAME_STYLE_NORMALIZATION` | 도면틀 내부 형상과 별도 제목블록이 겹쳐 정규화 필요 | `SWTITLEPREPARE` |
 | `NEXT_REVIEW_ACCIDENTAL_COMMAND_TEXT` | 도면에 실수 명령어 텍스트 후보가 있음 | 후보 확인 후 `SWTITLEPREPARE` |
-| `NEXT_UPGRADE_A3_A4_NATIVE` | A3/A4 복제/shared-link 쌍을 fresh native로 교체해야 함 | `SWTITLECONVERTNEXT` |
+| `NEXT_UPGRADE_A3_A4_NATIVE` | A2/A3/A4 복제/shared-link 쌍을 fresh native로 교체해야 함 | `SWTITLECONVERTNEXT` |
 | `WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION` | 과거 상태명. 현재 기준으로는 title-missing 예외 전에 해당 DR_A*_Outline 검증 필요 | `SWTITLEPREPARE` |
 | `NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION` | A4 도면틀 정의 준비/검증 필요 | `SWTITLEPREPARE` |
 | `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX` | 도면틀 정의 선택 범위가 위험함 | 변환 반복 금지, 로그 확인 |
@@ -455,7 +455,7 @@ A3 도면틀이 CAD에서 block/INSERT처럼 보이는 것만으로 실패는 �
 
 ```text
 DR_titlea_3rd 제목블록 더블클릭 -> GMTITLE 표 편집창 열림
-A3/A4 native 교체 후보: 0
+A2/A3/A4 native 교체 후보: 0
 clone/shared-link 경고: 0
 겹친 target pair: 0
 SWTITLEVERIFY가 OK 쪽으로 진행
@@ -516,7 +516,7 @@ target-sheet-counts:
   A2: 1
   A3: 12
   A4: 2
-A3/A4 native 교체 후보: 0
+A2/A3/A4 native 교체 후보: 0
 겹친 GMTITLE target 쌍: 0
 clone/shared-link 경고: 0
 ```

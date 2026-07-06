@@ -29,7 +29,7 @@ codex/gm-title
 주의:
 
 ```text
-2026-07-05 현재 로컬 작업 기준은 `260706-unified-title-missing-5`입니다.
+2026-07-05 현재 로컬 작업 기준은 `260706-unified-title-missing-6`입니다.
 현재 로컬 브랜치는 GitHub보다 앞선 커밋이 있을 수 있으므로, 다른 PC에서 이어가기 전에 이 브랜치가 GitHub에 push됐는지 확인합니다.
 다른 PC에서는 `codex/gm-title` 브랜치를 받은 뒤, CAD에서 `SWTITLEVERSION`으로 실제 로드 버전을 확인합니다.
 ```
@@ -79,7 +79,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260706-unified-title-missing-5
+260706-unified-title-missing-6
 ```
 
 다른 버전이면 변환하지 말고 다시 APPLOAD 합니다. 그래도 다른 버전이면 다른 브랜치를 받았거나, 열린 CAD 세션이 예전 LSP를 유지하고 있을 수 있습니다.
@@ -161,7 +161,7 @@ CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력해서 우회�
 ```text
 첫 native GMTITLE 생성: YES
 누락된 용지 크기의 첫 native GMTITLE 생성: YES
-A3/A4 native 교체 1장 처리: OPEN
+A2/A3/A4 native 교체 1장 처리: OPEN
 BATCH는 OPEN으로 최소 1장 성공한 뒤, 같은 DR 용지/제목블록/옵션이 반복된다는 걸 눈으로 확인할 수 있을 때만 사용
 OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복됨: MANUAL
 판단이 애매하거나 현재 DWG가 다름: Enter로 중단
@@ -174,7 +174,7 @@ SWTITLESTATUS가 겹친 GMTITLE target 쌍을 표시하면 SWTITLECONVERT를 반
 먼저 SWTITLEPREPARE로 정리합니다.
 같은 위치에 기존 native GMTITLE 쌍이 있으면 SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 새로 만들지 않고 그 쌍을 채택합니다.
 DR_A3_Outline 안의 native-format title-like 형상은 그 자체만으로 삭제하지 않습니다.
-A3/A4 native 교체 후보가 남아 있으면 SWTITLESTATUS는 title-missing/frame-only 예외보다 그 후보를 먼저 안내합니다.
+A2/A3/A4 native 교체 후보가 남아 있으면 SWTITLESTATUS는 title-missing/frame-only 예외보다 그 후보를 먼저 안내합니다.
 BATCH는 첫 후보부터 쓰지 말고, OPEN으로 후보 수가 줄어든 증거를 먼저 확인한 뒤 사용합니다.
 핵심 상태/검증 안내는 한국어로 표시됩니다.
 ```

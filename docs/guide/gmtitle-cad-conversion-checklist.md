@@ -61,7 +61,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260706-unified-title-missing-5
+260706-unified-title-missing-6
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 로드합니다.
@@ -85,7 +85,7 @@ A2/A3/A4 예상 수량
 GMTITLE target 도면틀/제목블록 수량
 DR_A2/A3/A4_Outline 도면틀 정의 상태
 도면틀 정의 raw bbox 위험 여부
-A3/A4 native 교체 후보 수
+A2/A3/A4 native 교체 후보 수
 title-missing/frame-only 예외 처리 가능 여부
 다음 권장 명령
 ```
@@ -162,7 +162,7 @@ SWTITLECONVERTNEXT
 시트 크기 자동 인식
 같은 위치의 기존 native GMTITLE 쌍 채택
 남은 원본 시트 변환
-A3/A4 복제 쌍을 fresh native GMTITLE로 교체
+A2/A3/A4 복제 쌍을 fresh native GMTITLE로 교체
 title-missing/frame-only 예외 도면틀만 교체
 기존 SolidWorks 도면틀/표제란/잔여물 제거
 ```
@@ -193,7 +193,7 @@ Object move ON 상태로 확인
 ```text
 첫 native GMTITLE 기준 객체 생성: YES
 누락된 용지 크기의 첫 native GMTITLE 생성: YES
-A3/A4 native 교체 1장 처리: OPEN
+A2/A3/A4 native 교체 1장 처리: OPEN
 BATCH는 OPEN으로 최소 1장 성공한 뒤, 같은 DR 용지/제목블록/옵션이 반복된다는 걸 눈으로 확인할 수 있을 때만 사용
 OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복됨: MANUAL
 판단이 애매하거나 현재 DWG가 다름: Enter로 중단
@@ -233,11 +233,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1 -PreflightOnly -Compact
 ```
 
-## 5. A3/A4 native 교체
+## 5. A2/A3/A4 native 교체
 
 A3/A4 target이 화면에 보여도 복제/shared-link 구조라면 더블클릭 시 GMTITLE 표 편집창이 아니라 고급 속성 편집기로 열릴 수 있습니다.
 
-`SWTITLESTATUS`가 `NEXT_UPGRADE_A3_A4_NATIVE` 또는 A3/A4 native 교체 후보를 안내하면 title-missing/frame-only 예외보다 먼저 처리합니다.
+`SWTITLESTATUS`가 `NEXT_UPGRADE_A3_A4_NATIVE` 또는 A2/A3/A4 native 교체 후보를 안내하면 title-missing/frame-only 예외보다 먼저 처리합니다.
 
 ```text
 SWTITLECONVERTNEXT
@@ -247,7 +247,7 @@ SWTITLESTATUS
 성공 판단:
 
 ```text
-A3/A4 native 교체 후보 수가 줄어듦
+A2/A3/A4 native 교체 후보 수가 줄어듦
 겹친 target pair 경고가 없음
 명령어 텍스트 후보가 없음
 도면틀 raw bbox 위험이 없음
@@ -266,7 +266,7 @@ title-missing/frame-only 처리 전 조건:
 
 ```text
 원본 표제란 시트가 먼저 정리됨
-A3/A4 native 교체 후보가 0이거나 먼저 처리됨
+A2/A3/A4 native 교체 후보가 0이거나 먼저 처리됨
 해당 크기의 DR_A*_Outline 정의가 준비됨
 해당 DR_A*_Outline raw bbox 위험이 없음
 또는 공식 native 도면틀의 작은 바깥 마커만 있어 `ready-native-outside-markers`로 판정됨

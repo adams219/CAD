@@ -20,7 +20,7 @@
 정적 preflight: PASS
 hidden verification suite: PASS 여부는 `run_goal_status.ps1`가 최신 `work\main56_verification_suite_last_run.txt`의 Generated/Result를 읽어 판단
 GstarCAD /b script smoke probe: PASS
-GMTITLE LSP 버전: 260706-unified-title-missing-5
+GMTITLE LSP 버전: 260706-unified-title-missing-6
 loader 버전: 260706-loader-convert-next-response-guidance
 공개 사용자 명령: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLECONVERT, SWTITLEVERIFY, SWTITLEVERSION, SWSCALESCAN
 A4 raw bbox guard: 있음
@@ -98,7 +98,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
    현재 열린 DWG가 work 복사본인지, 최신 LSP인지, 로그가 현재 도면을 가리키는지 확인한다.
 
 2. 상태 분류
-   SWTITLESTATUS 결과를 보고 첫 native 부재, A3/A4 native 교체, title-missing/frame-only 예외, 정규화/위험 상태 중 하나로 분류한다.
+   SWTITLESTATUS 결과를 보고 첫 native 부재, A2/A3/A4 native 교체, title-missing/frame-only 예외, 정규화/위험 상태 중 하나로 분류한다.
 
 3. 최소 변경
    상태가 요구하는 명령 하나만 실행한다. 보통 SWTITLEPREPARE 또는 SWTITLECONVERTNEXT 중 하나다.
@@ -148,7 +148,7 @@ Object move가 OFF인지 확인
 ```text
 진행됨:
   target title/frame 수가 기대 수량에 가까워짐
-  A3/A4 native 교체 후보가 줄어듦
+  A2/A3/A4 native 교체 후보가 줄어듦
   clone/shared-link 경고가 줄어듦
   title-missing/frame-only 예외 시트가 원본처럼 제목블록 없이 도면틀만 남음
   SWTITLEVERIFY_FINAL_OK에 가까워짐
@@ -318,7 +318,7 @@ nested-direct-outside probe:
 ```text
 LSP 기준:
 loader: 260706-loader-convert-next-response-guidance
-gmtitle: 260706-unified-title-missing-5
+gmtitle: 260706-unified-title-missing-6
 
 작업 도면:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
@@ -339,7 +339,7 @@ SWTITLEVERIFY_FINAL_FAIL
   필요한 native 기준 객체: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline
 ```
 
-이 상태는 변환 전 기준이다. 지금은 A3/A4 후보를 바로 복제 처리하는 단계가 아니라, 먼저 실제 GstarCAD `GMTITLE`로 각 용지 크기의 native 기준 객체를 만들어야 한다.
+이 상태는 변환 전 기준이다. 지금은 A2/A3/A4 후보를 바로 복제 처리하는 단계가 아니라, 먼저 실제 GstarCAD `GMTITLE`로 각 용지 크기의 native 기준 객체를 만들어야 한다.
 
 ### 로그 신뢰 기준
 
@@ -359,7 +359,7 @@ work\swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
 ```text
 신뢰 가능:
   DWG 파일이 현재 열린 work 복사본과 같음
-  SWTITLE LSP 버전이 260706-unified-title-missing-5
+  SWTITLE LSP 버전이 260706-unified-title-missing-6
   방금 실행한 명령 결과임
 
 신뢰 보류:
@@ -379,7 +379,7 @@ work\swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
   현재 주원인
   근거: target-title-count=0, target-frame-count=0, status=NEXT_CREATE_FIRST_NATIVE_GMTITLE
 
-A3/A4 native 인식 문제:
+A2/A3/A4 native 인식 문제:
   아직 기본 workcopy에서는 시작 전
   근거: A2/A3/A4 native 기준 객체가 모두 missing
 
@@ -413,9 +413,9 @@ BATCH 자동화:
 
 | 작업 단위 | 해결하려는 질문 | 통과 증거 | 통과 전 금지 |
 | --- | --- | --- | --- |
-| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260706-unified-title-missing-5`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
+| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260706-unified-title-missing-6`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
 | 첫 native 기준 객체 | 이 DWG 안에 실제 GMTITLE 쌍이 최소 1개 있는가 | `target-title-count > 0`, 같은 크기 `DR_A*_Outline` 기준 객체 존재 | clone/fast batch 완료 판단 |
-| A3/A4 native 교체 | 겉보기 복제본이 아니라 fresh native 쌍인가 | `A3/A4 native 교체 후보: 0`, clone/shared-link 경고 0 | 도면틀 더블클릭만 보고 성공 판정 |
+| A2/A3/A4 native 교체 | 겉보기 복제본이 아니라 fresh native 쌍인가 | `A2/A3/A4 native 교체 후보: 0`, clone/shared-link 경고 0 | 도면틀 더블클릭만 보고 성공 판정 |
 | title-missing/frame-only | 원본에 없는 제목블록 없이 도면틀만 교체됐는가 | title-missing 도면틀-only 대상 수와 예상 수량 일치, 불필요한 `DR_titlea_3rd` 없음 | 원본에 없던 제목블록 생성 |
 | 잔여물 보호 | 도면 내부 번호/주석/BOM/치수가 삭제되지 않았는가 | cleanup 후보 로그와 화면 확인이 일치 | cleanup 범위 확대 |
 | 최종 검증 | 전체 도면 수량과 native 동작이 맞는가 | `SWTITLEVERIFY_FINAL_OK`, 대표 제목블록 더블클릭 성공 | 목표 완료 처리 |
@@ -448,7 +448,7 @@ BATCH 자동화:
 ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS
 새 GMTITLE INSERT 생성 수: 0
 기존 GMTITLE 쌍은 보존됨
-SWTITLESTATUS 재확인: A3/A4 native 교체 후보 11개 유지
+SWTITLESTATUS 재확인: A2/A3/A4 native 교체 후보 11개 유지
 ```
 
 다음에 같은 단계로 들어가면, GMTITLE 창에서 아래 값이 실제로 보일 때만 진행한다.
@@ -507,7 +507,7 @@ Object move: OFF
 아직 증명하지 못한 것:
 
 ```text
-이 키보드 선택 경로로 확인까지 눌렀을 때 A3/A4 native 교체 후보 수가 실제로 줄어드는지
+이 키보드 선택 경로로 확인까지 눌렀을 때 A2/A3/A4 native 교체 후보 수가 실제로 줄어드는지
 SWTITLECONVERT의 삽입점 자동 입력과 finalize가 끝까지 이어지는지
 더블클릭이 GMTITLE 표 편집창으로 바뀌는지
 ```
@@ -535,13 +535,13 @@ Native GMTITLE aligned to 복제d frame location: moved=0, dx=0, dy=0
 복사한 속성 수: 11
 기존 복제 제목블록 삭제: 예
 기존 복제 도면틀 삭제: 예
-Remaining A3/A4 native 교체 후보: 10
+Remaining A2/A3/A4 native 교체 후보: 10
 ```
 
 `SWTITLESTATUS` 재확인:
 
 ```text
-A3/A4 native 교체 후보: 10
+A2/A3/A4 native 교체 후보: 10
 A3 native-like 대상 도면틀 수: 2
 A3 복제 대상 도면틀 수: 9
 native-link 공유 쌍: 1
@@ -600,7 +600,7 @@ SWSCALESCAN
 | 종류 | 의미 | 판단 증거 | 다음 행동 |
 | --- | --- | --- | --- |
 | 버전/도면 문제 | CAD가 최신 LSP나 work 복사본을 보고 있지 않음 | `SWTITLEVERSION` 불일치, DWG 경로가 `work`가 아님 | APPLOAD 후 다시 상태 확인 |
-| native 구조 문제 | 겉모양은 맞지만 복제/shared-link라 GMTITLE 인식이 불확실함 | `A3/A4 native 교체 후보`, `복제`, `shared-native-link-handle` | `SWTITLECONVERTNEXT`로 한 장씩 fresh native 교체 |
+| native 구조 문제 | 겉모양은 맞지만 복제/shared-link라 GMTITLE 인식이 불확실함 | `A2/A3/A4 native 교체 후보`, `복제`, `shared-native-link-handle` | `SWTITLECONVERTNEXT`로 한 장씩 fresh native 교체 |
 | title-missing/frame-only 문제 | 원본 시트에는 표제란이 없고 도면틀만 있음 | `표제란 없는 도면틀 시트`, 대상 도면틀 누락 | native 교체 뒤 같은 크기 도면틀-only 처리 |
 | 잔여물/오염 문제 | 실수 텍스트, 겹친 target, raw bbox 위험, 도면틀 정의 오염 | `SWTITLESTATUS`의 prepare/위험 안내 | 변환 반복 금지, `SWTITLEPREPARE` 또는 원인 분석 |
 
@@ -621,7 +621,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260706-unified-title-missing-5
+260706-unified-title-missing-6
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...
@@ -642,7 +642,7 @@ NEXT_CREATE_FIRST_NATIVE_GMTITLE
   -> 다음 명령은 SWTITLECONVERTNEXT.
 
 NEXT_UPGRADE_A3_A4_NATIVE
-  -> A3/A4 복제 또는 shared-link 쌍을 fresh native GMTITLE로 교체해야 한다.
+  -> A2/A3/A4 복제 또는 shared-link 쌍을 fresh native GMTITLE로 교체해야 한다.
   -> 다음 명령은 SWTITLECONVERTNEXT.
 
 NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX
@@ -655,20 +655,20 @@ SWTITLEPREPARE 안내
 
 표제란 없는 시트 안내
   -> title-missing/frame-only 처리 단계다.
-  -> A3/A4 native 교체 후보가 남아 있으면 A3/A4가 먼저다.
+  -> A2/A3/A4 native 교체 후보가 남아 있으면 A2/A3/A4가 먼저다.
 
 SWTITLEVERIFY 안내
   -> 변환 후보가 없으므로 최종 검증 단계다.
 ```
 
-### 3단계: 첫 native 생성 또는 A3/A4 native 교체
+### 3단계: 첫 native 생성 또는 A2/A3/A4 native 교체
 
 이 단계는 `SWTITLESTATUS` 상태 코드에 따라 두 갈래다. 현재 기본 workcopy direct probe가
-`NEXT_CREATE_FIRST_NATIVE_GMTITLE`이면 아직 A3/A4 교체 단계가 아니라, 먼저 첫 A2 native
+`NEXT_CREATE_FIRST_NATIVE_GMTITLE`이면 아직 A2/A3/A4 교체 단계가 아니라, 먼저 첫 A2 native
 GMTITLE 기준 객체를 만들어야 한다.
 
-A3/A4 native 교체 설명은 `SWTITLESTATUS`가 `NEXT_UPGRADE_A3_A4_NATIVE`를 출력한 뒤에만
-적용한다. 이 조건 없이 A3/A4 교체 절차를 따라 하면 과거 중간 workcopy 상태를 현재 도면에
+A2/A3/A4 native 교체 설명은 `SWTITLESTATUS`가 `NEXT_UPGRADE_A3_A4_NATIVE`를 출력한 뒤에만
+적용한다. 이 조건 없이 A2/A3/A4 교체 절차를 따라 하면 과거 중간 workcopy 상태를 현재 도면에
 잘못 적용하게 된다.
 
 ```text
@@ -688,7 +688,7 @@ YES
 
 OPEN
   NEXT_UPGRADE_A3_A4_NATIVE 상태에서 쓴다.
-  다음 A3/A4 native 교체 후보 1장만 처리한다.
+  다음 A2/A3/A4 native 교체 후보 1장만 처리한다.
 
 MANUAL
   OPEN이 계속 새 GMTITLE 객체를 못 잡을 때 쓰는 복구 경로다.
@@ -743,7 +743,7 @@ SWTITLESTATUS
 성공 판단:
 
 ```text
-A3/A4 native 교체 후보 수가 줄어든다.
+A2/A3/A4 native 교체 후보 수가 줄어든다.
 방금 처리한 쌍의 role이 복제에서 native-upgrade 또는 native-like로 바뀐다.
 새로운 raw bbox, 겹침, 선택 위험이 생기지 않는다.
 ```
@@ -754,7 +754,7 @@ A3/A4 native 교체 후보 수가 줄어든다.
 
 ### 4단계: title-missing/frame-only 처리
 
-A3/A4 native 교체 후보가 0이 된 뒤 원본 표제란 부재가 검증된 시트를 처리한다.
+A2/A3/A4 native 교체 후보가 0이 된 뒤 원본 표제란 부재가 검증된 시트를 처리한다.
 
 원본에 표제란이 없는 시트가 있을 수 있다. 따라서 해당 시트에 `DR_titlea_3rd`가 생기면 성공이 아니라 잘못된 추가일 수 있다.
 
@@ -807,7 +807,7 @@ SWTITLEVERIFY_FINAL_OK
 target A2: 1
 target A3: 12
 target A4: 2
-A3/A4 native 교체 필요 쌍: 0
+A2/A3/A4 native 교체 필요 쌍: 0
 native-like가 아닌 대상 쌍: 0
 겹친 target 쌍: 0
 도면틀 raw bbox 위험: 0
@@ -977,7 +977,7 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 
 ```text
 1. APPLOAD로 C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp 로드
-2. SWTITLEVERSION으로 gmtitle 버전이 260706-unified-title-missing-5인지 확인
+2. SWTITLEVERSION으로 gmtitle 버전이 260706-unified-title-missing-6인지 확인
 3. SWTITLESTATUS로 현재 상태 확인
 4. 기본 workcopy라면 NEXT_CREATE_FIRST_NATIVE_GMTITLE인지 확인
 5. SWTITLECONVERTNEXT 실행
@@ -1000,12 +1000,12 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 4. OPEN 선택
 5. GMTITLE 창에서 DR_A3_Outline / DR_titlea_3rd / Frame positioning ON / Object move OFF 확인
 6. 변환이 끝나면 SWTITLESTATUS 실행
-7. A3/A4 native 교체 후보가 11에서 줄었는지 확인
+7. A2/A3/A4 native 교체 후보가 11에서 줄었는지 확인
 8. 후보 수가 줄지 않고 `NO_INSERTS`가 반복되면 다음에는 수동 `SWTITLECONVERT`에서 MANUAL 선택
 9. MANUAL 안내값으로 GstarCAD GMTITLE 한 장 생성, 삽입점은 기존 도면틀 왼쪽 아래 끝점/스냅 사용
 10. SWTITLECONVERTNEXT 재실행으로 pending finish 수행
 11. 줄었으면 같은 방식으로 다음 후보 진행
-12. A3/A4 후보가 0이 된 뒤 title-missing/frame-only 예외 처리
+12. A2/A3/A4 후보가 0이 된 뒤 title-missing/frame-only 예외 처리
 13. SWTITLEVERIFY_FINAL_OK와 대표 더블클릭 확인
 ```
 

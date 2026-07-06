@@ -2,7 +2,7 @@
 
 > 2026-07-06 기준 변경: `docs/guide/gmtitle-unified-flow-reset.md`가 GMTITLE 변환의 최우선 기준입니다. A2/A3/A4는 모두 같은 GMTITLE 흐름으로 보고, `frame-only`는 A4 전용 정책이 아니라 원본 표제란 부재가 검증된 경우의 예외로만 해석합니다.
 
-이 문서는 이전의 A3/A4 native 교체 실험을 현재 4단계 흐름 기준으로 정리한 참고 문서입니다.
+이 문서는 이전의 A2/A3/A4 native 교체 실험을 현재 4단계 흐름 기준으로 정리한 참고 문서입니다.
 
 현재 일반 사용자는 아래 권장 4개 명령만 사용합니다.
 
@@ -28,7 +28,7 @@ GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 
 현재 LSP 버전:
 
 ```text
-260706-unified-title-missing-5
+260706-unified-title-missing-6
 ```
 
 현재 loader 버전은 `SWTITLEVERSION`에서 함께 확인합니다.
@@ -124,7 +124,7 @@ SWTITLEPREPARE가 작업복사본에서만 실제 겹치는 도면틀 정의 내
 별도 제목블록과 겹치지 않는 native-format 내부 형상은 일반 cleanup에서 제외한다.
 같은 위치에 이미 생성된 DR_A*_Outline + DR_titlea_3rd target 쌍이 2개 있으면 중복 target 쌍으로 따로 표시한다.
 SWTITLECONVERTNEXT는 같은 bbox에 기존 native GMTITLE 쌍이 있으면 새로 만들지 않고 그 쌍을 채택한다.
-A3/A4 native 교체 후보가 남아 있으면 SWTITLESTATUS는 title-missing/frame-only 예외보다 그 후보를 먼저 안내한다.
+A2/A3/A4 native 교체 후보가 남아 있으면 SWTITLESTATUS는 title-missing/frame-only 예외보다 그 후보를 먼저 안내한다.
 핵심 상태/검증 안내는 CAD 명령창에서 한국어로 확인한다.
 ```
 
@@ -207,7 +207,7 @@ expected-sheet-counts:
   A2: 1
   A3: 12
   A4: 2
-A3/A4 native 교체 후보: 10
+A2/A3/A4 native 교체 후보: 10
 A4 대상 도면틀 누락: 필요 2, 현재 0
 ```
 

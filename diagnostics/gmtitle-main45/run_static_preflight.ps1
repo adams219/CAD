@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-5",
+  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-6",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -335,6 +335,10 @@ Assert-NotContains -Text $mainText -Needle '(swcad-title-apply-result "FINALIZED
 Assert-NotContains -Text $mainText -Needle '(swcad-title-apply-result "WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE")' -Label "No legacy A4 warning status emission"
 Assert-NotContains -Text $mainText -Needle '(swcad-title-apply-result "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION")' -Label "No legacy A4 next-prepare status emission"
 Assert-Contains -Text $mainText -Needle "swcad-title-moved-native-placement-allowed-p" -Label "Generic moved-native placement guard"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-native-upgrade-candidate-records ()" -Label "Generic A2/A3/A4 native-upgrade candidate function"
+Assert-Contains -Text $mainText -Needle "(swcad-title-target-pair-upgrade-candidate-records '(`"A2`" `"A3`" `"A4`"))" -Label "Native-upgrade candidates include A2/A3/A4"
+Assert-Contains -Text $mainText -Needle "WARN_A2_A3_A4_TARGET_FRAME_NOT_NATIVE_LIKE" -Label "Generic A2/A3/A4 native-like warning status"
+Assert-Contains -Text $mainText -Needle "A2/A3/A4 native-like completion:" -Label "Generic A2/A3/A4 native-like completion log"
 Assert-NotContains -Text $mainText -Needle 'swcad-title-frame-name-matches-p frame-name "DR_A4_Outline"' -Label "No A4-only trusted-frame exception"
 Assert-NotContains -Text $mainText -Needle "A4 special handling" -Label "Stale A4 special handling wording"
 Assert-NotContains -Text $mainText -Needle "A4 보호 중단" -Label "Stale A4-only protection wording"
@@ -358,7 +362,7 @@ if ([regex]::IsMatch($mainText, "\(or\s*\r?\n\s*\(swcad-title-auto-next-answer")
 Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT ; recommended next safe conversion step" -Label "GMTITLE header convert-next main workflow"
 Assert-Contains -Text $mainText -Needle "Manual fallback:" -Label "GMTITLE header manual fallback section"
 Assert-Contains -Text $mainText -Needle "Use it only when you intentionally need to" -Label "GMTITLE header manual fallback guard"
-Assert-Contains -Text $mainText -Needle "A3/A4 native-recheck or cloned GMTITLE pairs are normally handled through" -Label "GMTITLE header A3/A4 convert-next wording"
+Assert-Contains -Text $mainText -Needle "A2/A3/A4 native-recheck or cloned GMTITLE pairs are normally handled through" -Label "GMTITLE header A2/A3/A4 convert-next wording"
 Assert-Contains -Text $mainText -Needle "권장 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLEVERIFY" -Label "GMTITLE load convert-next workflow guidance"
 Assert-Contains -Text $mainText -Needle "수동 응답을 직접 고를 때만 SWTITLECONVERT를 사용하세요" -Label "GMTITLE load manual convert fallback guidance"
 Assert-Contains -Text $mainText -Needle "중요: 변환 전에는 SWTITLESTATUS 결과가 안내한 다음 명령만 실행하세요" -Label "GMTITLE load status-result-only guidance"
@@ -387,7 +391,7 @@ Assert-Contains -Text $mainText -Needle "title-missing/frame-only" -Label "SWTIT
 Assert-Contains -Text $mainText -Needle "swcad-title-next-missing-native-selection-record" -Label "SWTITLESTATUS missing-native selection helper"
 Assert-Contains -Text $mainText -Needle "다음 누락 크기 native GMTITLE 선택:" -Label "SWTITLESTATUS missing-native selection heading"
 Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록" -Label "SWTITLECONVERTNEXT exact dialog selection guidance"
-Assert-Contains -Text $mainText -Needle '"A3/A4 native 교체 후보 1장 처리"' -Label "SWTITLECONVERTNEXT native one-sheet default"
+Assert-Contains -Text $mainText -Needle '"A2/A3/A4 native 교체 후보 1장 처리"' -Label "SWTITLECONVERTNEXT native one-sheet default"
 Assert-Contains -Text $mainText -Needle "swcad-title-print-native-batch-safety-guidance" -Label "Native batch safety guidance helper"
 Assert-Contains -Text $mainText -Needle "BATCH 안전 조건: 먼저 OPEN으로 1장을 성공시킨 뒤 SWTITLESTATUS/direct probe에서 후보 수가 줄었는지 확인하세요." -Label "Native batch OPEN-first guidance"
 Assert-Contains -Text $mainText -Needle "BATCH 금지 조건: 첫 후보부터 바로 BATCH를 쓰거나" -Label "Native batch no-first-batch guidance"
@@ -397,12 +401,12 @@ Assert-NotContains -Text $mainText -Needle "다음: SWTITLECONVERT를 실행하�
 Assert-NotContains -Text $mainText -Needle "일반 흐름은 SWTITLECONVERT를 사용하세요." -Label "Stale direct convert general-flow wording"
 Assert-NotContains -Text $mainText -Needle "(command pause)" -Label "GMTITLE interactive wait must use explicit pause string"
 $a3a4NextStart = $mainText.IndexOf("(defun swcad-title-upgrade-native-a3a4-next")
-$a3a4AutoOpen = if ($a3a4NextStart -ge 0) { $mainText.IndexOf('"A3/A4 native 교체 후보 1장 처리"', $a3a4NextStart) } else { -1 }
+$a3a4AutoOpen = if ($a3a4NextStart -ge 0) { $mainText.IndexOf('"A2/A3/A4 native 교체 후보 1장 처리"', $a3a4NextStart) } else { -1 }
 $a3a4Prompt = if ($a3a4NextStart -ge 0) { $mainText.IndexOf("이 한 장의 GMTITLE 창을 열려면 OPEN", $a3a4NextStart) } else { -1 }
 if (($a3a4NextStart -ge 0) -and ($a3a4AutoOpen -gt $a3a4NextStart) -and ($a3a4Prompt -gt $a3a4AutoOpen)) {
-  Write-Output "SWTITLECONVERTNEXT A3/A4 OPEN before prompt: found"
+  Write-Output "SWTITLECONVERTNEXT A2/A3/A4 OPEN before prompt: found"
 } else {
-  Add-Failure "SWTITLECONVERTNEXT A3/A4 OPEN auto response must be checked before getstring prompt"
+  Add-Failure "SWTITLECONVERTNEXT A2/A3/A4 OPEN auto response must be checked before getstring prompt"
 }
 Assert-Contains -Text $mainText -Needle "DR_titlea_3rd/Frame positioning ON/Object move OFF" -Label "SWTITLECONVERTNEXT visual GMTITLE confirmation guard"
 Assert-Contains -Text $suiteText -Needle "A4 outline native outside marker prepare probe" -Label "Suite A4 native outside marker prepare step"
@@ -566,7 +570,7 @@ Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "MANUAL_GMTITLE_SE
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "DryRun" -Label "Manual session wrapper dry-run option"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle '$afterArgs += "-Compact"' -Label "Manual session wrapper forwards compact after-manual check"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "run_open_workcopy_for_manual_convert.ps1" -Label "Next CAD action open-workcopy helper"
-Assert-Contains -Text $nextCadActionRunnerText -Needle "A3/A4 native 교체 후보 수" -Label "Next CAD action native-upgrade candidate output"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "A2/A3/A4 native 교체 후보 수" -Label "Next CAD action native-upgrade candidate output"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "현재 GMTITLE 쌍: 전체" -Label "Next CAD action target-pair forecast"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "OPEN 1회 성공 뒤 direct probe를 갱신해서 후보 수가 줄었는지 먼저 확인하세요." -Label "Next CAD action native OPEN refresh guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "Codex sandbox 기본 경로 감지" -Label "Next CAD action Codex sandbox default-path correction"
@@ -641,7 +645,7 @@ Assert-Contains -Text $nextCadActionRunnerText -Needle "-Compact" -Label "Next C
 Assert-Contains -Text $nextCadActionRunnerText -Needle "화면에는 다음 한 단계 요약만 보여줍니다" -Label "Next CAD action compact after-manual summary"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "GstarCAD를 계속 열어 둔 상태에서는 hidden probe가 현재 화면 상태와 엇갈릴 수 있습니다" -Label "Next CAD action hidden probe closed-CAD guard"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "YES: 첫 native GMTITLE 1장을 만들고 마무리합니다." -Label "Next CAD action first-native YES guidance"
-Assert-Contains -Text $nextCadActionRunnerText -Needle "OPEN: 다음 A3/A4 후보 1장만 fresh native GMTITLE로 교체합니다." -Label "Next CAD action native OPEN guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "OPEN: 다음 A2/A3/A4 후보 1장만 fresh native GMTITLE로 교체합니다." -Label "Next CAD action native OPEN guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "BATCH: OPEN으로 최소 1장 성공한 뒤" -Label "Next CAD action native BATCH after OPEN guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "MANUAL: OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복될 때만 사용합니다." -Label "Next CAD action native MANUAL guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "실제 DR_titlea_3rd 제목블록이 있는 대표 A2/A3 용지만 더블클릭하세요." -Label "Next CAD action final title-only double-click guidance"
@@ -886,7 +890,7 @@ Assert-Contains -Text $runCardText -Needle "BATCH는 OPEN으로 최소 1장 성�
 Assert-Contains -Text $runCardText -Needle "SWTITLECONVERTNEXT" -Label "Run card convert-next shortcut guidance"
 Assert-Contains -Text $runCardText -Needle '`SWTITLECONVERTNEXT`를 쓴 경우에는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않습니다' -Label "Run card no extra convert-next response guidance"
 Assert-Contains -Text $runCardText -Needle '| `NEXT_CREATE_FIRST_NATIVE_GMTITLE` | 아직 실제 native GMTITLE 기준 객체가 없음 | `SWTITLECONVERTNEXT` |' -Label "Run card first-native recommends convert-next"
-Assert-Contains -Text $runCardText -Needle '| `NEXT_UPGRADE_A3_A4_NATIVE` | A3/A4 복제/shared-link 쌍을 fresh native로 교체해야 함 | `SWTITLECONVERTNEXT` |' -Label "Run card A3A4 recommends convert-next"
+Assert-Contains -Text $runCardText -Needle '| `NEXT_UPGRADE_A3_A4_NATIVE` | A2/A3/A4 복제/shared-link 쌍을 fresh native로 교체해야 함 | `SWTITLECONVERTNEXT` |' -Label "Run card A3A4 recommends convert-next"
 Assert-Contains -Text $runCardText -Needle "docs/history" -Label "Run card history-doc warning"
 Assert-Contains -Text $runCardText -Needle "docs/investigations" -Label "Run card investigations-doc warning"
 Assert-Contains -Text $runCardText -Needle 'A2/A3/A4는 모두 `DR_A*_Outline + DR_titlea_3rd` 공통 GMTITLE 흐름으로 판단' -Label "Run card unified GMTITLE current standard"
@@ -936,7 +940,7 @@ Assert-Contains -Text $commandsGuideText -Needle "GMTITLE 창 선택까지 완�
 Assert-Contains -Text $commandsGuideText -Needle 'CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력하지 않습니다' -Label "Commands guide raw GMTITLE/TIT/OPEN guard"
 Assert-Contains -Text $commandsGuideText -Needle 'OPEN` 응답은 CAD 일반 `OPEN` 명령이 아닙니다' -Label "Commands guide convert OPEN versus CAD OPEN guard"
 Assert-Contains -Text $commandsGuideText -Needle "첫 native GMTITLE 생성: YES" -Label "Commands guide convert YES prompt"
-Assert-Contains -Text $commandsGuideText -Needle "A3/A4 native 교체 1장 처리: OPEN" -Label "Commands guide convert OPEN prompt"
+Assert-Contains -Text $commandsGuideText -Needle "A2/A3/A4 native 교체 1장 처리: OPEN" -Label "Commands guide convert OPEN prompt"
 Assert-Contains -Text $commandsGuideText -Needle "BATCH는 OPEN으로 최소 1장 성공한 뒤" -Label "Commands guide BATCH after OPEN guidance"
 Assert-Contains -Text $commandsGuideText -Needle "NO_INSERTS가 반복됨: MANUAL" -Label "Commands guide convert MANUAL prompt"
 Assert-Contains -Text $commandsGuideText -Needle "SWTITLECONVERTNEXT" -Label "Commands guide convert-next shortcut guidance"
@@ -962,7 +966,7 @@ Assert-Contains -Text $runCardText -Needle "run_manual_gmtitle_session.ps1 -Pref
 Assert-Contains -Text $runCardText -Needle '`SWTITLECONVERTNEXT`를 대신 실행하거나 GMTITLE 창을 클릭하지 않습니다' -Label "Run card manual session no-convert/no-click guard"
 Assert-Contains -Text $runCardText -Needle "SKIP_OPEN_NO_GSTARCAD" -Label "Run card manual session skip-open guard"
 Assert-Contains -Text $cadChecklistText -Needle "첫 native GMTITLE 기준 객체 생성: YES" -Label "CAD checklist convert YES prompt"
-Assert-Contains -Text $cadChecklistText -Needle "A3/A4 native 교체 1장 처리: OPEN" -Label "CAD checklist convert OPEN prompt"
+Assert-Contains -Text $cadChecklistText -Needle "A2/A3/A4 native 교체 1장 처리: OPEN" -Label "CAD checklist convert OPEN prompt"
 Assert-Contains -Text $cadChecklistText -Needle "BATCH는 OPEN으로 최소 1장 성공한 뒤" -Label "CAD checklist BATCH after OPEN guidance"
 Assert-Contains -Text $cadChecklistText -Needle "SWTITLECONVERTNEXT" -Label "CAD checklist convert-next shortcut guidance"
 Assert-Contains -Text $cadChecklistText -Needle '이 명령은 현재 상태에 맞춰 필요한 단계만 진행하고, `YES`/`OPEN` 같은 반복 응답만 자동 선택합니다.' -Label "CAD checklist convert-next scope guidance"
@@ -978,7 +982,7 @@ Assert-NotContains -Text $cadChecklistText -Needle "A4 처리 전 조건:" -Labe
 Assert-NotContains -Text $cadChecklistText -Needle "A4 성공 조건:" -Label "CAD checklist stale A4 success conditions"
 Assert-Contains -Text $nativeUpgradeGuideText -Needle 'SWTITLECONVERTNEXT는 같은 bbox에 기존 native GMTITLE 쌍이 있으면 새로 만들지 않고 그 쌍을 채택한다.' -Label "Native upgrade guide convert-next adoption wording"
 Assert-Contains -Text $resumeGuideText -Needle "첫 native GMTITLE 생성: YES" -Label "Resume guide convert YES prompt"
-Assert-Contains -Text $resumeGuideText -Needle "A3/A4 native 교체 1장 처리: OPEN" -Label "Resume guide convert OPEN prompt"
+Assert-Contains -Text $resumeGuideText -Needle "A2/A3/A4 native 교체 1장 처리: OPEN" -Label "Resume guide convert OPEN prompt"
 Assert-Contains -Text $resumeGuideText -Needle "BATCH는 OPEN으로 최소 1장 성공한 뒤" -Label "Resume guide BATCH after OPEN guidance"
 Assert-Contains -Text $resumeGuideText -Needle "NO_INSERTS가 반복됨: MANUAL" -Label "Resume guide convert MANUAL prompt"
 Assert-Contains -Text $resumeGuideText -Needle "SWTITLECONVERTNEXT" -Label "Resume guide convert-next shortcut guidance"

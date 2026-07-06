@@ -449,7 +449,7 @@ function Write-ManualSelectionForecast {
     }
     "^NEXT_UPGRADE_A3_A4_NATIVE$" {
       if ($a3a4NativeUpgradeCandidateCount) {
-        Write-Output ("  - 현재 A3/A4 native 교체 후보: {0}개" -f $a3a4NativeUpgradeCandidateCount)
+        Write-Output ("  - 현재 A2/A3/A4 native 교체 후보: {0}개" -f $a3a4NativeUpgradeCandidateCount)
       }
       if ($targetPairCount -or $nativeLikeTargetPairCount -or $nonNativeLikeTargetPairCount) {
         Write-Output ("  - 현재 GMTITLE 쌍: 전체 {0}개, native-like {1}개, 교체 필요 {2}개" -f ($(if ($targetPairCount) { $targetPairCount } else { "?" })), ($(if ($nativeLikeTargetPairCount) { $nativeLikeTargetPairCount } else { "?" })), ($(if ($nonNativeLikeTargetPairCount) { $nonNativeLikeTargetPairCount } else { "?" })))
@@ -457,7 +457,7 @@ function Write-ManualSelectionForecast {
       if ($clonedPairCount) {
         Write-Output ("  - 복제/공유 링크 후보: {0}개" -f $clonedPairCount)
       }
-      Write-Output "  - 지금은 OPEN으로 A3/A4 후보 1장을 먼저 교체해 후보 수가 줄어드는지 확인합니다."
+      Write-Output "  - 지금은 OPEN으로 A2/A3/A4 후보 1장을 먼저 교체해 후보 수가 줄어드는지 확인합니다."
       if (($a3a4NativeUpgradeCandidateCount -as [int]) -gt 1) {
         Write-Output "  - OPEN 1회 성공 뒤 direct probe를 갱신해서 후보 수가 줄었는지 먼저 확인하세요."
       }
@@ -510,7 +510,7 @@ function Write-ConvertPromptGuidance {
       Write-Output "  같은 크기 기준 객체가 준비된 뒤에야 나머지 시트를 빠르게 처리할 수 있습니다."
     }
     "NativeReplacement" {
-      Write-Output "  OPEN: 다음 A3/A4 후보 1장만 fresh native GMTITLE로 교체합니다."
+      Write-Output "  OPEN: 다음 A2/A3/A4 후보 1장만 fresh native GMTITLE로 교체합니다."
       Write-Output "  BATCH: OPEN으로 최소 1장 성공한 뒤, 같은 DR 용지/제목블록/옵션이 반복된다는 걸 눈으로 확인할 수 있을 때만 여러 장을 이어서 처리합니다."
       Write-Output "  MANUAL: OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복될 때만 사용합니다."
       Write-Output "  Enter: 기존 쌍을 보존하고 중단합니다."
@@ -618,7 +618,7 @@ function Write-StatusBasedAction {
       Write-Output "Result: RUN_NATIVE_REPLACEMENT"
       Write-ManualLoadStep
       Write-ConvertCommandStep
-      Write-Output "의미: A3/A4 복제 또는 shared-link 쌍을 실제 native GMTITLE 쌍으로 한 장씩 교체해야 합니다."
+      Write-Output "의미: A2/A3/A4 복제 또는 shared-link 쌍을 실제 native GMTITLE 쌍으로 한 장씩 교체해야 합니다."
       Write-AutomationBoundarySummary -Mode "NativeReplacement"
       Write-GmtitleDialogGuidance -FrameName "SWTITLESTATUS가 출력한 DR_A3_Outline 또는 DR_A4_Outline" -TitleName "DR_titlea_3rd"
       Write-ConvertPromptGuidance -Mode "NativeReplacement"
@@ -843,7 +843,7 @@ while ($true) {
   if ($nativeLikeTargetPairCount) { Write-Output ("native-like GMTITLE 쌍 수: {0}" -f $nativeLikeTargetPairCount) }
   if ($nonNativeLikeTargetPairCount) { Write-Output ("교체 필요 GMTITLE 쌍 수: {0}" -f $nonNativeLikeTargetPairCount) }
   if ($clonedPairCount) { Write-Output ("복제/공유 링크 GMTITLE 쌍 수: {0}" -f $clonedPairCount) }
-  if ($a3a4NativeUpgradeCandidateCount) { Write-Output ("A3/A4 native 교체 후보 수: {0}" -f $a3a4NativeUpgradeCandidateCount) }
+  if ($a3a4NativeUpgradeCandidateCount) { Write-Output ("A2/A3/A4 native 교체 후보 수: {0}" -f $a3a4NativeUpgradeCandidateCount) }
   if ($orphanTargetFrameCount) { Write-Output ("고아 GMTITLE 도면틀 수: {0}" -f $orphanTargetFrameCount) }
   if ($duplicateTargetPairCount) { Write-Output ("중복 GMTITLE 쌍 수: {0}" -f $duplicateTargetPairCount) }
   if ($dbmodAfter) { Write-Output ("Direct probe 뒤 DBMOD: {0}" -f $dbmodAfter) }

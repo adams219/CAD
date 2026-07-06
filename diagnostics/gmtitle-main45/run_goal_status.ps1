@@ -28,7 +28,7 @@ $script:LatestCadNextFrame = $null
 $script:LatestCadNextTitle = $null
 $script:LatestCadDwgTrustedForGoal = $false
 $script:LatestCadDwgTrustReason = "not evaluated"
-$script:ExpectedGmtitleVersion = "260706-unified-title-missing-5"
+$script:ExpectedGmtitleVersion = "260706-unified-title-missing-6"
 $script:A4PrepareProbeUnsafe = $false
 $script:A4NestedProbeMissing = $false
 $script:A4NestedProbeUnsafe = $false
@@ -182,8 +182,8 @@ function Convert-NativeCompletionLine {
     return $Line
   }
 
-  if ($Line -match "^A3/A4\s+native-like.*?(\d+)\s*/\s*(\d+)") {
-    return ("A3/A4 native-like 완료: {0} / {1}" -f $Matches[1], $Matches[2])
+  if ($Line -match "^(?:A2/)?A3/A4\s+native-like.*?(\d+)\s*/\s*(\d+)") {
+    return ("A2/A3/A4 native-like 완료: {0} / {1}" -f $Matches[1], $Matches[2])
   }
 
   return $Line
@@ -839,7 +839,7 @@ function Write-NativeFrameProgressSummary {
   $dwg = Get-FirstRegexValue -Text $text -Pattern "^DWG[^:]*:\s*(.+)$"
   $trustInfo = Get-GoalCadDwgTrustInfo -DwgPath $dwg -WorkDir $WorkDir
   $result = Get-FirstMatchingLine -Text $text -Pattern "WARN_|OK_|FAIL_|SWTITLEVERIFY_FINAL_"
-  $completion = Get-FirstMatchingLine -Text $text -Pattern "^A3/A4 native-like"
+  $completion = Get-FirstMatchingLine -Text $text -Pattern "^(A2/)?A3/A4 native-like"
   $a3NativeLikeCount = [regex]::Matches($text, "sheet=A3,.*native-like=yes").Count
   $a4NativeLikeCount = [regex]::Matches($text, "sheet=A4,.*native-like=yes").Count
   $untrustedCount = [regex]::Matches($text, "native-like=no").Count
