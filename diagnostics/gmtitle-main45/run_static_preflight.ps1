@@ -981,6 +981,13 @@ if ($goalStatusUtf8Index -ge 0 -and $goalStatusCp949Index -ge 0 -and $goalStatus
   Add-Failure "Goal status log fallback order must try strict UTF-8 before CP949 to avoid mojibake in UTF-8 CAD logs."
 }
 Assert-Contains -Text $goalStatusText -Needle "Stale direct-probe version" -Label "Goal status stale direct-probe version warning"
+Assert-Contains -Text $goalStatusText -Needle "LSP version in log" -Label "Goal status latest CAD log version output"
+Assert-Contains -Text $goalStatusText -Needle "LSP version current" -Label "Goal status latest CAD log current-version output"
+Assert-Contains -Text $goalStatusText -Needle "latest CAD log was produced by an older LSP" -Label "Goal status stale latest CAD log warning"
+Assert-Contains -Text $goalStatusText -Needle '$script:LatestCadLogVersionCurrent -and' -Label "Goal status stale latest CAD log does not drive next action"
+Assert-Contains -Text $goalStatusText -Needle '$openCadNeedsFreshStatus' -Label "Goal status open CAD stale-log refresh branch"
+Assert-Contains -Text $goalStatusText -Needle "최신 상태 로그가 현재 LSP 버전과 맞지 않습니다" -Label "Goal status open CAD stale-log refresh wording"
+Assert-Contains -Text $goalStatusText -Needle "SWTITLEVERSION으로 버전을 확인한 뒤 SWTITLESTATUS" -Label "Goal status open CAD version-before-status guidance"
 Assert-Contains -Text $goalStatusText -Needle "최신 열린 CAD 로그 상태" -Label "Goal status latest CAD fallback for stale direct probe"
 Assert-Contains -Text $goalStatusText -Needle "NEXT_CLEAN_ORPHAN_TARGET_FRAMES" -Label "Goal status orphan target frame next status"
 Assert-Contains -Text $goalStatusText -Needle "고아 GMTITLE 도면틀 수" -Label "Goal status orphan target frame count output"

@@ -28,6 +28,8 @@ $script:LatestCadNextFrame = $null
 $script:LatestCadNextTitle = $null
 $script:LatestCadDwgTrustedForGoal = $false
 $script:LatestCadDwgTrustReason = "not evaluated"
+$script:LatestCadLogVersion = $null
+$script:LatestCadLogVersionCurrent = $false
 $script:ExpectedGmtitleVersion = "260707-unified-title-missing-16"
 $script:A4PrepareProbeUnsafe = $false
 $script:A4NestedProbeMissing = $false
@@ -424,6 +426,8 @@ function Write-LatestCadLogSummary {
   $item = Get-Item -LiteralPath $nextStepLog
   $text = Read-TextWithFallback -Path $nextStepLog
   $lines = $text -split "\r?\n"
+  $logVersion = Get-FirstRegexValue -Text $text -Pattern "^SWTITLE LSP 버전:\s*(\S+)"
+  $logVersionCurrent = $logVersion -and ($logVersion -eq $script:ExpectedGmtitleVersion)
 
   $dwg = $null
   foreach ($line in $lines) {
@@ -478,6 +482,10 @@ function Write-LatestCadLogSummary {
   Write-Output "Latest CAD next-step log:"
   Write-Output ("  Path: {0}" -f $nextStepLog)
   Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
+  if ($logVersion) {
+    Write-Output ("  LSP version in log: {0}" -f $logVersion)
+    Write-Output ("  LSP version current: {0}" -f ($(if ($logVersionCurrent) { "yes" } else { "no" })))
+  }
   if ($dwg) { Write-Output ("  DWG: {0}" -f $dwg) }
   if ($statusCode) { Write-Output ("  Status code: {0}" -f $statusCode) }
   if ($nextFrameFromLog) { Write-Output ("  Next frame/title hint: {0} / {1}" -f $nextFrameFromLog, $(if ($nextTitleFromLog) { $nextTitleFromLog } else { "<unknown>" })) }
@@ -494,9 +502,14 @@ function Write-LatestCadLogSummary {
   $trustInfo = Get-GoalCadDwgTrustInfo -DwgPath $dwg -WorkDir $WorkDir
   $script:LatestCadDwgTrustedForGoal = $trustInfo.Trusted
   $script:LatestCadDwgTrustReason = $trustInfo.Reason
+  $script:LatestCadLogVersion = $logVersion
+  $script:LatestCadLogVersionCurrent = $logVersionCurrent
   Write-Output ("  Goal-log trust: {0} ({1})" -f ($(if ($trustInfo.Trusted) { "yes" } else { "no" }), $trustInfo.Reason))
   if (-not $trustInfo.Trusted) {
     Write-Output "  Warning: latest CAD log is ignored for goal next-action selection. Re-run SWTITLESTATUS on the work-copy before following visible-CAD recommendations."
+  }
+  if ($logVersion -and (-not $logVersionCurrent)) {
+    Write-Output ("  Warning: latest CAD log was produced by an older LSP. Expected {0}; reload swcad_load.lsp and rerun SWTITLESTATUS before following this log." -f $script:ExpectedGmtitleVersion)
   }
 
   $script:LatestCadDwg = $dwg
@@ -1038,16 +1051,25 @@ $directWorkcopyNeedsOrphanCleanup = (
 )
 $latestCadNeedsNativeExemplar = (
   $script:LatestCadDwgTrustedForGoal -and
+  $script:LatestCadLogVersionCurrent -and
   ($script:LatestCadStatusCode -in @("NEXT_CREATE_FIRST_NATIVE_GMTITLE", "NEXT_CREATE_MISSING_NATIVE_EXEMPLAR")) -and
   $script:LatestCadNextFrame
 )
 $latestCadNeedsOrphanCleanup = (
   $script:LatestCadDwgTrustedForGoal -and
+  $script:LatestCadLogVersionCurrent -and
   ($script:LatestCadStatusCode -eq "NEXT_CLEAN_ORPHAN_TARGET_FRAMES")
+)
+$openCadNeedsFreshStatus = (
+  ($existingGstarCAD.Count -gt 0) -and
+  (
+    (-not $script:LatestCadLogVersionCurrent) -or
+    (-not $script:DirectWorkcopyProbeTrusted)
+  )
 )
 $nestedProbeScript = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1"
 $nestedProbeSource = $script:LatestCadDwg
-if ((-not $script:LatestCadDwgTrustedForGoal) -or (-not $nestedProbeSource)) {
+if ((-not $script:LatestCadDwgTrustedForGoal) -or (-not $script:LatestCadLogVersionCurrent) -or (-not $nestedProbeSource)) {
   $nestedProbeSource = $SourceWorkCopyPath
 }
 $scratchNativeA4Path = Join-Path $repoRoot "work\scratch_native_a4_clean_260705.dwg"
@@ -1094,6 +1116,15 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "    2. direct probe 로그는 오래됐을 수 있으므로, 열린 CAD에서 SWTITLESTATUS로 현재 활성 DWG와 다음 상태를 먼저 확인하세요."
     Write-Output ("    3. 상태가 그대로면 SWTITLECONVERTNEXT를 실행하고 누락된 native GMTITLE 기준 객체를 {0} / {1}로 만드세요." -f $script:LatestCadNextFrame, $(if ($script:LatestCadNextTitle) { $script:LatestCadNextTitle } else { "DR_titlea_3rd" }))
     Write-Output "    4. title-missing/frame-only 샘플 증거는 source-title-missing 배경 정보입니다. 현재 샘플이 A4 크기일 뿐, SWTITLESTATUS가 요구하기 전에는 그 단계로 건너뛰지 않습니다."
+    Write-Output ""
+    Write-Output "  Hidden suite verification path only after saving/closing CAD or changing code:"
+  } elseif ($openCadNeedsFreshStatus) {
+    Write-Output "  실제 작업복사본 우선 단계:"
+    Write-Output "    1. GstarCAD가 열려 있지만 최신 상태 로그가 현재 LSP 버전과 맞지 않습니다."
+    Write-Output "    2. 열린 CAD에서 APPLOAD로 swcad_load.lsp를 다시 로드하세요."
+    Write-Output ("       정상 버전: {0}" -f $script:ExpectedGmtitleVersion)
+    Write-Output "    3. SWTITLEVERSION으로 버전을 확인한 뒤 SWTITLESTATUS를 실행하세요."
+    Write-Output "    4. SWTITLESTATUS가 안내한 다음 한 단계만 진행하세요. 오래된 A2/A3/A4 로그나 source-title-missing 샘플 증거로 건너뛰지 않습니다."
     Write-Output ""
     Write-Output "  Hidden suite verification path only after saving/closing CAD or changing code:"
   } elseif ($a4FrameOnlyProductionPathVerified) {
