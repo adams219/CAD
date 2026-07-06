@@ -96,6 +96,19 @@
   )
 )
 
+(defun swtitle-embedcmp-park-existing-block (name / backup)
+  (if (swcad-title-block-exists-p name)
+    (progn
+      (setq backup (swcad-title-unique-block-name name))
+      (if (swcad-title-rename-block-definition name backup)
+        backup
+        nil
+      )
+    )
+    nil
+  )
+)
+
 (defun swtitle-embedcmp-entmake-insert (name point)
   (entmake
     (list
@@ -168,6 +181,7 @@
 
 (defun swtitle-embedcmp-create-fixture (/ frame x)
   (setq x 0.0)
+  (swtitle-embedcmp-park-existing-block "DR_titlea_3rd")
   (foreach frame '("DR_A2_Outline" "DR_A3_Outline" "DR_A4_Outline")
     (swtitle-embedcmp-create-frame-block frame)
     (swtitle-embedcmp-entmake-insert frame (swtitle-embedcmp-point x 0.0))

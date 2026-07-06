@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260706-unified-title-missing-2")
+(setq *swcad-title-scale-version* "260706-unified-title-missing-3")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -8484,7 +8484,7 @@
   )
 )
 
-(defun swcad-title-import-clean-frame-definition (frame-name / frame-path ename)
+(defun swcad-title-import-frame-definition-basic (frame-name / frame-path ename)
   (setq frame-path (swcad-title-frame-dwg-path frame-name))
   (if (findfile frame-path)
     (progn
@@ -8501,6 +8501,94 @@
       )
     )
     nil
+  )
+)
+
+(defun swcad-title-imported-frame-definition-usable-p (frame-name)
+  (and
+    (swcad-title-block-exists-p frame-name)
+    (not (swcad-title-target-frame-block-contaminated-p frame-name))
+    (not (swcad-title-frame-definition-raw-bbox-risk-record frame-name))
+  )
+)
+
+(defun swcad-title-cleanup-failed-new-frame-definition (frame-name existed / cleanup-ok backup-name)
+  (if (and (not existed) (swcad-title-block-exists-p frame-name))
+    (progn
+      (setq cleanup-ok (swcad-title-delete-block-definition frame-name))
+      (if (not cleanup-ok)
+        (progn
+          (setq backup-name (swcad-title-unique-block-name frame-name))
+          (swcad-title-rename-block-definition frame-name backup-name)
+        )
+      )
+    )
+  )
+)
+
+(defun swcad-title-import-clean-frame-definition (frame-name / existed imported children rename-names rename-results target-renamed retried-imported usable-after-retry)
+  (setq existed (swcad-title-block-exists-p frame-name))
+  (setq imported (swcad-title-import-frame-definition-basic frame-name))
+  (cond
+    ((not imported)
+      nil
+    )
+    ((swcad-title-imported-frame-definition-usable-p frame-name)
+      T
+    )
+    (T
+      (setq children (swcad-title-block-descendant-insert-names frame-name))
+      (if children
+        (swcad-title-princ-line
+          (strcat
+            frame-name
+            " 가져오기 후 raw bbox 위험 감지: 기존 하위 블록 이름 충돌 가능성이 있어 target+child 정의를 격리하고 다시 가져옵니다. child-defs="
+            (swcad-title-list-string children)
+          )
+        )
+      )
+      (setq rename-names (cons frame-name children))
+      (setq rename-results (swcad-title-rename-definition-list-to-backups rename-names))
+      (setq target-renamed nil)
+      (foreach target rename-results
+        (if (and (equal (strcase (car target)) (strcase (swcad-title-string frame-name))) (caddr target))
+          (setq target-renamed T)
+        )
+      )
+      (if (not target-renamed)
+        (progn
+          (swcad-title-cleanup-failed-new-frame-definition frame-name existed)
+          nil
+        )
+        (progn
+          (setq retried-imported (swcad-title-import-frame-definition-basic frame-name))
+          (setq usable-after-retry
+            (and
+              retried-imported
+              (swcad-title-imported-frame-definition-usable-p frame-name)
+            )
+          )
+          (if usable-after-retry
+            (progn
+              (swcad-title-princ-line
+                (strcat
+                  frame-name
+                  " 재가져오기 성공: 기존 충돌 정의는 *_SWOLD_* 백업으로 보존하고 설치 원본 DR 도면틀 정의를 사용합니다."
+                )
+              )
+              T
+            )
+            (progn
+              (if rename-results
+                (swcad-title-rollback-definition-renames rename-results)
+              )
+              (swcad-title-cleanup-failed-new-frame-definition frame-name existed)
+              nil
+            )
+          )
+        )
+      )
+    )
   )
 )
 

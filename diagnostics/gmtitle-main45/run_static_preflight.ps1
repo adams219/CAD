@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-2",
+  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-3",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )

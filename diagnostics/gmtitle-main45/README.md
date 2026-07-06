@@ -259,14 +259,14 @@ Current saved actual-workcopy baseline:
 
 ```text
 DWG: C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
-status-after-status: NEXT_CREATE_FIRST_NATIVE_GMTITLE
+status-after-status: NEXT_CREATE_MISSING_NATIVE_EXEMPLAR
 status-after-verify: SWTITLEVERIFY_FINAL_FAIL
-source-title-count: 13
-source-frame-count: 15
+source-title-count: 12
+source-frame-count: 14
 frame-only-count: 2
-target-title-count: 0
-target-frame-count: 0
-next-bootstrap-frame: DR_A2_Outline
+target-title-count: 1
+target-frame-count: 1
+next-bootstrap-frame: DR_A3_Outline
 next-bootstrap-title: DR_titlea_3rd
 dbmod-after-commands: 0
 ```
@@ -293,8 +293,8 @@ after-conversion verification step
 For the current saved baseline it should report:
 
 ```text
-Result: READY_FOR_FIRST_NATIVE_GMTITLE
-용지/도면틀: DR_A2_Outline
+Result: CREATE_MISSING_NATIVE_GMTITLE_SIZE
+용지/도면틀: DR_A3_Outline
 제목블록: DR_titlea_3rd
 Frame positioning: ON
 Object move: OFF
@@ -408,7 +408,7 @@ work\swtitle_a4_outline_prepare_probe_260705.txt
 Expected result for the current installed `DR_A4_Outline` state:
 
 ```text
-Loaded version: 260706-unified-title-missing-2
+Loaded version: 260706-unified-title-missing-3
 Before definition status: missing
 Prepare result: OK status=OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
 After definition status: ready-native-outside-markers
@@ -439,11 +439,12 @@ Expected result:
 Prepare result: OK status=OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
 After prepare definition status: ready-native-outside-markers
 Convert result: OK status=FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
-After source-title-count: 13
+After source-title-count: 12
 After frame-only-count: 1
-After target title count: 0
+After target title count: 1
 After DR_A4_Outline target frame count: 1
 After target-sheet-counts:
+  A2: 1
   A4: 1
 Runtime check completed: yes
 ```
@@ -669,7 +670,7 @@ Expected result:
 
 ```text
 Loaded loader version: 260706-loader-convert-next-response-guidance
-Loaded GMTITLE version: 260706-unified-title-missing-2
+Loaded GMTITLE version: 260706-unified-title-missing-3
 Command-line -GMTITLE default enabled: no
 SCRIPT command-line -GMTITLE enabled: no
 Command c:SWTITLESTATUS: yes
@@ -691,7 +692,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260706-unified-title-missing-2
+Loaded version: 260706-unified-title-missing-3
 A3/A4 candidate count before SWTITLESTATUS: 1
 SWTITLESTATUS result: OK
 Status after SWTITLESTATUS: NEXT_UPGRADE_A3_A4_NATIVE
@@ -713,7 +714,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260706-unified-title-missing-2
+Loaded version: 260706-unified-title-missing-3
 Script active: yes
 Status after batch: ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE
 Candidates before/after: 2/2
@@ -734,14 +735,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260706-unified-title-missing-2
+Loaded version: 260706-unified-title-missing-3
 Script active before convert: yes
 Status after convert: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE
-Source titles before/after: 13/13
-Source frames before/after: 15/15
+Source titles before/after: 12/12
+Source frames before/after: 14/14
 Frame-only before/after: 2/2
-Target titles before/after: 0/0
-Target frames before/after: 0/0
+Target titles before/after: 1/1
+Target frames before/after: 1/1
 INSERT count before/after: 120/120
 DBMOD before/after: 0/0
 Convert script guard preserved drawing: yes

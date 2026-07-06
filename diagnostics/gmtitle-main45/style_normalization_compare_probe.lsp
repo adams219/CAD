@@ -134,6 +134,19 @@
   )
 )
 
+(defun swtitle-stylecmp-park-existing-block (name / backup)
+  (if (swcad-title-block-exists-p name)
+    (progn
+      (setq backup (swcad-title-unique-block-name name))
+      (if (swcad-title-rename-block-definition name backup)
+        backup
+        nil
+      )
+    )
+    nil
+  )
+)
+
 (defun swtitle-stylecmp-requested-sheets (/ value upper result)
   (setq value (getenv "SWCAD_STYLECMP_SHEETS"))
   (if (or (not value) (= (strlen value) 0))
@@ -191,6 +204,7 @@
 
 (defun swtitle-stylecmp-create-frame-block (sheet / name dims width height offset left bottom right top)
   (setq name (swtitle-stylecmp-frame-name-for-sheet sheet))
+  (swtitle-stylecmp-park-existing-block name)
   (setq dims (swcad-title-sheet-dimensions sheet))
   (setq width (if dims (car dims) 420.0))
   (setq height (if dims (cadr dims) 297.0))
@@ -241,6 +255,7 @@
 
 (defun swtitle-stylecmp-create-overlap-fixture (/ result sheet)
   (setq result nil)
+  (swtitle-stylecmp-park-existing-block "DR_titlea_3rd")
   (foreach sheet (swtitle-stylecmp-requested-sheets)
     (setq result (append result (list (swtitle-stylecmp-create-overlap-fixture-for-sheet sheet))))
   )

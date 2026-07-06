@@ -52,6 +52,12 @@
   )
 )
 
+(defun swtitle-duppair-delete-existing-target-inserts ()
+  (foreach block-name '("DR_A1_Outline" "DR_A2_Outline" "DR_A3_Outline" "DR_A4_Outline" "DR_titlea_3rd")
+    (swtitle-duppair-delete-existing-inserts block-name)
+  )
+)
+
 (defun swtitle-duppair-ensure-frame-block (/ name)
   (setq name "DR_A3_Outline")
   (if (not (tblsearch "BLOCK" name))
@@ -100,8 +106,7 @@
 (defun swtitle-duppair-create-fixture (/ frame-name title-name frame1 title1 frame2 title2)
   (setq frame-name (swtitle-duppair-ensure-frame-block))
   (setq title-name (swtitle-duppair-ensure-title-block))
-  (swtitle-duppair-delete-existing-inserts frame-name)
-  (swtitle-duppair-delete-existing-inserts title-name)
+  (swtitle-duppair-delete-existing-target-inserts)
   (setq frame1 (swtitle-duppair-insert-block frame-name '(0.0 0.0 0.0)))
   (setq title1 (swtitle-duppair-insert-block title-name '(230.0 10.0 0.0)))
   (setq frame2 (swtitle-duppair-insert-block frame-name '(0.0 0.0 0.0)))
@@ -115,7 +120,36 @@
   (list frame1 title1 frame2 title2)
 )
 
-(defun swtitle-duppair-main (/ root lsp-path log-path label handle load-result load-ok version-value fixture records first keep discard pass)
+(defun swtitle-duppair-write-pair-records (handle pairs / index pair)
+  (swtitle-duppair-write-line handle (strcat "Target GMTITLE pair count: " (itoa (length pairs))))
+  (setq index 1)
+  (foreach pair pairs
+    (swtitle-duppair-write-line
+      handle
+      (strcat
+        "  pair #"
+        (itoa index)
+        " frame="
+        (swcad-title-ename-handle (cadr pair))
+        " title="
+        (swcad-title-ename-handle (car pair))
+        " block="
+        (caddr pair)
+        " frame-bbox="
+        (swcad-title-bbox-string (nth 4 pair))
+        " title-bbox="
+        (swcad-title-bbox-string (nth 3 pair))
+        " roles="
+        (nth 6 pair)
+        "/"
+        (nth 5 pair)
+      )
+    )
+    (setq index (+ index 1))
+  )
+)
+
+(defun swtitle-duppair-main (/ root lsp-path log-path label handle load-result load-ok version-value fixture pair-records records first keep discard pass)
   (setq root (swtitle-duppair-root))
   (setq lsp-path
     (swtitle-duppair-env-path
@@ -175,6 +209,12 @@
             (strcat
               "Duplicate function present: "
               (if (swtitle-duppair-symbol-present-p "SWCAD-TITLE-DUPLICATE-TARGET-PAIR-RECORDS") "yes" "no")
+            )
+          )
+          (if (swtitle-duppair-symbol-present-p "SWCAD-TITLE-TARGET-GMTITLE-PAIR-RECORDS")
+            (progn
+              (setq pair-records (swcad-title-target-gmtitle-pair-records))
+              (swtitle-duppair-write-pair-records handle pair-records)
             )
           )
           (if (swtitle-duppair-symbol-present-p "SWCAD-TITLE-DUPLICATE-TARGET-PAIR-RECORDS")

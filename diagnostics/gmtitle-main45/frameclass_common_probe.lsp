@@ -113,6 +113,19 @@
   )
 )
 
+(defun swtitle-frameclass-park-existing-block (name / backup)
+  (if (swcad-title-block-exists-p name)
+    (progn
+      (setq backup (swcad-title-unique-block-name name))
+      (if (swcad-title-rename-block-definition name backup)
+        backup
+        nil
+      )
+    )
+    nil
+  )
+)
+
 (defun swtitle-frameclass-create-child-block (name / ok)
   (setq ok nil)
   (if (not (swcad-title-block-exists-p name))
@@ -307,6 +320,7 @@
       (if load-ok
         (progn
           (foreach frame '("DR_A2_Outline" "DR_A3_Outline" "DR_A4_Outline")
+            (swtitle-frameclass-park-existing-block frame)
             (setq mode (swtitle-frameclass-mode-for scenario frame))
             (setq created (swtitle-frameclass-create-frame-block frame mode))
             (swtitle-frameclass-write-line
