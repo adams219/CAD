@@ -323,6 +323,7 @@ function Write-FinalCompletionGateSummary {
   $frameOnlyCount = Get-FirstRegexValue -Text $text -Pattern "^\s*frame-only-count:\s*(\d+)"
   $targetTitleCount = Get-FirstRegexValue -Text $text -Pattern "^\s*target-title-count:\s*(\d+)"
   $targetFrameCount = Get-FirstRegexValue -Text $text -Pattern "^\s*target-frame-count:\s*(\d+)"
+  $orphanTargetFrameCount = Get-FirstRegexValue -Text $text -Pattern "^\s*orphan-target-frame-count:\s*(\d+)"
   $nextFrame = Get-FirstRegexValue -Text $text -Pattern "^\s*next-bootstrap-frame:\s*(\S+)"
   $nextTitle = Get-FirstRegexValue -Text $text -Pattern "^\s*next-bootstrap-title:\s*(\S+)"
   $dbmodAfter = Get-FirstRegexValue -Text $text -Pattern "^\s*dbmod-after-commands:\s*(\d+)"
@@ -341,6 +342,7 @@ function Write-FinalCompletionGateSummary {
   if ($targetTitleCount -or $targetFrameCount) {
     Write-Output ("  target counts: target-title-count={0}, target-frame-count={1}" -f $targetTitleCount, $targetFrameCount)
   }
+  if ($orphanTargetFrameCount) { Write-Output ("  orphan-target-frame-count: {0}" -f $orphanTargetFrameCount) }
   if ($nextFrame -or $nextTitle) {
     Write-Output ("  next native GMTITLE: frame={0}, title={1}" -f $nextFrame, $nextTitle)
   }
@@ -539,6 +541,7 @@ function Write-DirectActualWorkcopyProbeSummary {
   $frameOnlyCount = Get-FirstRegexValue -Text $text -Pattern "^\s*frame-only-count:\s*(\d+)"
   $targetTitleCount = Get-FirstRegexValue -Text $text -Pattern "^\s*target-title-count:\s*(\d+)"
   $targetFrameCount = Get-FirstRegexValue -Text $text -Pattern "^\s*target-frame-count:\s*(\d+)"
+  $orphanTargetFrameCount = Get-FirstRegexValue -Text $text -Pattern "^\s*orphan-target-frame-count:\s*(\d+)"
   $versionTrusted = $true
   if ($loadedVersion -and ($loadedVersion -ne $script:ExpectedGmtitleVersion)) {
     $versionTrusted = $false
@@ -583,6 +586,7 @@ function Write-DirectActualWorkcopyProbeSummary {
   if ($frameOnlyCount) { Write-Output ("  frame-only-count: {0}" -f $frameOnlyCount) }
   if ($targetTitleCount) { Write-Output ("  target-title-count: {0}" -f $targetTitleCount) }
   if ($targetFrameCount) { Write-Output ("  target-frame-count: {0}" -f $targetFrameCount) }
+  if ($orphanTargetFrameCount) { Write-Output ("  orphan-target-frame-count: {0}" -f $orphanTargetFrameCount) }
   if ($nextFrame) { Write-Output ("  next-bootstrap-frame: {0}" -f $nextFrame) }
   if ($nextTitle) { Write-Output ("  next-bootstrap-title: {0}" -f $nextTitle) }
   if ($nextMissingFrame) { Write-Output ("  next-missing-native-frame: {0}" -f $nextMissingFrame) }
@@ -600,6 +604,7 @@ function Write-DirectActualWorkcopyProbeSummary {
     $script:DirectWorkcopyNextMissingRole = $nextMissingRole
     $script:DirectWorkcopyTargetTitleCount = $targetTitleCount
     $script:DirectWorkcopyTargetFrameCount = $targetFrameCount
+    $script:DirectWorkcopyOrphanTargetFrameCount = $orphanTargetFrameCount
   }
 }
 
@@ -1027,10 +1032,18 @@ $directWorkcopyNeedsNativeExemplar = (
     $script:DirectWorkcopyNextMissingFrame
   )
 )
+$directWorkcopyNeedsOrphanCleanup = (
+  $script:DirectWorkcopyProbeTrusted -and
+  ($script:DirectWorkcopyStatusCode -eq "NEXT_CLEAN_ORPHAN_TARGET_FRAMES")
+)
 $latestCadNeedsNativeExemplar = (
   $script:LatestCadDwgTrustedForGoal -and
   ($script:LatestCadStatusCode -in @("NEXT_CREATE_FIRST_NATIVE_GMTITLE", "NEXT_CREATE_MISSING_NATIVE_EXEMPLAR")) -and
   $script:LatestCadNextFrame
+)
+$latestCadNeedsOrphanCleanup = (
+  $script:LatestCadDwgTrustedForGoal -and
+  ($script:LatestCadStatusCode -eq "NEXT_CLEAN_ORPHAN_TARGET_FRAMES")
 )
 $nestedProbeScript = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1"
 $nestedProbeSource = $script:LatestCadDwg
@@ -1041,7 +1054,18 @@ $scratchNativeA4Path = Join-Path $repoRoot "work\scratch_native_a4_clean_260705.
 $scratchNativeA4Log = Join-Path $repoRoot "work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt"
 $scratchNativeA4Exists = Test-Path -LiteralPath $scratchNativeA4Path
 if ($existingGstarCAD.Count -gt 0) {
-  if ($directWorkcopyNeedsNativeExemplar) {
+  if ($directWorkcopyNeedsOrphanCleanup) {
+    Write-Output "  실제 작업복사본 우선 단계:"
+    Write-Output ("    1. 실제 작업복사본 direct probe 상태: {0}" -f $script:DirectWorkcopyStatusCode)
+    if ($script:DirectWorkcopyOrphanTargetFrameCount) {
+      Write-Output ("       고아 GMTITLE 도면틀 수: {0}" -f $script:DirectWorkcopyOrphanTargetFrameCount)
+    }
+    Write-Output "    2. 열린 CAD에서 SWTITLESTATUS로 현재 활성 DWG와 같은 상태인지 먼저 확인하세요."
+    Write-Output "    3. 상태가 그대로면 SWTITLEPREPARE를 실행해 제목블록 없는 GMTITLE 도면틀을 정리하세요."
+    Write-Output "    4. 정리 후 SWTITLESTATUS를 다시 실행하세요. 이 상태에서는 SWTITLECONVERTNEXT로 다음 용지를 만들지 않습니다."
+    Write-Output ""
+    Write-Output "  Hidden suite verification path only after saving/closing CAD or changing code:"
+  } elseif ($directWorkcopyNeedsNativeExemplar) {
     Write-Output "  실제 작업복사본 우선 단계:"
     Write-Output ("    1. 실제 작업복사본 direct probe 상태: {0}" -f $script:DirectWorkcopyStatusCode)
     Write-Output "    2. 열린 CAD에서 SWTITLESTATUS로 현재 활성 DWG와 다음 상태를 먼저 확인하세요."
@@ -1054,6 +1078,14 @@ if ($existingGstarCAD.Count -gt 0) {
       }
     }
     Write-Output "    4. title-missing/frame-only A4 크기 샘플 증거는 source-title-missing 배경 정보입니다. SWTITLESTATUS가 요구하기 전에는 그 단계로 건너뛰지 않습니다."
+    Write-Output ""
+    Write-Output "  Hidden suite verification path only after saving/closing CAD or changing code:"
+  } elseif ($latestCadNeedsOrphanCleanup) {
+    Write-Output "  실제 작업복사본 우선 단계:"
+    Write-Output ("    1. 최신 열린 CAD 로그 상태: {0}" -f $script:LatestCadStatusCode)
+    Write-Output "    2. direct probe 로그는 오래됐을 수 있으므로, 열린 CAD에서 최신 LSP를 APPLOAD하고 SWTITLESTATUS로 현재 상태를 먼저 확인하세요."
+    Write-Output "    3. 상태가 그대로면 SWTITLEPREPARE를 실행해 제목블록 없는 GMTITLE 도면틀을 정리하세요."
+    Write-Output "    4. 정리 후 SWTITLESTATUS를 다시 실행하세요. 이 상태에서는 SWTITLECONVERTNEXT로 다음 용지를 만들지 않습니다."
     Write-Output ""
     Write-Output "  Hidden suite verification path only after saving/closing CAD or changing code:"
   } elseif ($latestCadNeedsNativeExemplar) {
@@ -1163,7 +1195,18 @@ if ($existingGstarCAD.Count -gt 0) {
   Write-Output "  Or start the suite in waiting mode first:"
   Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -WaitForGstarCADClose" -f $suite)
 } else {
-  if ($directWorkcopyNeedsNativeExemplar) {
+  if ($directWorkcopyNeedsOrphanCleanup) {
+    Write-Output "  실제 작업복사본 우선 단계:"
+    Write-Output ("    1. 실제 작업복사본 direct probe 상태: {0}" -f $script:DirectWorkcopyStatusCode)
+    if ($script:DirectWorkcopyOrphanTargetFrameCount) {
+      Write-Output ("       고아 GMTITLE 도면틀 수: {0}" -f $script:DirectWorkcopyOrphanTargetFrameCount)
+    }
+    Write-Output "    2. GstarCAD에서 실제 작업복사본 DWG를 열거나 활성화하세요."
+    Write-Output "    3. 필요하면 최신 swcad_title_scale.lsp를 APPLOAD 하세요."
+    Write-Output "    4. SWTITLESTATUS로 현재 활성 DWG와 같은 상태인지 먼저 확인하세요."
+    Write-Output "    5. 상태가 그대로면 SWTITLEPREPARE를 실행해 제목블록 없는 GMTITLE 도면틀을 정리하세요."
+    Write-Output "    6. 정리 후 SWTITLESTATUS를 다시 실행하세요. 이 상태에서는 SWTITLECONVERTNEXT로 다음 용지를 만들지 않습니다."
+  } elseif ($directWorkcopyNeedsNativeExemplar) {
     Write-Output "  실제 작업복사본 우선 단계:"
     Write-Output ("    1. 실제 작업복사본 direct probe 상태: {0}" -f $script:DirectWorkcopyStatusCode)
     Write-Output "    2. GstarCAD에서 실제 작업복사본 DWG를 열거나 활성화하세요."

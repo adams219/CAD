@@ -948,6 +948,10 @@ if ($goalStatusUtf8Index -ge 0 -and $goalStatusCp949Index -ge 0 -and $goalStatus
 }
 Assert-Contains -Text $goalStatusText -Needle "Stale direct-probe version" -Label "Goal status stale direct-probe version warning"
 Assert-Contains -Text $goalStatusText -Needle "최신 열린 CAD 로그 상태" -Label "Goal status latest CAD fallback for stale direct probe"
+Assert-Contains -Text $goalStatusText -Needle "NEXT_CLEAN_ORPHAN_TARGET_FRAMES" -Label "Goal status orphan target frame next status"
+Assert-Contains -Text $goalStatusText -Needle "고아 GMTITLE 도면틀 수" -Label "Goal status orphan target frame count output"
+Assert-Contains -Text $goalStatusText -Needle "SWTITLEPREPARE를 실행해 제목블록 없는 GMTITLE 도면틀을 정리하세요" -Label "Goal status orphan target frame prepare guidance"
+Assert-Contains -Text $goalStatusText -Needle "이 상태에서는 SWTITLECONVERTNEXT로 다음 용지를 만들지 않습니다" -Label "Goal status orphan target frame blocks convert-next"
 Assert-Contains -Text $goalStatusText -Needle "DR_A4_Outline definition decision" -Label "Goal status DR_A4 definition decision guidance"
 Assert-Contains -Text $goalStatusText -Needle "superseded by the official native outside marker policy" -Label "Goal status A4 superseded normalization guidance"
 Assert-Contains -Text $goalStatusText -Needle "official native outside markers are tolerated when effective A4 geometry and raw-selection checks pass" -Label "Goal status A4 adopted outside marker policy"
