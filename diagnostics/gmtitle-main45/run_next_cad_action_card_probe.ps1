@@ -215,7 +215,7 @@ Invoke-CardCase `
   -Expected @("Result: RUN_PREPARE_FIRST", "SWTITLEPREPARE", "완료된 title-sheet로 보지 않습니다")
 
 Invoke-CardCase `
-  -Name "legacy_a4_prepare_status_normalized" `
+  -Name "legacy_title_missing_prepare_status_normalized" `
   -Status "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" `
   -Expected @("Result: RUN_PREPARE_FIRST", "SWTITLEPREPARE", "NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION")
 

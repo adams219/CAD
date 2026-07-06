@@ -148,7 +148,7 @@ function Convert-LegacyTitleMissingStatusLine {
   $normalized = $normalized -replace "ABORT_A4_FRAME_ONLY_OUTLINE_INVALID_GEOMETRY", "ABORT_TITLE_MISSING_OUTLINE_INVALID_GEOMETRY"
 
   if ($normalized -ne $Line) {
-    return ("{0} (legacy A4 status normalized)" -f $normalized)
+    return ("{0} (legacy title-missing status normalized)" -f $normalized)
   }
   return $normalized
 }
