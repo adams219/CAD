@@ -852,6 +852,14 @@
   )
 )
 
+(defun swcad-title-princ-raw-line (text)
+  (setq text (swcad-title-string text))
+  (princ (strcat "\n" text))
+  (if *swcad-title-debug-log-handle*
+    (write-line text *swcad-title-debug-log-handle*)
+  )
+)
+
 (defun swcad-title-princ-text (text)
   (princ (swcad-title-korean-line text))
 )
@@ -1081,9 +1089,9 @@
 )
 
 (defun swcad-title-print-loaded-version ()
-  (swcad-title-princ-line
+  (swcad-title-princ-raw-line
     (strcat
-      "SWTITLE LSP version: "
+      "SWTITLE LSP 버전: "
       (swcad-title-string *swcad-title-scale-version*)
     )
   )
