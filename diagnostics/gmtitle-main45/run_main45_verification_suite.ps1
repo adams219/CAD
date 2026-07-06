@@ -112,7 +112,7 @@ function Write-SuiteStatusSummary {
   }
 
   Write-SuiteLastRunLine ""
-  Write-SuiteLastRunLine "Title-missing/frame-only evidence (A4 sample):"
+  Write-SuiteLastRunLine "Title-missing/frame-only evidence (A4-sized source-title-missing sample):"
   if (Test-Path -LiteralPath $A4OutlinePrepareLogPath) {
     $prepareText = Get-Content -LiteralPath $A4OutlinePrepareLogPath -Raw
     $prepareResult = Get-SuiteFirstRegexValue -Text $prepareText -Pattern "^Prepare result:\s*(.+)$"
@@ -483,7 +483,7 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 6. Title-missing outline convert probe (A4 sample) ====="
+Write-Output "===== 6. Title-missing outline convert probe (A4-sized source-title-missing sample) ====="
 & (Join-Path $PSScriptRoot "run_a4_outline_convert_probe.ps1") `
   -SourceWorkCopyPath $SourceWorkCopyPath `
   -ProbeDwgPath (Join-Path $workDir "swtitle_a4_outline_convert_probe_main56_default.dwg") `
@@ -491,7 +491,7 @@ Write-Output "===== 6. Title-missing outline convert probe (A4 sample) ====="
   -TimeoutSeconds $TimeoutSeconds
 Assert-LogContains `
   -Path $a4OutlineConvertLog `
-  -Label "Title-missing outline convert probe (A4 sample)" `
+  -Label "Title-missing outline convert probe (A4-sized source-title-missing sample)" `
   -Patterns @(
     "Load result: OK",
     "Loaded version: 260706-unified-title-missing-11",
@@ -830,7 +830,7 @@ Set-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value @(
   "  Actual work-copy status probe: PASS",
   "  A4 native exemplar gap probe: PASS",
   "  A4 outline native outside marker prepare probe: PASS",
-  "  Title-missing outline convert probe (A4 sample): PASS",
+  "  Title-missing outline convert probe (A4-sized source-title-missing sample): PASS",
   "  SWTITLECONVERT script guard probe: PASS",
   "  Common A2/A3/A4 frame-definition probe: PASS",
   "  A2/A3/A4 style-normalization rebuild cleanup probe: PASS",

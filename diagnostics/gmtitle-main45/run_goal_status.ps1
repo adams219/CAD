@@ -665,7 +665,10 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
     $logPath = Join-Path $WorkDir ("swtitle_a4_outline_norm_{0}_260705.txt" -f $safeStrategy)
     if (Test-Path -LiteralPath $logPath) {
       $text = Read-TextWithFallback -Path $logPath
-      $safe = Get-FirstRegexValue -Text $text -Pattern "^Normalization safe for A4 frame-only conversion:\s*(yes|no)"
+      $safe = Get-FirstRegexValue -Text $text -Pattern "^Normalization safe for A4-sized title-missing conversion:\s*(yes|no)"
+      if (-not $safe) {
+        $safe = Get-FirstRegexValue -Text $text -Pattern "^Normalization safe for A4 frame-only conversion:\s*(yes|no)"
+      }
       if (-not $safe) {
         $safe = "unknown"
       }
@@ -768,24 +771,24 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
 
     if ($convertResult) {
       $convertResultDisplay = Convert-LegacyTitleMissingStatusLine -Line $convertResult
-      Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $convertResultDisplay)
-      Write-Output ("  title-missing/frame-only convert log (A4 sample): {0}" -f $convertProbeLog)
+      Write-Output ("  title-missing/frame-only convert probe (A4-sized source-title-missing sample): {0}" -f $convertResultDisplay)
+      Write-Output ("  title-missing/frame-only convert log (A4-sized source-title-missing sample): {0}" -f $convertProbeLog)
     }
     if ($afterFrameOnly) {
-      Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $afterFrameOnly)
+      Write-Output ("  title-missing/frame-only convert probe (A4-sized source-title-missing sample): {0}" -f $afterFrameOnly)
     }
     if ($beforeTargetTitle) {
-      Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $beforeTargetTitle)
+      Write-Output ("  title-missing/frame-only convert probe (A4-sized source-title-missing sample): {0}" -f $beforeTargetTitle)
     }
     if ($afterTargetTitle) {
-      Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $afterTargetTitle)
+      Write-Output ("  title-missing/frame-only convert probe (A4-sized source-title-missing sample): {0}" -f $afterTargetTitle)
     }
     if (($beforeTargetTitleCount -ne $null) -and ($afterTargetTitleCount -ne $null)) {
       $titleDelta = ([int]$afterTargetTitleCount) - ([int]$beforeTargetTitleCount)
-      Write-Output ("  title-missing/frame-only convert probe (A4 sample): target title delta={0}" -f $titleDelta)
+      Write-Output ("  title-missing/frame-only convert probe (A4-sized source-title-missing sample): target title delta={0}" -f $titleDelta)
     }
     if ($afterA4Frame) {
-      Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $afterA4Frame)
+      Write-Output ("  title-missing/frame-only convert probe (A4-sized source-title-missing sample): {0}" -f $afterA4Frame)
     }
     if (
       ($convertText -match "Convert result: OK status=(FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER|FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER)") -and
@@ -799,7 +802,7 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
       Write-Output "  title-missing/frame-only convert decision: verified on the current A4-sized source-title-missing sample; one source-title-missing sheet becomes DR_A4_Outline and no additional DR_titlea_3rd is created."
     }
   } else {
-    Write-Output "  title-missing/frame-only convert probe (A4 sample): <not-run>"
+    Write-Output "  title-missing/frame-only convert probe (A4-sized source-title-missing sample): <not-run>"
   }
 
   if ($script:LatestCadStatusCode -in @("NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION", "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION")) {
@@ -886,7 +889,7 @@ function Write-NativeFrameProgressSummary {
     ($script:DirectWorkcopyTargetTitleCount -eq "0") -and
     ($script:DirectWorkcopyTargetFrameCount -eq "0")
   ) {
-    Write-Output "  Interpretation: not an A4 blocker yet. The trusted direct work-copy probe still has target title/frame counts 0/0, so the next real action is the first native GMTITLE, not A4 frame-only cleanup."
+    Write-Output "  Interpretation: not a title-missing blocker yet. The trusted direct work-copy probe still has target title/frame counts 0/0, so the next real action is the first native GMTITLE, not title-missing cleanup."
     return
   }
   if ($a4Missing) {
@@ -898,7 +901,7 @@ function Write-NativeFrameProgressSummary {
     ) {
       Write-Output ("  Interpretation: not an A4 action yet. The trusted direct work-copy probe says the next missing native exemplar is {0} ({1}), so follow that one-step card before title-missing/frame-only exceptions." -f $script:DirectWorkcopyNextMissingFrame, $script:DirectWorkcopyNextMissingRole)
     } else {
-      Write-Output "  Interpretation: a title-missing/frame-only exception is still pending for the A4-sized sampled source sheets. Treat this as source-title-missing evidence, not an A4-only conversion policy."
+      Write-Output "  Interpretation: a title-missing/frame-only exception is still pending for the A4-sized source-title-missing sample sheets. Treat this as source-title-missing evidence, not an A4-only conversion policy."
     }
   }
 }

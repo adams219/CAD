@@ -383,7 +383,7 @@
                   (not (cadddr after-measure))
                 )
               )
-              (swtitle-a4norm-write-line handle (strcat "Normalization safe for A4 frame-only conversion: " (if safe-p "yes" "no")))
+              (swtitle-a4norm-write-line handle (strcat "Normalization safe for A4-sized title-missing conversion: " (if safe-p "yes" "no")))
             )
             (swtitle-a4norm-write-line handle "DR_A4_Outline definition is missing after import attempt.")
           )

@@ -1,4 +1,4 @@
-;;; A4 frame-only DR_A4_Outline conversion probe.
+;;; A4-sized source-title-missing DR_A4_Outline conversion sample probe.
 ;;; The PowerShell wrapper sets SWCAD_TOOL_ROOT and SWCAD_A4_OUTLINE_CONVERT_LOG.
 ;;; This probe runs on a copied DWG and does not save the drawing.
 ;;; Expected final status: FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER.
@@ -56,7 +56,7 @@
   (setq handle (open log-path "w"))
   (if handle
     (progn
-      (swtitle-a4convert-write-line handle "SWTITLE A4 outline convert probe")
+      (swtitle-a4convert-write-line handle "SWTITLE title-missing outline convert probe (A4-sized sample)")
       (setq load-result
         (vl-catch-all-apply
           'load

@@ -1,4 +1,4 @@
-;;; A4 frame-only DR_A4_Outline prepare probe.
+;;; A4-sized source-title-missing DR_A4_Outline prepare sample probe.
 ;;; The PowerShell wrapper sets SWCAD_TOOL_ROOT and SWCAD_A4_PREPARE_LOG.
 ;;; This probe runs on a copied DWG and does not save the drawing.
 
@@ -152,7 +152,7 @@
   (setq handle (open log-path "w"))
   (if handle
     (progn
-      (swtitle-a4prep-write-line handle "SWTITLE A4 outline prepare probe")
+      (swtitle-a4prep-write-line handle "SWTITLE title-missing outline prepare probe (A4-sized sample)")
       (setq load-result
         (vl-catch-all-apply
           'load

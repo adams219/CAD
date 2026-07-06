@@ -99,7 +99,7 @@ Before the hidden GstarCAD probes, the suite now runs two no-CAD preflights:
 3. actual work-copy status/verify probe
 4. A4 native exemplar gap probe
 5. A4 native outside marker prepare probe
-6. title-missing outline convert probe (A4 sample)
+6. title-missing outline convert probe (A4-sized source-title-missing sample)
 7. SWTITLECONVERT script guard probe
 8. common A2/A3/A4 frame-definition classification probe
 9. A2/A3/A4 style-normalization rebuild cleanup probe
@@ -495,7 +495,7 @@ huge-insert: unsafe, raw bbox improves but still does not match A4
 direct-outside: unsafe, deletes too much and leaves only POINT/TEXT remnants
 nested-outside: unsafe, effective A4 remains but raw selection bbox remains oversized
 nested-direct-outside: unsafe, effective A4 remains but raw selection bbox remains oversized
-Normalization safe for A4 frame-only conversion: no
+Normalization safe for A4-sized title-missing conversion: no
 ```
 
 This is a negative probe. It proves that deletion-style normalization, including the nested child-block variants, should not be promoted into `SWTITLEPREPARE` or `SWTITLECONVERT`.
