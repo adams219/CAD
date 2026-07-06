@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-9",
+  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-10",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -366,6 +366,7 @@ if (($integratedConvertStart -lt 0) -or ($integratedVerifyStart -le $integratedC
   $definitionNeededIndex = $integratedConvertText.IndexOf("(swcad-title-title-missing-outline-definition-needed-p)")
   $titleMissingApplyIndex = $integratedConvertText.IndexOf("(swcad-title-transfer-title-missing-outline-apply)")
   $legacyFrameOnlyApplyIndex = $integratedConvertText.IndexOf("(swcad-title-transfer-frame-only-apply)")
+  $titleMissingUnavailableIndex = $integratedConvertText.IndexOf('(swcad-title-apply-result "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE")')
   if ($frameOnlyBranchIndex -lt 0) {
     Add-Failure "SWTITLECONVERT must have a source-count=0/frame-only-count>0 branch."
   }
@@ -378,23 +379,26 @@ if (($integratedConvertStart -lt 0) -or ($integratedVerifyStart -le $integratedC
   if ($titleMissingApplyIndex -lt 0) {
     Add-Failure "SWTITLECONVERT frame-only branch must use title-missing outline-only apply."
   }
-  if ($legacyFrameOnlyApplyIndex -lt 0) {
-    Add-Failure "SWTITLECONVERT legacy frame-only native fallback marker missing."
+  if ($titleMissingUnavailableIndex -lt 0) {
+    Add-Failure "SWTITLECONVERT must abort when verified title-missing outline-only policy is unavailable."
+  }
+  if ($legacyFrameOnlyApplyIndex -ge 0) {
+    Add-Failure "SWTITLECONVERT must not call legacy frame-only native fallback."
   }
   if (
     ($frameOnlyBranchIndex -ge 0) -and
     ($policyIndex -ge 0) -and
     ($definitionNeededIndex -ge 0) -and
     ($titleMissingApplyIndex -ge 0) -and
-    ($legacyFrameOnlyApplyIndex -ge 0) -and
+    ($titleMissingUnavailableIndex -ge 0) -and
     -not (
       ($frameOnlyBranchIndex -lt $policyIndex) -and
       ($policyIndex -lt $definitionNeededIndex) -and
       ($definitionNeededIndex -lt $titleMissingApplyIndex) -and
-      ($titleMissingApplyIndex -lt $legacyFrameOnlyApplyIndex)
+      ($titleMissingApplyIndex -lt $titleMissingUnavailableIndex)
     )
   ) {
-    Add-Failure "SWTITLECONVERT must handle verified title-missing outline-only apply before legacy frame-only native fallback."
+    Add-Failure "SWTITLECONVERT must handle verified title-missing outline-only apply before aborting unavailable legacy fallback."
   }
 }
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-prepare-title-missing-outline-definition (/ frame-block" -Label "Generic title-missing outline prepare implementation"

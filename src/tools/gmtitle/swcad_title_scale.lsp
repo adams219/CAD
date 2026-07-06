@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260706-unified-title-missing-9")
+(setq *swcad-title-scale-version* "260706-unified-title-missing-10")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -18275,8 +18275,10 @@
                 )
               )
               (progn
-                (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 frame-only native 적용 단계를 실행합니다.")
-                (swcad-title-transfer-frame-only-apply)
+                (swcad-title-apply-result "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE")
+                (swcad-title-princ-text "\n이 표제란 없는 도면틀 시트는 공통 title-missing 도면틀-only 조건을 통과하지 못했습니다.")
+                (swcad-title-princ-text "\nA2/A3/A4는 같은 GMTITLE 흐름으로 처리해야 하므로 구형 frame-only native fallback은 실행하지 않습니다.")
+                (swcad-title-princ-text "\n다음: SWTITLESTATUS/SWTITLEPREPARE로 원본 표제란 부재와 같은 크기 DR_A*_Outline 정의 상태를 먼저 확인하세요.")
               )
             )
           )
