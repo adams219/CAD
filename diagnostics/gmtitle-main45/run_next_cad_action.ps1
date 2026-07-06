@@ -613,6 +613,7 @@ function Write-StatusBasedAction {
       Write-ConvertCommandStep
       Write-Output "  참고: 현재 PC에서는 Codex Computer Use가 GstarCAD 화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다."
       Write-Output "  경고: 긴 명령/경로를 자동 입력하거나 붙여넣으면 CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있습니다. 실제 CAD 명령은 사용자가 직접 입력하세요."
+      Write-Output "  추가 경고: Codex가 Computer Use로 SWTITLECONVERTNEXT를 타이핑하면 CAD 동적 입력이 도면 문자 삽입으로 해석될 수 있습니다. 이 명령은 사용자가 CAD 명령줄에 직접 입력하세요."
       Write-AutomationBoundarySummary -Mode "FirstNative"
       Write-GmtitleDialogGuidance -FrameName ($(if ($FrameName) { $FrameName } else { "DR_A2_Outline" })) -TitleName ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" }))
       Write-ConvertPromptGuidance -Mode "FirstNative"

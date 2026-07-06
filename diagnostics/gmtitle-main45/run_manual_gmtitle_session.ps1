@@ -292,6 +292,7 @@ if ($Compact) {
   Write-Step "목적: 작업복사본을 열고 사용자가 GMTITLE 한 장만 처리한 뒤, GstarCAD가 닫히면 다음 작업 카드를 다시 갱신합니다."
   Write-Step "안전: 이 스크립트는 SWTITLECONVERTNEXT를 대신 실행하지 않고, GMTITLE 창을 클릭하지 않고, DWG를 저장하지 않습니다."
   Write-Step "입력 주의: 긴 명령/경로를 자동 입력하거나 붙여넣으면 CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있으므로 CAD 명령은 사용자가 직접 입력합니다."
+  Write-Step "금지: Codex가 Computer Use로 SWTITLECONVERTNEXT를 대신 타이핑하지 않습니다. CAD 동적 입력이 도면 문자 삽입으로 해석될 수 있으므로 사용자가 명령줄에 직접 입력합니다."
   Write-Step "사전확인: 건너뛰지 않으면 visible CAD를 열기 전에 다음 작업 카드를 갱신하고, 저장된 DWG가 변환 가능한 상태가 아니면 멈춥니다."
   Write-Step "기본값: 현재 PC의 /b probe가 불안정할 수 있어 자동 direct probe 갱신은 하지 않습니다. 필요할 때만 -AutoRefreshDirectProbe를 붙입니다."
   Write-Step "PreflightOnly: -PreflightOnly를 붙이면 CAD를 열지 않고 현재 변환 카드와 짧은 GMTITLE 선택 요약만 출력합니다."

@@ -35,6 +35,7 @@ $goalStatusPath = Join-Path $PSScriptRoot "run_goal_status.ps1"
 $cadTextLogReaderPath = Join-Path $PSScriptRoot "read_cad_text_log.ps1"
 $computerUseHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-computer-use-visible-cad-activation-failure-2026-07-05.md"
 $computerUseA3DialogHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-a3-visible-dialog-computer-use-2026-07-06.md"
+$computerUseDynamicInputHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-computer-use-dynamic-input-failure-2026-07-07.md"
 $hiddenSuitePassHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-main56-hidden-suite-pass-2026-07-05.md"
 $finalCompletionGateHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-final-completion-gate-2026-07-06.md"
 $commandSurfaceHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-command-surface-probe-2026-07-05.md"
@@ -251,6 +252,7 @@ $cadTextLogReaderText = Read-Text $cadTextLogReaderPath
 $unifiedFlowResetGuideText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-unified-flow-reset.md")
 $computerUseHistoryText = Read-Text $computerUseHistoryPath
 $computerUseA3DialogHistoryText = Read-Text $computerUseA3DialogHistoryPath
+$computerUseDynamicInputHistoryText = Read-Text $computerUseDynamicInputHistoryPath
 $commandSurfaceHistoryText = Read-Text $commandSurfaceHistoryPath
 $automationBoundaryHistoryText = Read-Text $automationBoundaryHistoryPath
 $selectionConfigDeepRegistryHistoryText = Read-Text $selectionConfigDeepRegistryHistoryPath
@@ -643,6 +645,7 @@ Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "run_open_workcopy
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "run_after_manual_gmtitle_step.ps1" -Label "Manual session wrapper after-manual check"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "SWTITLECONVERTNEXT를 대신 실행하지 않고" -Label "Manual session wrapper no-convert guard"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle 'CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있으므로' -Label "Manual session wrapper pasteclip warning"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "Codex가 Computer Use로 SWTITLECONVERTNEXT를 대신 타이핑하지 않습니다" -Label "Manual session wrapper dynamic-input no-type guard"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "GMTITLE 창을 클릭하지 않고" -Label "Manual session wrapper no-click guard"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "Wait-ForGstarCADToClose" -Label "Manual session wrapper waits for close"
 Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "Assert-GstarCADRunningBeforeManualStep" -Label "Manual session wrapper requires visible CAD before wait"
@@ -719,12 +722,15 @@ Assert-Contains -Text $nextCadActionRunnerText -Needle "정상 버전:" -Label "
 Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLESTATUS  (현재 열린 DWG와 다음 상태 확인)" -Label "Next CAD action visible-CAD status preflight"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다" -Label "Next CAD action Korean Computer Use limitation wording"
 Assert-Contains -Text $nextCadActionRunnerText -Needle 'CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있습니다' -Label "Next CAD action pasteclip warning"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Computer Use로 SWTITLECONVERTNEXT를 타이핑하면 CAD 동적 입력이 도면 문자 삽입으로 해석될 수 있습니다" -Label "Next CAD action dynamic-input warning"
 Assert-Contains -Text $computerUseHistoryText -Needle "failed to activate captured window" -Label "Computer Use activation failure history"
 Assert-Contains -Text $computerUseHistoryText -Needle "Do not repeat the same visible-CAD Computer Use click/type attempt as a default path" -Label "Computer Use no-repeat guidance"
 Assert-Contains -Text $computerUseA3DialogHistoryText -Needle '`SWTITLECONVERTNEXT` started correctly' -Label "Computer Use A3 dialog reached through SWTITLECONVERTNEXT"
 Assert-Contains -Text $computerUseA3DialogHistoryText -Needle "UIA value is read-only" -Label "Computer Use A3 dialog combo read-only evidence"
 Assert-Contains -Text $computerUseA3DialogHistoryText -Needle "not exposed as a separate targetable window" -Label "Computer Use A3 dialog window-target evidence"
 Assert-Contains -Text $computerUseA3DialogHistoryText -Needle "did **not** click screen coordinates" -Label "Computer Use A3 no screen-coordinate fallback"
+Assert-Contains -Text $computerUseDynamicInputHistoryText -Needle 'Do not use Computer Use to type `SWTITLECONVERTNEXT` into visible GstarCAD' -Label "Computer Use dynamic-input no-type guidance"
+Assert-Contains -Text $computerUseDynamicInputHistoryText -Needle "dynamic input interpreted command text as drawing text" -Label "Computer Use dynamic-input failure evidence"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "용지/도면틀:" -Label "Next CAD action Korean dialog paper guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERTNEXT  (권장: YES/OPEN 반복 응답 자동 선택)" -Label "Next CAD action convert-next shortcut guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "또는 수동 응답을 직접 고르려면: SWTITLECONVERT" -Label "Next CAD action manual convert fallback guidance"
@@ -990,6 +996,7 @@ Assert-Contains -Text $runCardText -Needle "LSP가 자동 처리:" -Label "Run c
 Assert-Contains -Text $runCardText -Needle "사람이 확인:" -Label "Run card human GMTITLE scope"
 Assert-Contains -Text $runCardText -Needle "GMTITLE 창 선택까지 완전 자동으로 켜지 않는 이유" -Label "Run card no unsafe full automation reason"
 Assert-Contains -Text $runCardText -Needle 'CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있습니다' -Label "Run card Computer Use pasteclip warning"
+Assert-Contains -Text $runCardText -Needle 'Codex가 `SWTITLECONVERTNEXT`를 직접 타이핑하면 CAD 동적 입력이 도면 문자 삽입으로 해석될 수 있습니다' -Label "Run card Computer Use dynamic-input warning"
 Assert-Contains -Text $runCardText -Needle "GMTITLE 배치점 원칙" -Label "Run card GMTITLE placement principle"
 Assert-Contains -Text $runCardText -Needle '`SWTITLECONVERTNEXT` 또는 수동 `SWTITLECONVERT`를 통해 GMTITLE 창을 열었을 때는 긴 좌표를 사람이 직접 치지 않습니다' -Label "Run card convert-next placement wording"
 Assert-Contains -Text $runCardText -Needle '`SWTITLECONVERTNEXT`/`SWTITLECONVERT`가 GMTITLE 호출, 왼쪽 아래 배치점 자동 전송, 값 복사, 이전 원본 정리를 묶어서 처리합니다' -Label "Run card convert-next integrated flow wording"
