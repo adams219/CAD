@@ -355,6 +355,48 @@ if (($titleMissingPolicyStart -lt 0) -or ($titleMissingPolicyEnd -le $titleMissi
     Add-Failure "title-missing policy must not branch on A4 or DR_A4_Outline."
   }
 }
+$integratedConvertStart = $mainText.IndexOf("(defun swcad-title-integrated-convert")
+$integratedVerifyStart = if ($integratedConvertStart -ge 0) { $mainText.IndexOf("(defun swcad-title-integrated-verify-final-summary", $integratedConvertStart) } else { -1 }
+if (($integratedConvertStart -lt 0) -or ($integratedVerifyStart -le $integratedConvertStart)) {
+  Add-Failure "swcad-title-integrated-convert function block not found."
+} else {
+  $integratedConvertText = $mainText.Substring($integratedConvertStart, $integratedVerifyStart - $integratedConvertStart)
+  $frameOnlyBranchIndex = $integratedConvertText.IndexOf("((and (= source-count 0) (> frame-only-count 0))")
+  $policyIndex = $integratedConvertText.IndexOf("(swcad-title-title-missing-outline-policy-blocked-p)")
+  $definitionNeededIndex = $integratedConvertText.IndexOf("(swcad-title-title-missing-outline-definition-needed-p)")
+  $titleMissingApplyIndex = $integratedConvertText.IndexOf("(swcad-title-transfer-title-missing-outline-apply)")
+  $legacyFrameOnlyApplyIndex = $integratedConvertText.IndexOf("(swcad-title-transfer-frame-only-apply)")
+  if ($frameOnlyBranchIndex -lt 0) {
+    Add-Failure "SWTITLECONVERT must have a source-count=0/frame-only-count>0 branch."
+  }
+  if ($policyIndex -lt 0) {
+    Add-Failure "SWTITLECONVERT frame-only branch must check generic title-missing policy."
+  }
+  if ($definitionNeededIndex -lt 0) {
+    Add-Failure "SWTITLECONVERT frame-only branch must verify same-size DR outline definition readiness."
+  }
+  if ($titleMissingApplyIndex -lt 0) {
+    Add-Failure "SWTITLECONVERT frame-only branch must use title-missing outline-only apply."
+  }
+  if ($legacyFrameOnlyApplyIndex -lt 0) {
+    Add-Failure "SWTITLECONVERT legacy frame-only native fallback marker missing."
+  }
+  if (
+    ($frameOnlyBranchIndex -ge 0) -and
+    ($policyIndex -ge 0) -and
+    ($definitionNeededIndex -ge 0) -and
+    ($titleMissingApplyIndex -ge 0) -and
+    ($legacyFrameOnlyApplyIndex -ge 0) -and
+    -not (
+      ($frameOnlyBranchIndex -lt $policyIndex) -and
+      ($policyIndex -lt $definitionNeededIndex) -and
+      ($definitionNeededIndex -lt $titleMissingApplyIndex) -and
+      ($titleMissingApplyIndex -lt $legacyFrameOnlyApplyIndex)
+    )
+  ) {
+    Add-Failure "SWTITLECONVERT must handle verified title-missing outline-only apply before legacy frame-only native fallback."
+  }
+}
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-prepare-title-missing-outline-definition (/ frame-block" -Label "Generic title-missing outline prepare implementation"
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-transfer-title-missing-outline-apply (/ *error*" -Label "Generic title-missing outline transfer implementation"
 Assert-Contains -Text $mainText -Needle "swcad-title-transfer-title-missing-outline-apply" -Label "Generic title-missing outline transfer wrapper"
