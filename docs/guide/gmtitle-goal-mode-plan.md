@@ -173,7 +173,7 @@ Object move가 OFF인지 확인
 5. 로그가 probe/diagnostics/예전 복사본을 가리키면 현재 작업 기준으로 쓰지 않는다.
 ```
 
-따라서 과거에 어떤 도면이 `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`이었더라도, 그 상태를 현재 열린 도면에 그대로 적용하지 않는다. 현재 도면의 `SWTITLESTATUS` 또는 direct probe 카드가 요구하는 한 단계만 실행한다.
+따라서 과거에 어떤 도면이 `NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION`이었더라도, 그 상태를 현재 열린 도면에 그대로 적용하지 않는다. 현재 도면의 `SWTITLESTATUS` 또는 direct probe 카드가 요구하는 한 단계만 실행한다.
 
 현재 기본 workcopy direct probe 기준은 아직 첫 native GMTITLE 기준 객체가 없는 상태다.
 
@@ -207,7 +207,7 @@ DR_A3_Outline 도면틀은 native GMTITLE에서도 INSERT/block 참조로 선택
 설치 원본 DR_A4_Outline import:
   보이는 A4 effective bbox는 (0,0)-(210,297)
   실제 CAD raw selection bbox는 (0,0)-(872.26126377,302.7)
-  과거 결과: WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE
+  과거 결과: WARN_TITLE_MISSING_OUTLINE_DEFINITION_UNSAFE
   현재 정책: 큰 raw bbox/선택 위험은 계속 중단하지만, native A4의 작은 바깥 마커는 ready-native-outside-markers로 허용
 
 A4 definition normalization probe:
@@ -222,7 +222,7 @@ nested-direct-outside: unsafe
 `SWTITLEPREPARE`가 같은 WARN을 반환하면 변환을 반복하지 말고, A4 정의를 native 방식으로 다시 만들 수 있는지 또는 검증 가능한 outline-only 정의를 별도 설계할지 판단한다.
 
 이미 같은 열린 DWG 상태에서 `SWTITLEPREPARE`를 한 번 실행했고, 이어서 `SWTITLESTATUS`가 다시
-`NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`을 표시하면 `SWTITLEPREPARE`를 계속 반복하지 않는다.
+`NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION`을 표시하면 `SWTITLEPREPARE`를 계속 반복하지 않는다.
 그 상태는 "A4 준비 명령을 더 눌러야 함"이 아니라 "현재 설치 원본 정의 경로가 raw bbox guard를 통과하지 못함"으로 판단한다.
 
 현재 조사 결론:
@@ -288,9 +288,9 @@ nested-direct-outside probe:
 2026-07-05 title-missing/frame-only convert probe:
   run_a4_outline_convert_probe.ps1가 복사본에서 준비와 변환을 함께 실행했다.
   결과:
-    Prepare result: OK status=OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
+    Prepare result: OK status=OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED
     After prepare definition status: ready-native-outside-markers
-    Convert result: OK status=FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
+    Convert result: OK status=FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER
     After frame-only-count: 1
     After target title count: 0
     After DR_A4_Outline target frame count: 1

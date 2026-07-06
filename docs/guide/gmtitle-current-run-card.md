@@ -122,7 +122,7 @@ CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력해서 우회�
 4. 로그가 probe/diagnostics/예전 복사본을 가리키면 그 로그는 현재 작업 기준으로 쓰지 않습니다.
 ```
 
-즉, 과거에 어떤 도면이 `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`이었더라도 지금 열린 도면에 그대로 적용하지 않습니다. 같은 명령을 반복하기 전에 항상 현재 도면의 `SWTITLESTATUS` 또는 direct probe 카드가 요구하는 한 단계만 따릅니다.
+즉, 과거에 어떤 도면이 `NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION`이었더라도 지금 열린 도면에 그대로 적용하지 않습니다. 같은 명령을 반복하기 전에 항상 현재 도면의 `SWTITLESTATUS` 또는 direct probe 카드가 요구하는 한 단계만 따릅니다.
 
 A3/A4 참고:
 
@@ -135,14 +135,14 @@ A3 성공 여부는 도면틀 더블클릭이 아니라 짝 DR_titlea_3rd 제목
 
 `SWTITLEPREPARE`를 실행한 뒤에는 반드시 `SWTITLESTATUS`를 다시 실행합니다.
 그 결과가 `SWTITLECONVERTNEXT`를 안내하면 그때 변환을 진행합니다.
-`WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`가 나오면 멈추고, `OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED`와 `ready-native-outside-markers`가 나오면 title-missing/frame-only 도면틀-only 변환 준비가 된 상태로 봅니다. 상태 코드 이름에 A4가 남아 있어도 현재 해석은 원본 표제란 부재 예외입니다.
+`WARN_TITLE_MISSING_OUTLINE_DEFINITION_UNSAFE`가 나오면 멈추고, `OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED`와 `ready-native-outside-markers`가 나오면 title-missing/frame-only 도면틀-only 변환 준비가 된 상태로 봅니다. 상태 코드 이름에 A4가 남아 있어도 현재 해석은 원본 표제란 부재 예외입니다.
 
 현재 probe 기준으로는 설치 원본 `DR_A4_Outline`이 A4 바깥의 작은 native 마커를 포함합니다.
 이제 이 경우를 무조건 실패로 보지 않고, effective A4 형상과 raw selection 검사가 통과하면 `ready-native-outside-markers`로 허용합니다.
 
 ```text
 prepare probe:
-OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
+OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED
 After definition status: ready-native-outside-markers
 
 보이는 A4 범위:
@@ -155,7 +155,7 @@ raw selection warning:
 <none>
 
 convert probe:
-FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
+FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER
 After target title count: 0
 After DR_A4_Outline target frame count: 1
 ```
@@ -172,7 +172,7 @@ scratch native A4 비교는 이미 완료된 과거 조사입니다. 같은 scra
   Result: A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS
 
 2026-07-05 production title-missing/frame-only probe:
-  FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
+  FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER
   After frame-only-count: 1
   After target title count: 0
   After DR_A4_Outline target frame count: 1
@@ -330,8 +330,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 no-CAD next-action card probe: PASS
 GstarCAD /b script smoke probe: PASS
 actual work-copy status probe: NEXT_CREATE_FIRST_NATIVE_GMTITLE
-A4 outline prepare: OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
-title-missing/frame-only convert: FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
+A4 outline prepare: OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED
+title-missing/frame-only convert: FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER
 selection config deep registry: GMTITLE_SELECTION_CONFIG_NOT_FOUND
 All expected log markers were verified.
 ```
@@ -440,8 +440,8 @@ Object move ON
 | `NEXT_PREPARE_FRAME_STYLE_NORMALIZATION` | 도면틀 내부 형상과 별도 제목블록이 겹쳐 정규화 필요 | `SWTITLEPREPARE` |
 | `NEXT_REVIEW_ACCIDENTAL_COMMAND_TEXT` | 도면에 실수 명령어 텍스트 후보가 있음 | 후보 확인 후 `SWTITLEPREPARE` |
 | `NEXT_UPGRADE_A3_A4_NATIVE` | A3/A4 복제/shared-link 쌍을 fresh native로 교체해야 함 | `SWTITLECONVERTNEXT` |
-| `WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION` | 과거 상태명. 현재 기준으로는 title-missing 예외 전에 해당 DR_A*_Outline 검증 필요 | `SWTITLEPREPARE` |
-| `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION` | A4 도면틀 정의 준비/검증 필요 | `SWTITLEPREPARE` |
+| `WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION` | 과거 상태명. 현재 기준으로는 title-missing 예외 전에 해당 DR_A*_Outline 검증 필요 | `SWTITLEPREPARE` |
+| `NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION` | A4 도면틀 정의 준비/검증 필요 | `SWTITLEPREPARE` |
 | `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX` | 도면틀 정의 선택 범위가 위험함 | 변환 반복 금지, 로그 확인 |
 | `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK` | 기존 도면 보호를 위해 중단됨 | 변환 반복 금지, 원인 분석 |
 | `SWTITLEVERIFY_FINAL_FAIL` | 완료 조건 미달 | `SWTITLESTATUS`로 다음 조치 확인 |
@@ -478,7 +478,7 @@ DR_A*_Outline raw definition bbox가 해당 용지 범위 근처를 벗어나지
 ```
 
 원본에 표제란이 없던 위치에 `DR_titlea_3rd`가 생기면 멈추고 로그를 봅니다.
-`WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE`는 원본 도면 내용을 지키기 위해 변환을 중단했다는 뜻입니다.
+`WARN_TITLE_MISSING_OUTLINE_DEFINITION_UNSAFE`는 원본 도면 내용을 지키기 위해 변환을 중단했다는 뜻입니다.
 반대로 `ready-native-outside-markers`는 공식 native 정의의 작은 바깥 마커는 있지만 effective 형상과 raw selection 검사가 통과했다는 뜻입니다.
 `run_a4_outline_convert_probe.ps1` 기준으로는 title-missing/frame-only 1장을 변환한 뒤에도 `After target title count: 0`, `After DR_A4_Outline target frame count: 1`이므로, 원본에 없던 표제란을 만들지 않는 조건을 만족합니다.
 

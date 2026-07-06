@@ -501,10 +501,10 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
 
     if ($prepareResult) {
       Write-Output ("  Installed DR_A4_Outline prepare probe: {0}" -f $prepareResult)
-      if ($prepareResult -match "WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE") {
+      if ($prepareResult -match "WARN_(TITLE_MISSING|A4_FRAME_ONLY)_OUTLINE_DEFINITION_UNSAFE") {
         $script:A4PrepareProbeUnsafe = $true
       }
-      if ($prepareResult -match "OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED") {
+      if ($prepareResult -match "OK_(TITLE_MISSING|A4_FRAME_ONLY)_OUTLINE_DEFINITION_IMPORTED") {
         Write-Output "  Installed DR_A4_Outline prepare probe: imported definition accepted for source-title-missing/frame-only readiness."
       }
     }
@@ -641,7 +641,7 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
       Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $afterA4Frame)
     }
     if (
-      ($convertText -match "Convert result: OK status=FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER") -and
+      ($convertText -match "Convert result: OK status=(FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER|FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER)") -and
       ($convertText -match "(?m)^After frame-only-count:\s*1") -and
       ($convertText -match "(?m)^After target title count:\s*0") -and
       ($convertText -match "(?m)^After DR_A4_Outline target frame count:\s*1")
@@ -653,13 +653,13 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
     Write-Output "  title-missing/frame-only convert probe (A4 sample): <not-run>"
   }
 
-  if ($script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") {
+  if ($script:LatestCadStatusCode -in @("NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION", "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION")) {
     if ($script:A4PrepareProbeUnsafe -and $script:A4NestedProbeMissing) {
       Write-Output "  Interpretation: the current live state still reports SWTITLEPREPARE, but the copied-DWG prepare probe already shows the installed DR_A4_Outline path is expected to fail the strict A4 raw-bbox guard."
       Write-Output "  If SWTITLEPREPARE has already been tried in the open CAD and SWTITLESTATUS still reports this same state, do not keep looping CAD commands. Save/close GstarCAD and run the title-missing definition probe for the current A4 sample."
     } else {
       Write-Output "  Interpretation: current CAD still needs SWTITLEPREPARE for live evidence, but known probes expect the installed DR_A4_Outline to fail the strict A4 raw-bbox guard."
-      Write-Output "  If SWTITLEPREPARE returns WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE, do not repeat SWTITLECONVERT; continue with the source-title-missing definition strategy investigation."
+      Write-Output "  If SWTITLEPREPARE returns WARN_TITLE_MISSING_OUTLINE_DEFINITION_UNSAFE, do not repeat SWTITLECONVERT; continue with the source-title-missing definition strategy investigation."
     }
   }
 }
@@ -832,7 +832,7 @@ Write-Output ""
 Write-Output "다음 작업:"
 $a4InvestigationPreferred = (
   (
-    ($script:LatestCadDwgTrustedForGoal -and $script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") -or
+    ($script:LatestCadDwgTrustedForGoal -and ($script:LatestCadStatusCode -in @("NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION", "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION"))) -or
     (-not $script:LatestCadDwgTrustedForGoal)
   ) -and
   $script:A4PrepareProbeUnsafe -and
@@ -840,14 +840,14 @@ $a4InvestigationPreferred = (
 )
 $a4CandidateSafeNeedsReview = (
   (
-    ($script:LatestCadDwgTrustedForGoal -and $script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") -or
+    ($script:LatestCadDwgTrustedForGoal -and ($script:LatestCadStatusCode -in @("NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION", "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION"))) -or
     (-not $script:LatestCadDwgTrustedForGoal)
   ) -and
   $script:A4NormalizationCandidateSafe
 )
 $a4NativeA4ComparisonNeeded = (
   (
-    ($script:LatestCadDwgTrustedForGoal -and $script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") -or
+    ($script:LatestCadDwgTrustedForGoal -and ($script:LatestCadStatusCode -in @("NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION", "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION"))) -or
     (-not $script:LatestCadDwgTrustedForGoal)
   ) -and
   $script:A4PrepareProbeUnsafe -and
@@ -964,7 +964,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "  Title-missing definition investigation continuation (current A4 sample):"
     Write-Output ("    1. Confirm the open GstarCAD drawing matches: {0}" -f $script:LatestCadDwg)
     Write-Output "    2. If SWTITLEPREPARE was not tried in this exact open DWG state, run SWTITLEPREPARE once and then SWTITLESTATUS."
-    Write-Output "    3. If SWTITLESTATUS still reports NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION, do not repeat SWTITLEPREPARE/SWTITLECONVERT."
+    Write-Output "    3. If SWTITLESTATUS still reports NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION, do not repeat SWTITLEPREPARE/SWTITLECONVERT."
     Write-Output "    4. Save the work-copy DWG, close GstarCAD, then run the copied-DWG nested A4 probe:"
     Write-Output ("       powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside,nested-direct-outside" -f $nestedProbeScript, $nestedProbeSource)
     Write-Output "    5. Only if one nested probe is safe should SWTITLEPREPARE/SWTITLECONVERT production logic be changed."
@@ -975,7 +975,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output ("    1. Confirm the open GstarCAD drawing matches: {0}" -f $script:LatestCadDwg)
     Write-Output ("    2. Run in GstarCAD: {0}" -f $script:LatestCadRecommendedCommand)
     Write-Output "    3. Run SWTITLESTATUS again and confirm the A4 missing count changes or a new warning explains why it stopped."
-    if ($script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") {
+    if ($script:LatestCadStatusCode -in @("NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION", "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION")) {
       Write-Output "    4. Do not repeat SWTITLECONVERT before this prepare/status loop. This source-title-missing sheet is frame-only and must not receive an extra title block."
     }
     Write-Output ""

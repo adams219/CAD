@@ -410,7 +410,7 @@ Expected result for the current installed `DR_A4_Outline` state:
 ```text
 Loaded version: 260706-unified-title-missing-3
 Before definition status: missing
-Prepare result: OK status=OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
+Prepare result: OK status=OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED
 After definition status: ready-native-outside-markers
 After frame-only-count: 2
 Runtime check completed: yes
@@ -436,9 +436,9 @@ work\swtitle_a4_outline_convert_probe_260705.txt
 Expected result:
 
 ```text
-Prepare result: OK status=OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
+Prepare result: OK status=OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED
 After prepare definition status: ready-native-outside-markers
-Convert result: OK status=FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER
+Convert result: OK status=FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER
 After source-title-count: 12
 After frame-only-count: 1
 After target title count: 1

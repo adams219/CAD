@@ -211,7 +211,7 @@ title-missing/frame-only 처리 조건:
 기존 도면 내용이 삭제되지 않음
 ```
 
-`WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION` 또는 `NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION`이 나오면 `SWTITLECONVERTNEXT`를 반복하지 말고 `SWTITLEPREPARE`로 정의 준비/검증을 먼저 합니다.
+`WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION` 또는 `NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION`이 나오면 `SWTITLECONVERTNEXT`를 반복하지 말고 `SWTITLEPREPARE`로 정의 준비/검증을 먼저 합니다.
 현재 코드 상태명에 A4가 남아 있을 수 있지만 guide 기준으로는 "원본 표제란이 없는 시트의 도면틀 정의 준비"로 해석합니다. `ready-native-outside-markers`는 공식 native 도면틀의 작은 바깥 마커만 허용된 상태입니다. 이 상태에서는 effective 형상과 raw selection 검사가 통과했는지 확인한 뒤 예외 변환을 진행할 수 있습니다.
 
 ## 옛 GMTITLE 명령

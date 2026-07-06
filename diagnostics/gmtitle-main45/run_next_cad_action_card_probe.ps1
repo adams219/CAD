@@ -200,8 +200,8 @@ Invoke-CardCase `
   -Expected @("Result: READY_FOR_FIRST_NATIVE_GMTITLE", "SWTITLECONVERTNEXT", "DR_A2_Outline", "DR_titlea_3rd", "YES/OPEN", "Frame positioning", "Object move")
 
 Invoke-CardCase `
-  -Name "prepare_a4" `
-  -Status "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" `
+  -Name "prepare_title_missing" `
+  -Status "NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION" `
   -Expected @("Result: RUN_PREPARE_FIRST", "SWTITLEPREPARE")
 
 Invoke-CardCase `

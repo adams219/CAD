@@ -1,7 +1,7 @@
 ;;; A4 frame-only DR_A4_Outline conversion probe.
 ;;; The PowerShell wrapper sets SWCAD_TOOL_ROOT and SWCAD_A4_OUTLINE_CONVERT_LOG.
 ;;; This probe runs on a copied DWG and does not save the drawing.
-;;; Expected final status: FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER.
+;;; Expected final status: FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER.
 
 (defun swtitle-a4convert-root (/ root)
   (setq root (getenv "SWCAD_TOOL_ROOT"))
