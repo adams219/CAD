@@ -4115,8 +4115,12 @@
   )
 )
 
-(defun swcad-title-a4-frame-only-outline-policy-blocked-p ()
+(defun swcad-title-title-missing-outline-policy-blocked-p ()
   (swcad-title-title-missing-outline-policy-active-p)
+)
+
+(defun swcad-title-a4-frame-only-outline-policy-blocked-p ()
+  (swcad-title-title-missing-outline-policy-blocked-p)
 )
 
 (defun swcad-title-title-missing-outline-target-block (/ source-frame)
@@ -4259,6 +4263,22 @@
       )
     )
   )
+)
+
+(defun swcad-title-title-missing-outline-definition-status ()
+  (swcad-title-a4-frame-only-outline-definition-status)
+)
+
+(defun swcad-title-title-missing-outline-definition-ready-p ()
+  (swcad-title-a4-frame-only-outline-definition-ready-p)
+)
+
+(defun swcad-title-title-missing-outline-definition-needed-p ()
+  (swcad-title-a4-frame-only-outline-definition-needed-p)
+)
+
+(defun swcad-title-print-title-missing-outline-definition-status ()
+  (swcad-title-print-a4-frame-only-outline-definition-status)
 )
 
 (defun swcad-title-next-fast-target-frame-block (/ bootstrap-record)
@@ -4594,8 +4614,8 @@
     ((> geometry-risk-count 0) "WARN_TARGET_FRAME_GEOMETRY_INVALID")
     ((> overlap-risk-count 0) "WARN_TARGET_FRAME_SELECTION_RISK")
     ((and (= source-count 0) (= frame-only-count 0)) "OK_NO_REMAINING_SOURCES")
-    ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-definition-needed-p)) "WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION")
-    ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-policy-blocked-p)) "READY_FOR_A4_FRAME_ONLY_OUTLINE")
+    ((and (= source-count 0) (> frame-only-count 0) (swcad-title-title-missing-outline-definition-needed-p)) "WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION")
+    ((and (= source-count 0) (> frame-only-count 0) (swcad-title-title-missing-outline-policy-blocked-p)) "READY_FOR_A4_FRAME_ONLY_OUTLINE")
     ((not example-title) "WAITING_FOR_NATIVE_GMTITLE_EXEMPLAR")
     ((and missing-required (swcad-title-next-fast-target-ready-p)) "PARTIAL_READY_FOR_FAST_BATCH")
     (missing-required "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
@@ -4674,7 +4694,7 @@
       (swcad-title-princ-line "형상 검사를 통과하지 못하면 새 도면틀은 삭제하고 기존 원본 도면틀은 보존합니다.")
     )
     ((equal status "WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION")
-      (swcad-title-print-a4-frame-only-outline-definition-status)
+      (swcad-title-print-title-missing-outline-definition-status)
       (swcad-title-princ-line "다음: SWTITLEPREPARE를 실행해 대상 DR 도면틀 정의를 먼저 가져오고 검증하세요.")
       (swcad-title-princ-line "검증 전에는 기존 원본 도면틀을 삭제하지 않습니다.")
     )
@@ -4859,13 +4879,13 @@
     )
     ((or (> source-count 0) (> frame-only-count 0))
       (cond
-        ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-definition-needed-p))
+        ((and (= source-count 0) (> frame-only-count 0) (swcad-title-title-missing-outline-definition-needed-p))
           (swcad-title-apply-result "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION")
-          (swcad-title-print-a4-frame-only-outline-definition-status)
+          (swcad-title-print-title-missing-outline-definition-status)
           (swcad-title-princ-line "다음: SWTITLEPREPARE를 실행하세요. 같은 크기 DR_A*_Outline 정의를 가져와 형상/선택범위를 먼저 검사합니다.")
           (swcad-title-princ-line "이 검사를 통과하기 전에는 SWTITLECONVERTNEXT가 기존 원본 도면틀을 삭제하지 않습니다.")
         )
-        ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-policy-blocked-p))
+        ((and (= source-count 0) (> frame-only-count 0) (swcad-title-title-missing-outline-policy-blocked-p))
           (swcad-title-apply-result "READY_FOR_A4_FRAME_ONLY_OUTLINE")
           (swcad-title-princ-line "다음: SWTITLECONVERTNEXT를 실행하세요. 원본 표제란 부재가 검증된 시트는 도면틀만 교체합니다.")
           (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
@@ -4948,8 +4968,8 @@
       ((> geometry-risk-count 0) "NEXT_REVIEW_TARGET_FRAME_GEOMETRY")
       ((> overlap-risk-count 0) "NEXT_REVIEW_TARGET_FRAME_SELECTION")
       ((> a3a4-count 0) "NEXT_UPGRADE_A3_A4_NATIVE")
-      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-definition-needed-p)) "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION")
-      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-policy-blocked-p)) "READY_FOR_A4_FRAME_ONLY_OUTLINE")
+      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-title-missing-outline-definition-needed-p)) "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION")
+      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-title-missing-outline-policy-blocked-p)) "READY_FOR_A4_FRAME_ONLY_OUTLINE")
       ((or (> source-count 0) (> frame-only-count 0)) "NEXT_TRANSFER_REMAINING_SOURCE_SHEETS")
       (missing-target-sheets "NEXT_CREATE_MISSING_TARGET_SHEET")
       (T "NEXT_FINAL_VERIFY_AND_DOUBLE_CLICK")
@@ -4984,7 +5004,7 @@
     )
     ((equal status "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION")
       (swcad-title-princ-line "다음 명령: SWTITLEPREPARE")
-      (swcad-title-print-a4-frame-only-outline-definition-status)
+      (swcad-title-print-title-missing-outline-definition-status)
       (swcad-title-princ-line "대상 DR 도면틀 정의 검증이 끝난 뒤 SWTITLESTATUS와 SWTITLECONVERTNEXT를 이어서 실행하세요.")
     )
     ((equal status "NEXT_FINAL_VERIFY_AND_DOUBLE_CLICK")
@@ -8732,6 +8752,10 @@
   (princ)
 )
 
+(defun swcad-title-prepare-title-missing-outline-definition ()
+  (swcad-title-prepare-a4-frame-only-outline-definition)
+)
+
 (defun swcad-title-frame-def-clean-safe (/ doc answer frame-name exists old-child-names raw-risk-record raw-risk-after insert-count children rename-names rename-results target-renamed target backup-name renamed imported imported-valid rollback any-contaminated cleaned skipped failed skipped-referenced skipped-missing)
   (swcad-title-open-frame-def-clean-log)
   (swcad-title-princ-line "----- SWTITLEPREPARE 내부 대상 도면틀 정의 안전 정리 -----")
@@ -10454,7 +10478,7 @@
         (if
           (and
             (not paired-title)
-            (not (swcad-title-a4-frame-only-outline-frame-record-p frame-record))
+            (not (swcad-title-title-missing-outline-frame-record-p frame-record))
           )
           (setq frames-without-title-count (+ frames-without-title-count 1))
         )
@@ -10496,10 +10520,7 @@
         (> frame-count 0)
         (= (swcad-title-count-value frame-name trusted-title-frame-counts) 0)
         (not
-          (and
-            (swcad-title-frame-name-matches-p frame-name "DR_A4_Outline")
-            (> (swcad-title-a4-frame-only-outline-frame-count) 0)
-          )
+          (swcad-title-title-missing-outline-frame-block-present-p frame-name)
         )
       )
       (setq missing-trusted-frame-blocks
@@ -10649,7 +10670,7 @@
         (setq pair-trusted
           (if paired-title
             (swcad-title-trusted-native-exemplar-pair-p paired-title frame-ename frame-block)
-            (swcad-title-a4-frame-only-outline-frame-record-p frame-record)
+            (swcad-title-title-missing-outline-frame-record-p frame-record)
           )
         )
         (setq clone-pair
@@ -10666,7 +10687,7 @@
         )
         (setq native-like
           (or
-            (swcad-title-a4-frame-only-outline-frame-record-p frame-record)
+            (swcad-title-title-missing-outline-frame-record-p frame-record)
             (and
               paired-title
               (swcad-title-target-pair-native-like-p
@@ -10676,8 +10697,8 @@
           )
         )
         (setq reason
-          (if (swcad-title-a4-frame-only-outline-frame-record-p frame-record)
-            "a4-frame-only-outline"
+          (if (swcad-title-title-missing-outline-frame-record-p frame-record)
+            "title-missing-outline"
             (if paired-title
             (swcad-title-target-pair-upgrade-reason
               (list paired-title frame-ename frame-block nil frame-bbox title-role frame-role)
@@ -10714,7 +10735,7 @@
         )
         (if paired-title
           (setq paired-count (+ paired-count 1))
-          (if (not (swcad-title-a4-frame-only-outline-frame-record-p frame-record))
+          (if (not (swcad-title-title-missing-outline-frame-record-p frame-record))
             (setq missing-title-count (+ missing-title-count 1))
           )
         )
@@ -10873,7 +10894,7 @@
     (setq paired-title (swcad-title-title-for-frame-record-unused frame-record title-enames used-title-enames))
     (if paired-title
       (setq used-title-enames (append used-title-enames (list paired-title)))
-      (if (not (swcad-title-a4-frame-only-outline-frame-record-p frame-record))
+      (if (not (swcad-title-title-missing-outline-frame-record-p frame-record))
         (setq result (append result (list frame-record)))
       )
     )
@@ -12789,6 +12810,30 @@
   count
 )
 
+(defun swcad-title-title-missing-outline-frame-record-p (frame-record)
+  (swcad-title-a4-frame-only-outline-frame-record-p frame-record)
+)
+
+(defun swcad-title-title-missing-outline-frame-count ()
+  (swcad-title-a4-frame-only-outline-frame-count)
+)
+
+(defun swcad-title-title-missing-outline-frame-block-present-p (frame-block / records found record)
+  (setq records (swcad-title-frame-records))
+  (setq found nil)
+  (foreach record records
+    (if
+      (and
+        (not found)
+        (swcad-title-title-missing-outline-frame-record-p record)
+        (swcad-title-frame-name-matches-p (cadr record) frame-block)
+      )
+      (setq found T)
+    )
+  )
+  found
+)
+
 (defun swcad-title-frame-only-title-offset (sheet-size / normalized dims width)
   (setq normalized (swcad-title-normalized-sheet-size sheet-size))
   (setq dims (swcad-title-sheet-dimensions normalized))
@@ -14402,6 +14447,10 @@
   )
   (swcad-title-close-log)
   (princ)
+)
+
+(defun swcad-title-transfer-title-missing-outline-apply ()
+  (swcad-title-transfer-a4-frame-only-outline-apply)
 )
 
 (defun swcad-title-transfer-frame-only-apply (/ *error* source-frame source-frame-bbox source-sheet frame-block risk-message answer placement-point gmtitle-result gmtitle-title-ename gmtitle-frame-ename finalize-result)
@@ -17883,8 +17932,8 @@
       ((or (> raw-count 0) (> geometry-count 0) (> overlap-count 0)) "SWTITLEPREPARE 또는 구조 점검 - 도면틀 선택 범위/크기/겹침 위험 먼저 확인")
       (contaminated "SWTITLEPREPARE - 오염 의심 대상 도면틀 정의 정규화")
       ((> a3a4-count 0) "SWTITLECONVERTNEXT - A3/A4 native 교체 후보를 먼저 한 장 처리")
-      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-definition-needed-p)) "SWTITLEPREPARE - 같은 크기 DR_A*_Outline 정의를 먼저 가져오고 형상/선택범위 검증")
-      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-policy-blocked-p)) "SWTITLECONVERTNEXT - 원본 표제란 부재가 검증된 시트의 도면틀만 교체")
+      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-title-missing-outline-definition-needed-p)) "SWTITLEPREPARE - 같은 크기 DR_A*_Outline 정의를 먼저 가져오고 형상/선택범위 검증")
+      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-title-missing-outline-policy-blocked-p)) "SWTITLECONVERTNEXT - 원본 표제란 부재가 검증된 시트의 도면틀만 교체")
       ((or (> source-count 0) (> frame-only-count 0)) "SWTITLECONVERTNEXT - 남은 원본 SolidWorks 시트 변환")
       (missing-required "SWTITLECONVERTNEXT - 누락된 대상 용지 크기의 native GMTITLE 생성")
       ((and (= source-frame-count 0) count-shortage-records) "SWTITLEVERIFY - 변환 기준 수량 대비 누락된 대상 도면틀 확인")
@@ -17980,9 +18029,9 @@
     ((> a4-raw-count 0)
       (swcad-title-princ-line "도면틀 판단: 실제 선택 bbox가 보이는 용지보다 큽니다. bbox 검사를 통과하기 전에는 기존 원본 도면틀을 삭제하지 않습니다.")
     )
-    ((and (> frame-only-count 0) (swcad-title-a4-frame-only-outline-definition-needed-p))
+    ((and (> frame-only-count 0) (swcad-title-title-missing-outline-definition-needed-p))
       (swcad-title-princ-line "title-missing 판단: 표제란 없는 도면틀은 남아 있지만, 같은 크기 DR 도면틀 정의가 아직 변환 기준을 통과하지 못했습니다.")
-      (swcad-title-print-a4-frame-only-outline-definition-status)
+      (swcad-title-print-title-missing-outline-definition-status)
       (if (> source-count 0)
         (progn
           (swcad-title-princ-line "title-missing 판단 보충: 아직 원본 표제란 시트가 남아 있어 예외 준비보다 원본 시트 변환이 먼저입니다.")
@@ -17991,7 +18040,7 @@
         (swcad-title-princ-line "다음: SWTITLEPREPARE로 같은 크기 DR 도면틀 정의를 먼저 준비/검증하세요.")
       )
     )
-    ((and (> frame-only-count 0) (swcad-title-a4-frame-only-outline-policy-blocked-p))
+    ((and (> frame-only-count 0) (swcad-title-title-missing-outline-policy-blocked-p))
       (swcad-title-princ-line "title-missing 판단: 표제란 없는 도면틀 시트가 남아 있습니다. 원본에 없던 제목블록은 만들지 않고 도면틀만 교체합니다.")
       (if (> a3a4-count 0)
         (swcad-title-princ-line "다만 A3/A4 native 교체 후보가 남아 있으므로, SWTITLECONVERTNEXT는 그 후보를 먼저 처리합니다.")
@@ -18044,7 +18093,7 @@
       (setq frame-definition-blockers (swcad-title-frame-definition-blocking-records))
       (setq contaminated-definition-records (swcad-title-frame-definition-blocking-records-by-class "source-contaminated"))
       (setq definition-raw-risk-records (swcad-title-frame-definition-raw-bbox-risk-records))
-      (setq a4-outline-needed (swcad-title-a4-frame-only-outline-definition-needed-p))
+      (setq a4-outline-needed (swcad-title-title-missing-outline-definition-needed-p))
       (setq orphan-records (swcad-title-orphan-target-frame-records))
       (setq duplicate-pair-records (swcad-title-duplicate-target-pair-records))
       (swcad-title-princ-text
@@ -18094,9 +18143,9 @@
         (swcad-title-frame-def-clean-safe)
         (swcad-title-princ-text "\n오염된 DR 도면틀 정의 복구: 후보 없음")
       )
-      (setq a4-outline-needed (swcad-title-a4-frame-only-outline-definition-needed-p))
+      (setq a4-outline-needed (swcad-title-title-missing-outline-definition-needed-p))
       (if a4-outline-needed
-        (swcad-title-prepare-a4-frame-only-outline-definition)
+        (swcad-title-prepare-title-missing-outline-definition)
         (swcad-title-princ-text "\ntitle-missing/frame-only DR 도면틀 정의 준비: 후보 없음")
       )
       (if orphan-records
@@ -18219,18 +18268,18 @@
             (swcad-title-abort-interactive-gmtitle-script-active
               "frame-only 시트의 첫 native GMTITLE은 GMTITLE 창에서 DR 용지 선택과 배치 옵션 확인이 필요합니다."
             )
-            (if (swcad-title-a4-frame-only-outline-policy-blocked-p)
-              (if (swcad-title-a4-frame-only-outline-definition-needed-p)
+            (if (swcad-title-title-missing-outline-policy-blocked-p)
+              (if (swcad-title-title-missing-outline-definition-needed-p)
                 (progn
                   (swcad-title-apply-result "WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION")
                   (swcad-title-princ-text "\n같은 크기 DR 도면틀 정의가 아직 title-missing/frame-only 변환 기준을 통과하지 못했습니다.")
-                  (swcad-title-print-a4-frame-only-outline-definition-status)
+                  (swcad-title-print-title-missing-outline-definition-status)
                   (swcad-title-princ-text "\n다음: SWTITLEPREPARE를 실행해 같은 크기 DR 도면틀 정의를 먼저 준비/검증하세요.")
                   (swcad-title-princ-text "\n기존 원본 도면틀은 삭제하지 않았습니다.")
                 )
                 (progn
                   (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 title-missing 도면틀-only 변환 단계를 실행합니다.")
-                  (swcad-title-transfer-a4-frame-only-outline-apply)
+                  (swcad-title-transfer-title-missing-outline-apply)
                 )
               )
               (progn
@@ -18353,7 +18402,7 @@
   (setq target-title-count (length title-enames))
   (setq target-frame-count (length frame-records))
   (setq pair-count (length pair-records))
-  (setq a4-frame-only-outline-count (swcad-title-a4-frame-only-outline-frame-count))
+  (setq a4-frame-only-outline-count (swcad-title-title-missing-outline-frame-count))
   (setq missing-title-count
     (if (> target-frame-count (+ pair-count a4-frame-only-outline-count))
       (- target-frame-count pair-count a4-frame-only-outline-count)
