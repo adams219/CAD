@@ -79,6 +79,27 @@ function Get-AllRegexValues {
   return @($values)
 }
 
+function Convert-LegacyTitleMissingStatusCode {
+  param([string]$StatusCode)
+
+  if ([string]::IsNullOrWhiteSpace($StatusCode)) {
+    return $StatusCode
+  }
+
+  switch ($StatusCode.Trim()) {
+    "FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER" { return "FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER" }
+    "READY_FOR_A4_FRAME_ONLY_OUTLINE" { return "READY_FOR_TITLE_MISSING_OUTLINE" }
+    "WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION" { return "WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION" }
+    "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" { return "NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION" }
+    "OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED" { return "OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED" }
+    "WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE" { return "WARN_TITLE_MISSING_OUTLINE_DEFINITION_UNSAFE" }
+    "ABORT_A4_FRAME_ONLY_OUTLINE_DEFINITION_USER" { return "ABORT_TITLE_MISSING_OUTLINE_DEFINITION_USER" }
+    "ABORT_A4_FRAME_ONLY_OUTLINE_UNAVAILABLE" { return "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE" }
+    "ABORT_A4_FRAME_ONLY_OUTLINE_INVALID_GEOMETRY" { return "ABORT_TITLE_MISSING_OUTLINE_INVALID_GEOMETRY" }
+    default { return $StatusCode.Trim() }
+  }
+}
+
 function Get-GitHeadCommitTimeUtc {
   param([string]$RepoRoot)
 
@@ -286,8 +307,8 @@ function Write-FinalCompletionGateSummary {
   $item = Get-Item -LiteralPath $gateLog
   $text = Read-TextWithFallback -Path $gateLog
   $loadedVersion = Get-FirstRegexValue -Text $text -Pattern "^Loaded version:\s*(.+)$"
-  $statusAfterStatus = Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-status:\s*(\S+)"
-  $statusAfterVerify = Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-verify:\s*(\S+)"
+  $statusAfterStatus = Convert-LegacyTitleMissingStatusCode (Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-status:\s*(\S+)")
+  $statusAfterVerify = Convert-LegacyTitleMissingStatusCode (Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-verify:\s*(\S+)")
   $sourceTitleCount = Get-FirstRegexValue -Text $text -Pattern "^\s*source-title-count:\s*(\d+)"
   $sourceFrameCount = Get-FirstRegexValue -Text $text -Pattern "^\s*source-frame-count:\s*(\d+)"
   $frameOnlyCount = Get-FirstRegexValue -Text $text -Pattern "^\s*frame-only-count:\s*(\d+)"
@@ -639,7 +660,7 @@ function Write-StatusBasedAction {
       return
     }
 
-    "^NEXT_PREPARE_(TITLE_MISSING_OUTLINE_DEFINITION|A4_FRAME_ONLY_OUTLINE_DEFINITION|FRAME_STYLE_NORMALIZATION)$" {
+    "^NEXT_PREPARE_(TITLE_MISSING_OUTLINE_DEFINITION|FRAME_STYLE_NORMALIZATION)$" {
       Write-Output "Result: RUN_PREPARE_FIRST"
       Write-ManualLoadStep
       Write-Output "  SWTITLEPREPARE"
@@ -772,8 +793,8 @@ while ($true) {
   $probeLoadedVersion = Get-FirstRegexValue -Text $probeText -Pattern "^Loaded version:\s*(.+)$"
   $probeExpectedVersion = Get-FirstRegexValue -Text $probeText -Pattern "^Expected version:\s*(.+)$"
   $probeDwg = Get-FirstRegexValue -Text $probeText -Pattern "^DWG[^:]*:\s*(.+)$"
-  $statusAfterStatus = Get-FirstRegexValue -Text $probeText -Pattern "^\s*status-after-status:\s*(\S+)"
-  $statusAfterVerify = Get-FirstRegexValue -Text $probeText -Pattern "^\s*status-after-verify:\s*(\S+)"
+  $statusAfterStatus = Convert-LegacyTitleMissingStatusCode (Get-FirstRegexValue -Text $probeText -Pattern "^\s*status-after-status:\s*(\S+)")
+  $statusAfterVerify = Convert-LegacyTitleMissingStatusCode (Get-FirstRegexValue -Text $probeText -Pattern "^\s*status-after-verify:\s*(\S+)")
   $nextFrame = Get-FirstRegexValue -Text $probeText -Pattern "^\s*next-bootstrap-frame:\s*(\S+)"
   $nextTitle = Get-FirstRegexValue -Text $probeText -Pattern "^\s*next-bootstrap-title:\s*(\S+)"
   $nextMissingFrame = Get-FirstRegexValue -Text $probeText -Pattern "^\s*next-missing-native-frame:\s*(\S+)"

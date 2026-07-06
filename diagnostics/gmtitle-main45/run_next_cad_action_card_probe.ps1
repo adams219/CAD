@@ -205,6 +205,11 @@ Invoke-CardCase `
   -Expected @("Result: RUN_PREPARE_FIRST", "SWTITLEPREPARE")
 
 Invoke-CardCase `
+  -Name "legacy_a4_prepare_status_normalized" `
+  -Status "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" `
+  -Expected @("Result: RUN_PREPARE_FIRST", "SWTITLEPREPARE", "NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION")
+
+Invoke-CardCase `
   -Name "missing_native" `
   -Status "NEXT_CREATE_MISSING_NATIVE_EXEMPLAR" `
   -NextMissingFrame "DR_A3_Outline" `
