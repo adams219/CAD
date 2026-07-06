@@ -371,6 +371,34 @@ if (($titleMissingPolicyStart -lt 0) -or ($titleMissingPolicyEnd -le $titleMissi
     Add-Failure "title-missing policy must not branch on A4 or DR_A4_Outline."
   }
 }
+$titleMissingApplyStart = $mainText.IndexOf("(defun swcad-title-transfer-title-missing-outline-apply")
+$titleMissingApplyEnd = if ($titleMissingApplyStart -ge 0) { $mainText.IndexOf("(defun swcad-title-transfer-frame-only-apply", $titleMissingApplyStart) } else { -1 }
+if (($titleMissingApplyStart -lt 0) -or ($titleMissingApplyEnd -le $titleMissingApplyStart)) {
+  Add-Failure "swcad-title-transfer-title-missing-outline-apply function block not found."
+} else {
+  $titleMissingApplyText = $mainText.Substring($titleMissingApplyStart, $titleMissingApplyEnd - $titleMissingApplyStart)
+  if ($titleMissingApplyText -notmatch "swcad-title-frame-only-source-candidates") {
+    Add-Failure "title-missing outline apply must start from verified source-title-missing/frame-only candidates."
+  }
+  if ($titleMissingApplyText -notmatch '\(setq normalized-sheet \(swcad-title-normalized-sheet-size source-sheet\)\)') {
+    Add-Failure "title-missing outline apply must normalize the source sheet instead of assuming A4."
+  }
+  if ($titleMissingApplyText -notmatch '\(strcat "DR_" normalized-sheet "_Outline"\)') {
+    Add-Failure "title-missing outline apply must derive the expected DR outline from the normalized source sheet."
+  }
+  if ($titleMissingApplyText -notmatch "swcad-title-insert-clean-frame-reference-at frame-block placement-point") {
+    Add-Failure "title-missing outline apply must insert only the same-size clean frame reference."
+  }
+  if ($titleMissingApplyText -notmatch "원본에 없던 DR_titlea_3rd 제목블록은 만들지 않았습니다.") {
+    Add-Failure "title-missing outline apply must explicitly preserve the no-new-title invariant."
+  }
+  if ($titleMissingApplyText -match "DR_A4_Outline|A4 frame-only|A4 제목블록|A4 도면틀") {
+    Add-Failure "title-missing outline apply must not contain A4-specific wording or DR_A4-specific branching."
+  }
+  if ($titleMissingApplyText -match "swcad-title-run-native-gmtitle|swcad-title-target-title-block-name") {
+    Add-Failure "title-missing outline apply must not create a GMTITLE title block."
+  }
+}
 $integratedConvertStart = $mainText.IndexOf("(defun swcad-title-integrated-convert")
 $integratedVerifyStart = if ($integratedConvertStart -ge 0) { $mainText.IndexOf("(defun swcad-title-integrated-verify-final-summary", $integratedConvertStart) } else { -1 }
 if (($integratedConvertStart -lt 0) -or ($integratedVerifyStart -le $integratedConvertStart)) {
