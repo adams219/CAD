@@ -41,6 +41,9 @@ $script:DirectWorkcopyStatusCode = $null
 $script:DirectWorkcopyVerifyStatus = $null
 $script:DirectWorkcopyNextFrame = $null
 $script:DirectWorkcopyNextTitle = $null
+$script:DirectWorkcopyNextMissingFrame = $null
+$script:DirectWorkcopyNextMissingTitle = $null
+$script:DirectWorkcopyNextMissingRole = $null
 $script:DirectWorkcopyTargetTitleCount = $null
 $script:DirectWorkcopyTargetFrameCount = $null
 $script:WorkingTreeDirty = $false
@@ -457,6 +460,9 @@ function Write-DirectActualWorkcopyProbeSummary {
     $script:DirectWorkcopyVerifyStatus = $statusAfterVerify
     $script:DirectWorkcopyNextFrame = $nextFrame
     $script:DirectWorkcopyNextTitle = $nextTitle
+    $script:DirectWorkcopyNextMissingFrame = $nextMissingFrame
+    $script:DirectWorkcopyNextMissingTitle = $nextMissingTitle
+    $script:DirectWorkcopyNextMissingRole = $nextMissingRole
     $script:DirectWorkcopyTargetTitleCount = $targetTitleCount
     $script:DirectWorkcopyTargetFrameCount = $targetFrameCount
   }
@@ -465,7 +471,7 @@ function Write-DirectActualWorkcopyProbeSummary {
 function Write-A4FrameOnlyEvidenceSummary {
   param([string]$WorkDir)
 
-  Write-Output "A4 frame-only evidence:"
+  Write-Output "Title-missing/frame-only evidence (current sampled source size is A4):"
 
   $frameDefLog = Join-Path $WorkDir "swcad_title_frame_def_check_last.txt"
   if (Test-Path -LiteralPath $frameDefLog) {
@@ -733,7 +739,16 @@ function Write-NativeFrameProgressSummary {
     return
   }
   if ($a4Missing) {
-    Write-Output "  Interpretation: A4 remains the active blocker. It is frame-only, so the next safe step is DR_A4_Outline definition prepare/validation, not repeating title conversion."
+    if (
+      $script:DirectWorkcopyProbeTrusted -and
+      $script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_MISSING_NATIVE_EXEMPLAR" -and
+      $script:DirectWorkcopyNextMissingFrame -and
+      $script:DirectWorkcopyNextMissingFrame -ne "DR_A4_Outline"
+    ) {
+      Write-Output ("  Interpretation: not an A4 action yet. The trusted direct work-copy probe says the next missing native exemplar is {0} ({1}), so follow that one-step card before title-missing/frame-only exceptions." -f $script:DirectWorkcopyNextMissingFrame, $script:DirectWorkcopyNextMissingRole)
+    } else {
+      Write-Output "  Interpretation: a title-missing/frame-only exception is still pending for the A4-sized sampled source sheets. Treat this as source-title-missing evidence, not an A4-only conversion policy."
+    }
   }
 }
 
@@ -860,10 +875,10 @@ $scratchNativeA4Log = Join-Path $repoRoot "work\swtitle_a4_native_exemplar_scrat
 $scratchNativeA4Exists = Test-Path -LiteralPath $scratchNativeA4Path
 if ($existingGstarCAD.Count -gt 0) {
   if ($a4FrameOnlyProductionPathVerified) {
-    Write-Output "  A4 native 바깥 마커 허용 정책과 frame-only 변환 경로는 검증됨:"
+    Write-Output "  title-missing/frame-only 예외 경로와 현재 A4 샘플의 native 바깥 마커 허용 정책은 검증됨:"
     Write-Output "    1. A4 scratch probe에서 공식 작은 바깥 마커를 가진 실제 native GMTITLE 쌍을 확인했습니다."
     Write-Output "    2. SWTITLEPREPARE는 형상/raw-selection 검사가 통과하면 이 정의를 ready-native-outside-markers로 허용합니다."
-    Write-Output "    3. A4 frame-only convert probe는 DR_titlea_3rd 제목블록 없이 DR_A4_Outline 도면틀 1개만 마무리했습니다."
+    Write-Output "    3. frame-only convert probe는 원본 표제란이 없는 A4 샘플을 DR_titlea_3rd 없이 DR_A4_Outline 도면틀 1개로 마무리했습니다."
     if ($script:DirectWorkcopyProbeTrusted -and $script:DirectWorkcopyStatusCode) {
       Write-Output ("    4. 실제 작업복사본 direct probe의 다음 상태: {0}" -f $script:DirectWorkcopyStatusCode)
       if ($script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") {
@@ -959,10 +974,10 @@ if ($existingGstarCAD.Count -gt 0) {
   Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -WaitForGstarCADClose" -f $suite)
 } else {
   if ($a4FrameOnlyProductionPathVerified) {
-    Write-Output "  A4 native 바깥 마커 허용 정책과 frame-only 변환 경로는 검증됨:"
+    Write-Output "  title-missing/frame-only 예외 경로와 현재 A4 샘플의 native 바깥 마커 허용 정책은 검증됨:"
     Write-Output "    1. A4 scratch probe에서 공식 작은 바깥 마커를 가진 실제 native GMTITLE 쌍을 확인했습니다."
     Write-Output "    2. SWTITLEPREPARE는 형상/raw-selection 검사가 통과하면 이 정의를 ready-native-outside-markers로 허용합니다."
-    Write-Output "    3. A4 frame-only convert probe는 DR_titlea_3rd 제목블록 없이 DR_A4_Outline 도면틀 1개만 마무리했습니다."
+    Write-Output "    3. frame-only convert probe는 원본 표제란이 없는 A4 샘플을 DR_titlea_3rd 없이 DR_A4_Outline 도면틀 1개로 마무리했습니다."
     Write-Output "    4. 전체 hidden suite에도 이 probe와 A4 변환 기대값이 포함되어 있습니다."
     Write-Output "  다음 실제 작업복사본 단계:"
     if ($script:DirectWorkcopyProbeTrusted -and $script:DirectWorkcopyStatusCode) {
@@ -973,6 +988,11 @@ if ($existingGstarCAD.Count -gt 0) {
         Write-Output "    4. SWTITLESTATUS를 실행해서 현재 활성 DWG와 다음 상태를 먼저 확인하세요."
         Write-Output ("    5. 상태가 그대로면 SWTITLECONVERTNEXT를 실행하고 첫 native GMTITLE을 {0} / {1}로 만드세요." -f $script:DirectWorkcopyNextFrame, $script:DirectWorkcopyNextTitle)
         Write-Output "       수동 응답을 직접 고르고 싶을 때만 SWTITLECONVERT를 사용하세요."
+        Write-Output "    6. 그 다음 SWTITLESTATUS를 실행하고 4단계 흐름을 계속하세요."
+      } elseif ($script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_MISSING_NATIVE_EXEMPLAR" -and $script:DirectWorkcopyNextMissingFrame) {
+        Write-Output "    4. SWTITLESTATUS를 실행해서 현재 활성 DWG와 다음 상태를 먼저 확인하세요."
+        Write-Output ("    5. 상태가 그대로면 SWTITLECONVERTNEXT를 실행하고 누락된 native GMTITLE 기준 객체를 {0} / {1}로 만드세요." -f $script:DirectWorkcopyNextMissingFrame, $script:DirectWorkcopyNextMissingTitle)
+        Write-Output ("       처리 유형: {0}" -f $script:DirectWorkcopyNextMissingRole)
         Write-Output "    6. 그 다음 SWTITLESTATUS를 실행하고 4단계 흐름을 계속하세요."
       } else {
         Write-Output "    4. SWTITLESTATUS를 실행하고 SWTITLECONVERTNEXT/SWTITLEVERIFY까지 이어지는 4단계 흐름만 따르세요."
