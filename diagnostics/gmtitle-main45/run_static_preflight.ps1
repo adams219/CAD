@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260707-unified-title-missing-12",
+  [string]$ExpectedGmtitleVersion = "260707-unified-title-missing-13",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -493,6 +493,7 @@ Assert-NotContains -Text $mainText -Needle "A4 보호 중단" -Label "Stale A4-o
 Assert-NotContains -Text $mainText -Needle "frame-only A4 대상" -Label "Stale A4-only frame-only target wording"
 Assert-NotContains -Text $mainText -Needle "보통 원본 제목블록이 없는 A4" -Label "Stale A4-only source-title-missing assumption"
 Assert-NotContains -Text $mainText -Needle '(member "A4" missing-required-sheets)' -Label "No A4-only title-missing verify branch"
+Assert-NotContains -Text $mainText -Needle "A4 누락이 있더라도" -Label "No A4-missing-first native guidance wording"
 Assert-Contains -Text $mainText -Needle "ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE" -Label "Interactive GMTITLE script guard"
 Assert-Contains -Text $mainText -Needle "INTERACTIVE_GMTITLE_EXCEPTION" -Label "Interactive GMTITLE exception guard status"
 Assert-Contains -Text $mainText -Needle "'swcad-title-run-native-gmtitle" -Label "Interactive GMTITLE exception wrapper"
@@ -955,7 +956,8 @@ Assert-Contains -Text $goalStatusText -Needle "DR_A4_Outline native outside-mark
 Assert-Contains -Text $goalStatusText -Needle "official native outside markers" -Label "Goal status A4 official marker guidance"
 Assert-Contains -Text $goalStatusText -Needle "다음 작업:" -Label "Goal status Korean next-action heading"
 Assert-Contains -Text $goalStatusText -Needle "Title-missing/frame-only exception evidence (source-title-missing; current sample happens to be A4):" -Label "Goal status generic title-missing evidence heading"
-Assert-Contains -Text $goalStatusText -Needle "not an A4 action yet. The trusted direct work-copy probe says the next missing native exemplar is" -Label "Goal status direct-probe priority over stale A4 action"
+Assert-Contains -Text $goalStatusText -Needle "not a title-missing action yet. The trusted direct work-copy probe says the next missing native exemplar is" -Label "Goal status direct-probe priority over title-missing exception"
+Assert-NotContains -Text $goalStatusText -Needle "not an A4 action yet" -Label "Goal status stale A4 action wording"
 Assert-Contains -Text $goalStatusText -Needle "source-title-missing evidence, not an A4-only conversion policy" -Label "Goal status title-missing exception not A4 policy"
 Assert-Contains -Text $goalStatusText -Needle "source-title-missing 예외 경로는 현재 A4 크기 샘플로 검증됨(용지 전용 정책 아님)" -Label "Goal status Korean title-missing verified guidance"
 Assert-Contains -Text $goalStatusText -Needle "실제 작업복사본 우선 단계" -Label "Goal status direct work-copy priority heading"

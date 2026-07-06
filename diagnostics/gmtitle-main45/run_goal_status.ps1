@@ -28,7 +28,7 @@ $script:LatestCadNextFrame = $null
 $script:LatestCadNextTitle = $null
 $script:LatestCadDwgTrustedForGoal = $false
 $script:LatestCadDwgTrustReason = "not evaluated"
-$script:ExpectedGmtitleVersion = "260707-unified-title-missing-12"
+$script:ExpectedGmtitleVersion = "260707-unified-title-missing-13"
 $script:A4PrepareProbeUnsafe = $false
 $script:A4NestedProbeMissing = $false
 $script:A4NestedProbeUnsafe = $false
@@ -899,7 +899,7 @@ function Write-NativeFrameProgressSummary {
       $script:DirectWorkcopyNextMissingFrame -and
       $script:DirectWorkcopyNextMissingFrame -ne "DR_A4_Outline"
     ) {
-      Write-Output ("  Interpretation: not an A4 action yet. The trusted direct work-copy probe says the next missing native exemplar is {0} ({1}), so follow that one-step card before title-missing/frame-only exceptions." -f $script:DirectWorkcopyNextMissingFrame, $script:DirectWorkcopyNextMissingRole)
+      Write-Output ("  Interpretation: not a title-missing action yet. The trusted direct work-copy probe says the next missing native exemplar is {0} ({1}), so follow that one-step card before title-missing/frame-only exceptions." -f $script:DirectWorkcopyNextMissingFrame, $script:DirectWorkcopyNextMissingRole)
     } else {
       Write-Output "  Interpretation: a title-missing/frame-only exception is still pending for the A4-sized source-title-missing sample sheets. Treat this as source-title-missing evidence, not an A4-only conversion policy."
     }
@@ -1247,7 +1247,7 @@ if ($existingGstarCAD.Count -gt 0) {
   } elseif ($a4InvestigationPreferred) {
     Write-Output "  지금은 복사본 DWG 기준 title-missing definition probe를 먼저 실행하세요:"
     Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside,nested-direct-outside" -f $nestedProbeScript, $nestedProbeSource)
-    Write-Output "  먼저 전체 hidden suite를 돌리지 마세요. 이 probe가 DR_A4_Outline raw-bbox 의문을 닫기 전에는 A4 blocker를 증명할 수 없습니다."
+    Write-Output "  먼저 전체 hidden suite를 돌리지 마세요. 이 probe가 현재 source-title-missing 샘플의 DR_A4_Outline raw-bbox 의문을 닫기 전에는 title-missing blocker를 증명할 수 없습니다."
   } else {
     Write-Output "  지금 전체 hidden suite를 실행하세요:"
     Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f $suite)

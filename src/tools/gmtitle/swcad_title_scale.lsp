@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260707-unified-title-missing-12")
+(setq *swcad-title-scale-version* "260707-unified-title-missing-13")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -18528,7 +18528,7 @@
       (cond
         ((> a3a4-count 0)
           (swcad-title-princ-line "다음 단계 코드: UPGRADE_A3_A4_NATIVE")
-          (swcad-title-princ-line "다음: A4 누락이 있더라도 A2/A3/A4 native 교체 후보가 먼저입니다.")
+          (swcad-title-princ-line "다음: 특정 용지 누락이나 title-missing 예외가 있더라도 A2/A3/A4 native 교체 후보가 먼저입니다.")
           (swcad-title-princ-line "SWTITLESTATUS로 후보를 확인한 뒤 SWTITLECONVERTNEXT를 실행해 다음 A2/A3/A4 후보를 처리하세요.")
           (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
         )

@@ -1,6 +1,6 @@
 ﻿# GMTITLE 공통 흐름 재정렬 가이드
 
-현재 기준 버전: `260707-unified-title-missing-12`
+현재 기준 버전: `260707-unified-title-missing-13`
 
 이 문서는 2026-07-06 이후 GMTITLE 변환 작업의 최우선 guide입니다.
 
