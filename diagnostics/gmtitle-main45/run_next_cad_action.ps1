@@ -415,7 +415,6 @@ function Write-ManualSelectionForecast {
   $nextMissingTitle = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*next-missing-native-title:\s*(\S+)"
   $nextMissingRole = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*next-missing-native-role:\s*(\S+)"
   $hasA3Missing = $missingFrames -contains "DR_A3_Outline"
-  $hasA4Missing = $missingFrames -contains "DR_A4_Outline"
   $targetPairCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*target-gmtitle-pair-count:\s*(\d+)"
   $nativeLikeTargetPairCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*native-like-target-pair-count:\s*(\d+)"
   $nonNativeLikeTargetPairCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*non-native-like-target-pair-count:\s*(\d+)"
@@ -433,7 +432,7 @@ function Write-ManualSelectionForecast {
       if ($hasA3Missing) {
         Write-Output ("  - 이후 예상: A3 {0}장을 처리하기 위한 첫 native 기준 객체 1회가 추가로 필요할 수 있습니다." -f ($(if ($expectedA3) { $expectedA3 } else { "여러" })))
       }
-      if (($frameOnlyCount -as [int]) -gt 0 -or $hasA4Missing) {
+      if (($frameOnlyCount -as [int]) -gt 0) {
         Write-Output ("  - title-missing/frame-only {0}장은 원본 표제란 부재가 검증된 경우에만 제목블록 생성 대상에서 제외됩니다. 같은 크기 DR_A*_Outline 도면틀-only 경로로 처리합니다." -f ($(if ($frameOnlyCount) { $frameOnlyCount } else { "해당" })))
       }
       Write-Output "  - 좌표 입력, 값 복사, 기존 원본 정리는 SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 자동 처리합니다."
@@ -620,7 +619,7 @@ function Write-StatusBasedAction {
       Write-ConvertCommandStep
       Write-Output "의미: A2/A3/A4 복제 또는 shared-link 쌍을 실제 native GMTITLE 쌍으로 한 장씩 교체해야 합니다."
       Write-AutomationBoundarySummary -Mode "NativeReplacement"
-      Write-GmtitleDialogGuidance -FrameName "SWTITLESTATUS가 출력한 DR_A3_Outline 또는 DR_A4_Outline" -TitleName "DR_titlea_3rd"
+      Write-GmtitleDialogGuidance -FrameName "SWTITLESTATUS가 출력한 DR_A2/A3/A4_Outline" -TitleName "DR_titlea_3rd"
       Write-ConvertPromptGuidance -Mode "NativeReplacement"
       Write-GmtitleAbortGuards
       Write-AfterStatusRefresh
