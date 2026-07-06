@@ -528,7 +528,7 @@ clone/shared-link 경고: 0
 수동 화면 확인:
 
 ```text
-대표 A2/A3 제목블록 더블클릭 -> GMTITLE 표 편집창 열림
+DR_titlea_3rd가 있는 대표 A2/A3/A4 제목블록 더블클릭 -> GMTITLE 표 편집창 열림
 title-missing 예외 시트 -> 제목블록 없이 해당 DR_A*_Outline 도면틀만 있음
 도면 내부 번호, 주석, BOM, 치수, 모델 형상 유지
 ```

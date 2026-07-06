@@ -344,7 +344,7 @@ function Write-FinalCompletionGateSummary {
   if ($runtimeDone) { Write-Output ("  Runtime check completed: {0}" -f $runtimeDone) }
 
   if ($gateResult -eq "PASS") {
-    Write-Output "  의미: 자동 완료 게이트는 통과했습니다. 그래도 대표 A2/A3 제목블록 더블클릭 확인은 따로 필요합니다."
+    Write-Output "  의미: 자동 완료 게이트는 통과했습니다. 그래도 DR_titlea_3rd가 있는 대표 A2/A3/A4 제목블록 더블클릭 확인은 따로 필요합니다."
   } else {
     Write-Output "  의미: 실제 작업복사본 완료 증거가 아직 없습니다. 아래 다음 CAD 작업을 계속 진행하세요."
   }
@@ -565,7 +565,7 @@ function Write-AfterStatusRefresh {
 
 function Write-FinalDoubleClickGuidance {
   Write-Output "최종 수동 확인:"
-  Write-Output "  - 실제 DR_titlea_3rd 제목블록이 있는 대표 A2/A3 용지만 더블클릭하세요."
+  Write-Output "  - 실제 DR_titlea_3rd 제목블록이 있는 대표 A2/A3/A4 용지만 더블클릭하세요."
   Write-Output "  - 원본 표제란 부재가 검증된 title-missing/frame-only 시트는 더블클릭할 제목블록이 없으므로 해당 DR_A*_Outline 수량/형상을 SWTITLEVERIFY로 확인하세요."
   Write-Output "  - DR_A*_Outline 도면틀을 더블클릭하면 GMPOWEREDIT/REFEDIT가 열릴 수 있으니 완료 판단 대상이 아닙니다."
 }

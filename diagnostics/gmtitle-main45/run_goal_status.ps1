@@ -352,7 +352,7 @@ function Write-FinalCompletionGateSummary {
   if ($runtimeDone) { Write-Output ("  Runtime check completed: {0}" -f $runtimeDone) }
 
   if ($gateResult -eq "PASS") {
-    Write-Output "  Meaning: automated completion evidence passed; representative A2/A3 title-block double-click checks are still required."
+    Write-Output "  Meaning: automated completion evidence passed; representative A2/A3/A4 title-block double-click checks are still required where DR_titlea_3rd exists."
   } else {
     Write-Output "  Meaning: real work-copy completion evidence is still missing; continue from SWTITLESTATUS/SWTITLECONVERTNEXT."
   }

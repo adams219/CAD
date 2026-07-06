@@ -251,7 +251,7 @@ A2/A3/A4 native 교체 후보 수가 줄어듦
 겹친 target pair 경고가 없음
 명령어 텍스트 후보가 없음
 도면틀 raw bbox 위험이 없음
-대표 A3 제목블록 더블클릭 시 GMTITLE 표 편집창 열림
+DR_titlea_3rd가 있는 대표 A2/A3/A4 제목블록 더블클릭 시 GMTITLE 표 편집창 열림
 ```
 
 후보 수가 줄지 않으면 같은 명령을 반복하지 말고 `SWTITLEVERIFY`와 해당 로그를 확인합니다.
@@ -330,7 +330,7 @@ clone/native-upgrade/shared-link 경고: 0
 화면 확인:
 
 ```text
-대표 A2/A3 DR_titlea_3rd 제목블록 더블클릭 -> GMTITLE 표 편집창 열림
+DR_titlea_3rd가 있는 대표 A2/A3/A4 제목블록 더블클릭 -> GMTITLE 표 편집창 열림
 원본 표제란 부재가 검증된 title-missing 시트 -> 해당 DR_A*_Outline 도면틀만 있음, 더블클릭할 제목블록 없음
 도면 내부 번호/주석/BOM/치수/모델 형상이 유지됨
 ```

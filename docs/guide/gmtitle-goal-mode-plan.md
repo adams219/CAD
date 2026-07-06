@@ -34,7 +34,7 @@ SCRIPT/숨김 CAD interactive GMTITLE guard: 있음
 남은 SolidWorks 원본 표제란/도면틀 수 0
 target sheet counts A2=1, A3=12, A4=2
 원본 표제란 부재가 검증된 시트만 title-missing 예외로 처리됨
-대표 A2/A3 제목블록 더블클릭 시 GMTITLE 표 편집창
+DR_titlea_3rd가 있는 대표 A2/A3/A4 제목블록 더블클릭 시 GMTITLE 표 편집창
 A4 도면틀에 원본에 없던 외부 선/글자 없음
 도면 내부 번호, 주석, BOM, 치수, 모델 형상 보존
 ```
@@ -562,7 +562,7 @@ LSP가 왼쪽 아래 배치점을 자동 입력했고, 위치 이동값은 dx=0,
 
 ```text
 남은 A3 후보 10개 전체가 같은 방식으로 모두 처리되는지
-대표 A3 제목블록 더블클릭이 GMTITLE 표 편집창으로 열리는지
+DR_titlea_3rd가 있는 대표 A2/A3/A4 제목블록 더블클릭이 GMTITLE 표 편집창으로 열리는지
 title-missing/frame-only 예외 시트 2장이 제목블록 없이 같은 크기 DR_A*_Outline만으로 안전하게 처리되는지
 SWTITLEVERIFY_FINAL_OK가 나오는지
 ```
@@ -819,7 +819,7 @@ native-like가 아닌 대상 쌍: 0
 
 ```text
 대표 A2 제목블록 더블클릭 -> GMTITLE 표 편집창
-대표 A3 제목블록 더블클릭 -> GMTITLE 표 편집창
+DR_titlea_3rd가 있는 대표 A2/A3/A4 제목블록 더블클릭 -> GMTITLE 표 편집창
 title-missing/frame-only 예외 -> 제목블록 없이 도면틀만 정상
 빨간 네모로 표시했던 도면 내부 번호/주석/치수/BOM 유지
 ```

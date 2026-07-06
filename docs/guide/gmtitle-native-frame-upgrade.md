@@ -226,7 +226,7 @@ target-sheet-counts:
   A2: 1
   A3: 12
   A4: 2
-실제 DR_titlea_3rd가 있는 대표 용지를 더블클릭하면 GMTITLE 표 편집창 열림
+실제 DR_titlea_3rd가 있는 대표 A2/A3/A4 용지를 더블클릭하면 GMTITLE 표 편집창 열림
 원본 표제란 부재가 검증된 title-missing 시트는 해당 DR_A*_Outline 도면틀만 검증하고, 더블클릭할 제목블록은 없음
 도면 안 번호, 주석, BOM, 치수, 모델 형상 유지
 ```

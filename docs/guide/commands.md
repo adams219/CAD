@@ -265,7 +265,7 @@ target-sheet-counts:
   A4: 2
 겹친 GMTITLE target 쌍: 0
 clone/native-upgrade/shared-link 경고: 0
-DR_titlea_3rd가 있는 대표 A2/A3 제목블록 더블클릭 시 GMTITLE 표 편집창 열림
+DR_titlea_3rd가 있는 대표 A2/A3/A4 제목블록 더블클릭 시 GMTITLE 표 편집창 열림
 원본 표제란 부재가 검증된 title-missing 시트는 해당 DR_A*_Outline 도면틀만 검증하고 제목블록은 없음
 도면 내부 번호, 주석, BOM, 치수, 모델 형상 유지
 ```

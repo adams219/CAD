@@ -220,7 +220,7 @@ function Write-AfterManualCardShortSummary {
   } elseif ($result -match "RUN_PREPARE_FIRST") {
     Write-Log "  다음 CAD 명령: SWTITLEPREPARE -> SWTITLESTATUS"
   } elseif ($result -match "RUN_FINAL_VERIFY|READY_FOR_DOUBLE_CLICK_CHECK") {
-    Write-Log "  다음 CAD 명령: SWTITLEVERIFY, 그 뒤 대표 A2/A3 제목블록 더블클릭 확인"
+    Write-Log "  다음 CAD 명령: SWTITLEVERIFY, 그 뒤 DR_titlea_3rd가 있는 대표 A2/A3/A4 제목블록 더블클릭 확인"
   } elseif ($result -match "VERIFY_NOT_FINAL|REVIEW_") {
     Write-Log "  다음 CAD 명령: SWTITLESTATUS 또는 SWTITLEVERIFY 로그 확인"
   }
@@ -354,7 +354,7 @@ if ($shouldRunFinalGate) {
 
   if ($gateResult.ExitCode -eq 0) {
     Write-Log "Result: AFTER_MANUAL_STEP_FINAL_GATE_PASSED"
-    Write-Log "다음: 대표 A2/A3 DR_titlea_3rd 제목블록을 직접 더블클릭해서 GMTITLE 표 편집창이 열리는지 확인하세요."
+    Write-Log "다음: DR_titlea_3rd가 있는 대표 A2/A3/A4 제목블록을 직접 더블클릭해서 GMTITLE 표 편집창이 열리는지 확인하세요."
   } else {
     Write-Log "Result: AFTER_MANUAL_STEP_FINAL_GATE_NOT_PASSED"
     Write-Log "의미: 자동 완료 증거가 아직 부족합니다. 위 final gate 요약과 다음 CAD 작업 카드를 기준으로 계속 진행하세요."
