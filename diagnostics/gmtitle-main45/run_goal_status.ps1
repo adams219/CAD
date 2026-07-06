@@ -468,10 +468,10 @@ function Write-DirectActualWorkcopyProbeSummary {
   }
 }
 
-function Write-A4FrameOnlyEvidenceSummary {
+function Write-TitleMissingFrameOnlyEvidenceSummary {
   param([string]$WorkDir)
 
-  Write-Output "Title-missing/frame-only evidence (current sampled source size is A4):"
+  Write-Output "Title-missing/frame-only exception evidence (source-title-missing; current sample happens to be A4):"
 
   $frameDefLog = Join-Path $WorkDir "swcad_title_frame_def_check_last.txt"
   if (Test-Path -LiteralPath $frameDefLog) {
@@ -505,7 +505,7 @@ function Write-A4FrameOnlyEvidenceSummary {
         $script:A4PrepareProbeUnsafe = $true
       }
       if ($prepareResult -match "OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED") {
-        Write-Output "  Installed DR_A4_Outline prepare probe: imported definition accepted for A4 frame-only readiness."
+        Write-Output "  Installed DR_A4_Outline prepare probe: imported definition accepted for source-title-missing/frame-only readiness."
       }
     }
     if ($rawWarning) {
@@ -541,20 +541,20 @@ function Write-A4FrameOnlyEvidenceSummary {
       $normalizationSummary += ("{0}=not-run" -f $strategy)
     }
   }
-  Write-Output ("  A4 normalization probes: {0}" -f ($normalizationSummary -join ", "))
+  Write-Output ("  DR_A4_Outline historical normalization probes: {0}" -f ($normalizationSummary -join ", "))
   if ($safeNormalizationStrategies.Count -gt 0) {
     $script:A4NormalizationCandidateSafe = $true
-    Write-Output ("  A4 normalization decision: candidate safe probe result found ({0}). Do not promote it directly; inspect the copied-DWG log and then decide whether SWTITLEPREPARE can adopt that definition path." -f ($safeNormalizationStrategies -join ", "))
+    Write-Output ("  DR_A4_Outline definition decision: candidate safe probe result found ({0}). Do not promote it directly; inspect the copied-DWG log and then decide whether SWTITLEPREPARE can adopt that definition path." -f ($safeNormalizationStrategies -join ", "))
   } elseif (($normalizationSummary -contains "nested-outside=no") -and ($normalizationSummary -contains "nested-direct-outside=no")) {
     $script:A4NestedProbeUnsafe = $true
     if ($script:A4PrepareProbeReadyWithNativeOutside) {
-      Write-Output "  A4 normalization decision: historical nested cleanup probes are both unsafe, but this is superseded by the official native outside marker policy."
+      Write-Output "  DR_A4_Outline definition decision: historical nested cleanup probes are both unsafe, but this is superseded by the official native outside marker policy."
     } else {
-      Write-Output "  A4 normalization decision: nested cleanup probes are both unsafe. Next investigation should compare against a real native A4 GMTITLE/frame definition instead of deleting more imported objects."
+      Write-Output "  DR_A4_Outline definition decision: nested cleanup probes are both unsafe. Next investigation should compare against a real native A4 GMTITLE/frame definition instead of deleting more imported objects."
     }
   } elseif (($normalizationSummary -contains "nested-outside=not-run") -or ($normalizationSummary -contains "nested-direct-outside=not-run")) {
     $script:A4NestedProbeMissing = $true
-    Write-Output "  A4 normalization decision: nested cleanup comparison is still missing. Run the copied-DWG probe before changing production conversion logic."
+    Write-Output "  DR_A4_Outline definition decision: nested cleanup comparison is still missing. Run the copied-DWG probe before changing production conversion logic."
   }
   if (($normalizationSummary -contains "nested-outside=not-run") -or ($normalizationSummary -contains "nested-direct-outside=not-run")) {
     $nestedProbeScript = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1"
@@ -562,7 +562,7 @@ function Write-A4FrameOnlyEvidenceSummary {
     if ((-not $script:LatestCadDwgTrustedForGoal) -or (-not $nestedProbeSource)) {
       $nestedProbeSource = $SourceWorkCopyPath
     }
-    Write-Output "  Next A4 investigation probe command:"
+    Write-Output "  Next title-missing definition investigation probe command (current A4 sample):"
     Write-Output ("    powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside,nested-direct-outside -WaitForGstarCADClose" -f $nestedProbeScript, $nestedProbeSource)
     Write-Output "    Note: SourceWorkCopyPath is shown explicitly to avoid ambiguity; the wrapper also uses the latest CAD next-step DWG when SourceWorkCopyPath is omitted."
     if (-not (Test-Path -LiteralPath $nestedProbeSource)) {
@@ -588,31 +588,31 @@ function Write-A4FrameOnlyEvidenceSummary {
 
     if ($nativeResult) {
       $script:A4NativeExemplarResult = $nativeResult
-      Write-Output ("  A4 native exemplar probe result ({0}): {1}" -f $nativeExemplarLogKind, $nativeResult)
-      Write-Output ("  A4 native exemplar log: {0}" -f $nativeExemplarLog)
+      Write-Output ("  DR_A4_Outline native exemplar probe result ({0}): {1}" -f $nativeExemplarLogKind, $nativeResult)
+      Write-Output ("  DR_A4_Outline native exemplar log: {0}" -f $nativeExemplarLog)
     }
     if ($minorOutside) {
       $script:A4NativeExemplarMinorOutside = ($minorOutside -eq "yes")
-      Write-Output ("  A4 native exemplar minor outside markers: {0}" -f $minorOutside)
+      Write-Output ("  DR_A4_Outline native exemplar minor outside markers: {0}" -f $minorOutside)
     }
     if ($nativePair) {
-      Write-Output ("  A4 native exemplar pair evidence: {0}" -f $nativePair)
+      Write-Output ("  DR_A4_Outline native exemplar pair evidence: {0}" -f $nativePair)
     }
     if ($strictLine) {
-      Write-Output ("  A4 native exemplar strict warning: {0}" -f $strictLine)
+      Write-Output ("  DR_A4_Outline native exemplar strict warning: {0}" -f $strictLine)
     }
     if ($rawSelectionLine) {
-      Write-Output ("  A4 native exemplar raw-selection warning: {0}" -f $rawSelectionLine)
+      Write-Output ("  DR_A4_Outline native exemplar raw-selection warning: {0}" -f $rawSelectionLine)
     }
     if ($script:A4NativeExemplarMinorOutside) {
       if ($script:A4PrepareProbeReadyWithNativeOutside) {
-        Write-Output "  A4 native exemplar decision: official native outside markers are tolerated when effective A4 geometry and raw-selection checks pass."
+        Write-Output "  DR_A4_Outline native exemplar decision: official native outside markers are tolerated when effective A4 geometry and raw-selection checks pass."
       } else {
-        Write-Output "  A4 native exemplar decision: native A4 itself carries small outside marker geometry. Do not treat exact (0,0)-(210,297) raw bbox mismatch as proof of contamination by itself; production still needs an explicit keep/crop/tolerate decision before changing A4 frame-only conversion."
+        Write-Output "  DR_A4_Outline native exemplar decision: native A4 itself carries small outside marker geometry. Do not treat exact (0,0)-(210,297) raw bbox mismatch as proof of contamination by itself; production still needs an explicit keep/crop/tolerate decision before changing source-title-missing/frame-only conversion."
       }
     }
   } else {
-    Write-Output "  A4 native exemplar probe result: <not-run>"
+    Write-Output "  DR_A4_Outline native exemplar probe result: <not-run>"
   }
 
   $convertProbeLogs = @(
@@ -628,17 +628,17 @@ function Write-A4FrameOnlyEvidenceSummary {
     $afterA4Frame = Get-FirstMatchingLine -Text $convertText -Pattern "^After DR_A4_Outline target frame count:"
 
     if ($convertResult) {
-      Write-Output ("  A4 frame-only convert probe: {0}" -f $convertResult)
-      Write-Output ("  A4 frame-only convert log: {0}" -f $convertProbeLog)
+      Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $convertResult)
+      Write-Output ("  title-missing/frame-only convert log (A4 sample): {0}" -f $convertProbeLog)
     }
     if ($afterFrameOnly) {
-      Write-Output ("  A4 frame-only convert probe: {0}" -f $afterFrameOnly)
+      Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $afterFrameOnly)
     }
     if ($afterTargetTitle) {
-      Write-Output ("  A4 frame-only convert probe: {0}" -f $afterTargetTitle)
+      Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $afterTargetTitle)
     }
     if ($afterA4Frame) {
-      Write-Output ("  A4 frame-only convert probe: {0}" -f $afterA4Frame)
+      Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $afterA4Frame)
     }
     if (
       ($convertText -match "Convert result: OK status=FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER") -and
@@ -647,19 +647,19 @@ function Write-A4FrameOnlyEvidenceSummary {
       ($convertText -match "(?m)^After DR_A4_Outline target frame count:\s*1")
     ) {
       $script:A4FrameOnlyConvertProbePassed = $true
-      Write-Output "  A4 frame-only convert decision: verified; one source A4 frame-only sheet becomes DR_A4_Outline and no DR_titlea_3rd is created."
+      Write-Output "  title-missing/frame-only convert decision: verified on the current A4 sample; one source-title-missing sheet becomes DR_A4_Outline and no DR_titlea_3rd is created."
     }
   } else {
-    Write-Output "  A4 frame-only convert probe: <not-run>"
+    Write-Output "  title-missing/frame-only convert probe (A4 sample): <not-run>"
   }
 
   if ($script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") {
     if ($script:A4PrepareProbeUnsafe -and $script:A4NestedProbeMissing) {
       Write-Output "  Interpretation: the current live state still reports SWTITLEPREPARE, but the copied-DWG prepare probe already shows the installed DR_A4_Outline path is expected to fail the strict A4 raw-bbox guard."
-      Write-Output "  If SWTITLEPREPARE has already been tried in the open CAD and SWTITLESTATUS still reports this same state, do not keep looping CAD commands. Save/close GstarCAD and run the nested A4 normalization probe."
+      Write-Output "  If SWTITLEPREPARE has already been tried in the open CAD and SWTITLESTATUS still reports this same state, do not keep looping CAD commands. Save/close GstarCAD and run the title-missing definition probe for the current A4 sample."
     } else {
       Write-Output "  Interpretation: current CAD still needs SWTITLEPREPARE for live evidence, but known probes expect the installed DR_A4_Outline to fail the strict A4 raw-bbox guard."
-      Write-Output "  If SWTITLEPREPARE returns WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE, do not repeat SWTITLECONVERT; continue with the A4 definition strategy investigation."
+      Write-Output "  If SWTITLEPREPARE returns WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE, do not repeat SWTITLECONVERT; continue with the source-title-missing definition strategy investigation."
     }
   }
 }
@@ -826,7 +826,7 @@ Write-Output ""
 Write-NativeFrameProgressSummary -WorkDir (Join-Path $repoRoot "work")
 
 Write-Output ""
-Write-A4FrameOnlyEvidenceSummary -WorkDir (Join-Path $repoRoot "work")
+Write-TitleMissingFrameOnlyEvidenceSummary -WorkDir (Join-Path $repoRoot "work")
 
 Write-Output ""
 Write-Output "다음 작업:"
@@ -865,6 +865,14 @@ $a4FrameOnlyProductionPathVerified = (
   $a4NativeOutsideMarkerPolicyReady -and
   $script:A4FrameOnlyConvertProbePassed
 )
+$directWorkcopyNeedsNativeExemplar = (
+  $script:DirectWorkcopyProbeTrusted -and
+  ($script:DirectWorkcopyStatusCode -in @("NEXT_CREATE_FIRST_NATIVE_GMTITLE", "NEXT_CREATE_MISSING_NATIVE_EXEMPLAR")) -and
+  (
+    $script:DirectWorkcopyNextFrame -or
+    $script:DirectWorkcopyNextMissingFrame
+  )
+)
 $nestedProbeScript = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_outline_normalization_probe.ps1"
 $nestedProbeSource = $script:LatestCadDwg
 if ((-not $script:LatestCadDwgTrustedForGoal) -or (-not $nestedProbeSource)) {
@@ -874,11 +882,26 @@ $scratchNativeA4Path = Join-Path $repoRoot "work\scratch_native_a4_clean_260705.
 $scratchNativeA4Log = Join-Path $repoRoot "work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt"
 $scratchNativeA4Exists = Test-Path -LiteralPath $scratchNativeA4Path
 if ($existingGstarCAD.Count -gt 0) {
-  if ($a4FrameOnlyProductionPathVerified) {
-    Write-Output "  title-missing/frame-only 예외 경로와 현재 A4 샘플의 native 바깥 마커 허용 정책은 검증됨:"
-    Write-Output "    1. A4 scratch probe에서 공식 작은 바깥 마커를 가진 실제 native GMTITLE 쌍을 확인했습니다."
+  if ($directWorkcopyNeedsNativeExemplar) {
+    Write-Output "  실제 작업복사본 우선 단계:"
+    Write-Output ("    1. 실제 작업복사본 direct probe 상태: {0}" -f $script:DirectWorkcopyStatusCode)
+    Write-Output "    2. 열린 CAD에서 SWTITLESTATUS로 현재 활성 DWG와 다음 상태를 먼저 확인하세요."
+    if ($script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") {
+      Write-Output ("    3. 상태가 그대로면 SWTITLECONVERTNEXT를 실행하고 첫 native GMTITLE을 {0} / {1}로 만드세요." -f $script:DirectWorkcopyNextFrame, $script:DirectWorkcopyNextTitle)
+    } else {
+      Write-Output ("    3. 상태가 그대로면 SWTITLECONVERTNEXT를 실행하고 누락된 native GMTITLE 기준 객체를 {0} / {1}로 만드세요." -f $script:DirectWorkcopyNextMissingFrame, $script:DirectWorkcopyNextMissingTitle)
+      if ($script:DirectWorkcopyNextMissingRole) {
+        Write-Output ("       처리 유형: {0}" -f $script:DirectWorkcopyNextMissingRole)
+      }
+    }
+    Write-Output "    4. title-missing/frame-only A4 샘플 증거는 배경 정보입니다. SWTITLESTATUS가 요구하기 전에는 그 단계로 건너뛰지 않습니다."
+    Write-Output ""
+    Write-Output "  Hidden suite verification path only after saving/closing CAD or changing code:"
+  } elseif ($a4FrameOnlyProductionPathVerified) {
+    Write-Output "  title-missing/frame-only 예외 경로는 현재 A4 샘플로 검증됨:"
+    Write-Output "    1. 현재 A4 샘플 scratch probe에서 공식 작은 바깥 마커를 가진 실제 native GMTITLE 쌍을 확인했습니다."
     Write-Output "    2. SWTITLEPREPARE는 형상/raw-selection 검사가 통과하면 이 정의를 ready-native-outside-markers로 허용합니다."
-    Write-Output "    3. frame-only convert probe는 원본 표제란이 없는 A4 샘플을 DR_titlea_3rd 없이 DR_A4_Outline 도면틀 1개로 마무리했습니다."
+    Write-Output "    3. title-missing/frame-only convert probe는 원본 표제란이 없는 현재 A4 샘플을 DR_titlea_3rd 없이 DR_A4_Outline 도면틀 1개로 마무리했습니다."
     if ($script:DirectWorkcopyProbeTrusted -and $script:DirectWorkcopyStatusCode) {
       Write-Output ("    4. 실제 작업복사본 direct probe의 다음 상태: {0}" -f $script:DirectWorkcopyStatusCode)
       if ($script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") {
@@ -894,37 +917,37 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output ""
     Write-Output "  Hidden suite verification path only if you changed code again:"
   } elseif ($a4NativeOutsideMarkerPolicyReady) {
-    Write-Output "  A4 native outside-marker policy is implemented:"
+    Write-Output "  DR_A4_Outline outside-marker evidence exists for the current title-missing sample:"
     Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair with official small outside markers."
     Write-Output "    2. SWTITLEPREPARE now accepts that definition as ready-native-outside-markers when geometry/raw-selection checks pass."
-    Write-Output "    3. Run the focused A4 frame-only convert probe or the full hidden suite before using this on the real work-copy."
-    Write-Output "    4. Production A4 frame-only must still not create an extra DR_titlea_3rd."
+    Write-Output "    3. Run the focused title-missing/frame-only convert probe for the current A4 sample or the full hidden suite before using this on the real work-copy."
+    Write-Output "    4. Production title-missing/frame-only sheets must still not create an extra DR_titlea_3rd."
     Write-Output ""
     Write-Output "  Hidden suite verification path:"
   } elseif ($a4NativeOutsideMarkerDecisionNeeded) {
-    Write-Output "  A4 native outside-marker decision:"
+    Write-Output "  DR_A4_Outline native outside-marker decision for the current sample:"
     Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair, but native DR_A4_Outline itself has small geometry outside (0,0)-(210,297)."
-    Write-Output "    2. Do not keep creating more scratch A4 sheets; the next implementation decision is whether production A4 frame-only should tolerate, crop, or preserve those official native outside markers."
-    Write-Output "    3. Because production A4 source is frame-only, keep the rule that it must not receive an extra DR_titlea_3rd."
+    Write-Output "    2. Do not keep creating more scratch A4 sheets; the next implementation decision is whether production source-title-missing/frame-only handling should tolerate, crop, or preserve those official native outside markers."
+    Write-Output "    3. Because a production source-title-missing sheet is frame-only, keep the rule that it must not receive an extra DR_titlea_3rd."
     Write-Output "    4. After code changes, rerun the focused A4 probe and the full hidden suite."
     Write-Output ""
     Write-Output "  Hidden suite verification path after A4 production code changes:"
   } elseif ($a4CandidateSafeNeedsReview) {
-    Write-Output "  A4 normalization candidate review:"
+    Write-Output "  DR_A4_Outline normalization candidate review for the current sample:"
     Write-Output "    1. Inspect the copied-DWG nested A4 normalization probe log that reported safe=yes."
     Write-Output "    2. Do not run more CAD conversion commands until that strategy is promoted into SWTITLEPREPARE/SWTITLECONVERT production logic."
     Write-Output "    3. After code changes, save/close GstarCAD and run the focused A4 probe plus hidden suite."
     Write-Output ""
     Write-Output "  Hidden suite verification path after A4 production code changes:"
   } elseif ($a4NativeA4ComparisonNeeded) {
-    Write-Output "  A4 native comparison investigation:"
+    Write-Output "  DR_A4_Outline native comparison investigation for the current sample:"
     Write-Output "    1. Do not repeat SWTITLEPREPARE/SWTITLECONVERT; the installed outline and nested cleanup probes are both unsafe."
     Write-Output "    2. Save/close GstarCAD before hidden probes."
     Write-Output "    3. Create a separate scratch DWG with one real native A4 GMTITLE result, then compare its DR_A4_Outline definition."
     if ($scratchNativeA4Exists) {
       Write-Output ("       Saved clean gcadiso.dwt scratch from 2026-07-05 CAD test: {0}" -f $scratchNativeA4Path)
     }
-    Write-Output "    4. Scratch only: the native A4 sample may include DR_titlea_3rd for comparison; production A4 frame-only must still not receive a new title block."
+    Write-Output "    4. Scratch only: the native A4 sample may include DR_titlea_3rd for comparison; production source-title-missing/frame-only sheets must still not receive a new title block."
     Write-Output "    5. If direct GMTITLE only asks for an insertion point, cancel it; that is the current/default insertion flow, not proof of DR_A4_Outline selection."
     Write-Output "    6. If DR_A4_Outline / DR_titlea_3rd selection ends with a frame creation error and DR_titlea_3rd inserts=0, treat that scratch as failed evidence."
     Write-Output "    7. Scratch READY requires both 'Native GMTITLE A4 pair evidence: yes' and 'Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON'."
@@ -938,7 +961,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output ""
     Write-Output "  Hidden suite verification path after A4 comparison/code changes:"
   } elseif ($a4InvestigationPreferred) {
-    Write-Output "  A4 investigation continuation:"
+    Write-Output "  Title-missing definition investigation continuation (current A4 sample):"
     Write-Output ("    1. Confirm the open GstarCAD drawing matches: {0}" -f $script:LatestCadDwg)
     Write-Output "    2. If SWTITLEPREPARE was not tried in this exact open DWG state, run SWTITLEPREPARE once and then SWTITLESTATUS."
     Write-Output "    3. If SWTITLESTATUS still reports NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION, do not repeat SWTITLEPREPARE/SWTITLECONVERT."
@@ -953,7 +976,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output ("    2. Run in GstarCAD: {0}" -f $script:LatestCadRecommendedCommand)
     Write-Output "    3. Run SWTITLESTATUS again and confirm the A4 missing count changes or a new warning explains why it stopped."
     if ($script:LatestCadStatusCode -eq "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION") {
-      Write-Output "    4. Do not repeat SWTITLECONVERT before this prepare/status loop. A4 is frame-only and must not receive an extra title block."
+      Write-Output "    4. Do not repeat SWTITLECONVERT before this prepare/status loop. This source-title-missing sheet is frame-only and must not receive an extra title block."
     }
     Write-Output ""
     Write-Output "  Hidden suite verification path:"
@@ -973,11 +996,26 @@ if ($existingGstarCAD.Count -gt 0) {
   Write-Output "  Or start the suite in waiting mode first:"
   Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -WaitForGstarCADClose" -f $suite)
 } else {
-  if ($a4FrameOnlyProductionPathVerified) {
-    Write-Output "  title-missing/frame-only 예외 경로와 현재 A4 샘플의 native 바깥 마커 허용 정책은 검증됨:"
-    Write-Output "    1. A4 scratch probe에서 공식 작은 바깥 마커를 가진 실제 native GMTITLE 쌍을 확인했습니다."
+  if ($directWorkcopyNeedsNativeExemplar) {
+    Write-Output "  실제 작업복사본 우선 단계:"
+    Write-Output ("    1. 실제 작업복사본 direct probe 상태: {0}" -f $script:DirectWorkcopyStatusCode)
+    Write-Output "    2. GstarCAD에서 실제 작업복사본 DWG를 열거나 활성화하세요."
+    Write-Output "    3. 필요하면 최신 swcad_title_scale.lsp를 APPLOAD 하세요."
+    Write-Output "    4. SWTITLESTATUS로 현재 활성 DWG와 다음 상태를 먼저 확인하세요."
+    if ($script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") {
+      Write-Output ("    5. 상태가 그대로면 SWTITLECONVERTNEXT를 실행하고 첫 native GMTITLE을 {0} / {1}로 만드세요." -f $script:DirectWorkcopyNextFrame, $script:DirectWorkcopyNextTitle)
+    } else {
+      Write-Output ("    5. 상태가 그대로면 SWTITLECONVERTNEXT를 실행하고 누락된 native GMTITLE 기준 객체를 {0} / {1}로 만드세요." -f $script:DirectWorkcopyNextMissingFrame, $script:DirectWorkcopyNextMissingTitle)
+      if ($script:DirectWorkcopyNextMissingRole) {
+        Write-Output ("       처리 유형: {0}" -f $script:DirectWorkcopyNextMissingRole)
+      }
+    }
+    Write-Output "    6. title-missing/frame-only A4 샘플 증거는 배경 정보입니다. SWTITLESTATUS가 요구하기 전에는 그 단계로 건너뛰지 않습니다."
+  } elseif ($a4FrameOnlyProductionPathVerified) {
+    Write-Output "  title-missing/frame-only 예외 경로는 현재 A4 샘플로 검증됨:"
+    Write-Output "    1. 현재 A4 샘플 scratch probe에서 공식 작은 바깥 마커를 가진 실제 native GMTITLE 쌍을 확인했습니다."
     Write-Output "    2. SWTITLEPREPARE는 형상/raw-selection 검사가 통과하면 이 정의를 ready-native-outside-markers로 허용합니다."
-    Write-Output "    3. frame-only convert probe는 원본 표제란이 없는 A4 샘플을 DR_titlea_3rd 없이 DR_A4_Outline 도면틀 1개로 마무리했습니다."
+    Write-Output "    3. title-missing/frame-only convert probe는 원본 표제란이 없는 현재 A4 샘플을 DR_titlea_3rd 없이 DR_A4_Outline 도면틀 1개로 마무리했습니다."
     Write-Output "    4. 전체 hidden suite에도 이 probe와 A4 변환 기대값이 포함되어 있습니다."
     Write-Output "  다음 실제 작업복사본 단계:"
     if ($script:DirectWorkcopyProbeTrusted -and $script:DirectWorkcopyStatusCode) {
@@ -1004,30 +1042,30 @@ if ($existingGstarCAD.Count -gt 0) {
       Write-Output "    4. SWTITLECONVERTNEXT/SWTITLEVERIFY까지 이어지는 4단계 흐름만 따르세요."
     }
   } elseif ($a4NativeOutsideMarkerPolicyReady) {
-    Write-Output "  A4 native outside-marker policy is implemented:"
+    Write-Output "  DR_A4_Outline outside-marker evidence exists for the current title-missing sample:"
     Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair with official small outside markers."
     Write-Output "    2. SWTITLEPREPARE now accepts that definition as ready-native-outside-markers when geometry/raw-selection checks pass."
-    Write-Output "    3. Run the focused A4 frame-only convert probe or the full hidden suite before using this on the real work-copy."
-    Write-Output "    4. Production A4 frame-only must still not create an extra DR_titlea_3rd."
+    Write-Output "    3. Run the focused title-missing/frame-only convert probe for the current A4 sample or the full hidden suite before using this on the real work-copy."
+    Write-Output "    4. Production title-missing/frame-only sheets must still not create an extra DR_titlea_3rd."
   } elseif ($a4NativeOutsideMarkerDecisionNeeded) {
-    Write-Output "  A4 native outside-marker decision:"
+    Write-Output "  DR_A4_Outline native outside-marker decision for the current sample:"
     Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair, but native DR_A4_Outline itself has small geometry outside (0,0)-(210,297)."
-    Write-Output "    2. Do not keep creating more scratch A4 sheets; the next implementation decision is whether production A4 frame-only should tolerate, crop, or preserve those official native outside markers."
-    Write-Output "    3. Because production A4 source is frame-only, keep the rule that it must not receive an extra DR_titlea_3rd."
+    Write-Output "    2. Do not keep creating more scratch A4 sheets; the next implementation decision is whether production source-title-missing/frame-only handling should tolerate, crop, or preserve those official native outside markers."
+    Write-Output "    3. Because a production source-title-missing sheet is frame-only, keep the rule that it must not receive an extra DR_titlea_3rd."
     Write-Output "    4. After code changes, rerun the focused A4 probe and the full hidden suite."
   } elseif ($a4CandidateSafeNeedsReview) {
-    Write-Output "  A4 normalization candidate review:"
+    Write-Output "  DR_A4_Outline normalization candidate review for the current sample:"
     Write-Output "    1. Inspect the copied-DWG nested A4 normalization probe log that reported safe=yes."
     Write-Output "    2. Promote the safe strategy into SWTITLEPREPARE/SWTITLECONVERT only after confirming it preserves the A4 frame."
     Write-Output "    3. Then run the focused A4 probe and the full hidden suite."
   } elseif ($a4NativeA4ComparisonNeeded) {
-    Write-Output "  A4 native comparison investigation:"
+    Write-Output "  DR_A4_Outline native comparison investigation for the current sample:"
     Write-Output "    1. Do not run more SWTITLEPREPARE/SWTITLECONVERT attempts on the work-copy."
     Write-Output "    2. Create a separate scratch DWG with one real native A4 GMTITLE result, then compare its DR_A4_Outline definition."
     if ($scratchNativeA4Exists) {
       Write-Output ("       Saved clean gcadiso.dwt scratch from 2026-07-05 CAD test: {0}" -f $scratchNativeA4Path)
     }
-    Write-Output "    3. Scratch only: the native A4 sample may include DR_titlea_3rd for comparison; production A4 frame-only must still not receive a new title block."
+    Write-Output "    3. Scratch only: the native A4 sample may include DR_titlea_3rd for comparison; production source-title-missing/frame-only sheets must still not receive a new title block."
     Write-Output "    4. If direct GMTITLE only asks for an insertion point, cancel it; that is the current/default insertion flow, not proof of DR_A4_Outline selection."
     Write-Output "    5. If DR_A4_Outline / DR_titlea_3rd selection ends with a frame creation error and DR_titlea_3rd inserts=0, treat that scratch as failed evidence."
     Write-Output "    6. Scratch READY requires both 'Native GMTITLE A4 pair evidence: yes' and 'Result: A4_NATIVE_EXEMPLAR_READY_FOR_COMPARISON'."
@@ -1040,7 +1078,7 @@ if ($existingGstarCAD.Count -gt 0) {
     }
     Write-Output "    10. After a safer A4 definition strategy is implemented, rerun the focused A4 probe and full hidden suite."
   } elseif ($a4InvestigationPreferred) {
-    Write-Output "  지금은 복사본 DWG 기준 nested A4 probe를 먼저 실행하세요:"
+    Write-Output "  지금은 복사본 DWG 기준 title-missing definition probe를 먼저 실행하세요:"
     Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside,nested-direct-outside" -f $nestedProbeScript, $nestedProbeSource)
     Write-Output "  먼저 전체 hidden suite를 돌리지 마세요. 이 probe가 DR_A4_Outline raw-bbox 의문을 닫기 전에는 A4 blocker를 증명할 수 없습니다."
   } else {
