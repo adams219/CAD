@@ -807,9 +807,8 @@ while ($true) {
       Write-ManualLoadStep
       Write-Output ("  final gate 기준 예상 상태: {0}" -f $script:FinalCompletionGateStatusAfterStatus)
       Write-Output ("  final gate 기준 예상 GMTITLE 선택: {0} / {1}" -f $script:FinalCompletionGateNextFrame, ($(if ($script:FinalCompletionGateNextTitle) { $script:FinalCompletionGateNextTitle } else { "DR_titlea_3rd" })))
-      Write-Output "  SWTITLESTATUS가 같은 상태를 안내할 때만 아래 변환 명령을 계속하세요."
-      Write-ConvertCommandStep
-      Write-GmtitleDialogGuidance -FrameName $script:FinalCompletionGateNextFrame -TitleName $script:FinalCompletionGateNextTitle
+      Write-Output "  위 선택값은 오래된 final gate 참고값입니다. 아직 GMTITLE 창에서 용지/제목블록을 고르지 마세요."
+      Write-Output "  최신 LSP로 SWTITLESTATUS를 다시 실행한 뒤, 그 결과가 변환을 안내할 때만 SWTITLECONVERTNEXT를 실행하세요."
       Write-Output "hidden direct probe를 먼저 만들고 싶으면 아래 명령을 쓰세요. 다만 현재 PC에서는 /b probe가 실패할 수 있습니다."
       Write-DirectProbeRefreshCommand
       exit 0
@@ -970,9 +969,8 @@ while ($true) {
     if ($nextFrame -or $nextTitle) {
       Write-Output ("  이전 direct probe 기준 예상 GMTITLE 선택: {0} / {1}" -f ($(if ($nextFrame) { $nextFrame } else { "?" })), ($(if ($nextTitle) { $nextTitle } else { "?" })))
     }
-    Write-Output "  SWTITLESTATUS가 같은 상태를 안내할 때만 아래 변환 명령을 계속하세요."
-    Write-ConvertCommandStep
-    Write-GmtitleDialogGuidance -FrameName $nextFrame -TitleName $nextTitle
+    Write-Output "  위 선택값은 오래된 direct probe 참고값입니다. 아직 GMTITLE 창에서 용지/제목블록을 고르지 마세요."
+    Write-Output "  최신 LSP로 SWTITLESTATUS를 다시 실행한 뒤, 그 결과가 변환을 안내할 때만 SWTITLECONVERTNEXT를 실행하세요."
     Write-Output "hidden direct probe를 먼저 갱신하고 싶으면 아래 명령을 쓰세요. 다만 현재 PC에서는 /b probe가 실패할 수 있습니다."
     Write-DirectProbeRefreshCommand
     exit 0

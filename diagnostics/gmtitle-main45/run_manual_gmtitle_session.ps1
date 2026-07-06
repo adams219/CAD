@@ -180,28 +180,31 @@ function Write-InitialCardShortSummary {
   $result = Get-LastRegexValue -Text $CardText -Pattern "^Result:\s*(\S+)\s*$"
   $status = Get-LastRegexValue -Text $CardText -Pattern "^(?:\s*SWTITLESTATUS:|현재 저장 상태:)\s*(\S+)"
   $verify = Get-LastRegexValue -Text $CardText -Pattern "^(?:\s*SWTITLEVERIFY:|검증 상태:)\s*(\S+)"
+  $needsReload = $result -eq "RELOAD_LSP_AND_CONFIRM_STATUS"
   $frame = $null
   $title = $null
 
-  $frame = Get-LastRegexValue -Text $CardText -Pattern "^\s*(?:용지/도면틀|다음 GMTITLE 용지/도면틀|GMTITLE에서 고를 용지/도면틀):\s*(DR_A[1-4]_Outline)\b"
-  $title = Get-LastRegexValue -Text $CardText -Pattern "^\s*(?:제목블록|다음 GMTITLE 제목블록|GMTITLE에서 고를 제목블록):\s*(DR_titlea_3rd)\b"
+  if (-not $needsReload) {
+    $frame = Get-LastRegexValue -Text $CardText -Pattern "^\s*(?:용지/도면틀|다음 GMTITLE 용지/도면틀|GMTITLE에서 고를 용지/도면틀):\s*(DR_A[1-4]_Outline)\b"
+    $title = Get-LastRegexValue -Text $CardText -Pattern "^\s*(?:제목블록|다음 GMTITLE 제목블록|GMTITLE에서 고를 제목블록):\s*(DR_titlea_3rd)\b"
 
-  if ((-not $frame) -or (-not $title)) {
-    $pairMatches = [regex]::Matches($CardText, "\b(DR_A[1-4]_Outline)\s*/\s*(DR_titlea_3rd)\b", [System.Text.RegularExpressions.RegexOptions]::Multiline)
-    for ($i = $pairMatches.Count - 1; $i -ge 0; $i--) {
-      $pairMatch = $pairMatches[$i]
-      if ($pairMatch.Success) {
-        if (-not $frame) { $frame = $pairMatch.Groups[1].Value.Trim() }
-        if (-not $title) { $title = $pairMatch.Groups[2].Value.Trim() }
-        break
+    if ((-not $frame) -or (-not $title)) {
+      $pairMatches = [regex]::Matches($CardText, "\b(DR_A[1-4]_Outline)\s*/\s*(DR_titlea_3rd)\b", [System.Text.RegularExpressions.RegexOptions]::Multiline)
+      for ($i = $pairMatches.Count - 1; $i -ge 0; $i--) {
+        $pairMatch = $pairMatches[$i]
+        if ($pairMatch.Success) {
+          if (-not $frame) { $frame = $pairMatch.Groups[1].Value.Trim() }
+          if (-not $title) { $title = $pairMatch.Groups[2].Value.Trim() }
+          break
+        }
       }
     }
-  }
-  if (-not $frame) {
-    $frame = Get-LastRegexValue -Text $CardText -Pattern "\b(DR_A[1-4]_Outline)\b"
-  }
-  if (-not $title) {
-    $title = Get-LastRegexValue -Text $CardText -Pattern "\b(DR_titlea_3rd)\b"
+    if (-not $frame) {
+      $frame = Get-LastRegexValue -Text $CardText -Pattern "\b(DR_A[1-4]_Outline)\b"
+    }
+    if (-not $title) {
+      $title = Get-LastRegexValue -Text $CardText -Pattern "\b(DR_titlea_3rd)\b"
+    }
   }
 
   Write-Step ""
@@ -211,14 +214,23 @@ function Write-InitialCardShortSummary {
   if ($verify) { Write-Step ("  검증 상태: {0}" -f $verify) }
   if ($frame) { Write-Step ("  GMTITLE에서 고를 용지/도면틀: {0}" -f $frame) }
   if ($title) { Write-Step ("  GMTITLE에서 고를 제목블록: {0}" -f $title) }
-  Write-Step "  필수 옵션: Frame positioning ON, Object move OFF"
+  if ($needsReload) {
+    Write-Step "  상태: 이전 direct probe가 오래됐으므로 아직 GMTITLE 용지/제목블록을 고르지 않습니다."
+  } else {
+    Write-Step "  필수 옵션: Frame positioning ON, Object move OFF"
+  }
   Write-Step "  CAD 명령 순서:"
   Write-Step "    APPLOAD"
   Write-Step ("    {0}" -f (Join-Path $repoRoot "swcad_load.lsp"))
   Write-Step "    SWTITLEVERSION"
   Write-Step "    SWTITLESTATUS"
-  Write-Step "    SWTITLECONVERTNEXT"
-  Write-Step "  GMTITLE 창: 위 용지/제목블록/옵션만 확인하세요."
+  if ($needsReload) {
+    Write-Step "    SWTITLESTATUS가 변환을 안내할 때만 SWTITLECONVERTNEXT"
+    Write-Step "  GMTITLE 창: 최신 SWTITLESTATUS가 용지/제목블록을 안내하기 전에는 열지 않습니다."
+  } else {
+    Write-Step "    SWTITLECONVERTNEXT"
+    Write-Step "  GMTITLE 창: 위 용지/제목블록/옵션만 확인하세요."
+  }
   Write-Step "  금지: GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요."
   Write-Step "  금지: 긴 명령/경로를 자동 입력하거나 붙여넣지 마세요. CAD가 `_pasteclip` 삽입으로 해석할 수 있습니다."
   Write-Step "  배치점: 긴 좌표를 직접 치지 말고 자동 입력을 기다리세요."
@@ -228,11 +240,14 @@ function Write-InitialCardShortSummary {
 function Assert-ManualSessionConversionReady {
   param([string]$CardText)
 
-  if ($CardText -match "(?m)^Result:\s*(READY_FOR_FIRST_NATIVE_GMTITLE|CREATE_MISSING_NATIVE_GMTITLE_SIZE|RUN_NATIVE_REPLACEMENT|RUN_REMAINING_CONVERSION|RELOAD_LSP_AND_CONFIRM_STATUS)\s*$") {
+  if ($CardText -match "(?m)^Result:\s*RELOAD_LSP_AND_CONFIRM_STATUS\s*$") {
+    Write-Step "처음 다음 작업 카드는 visible CAD에서 최신 LSP와 현재 상태를 다시 확인해야 하는 상태입니다."
+    Write-Step "참고: direct probe 버전은 오래됐습니다. CAD 안에서 APPLOAD, SWTITLEVERSION, SWTITLESTATUS를 먼저 실행하고, 그 결과가 안내할 때만 SWTITLECONVERTNEXT를 진행하세요."
+    return
+  }
+
+  if ($CardText -match "(?m)^Result:\s*(READY_FOR_FIRST_NATIVE_GMTITLE|CREATE_MISSING_NATIVE_GMTITLE_SIZE|RUN_NATIVE_REPLACEMENT|RUN_REMAINING_CONVERSION)\s*$") {
     Write-Step "처음 다음 작업 카드는 visible CAD에서 GMTITLE 한 장을 처리할 준비가 된 상태입니다."
-    if ($CardText -match "(?m)^Result:\s*RELOAD_LSP_AND_CONFIRM_STATUS\s*$") {
-      Write-Step "참고: direct probe 버전은 오래됐습니다. CAD 안에서 APPLOAD와 SWTITLESTATUS를 먼저 실행해 같은 상태인지 확인한 뒤 SWTITLECONVERTNEXT를 진행하세요."
-    }
     return
   }
 
