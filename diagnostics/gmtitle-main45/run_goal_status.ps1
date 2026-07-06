@@ -1333,9 +1333,9 @@ Write-Output "목표모드 참고 문서:"
 Write-Output ("  실행 카드: {0}" -f $runCard)
 Write-Output ("  상세 계획: {0}" -f $goalPlan)
 Write-Output ""
-Write-Output "가장 짧은 다음 CAD 선택 요약:"
+Write-Output "가장 짧은 다음 CAD 상태 요약:"
 Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -PreflightOnly -Compact" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1"))
-Write-Output "  CAD를 열기 전에 이번에 고를 DR 용지/제목블록/옵션과 CAD 명령 순서만 확인합니다."
+Write-Output "  CAD 작업 전에 reload-only 상태인지, 실제 GMTITLE 선택이 필요한지, CAD 명령 순서가 무엇인지 먼저 확인합니다."
 Write-Output "짧은 다음 작업 카드 전체:"
 Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_next_cad_action.ps1"))
 Write-Output "  GstarCAD를 저장하고 닫은 뒤 최신 direct probe까지 갱신하려면 위 명령에 -AutoRefreshDirectProbe를 붙이세요."
