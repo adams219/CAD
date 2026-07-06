@@ -453,7 +453,7 @@ This proves the title-missing/frame-only path replaces one source frame with a m
 
 ## A4 Outline Normalization Probe
 
-Use `run_a4_outline_normalization_probe.ps1` to test whether simple `DR_A4_Outline` definition cleanup strategies can make the imported A4 outline safe for frame-only conversion.
+Use `run_a4_outline_normalization_probe.ps1` to test whether simple `DR_A4_Outline` definition cleanup strategies can make the imported A4-sized sample outline safe for source-title-missing conversion.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
@@ -573,7 +573,7 @@ If a scratch DWG contains only a clean-looking `DR_A4_Outline` frame but no near
 Result: A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR
 ```
 
-That failure is intentional. A frame-only production result must not create a new title block, but the separate scratch comparison sample must still prove that the `DR_A4_Outline` came from a native GMTITLE structure rather than from an arbitrary block definition.
+That failure is intentional. A source-title-missing production result must not create a new title block, but the separate scratch comparison sample must still prove that the `DR_A4_Outline` came from a native GMTITLE structure rather than from an arbitrary block definition.
 
 The scratch/native sheet is only for comparison. It may include `DR_titlea_3rd` if native GMTITLE creates one, but production title-missing/frame-only conversion must still not create a title block that was not present in the source.
 

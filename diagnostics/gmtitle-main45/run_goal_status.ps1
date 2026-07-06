@@ -659,17 +659,17 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
         $script:A4PrepareProbeUnsafe = $true
       }
       if ($prepareResultDisplay -match "OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED") {
-        Write-Output "  Installed DR_A4_Outline prepare probe: imported definition accepted for source-title-missing/frame-only readiness."
+        Write-Output "  Installed DR_A4_Outline prepare probe: imported definition accepted for source-title-missing sample readiness."
       }
     }
     if ($rawWarning) {
-      Write-Output ("  A4 raw-selection warning: {0}" -f $rawWarning)
+      Write-Output ("  A4-sized sample raw-selection warning: {0}" -f $rawWarning)
     }
     if ($afterDefinition) {
-      Write-Output ("  A4 definition after prepare probe: {0}" -f $afterDefinition)
+      Write-Output ("  A4-sized sample definition after prepare probe: {0}" -f $afterDefinition)
       if ($afterDefinition -match "ready-native-outside-markers") {
         $script:A4PrepareProbeReadyWithNativeOutside = $true
-        Write-Output "  A4 definition readiness: ready with official native outside markers."
+        Write-Output "  A4-sized sample definition readiness: ready with official native outside markers."
       }
     }
   } else {
