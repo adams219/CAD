@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260707-unified-title-missing-16")
+(setq *swcad-title-scale-version* "260707-unified-title-missing-17")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -18100,7 +18100,7 @@
   (princ)
 )
 
-(defun swcad-title-integrated-prepare (/ command-text-records frame-title-records embedded-title-records style-records frame-definition-blockers contaminated-definition-records definition-raw-risk-records title-missing-outline-needed orphan-records duplicate-pair-records)
+(defun swcad-title-integrated-prepare (/ summary source-count frame-only-count command-text-records frame-title-records embedded-title-records style-records frame-definition-blockers contaminated-definition-records definition-raw-risk-records blocking-cleanup-seen title-missing-outline-needed orphan-records duplicate-pair-records)
   (swcad-title-integrated-command-header "SWTITLEPREPARE" "도면틀/블록 정의 정규화")
   (if (swcad-title-script-active-p)
     (progn
@@ -18112,6 +18112,9 @@
     (if (swcad-title-active-dwg-confirmed-p)
       (progn
       (swcad-title-princ-text "\n작업복사본에서만 정리 명령을 실행합니다. 각 정리 단계는 후보를 보여주고 YES 확인을 받습니다.")
+      (setq summary (swcad-title-fast-sheet-summary))
+      (setq source-count (swcad-title-fast-summary-value summary "source-title-count"))
+      (setq frame-only-count (swcad-title-fast-summary-value summary "frame-only-count"))
       (swcad-title-frame-def-check)
       (setq command-text-records (swcad-title-command-text-residue-records))
       (setq frame-title-records (swcad-title-frame-def-title-child-records))
@@ -18120,12 +18123,35 @@
       (setq frame-definition-blockers (swcad-title-frame-definition-blocking-records))
       (setq contaminated-definition-records (swcad-title-frame-definition-blocking-records-by-class "source-contaminated"))
       (setq definition-raw-risk-records (swcad-title-frame-definition-raw-bbox-risk-records))
-      (setq title-missing-outline-needed (swcad-title-title-missing-outline-definition-needed-p))
+      (setq title-missing-outline-needed
+        (and
+          (= source-count 0)
+          (> frame-only-count 0)
+          (swcad-title-title-missing-outline-definition-needed-p)
+        )
+      )
       (setq orphan-records (swcad-title-orphan-target-frame-records))
       (setq duplicate-pair-records (swcad-title-duplicate-target-pair-records))
+      (setq blocking-cleanup-seen
+        (or
+          command-text-records
+          frame-title-records
+          embedded-title-records
+          style-records
+          frame-definition-blockers
+          contaminated-definition-records
+          definition-raw-risk-records
+          orphan-records
+          duplicate-pair-records
+        )
+      )
       (swcad-title-princ-text
         (strcat
           "\n정규화 후보 요약:"
+          "\n  남은 원본 표제란 시트: "
+          (itoa source-count)
+          "\n  표제란 없는 도면틀 시트: "
+          (itoa frame-only-count)
           "\n  실수 명령어 텍스트 잔여물: "
           (itoa (length command-text-records))
           "\n  도면틀 정의 안 중첩 제목블록: "
@@ -18170,11 +18196,8 @@
         (swcad-title-frame-def-clean-safe)
         (swcad-title-princ-text "\n오염된 DR 도면틀 정의 복구: 후보 없음")
       )
-      (setq title-missing-outline-needed (swcad-title-title-missing-outline-definition-needed-p))
-      (if title-missing-outline-needed
-        (swcad-title-prepare-title-missing-outline-definition)
-        (swcad-title-princ-text "\ntitle-missing/frame-only DR 도면틀 정의 준비: 후보 없음")
-      )
+      (setq orphan-records (swcad-title-orphan-target-frame-records))
+      (setq duplicate-pair-records (swcad-title-duplicate-target-pair-records))
       (if orphan-records
         (swcad-title-clean-orphan-target-frames)
         (swcad-title-princ-text "\n고아 GMTITLE 도면틀 정리: 후보 없음")
@@ -18182,6 +18205,34 @@
       (if duplicate-pair-records
         (swcad-title-clean-duplicate-target-pairs)
         (swcad-title-princ-text "\n겹친 GMTITLE target 쌍 정리: 후보 없음")
+      )
+      (setq blocking-cleanup-seen
+        (or
+          blocking-cleanup-seen
+          contaminated-definition-records
+          definition-raw-risk-records
+          orphan-records
+          duplicate-pair-records
+        )
+      )
+      (setq title-missing-outline-needed
+        (and
+          (= source-count 0)
+          (> frame-only-count 0)
+          (swcad-title-title-missing-outline-definition-needed-p)
+        )
+      )
+      (cond
+        (blocking-cleanup-seen
+          (swcad-title-princ-text "\ntitle-missing/frame-only DR 도면틀 정의 준비: 이번 실행에서는 건너뜀")
+          (swcad-title-princ-text "\n이유: SWTITLEPREPARE는 정리/차단 후보 처리 후 다음 단계로 건너뛰지 않습니다. SWTITLESTATUS로 상태를 다시 확인하세요.")
+        )
+        (title-missing-outline-needed
+          (swcad-title-prepare-title-missing-outline-definition)
+        )
+        (T
+          (swcad-title-princ-text "\ntitle-missing/frame-only DR 도면틀 정의 준비: 후보 없음")
+        )
       )
       (swcad-title-frame-def-check)
       (swcad-title-native-frame-completion-check)

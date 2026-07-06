@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260707-unified-title-missing-16",
+  [string]$ExpectedGmtitleVersion = "260707-unified-title-missing-17",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -373,6 +373,37 @@ if (($titleMissingPolicyStart -lt 0) -or ($titleMissingPolicyEnd -le $titleMissi
 }
 if ($mainText -notmatch "title-missing/frame-only 기준: A2/A3/A4 중 어떤 용지든 원본 표제란 부재가 검증된 경우에만 예외로 처리합니다\.") {
   Add-Failure "SWTITLESTATUS must explain that title-missing/frame-only is based on verified missing source title, not A4 size."
+}
+$integratedPrepareStart = $mainText.IndexOf("(defun swcad-title-integrated-prepare")
+$integratedPrepareEnd = if ($integratedPrepareStart -ge 0) { $mainText.IndexOf("(defun swcad-title-integrated-convert", $integratedPrepareStart) } else { -1 }
+if (($integratedPrepareStart -lt 0) -or ($integratedPrepareEnd -le $integratedPrepareStart)) {
+  Add-Failure "swcad-title-integrated-prepare function block not found."
+} else {
+  $integratedPrepareText = $mainText.Substring($integratedPrepareStart, $integratedPrepareEnd - $integratedPrepareStart)
+  if ($integratedPrepareText -notmatch "\(setq summary \(swcad-title-fast-sheet-summary\)\)") {
+    Add-Failure "SWTITLEPREPARE must read the unified sheet summary before title-missing preparation."
+  }
+  if ($integratedPrepareText -notmatch '"source-title-count"') {
+    Add-Failure "SWTITLEPREPARE must inspect remaining source title count."
+  }
+  if ($integratedPrepareText -notmatch '"frame-only-count"') {
+    Add-Failure "SWTITLEPREPARE must inspect title-missing/frame-only count."
+  }
+  if ($integratedPrepareText -notmatch "\(= source-count 0\)") {
+    Add-Failure "SWTITLEPREPARE title-missing preparation must require source-count=0."
+  }
+  if ($integratedPrepareText -notmatch "\(> frame-only-count 0\)") {
+    Add-Failure "SWTITLEPREPARE title-missing preparation must require frame-only-count>0."
+  }
+  if ($integratedPrepareText -notmatch "title-missing/frame-only DR 도면틀 정의 준비: 이번 실행에서는 건너뜀") {
+    Add-Failure "SWTITLEPREPARE must skip title-missing preparation after cleanup/blocking work in the same run."
+  }
+  if ($integratedPrepareText -notmatch "정리/차단 후보 처리 후 다음 단계로 건너뛰지 않습니다") {
+    Add-Failure "SWTITLEPREPARE must explain that cleanup and next-step progression are separated."
+  }
+  if ($integratedPrepareText -match "DR_A4_Outline|A4 frame-only|A4 제목블록|A4 도면틀") {
+    Add-Failure "SWTITLEPREPARE must not special-case A4 while preparing title-missing/frame-only outlines."
+  }
 }
 $titleOffsetStart = $mainText.IndexOf("(defun swcad-title-frame-only-title-offset")
 $titleOffsetEnd = if ($titleOffsetStart -ge 0) { $mainText.IndexOf("(defun swcad-title-transfer-source-bbox", $titleOffsetStart) } else { -1 }
