@@ -33,6 +33,7 @@ $selectionConfigProbePath = Join-Path $PSScriptRoot "run_gmtitle_selection_confi
 $goalStatusPath = Join-Path $PSScriptRoot "run_goal_status.ps1"
 $cadTextLogReaderPath = Join-Path $PSScriptRoot "read_cad_text_log.ps1"
 $computerUseHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-computer-use-visible-cad-activation-failure-2026-07-05.md"
+$computerUseA3DialogHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-a3-visible-dialog-computer-use-2026-07-06.md"
 $hiddenSuitePassHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-main56-hidden-suite-pass-2026-07-05.md"
 $finalCompletionGateHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-final-completion-gate-2026-07-06.md"
 $commandSurfaceHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-command-surface-probe-2026-07-05.md"
@@ -231,6 +232,7 @@ $selectionConfigProbeText = Read-Text $selectionConfigProbePath
 $goalStatusText = Read-Text $goalStatusPath
 $cadTextLogReaderText = Read-Text $cadTextLogReaderPath
 $computerUseHistoryText = Read-Text $computerUseHistoryPath
+$computerUseA3DialogHistoryText = Read-Text $computerUseA3DialogHistoryPath
 $commandSurfaceHistoryText = Read-Text $commandSurfaceHistoryPath
 $automationBoundaryHistoryText = Read-Text $automationBoundaryHistoryPath
 $selectionConfigDeepRegistryHistoryText = Read-Text $selectionConfigDeepRegistryHistoryPath
@@ -582,6 +584,10 @@ Assert-Contains -Text $nextCadActionRunnerText -Needle "화면 캡처는 가능�
 Assert-Contains -Text $nextCadActionRunnerText -Needle 'CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있습니다' -Label "Next CAD action pasteclip warning"
 Assert-Contains -Text $computerUseHistoryText -Needle "failed to activate captured window" -Label "Computer Use activation failure history"
 Assert-Contains -Text $computerUseHistoryText -Needle "Do not repeat the same visible-CAD Computer Use click/type attempt as a default path" -Label "Computer Use no-repeat guidance"
+Assert-Contains -Text $computerUseA3DialogHistoryText -Needle '`SWTITLECONVERTNEXT` started correctly' -Label "Computer Use A3 dialog reached through SWTITLECONVERTNEXT"
+Assert-Contains -Text $computerUseA3DialogHistoryText -Needle "UIA value is read-only" -Label "Computer Use A3 dialog combo read-only evidence"
+Assert-Contains -Text $computerUseA3DialogHistoryText -Needle "not exposed as a separate targetable window" -Label "Computer Use A3 dialog window-target evidence"
+Assert-Contains -Text $computerUseA3DialogHistoryText -Needle "did **not** click screen coordinates" -Label "Computer Use A3 no screen-coordinate fallback"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "용지/도면틀:" -Label "Next CAD action Korean dialog paper guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERTNEXT  (권장: YES/OPEN 반복 응답 자동 선택)" -Label "Next CAD action convert-next shortcut guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "또는 수동 응답을 직접 고르려면: SWTITLECONVERT" -Label "Next CAD action manual convert fallback guidance"
