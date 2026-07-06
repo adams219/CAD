@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260707-unified-title-missing-17",
+  [string]$ExpectedGmtitleVersion = "260707-unified-title-missing-18",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -526,6 +526,21 @@ if (($transferFastBatchStart -lt 0) -or ($transferFastBatchEnd -le $transferFast
   Assert-Contains -Text $transferFastBatchText -Needle "원본 표제란 부재 예외" -Label "Fast batch prompt routes frame-only by source-title-missing exception"
   Assert-NotContains -Text $transferFastBatchText -Needle "장과 frame-only 시트" -Label "Fast batch prompt must not bundle title sheets and frame-only sheets"
 }
+$transferBootstrapStart = $mainText.IndexOf("(defun swcad-title-transfer-bootstrap-fast")
+$transferBootstrapEnd = if ($transferBootstrapStart -ge 0) { $mainText.IndexOf("(defun swcad-title-scale-text-to-dimlfac", $transferBootstrapStart) } else { -1 }
+if (($transferBootstrapStart -lt 0) -or ($transferBootstrapEnd -le $transferBootstrapStart)) {
+  Add-Failure "swcad-title-transfer-bootstrap-fast function block not found."
+} else {
+  $transferBootstrapText = $mainText.Substring($transferBootstrapStart, $transferBootstrapEnd - $transferBootstrapStart)
+  Assert-Contains -Text $transferBootstrapText -Needle "OK_CONVERT_NEXT_FIRST_NATIVE_CREATED" -Label "SWTITLECONVERTNEXT first-native one-step status"
+  Assert-Contains -Text $transferBootstrapText -Needle "SWTITLECONVERTNEXT one-step stop: first native GMTITLE was created/finalized." -Label "SWTITLECONVERTNEXT first-native one-step stop message"
+  Assert-Contains -Text $transferBootstrapText -Needle "Fast clone batch was not started in this command." -Label "SWTITLECONVERTNEXT does not start clone batch after first native"
+  $oneStepStopIndex = $transferBootstrapText.IndexOf("SWTITLECONVERTNEXT one-step stop: first native GMTITLE was created/finalized.")
+  $fastBatchStartIndex = $transferBootstrapText.IndexOf("Bootstrap phase complete. Starting fast remaining-sheet batch.")
+  if (($oneStepStopIndex -lt 0) -or ($fastBatchStartIndex -lt 0) -or ($oneStepStopIndex -gt $fastBatchStartIndex)) {
+    Add-Failure "SWTITLECONVERTNEXT first-native one-step stop must appear before the bootstrap fast-batch path."
+  }
+}
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-prepare-title-missing-outline-definition (/ frame-block" -Label "Generic title-missing outline prepare implementation"
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-transfer-title-missing-outline-apply (/ *error*" -Label "Generic title-missing outline transfer implementation"
 Assert-Contains -Text $mainText -Needle "swcad-title-transfer-title-missing-outline-apply" -Label "Generic title-missing outline transfer wrapper"
@@ -611,6 +626,8 @@ Assert-Contains -Text $mainText -Needle "title-missing/frame-only" -Label "SWTIT
 Assert-Contains -Text $mainText -Needle "swcad-title-next-missing-native-selection-record" -Label "SWTITLESTATUS missing-native selection helper"
 Assert-Contains -Text $mainText -Needle "다음 누락 크기 native GMTITLE 선택:" -Label "SWTITLESTATUS missing-native selection heading"
 Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록" -Label "SWTITLECONVERTNEXT exact dialog selection guidance"
+Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT는 남은 표제란 시트 중 다음 1장만 clone 변환합니다." -Label "SWTITLECONVERTNEXT source-title one-sheet clone limit"
+Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT single clone error" -Label "SWTITLECONVERTNEXT single-clone error status path"
 Assert-Contains -Text $mainText -Needle '"A2/A3/A4 native 교체 후보 1장 처리"' -Label "SWTITLECONVERTNEXT native one-sheet default"
 Assert-Contains -Text $mainText -Needle "swcad-title-print-native-batch-safety-guidance" -Label "Native batch safety guidance helper"
 Assert-Contains -Text $mainText -Needle "BATCH 안전 조건: 먼저 OPEN으로 1장을 성공시킨 뒤 SWTITLESTATUS/direct probe에서 후보 수가 줄었는지 확인하세요." -Label "Native batch OPEN-first guidance"

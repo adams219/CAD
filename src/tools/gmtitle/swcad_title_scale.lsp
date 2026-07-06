@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260707-unified-title-missing-17")
+(setq *swcad-title-scale-version* "260707-unified-title-missing-18")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -15528,20 +15528,30 @@
           )
           (if (swcad-title-bootstrap-first-native-success-p *swcad-title-last-apply-status*)
             (progn
-              (setq after-summary (swcad-title-fast-sheet-summary))
-              (setq after-missing (swcad-title-missing-required-native-frame-blocks after-summary))
-              (if (and after-missing (not (swcad-title-next-fast-target-ready-p)))
+              (if *swcad-title-convert-next-mode*
                 (progn
-                  (setq *swcad-title-last-apply-status* "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
-                  (swcad-title-princ-text "\nBootstrap phase complete. Fast batch paused because another sheet size needs its own real GMTITLE exemplar.")
-                  (swcad-title-print-fast-sheet-summary after-summary)
-                  (swcad-title-print-required-native-exemplars after-summary)
-                  (swcad-title-print-next-fast-target-readiness)
-                  (swcad-title-princ-text "\nResult: WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
+                  (setq *swcad-title-last-apply-status* "OK_CONVERT_NEXT_FIRST_NATIVE_CREATED")
+                  (swcad-title-princ-text "\nSWTITLECONVERTNEXT one-step stop: first native GMTITLE was created/finalized.")
+                  (swcad-title-princ-text "\nFast clone batch was not started in this command.")
+                  (swcad-title-princ-text "\n다음: SWTITLESTATUS로 상태를 다시 확인한 뒤 안내된 다음 한 단계만 진행하세요.")
                 )
                 (progn
-                  (swcad-title-princ-text "\nBootstrap phase complete. Starting fast remaining-sheet batch.")
-                  (swcad-title-run-fast-batch-phases)
+                  (setq after-summary (swcad-title-fast-sheet-summary))
+                  (setq after-missing (swcad-title-missing-required-native-frame-blocks after-summary))
+                  (if (and after-missing (not (swcad-title-next-fast-target-ready-p)))
+                    (progn
+                      (setq *swcad-title-last-apply-status* "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
+                      (swcad-title-princ-text "\nBootstrap phase complete. Fast batch paused because another sheet size needs its own real GMTITLE exemplar.")
+                      (swcad-title-print-fast-sheet-summary after-summary)
+                      (swcad-title-print-required-native-exemplars after-summary)
+                      (swcad-title-print-next-fast-target-readiness)
+                      (swcad-title-princ-text "\nResult: WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
+                    )
+                    (progn
+                      (swcad-title-princ-text "\nBootstrap phase complete. Starting fast remaining-sheet batch.")
+                      (swcad-title-run-fast-batch-phases)
+                    )
+                  )
                 )
               )
             )
@@ -18434,24 +18444,56 @@
           )
         )
         (T
-          (swcad-title-princ-text "\n기준 GMTITLE이 있으므로 남은 시트를 빠른 일괄 변환으로 처리합니다.")
-          (swcad-title-transfer-fast-batch)
-          (setq a3a4-count (length (swcad-title-a3a4-native-upgrade-candidate-records)))
-          (if (> a3a4-count 0)
+          (if *swcad-title-convert-next-mode*
             (progn
-              (swcad-title-princ-text
-                (strcat
-                  "\n빠른 변환 후 A2/A3/A4 native 교체 후보가 "
-                  (itoa a3a4-count)
-                  "개 생겼습니다."
+              (swcad-title-princ-text "\n기준 GMTITLE이 있으므로 SWTITLECONVERTNEXT는 남은 표제란 시트 중 다음 1장만 clone 변환합니다.")
+              (setq old-batch-mode *swcad-title-batch-mode*)
+              (setq *swcad-title-batch-mode* T)
+              (setq apply-result (vl-catch-all-apply 'swcad-title-transfer-clone-apply nil))
+              (setq *swcad-title-batch-mode* old-batch-mode)
+              (if (vl-catch-all-error-p apply-result)
+                (progn
+                  (setq *swcad-title-last-apply-status* "ERROR_CONVERT_NEXT_SINGLE_CLONE_FATAL")
+                  (princ
+                    (strcat
+                      "\nSWTITLECONVERTNEXT single clone error: "
+                      (vl-catch-all-error-message apply-result)
+                    )
+                  )
                 )
               )
-              (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 이어서 A2/A3/A4 native 교체 단계를 한 장만 안전하게 실행합니다.")
-              (if (swcad-title-script-active-p)
-                (swcad-title-abort-interactive-gmtitle-script-active
-                  "빠른 변환 뒤 생긴 A2/A3/A4 native 교체 후보는 GMTITLE 창 확인이 필요합니다."
+              (setq a3a4-count (length (swcad-title-a3a4-native-upgrade-candidate-records)))
+              (if (> a3a4-count 0)
+                (swcad-title-princ-text
+                  (strcat
+                    "\n다음: SWTITLESTATUS를 실행한 뒤 A2/A3/A4 native 교체 후보 "
+                    (itoa a3a4-count)
+                    "개 중 다음 1장을 SWTITLECONVERTNEXT로 처리하세요."
+                  )
                 )
-                (swcad-title-upgrade-native-a3a4-next)
+              )
+            )
+            (progn
+              (swcad-title-princ-text "\n기준 GMTITLE이 있으므로 남은 시트를 빠른 일괄 변환으로 처리합니다.")
+              (swcad-title-transfer-fast-batch)
+              (setq a3a4-count (length (swcad-title-a3a4-native-upgrade-candidate-records)))
+              (if (> a3a4-count 0)
+                (progn
+                  (swcad-title-princ-text
+                    (strcat
+                      "\n빠른 변환 후 A2/A3/A4 native 교체 후보가 "
+                      (itoa a3a4-count)
+                      "개 생겼습니다."
+                    )
+                  )
+                  (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 이어서 A2/A3/A4 native 교체 단계를 한 장만 안전하게 실행합니다.")
+                  (if (swcad-title-script-active-p)
+                    (swcad-title-abort-interactive-gmtitle-script-active
+                      "빠른 변환 뒤 생긴 A2/A3/A4 native 교체 후보는 GMTITLE 창 확인이 필요합니다."
+                    )
+                    (swcad-title-upgrade-native-a3a4-next)
+                  )
+                )
               )
             )
           )
