@@ -215,14 +215,14 @@
             (and
               (swtitle-diag45-file-contains-p next-step-log "예상 수동 GMTITLE 확인량:")
               (swtitle-diag45-file-contains-p next-step-log "지금 필요한 확인: DR_A2_Outline / DR_titlea_3rd 1회")
-              (swtitle-diag45-file-contains-p next-step-log "A4 표제란 없는 도면틀 2장은 제목블록 생성 대상이 아닙니다.")
+              (swtitle-diag45-file-contains-p next-step-log "장은 원본 표제란 부재가 검증된 경우에만 제목블록 생성 대상에서 제외합니다.")
             )
           )
           (setq structure-log (swcad-title-work-log-path "swcad_title_structure_diagnosis_last.txt"))
           (setq title-missing-deferred-note
             (swtitle-diag45-file-contains-p
               structure-log
-              "A4 판단 보충:"
+              "title-missing 판단 보충:"
             )
           )
           (setq verify-summary-log (swcad-title-work-log-path "swcad_title_verify_summary_last.txt"))

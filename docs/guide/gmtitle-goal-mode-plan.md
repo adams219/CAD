@@ -107,7 +107,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
    바로 SWTITLESTATUS 또는 SWTITLEVERIFY를 다시 실행해 수량, 후보 수, 경고 수가 실제로 바뀌었는지 확인한다.
 
 5. 중단 판단
-   후보 수가 줄지 않거나 raw bbox, A4 제목블록 생성, 도면 내부 객체 삭제 같은 위험이 보이면 같은 명령을 반복하지 않는다.
+   후보 수가 줄지 않거나 raw bbox, 원본에 없던 제목블록 생성, 도면 내부 객체 삭제 같은 위험이 보이면 같은 명령을 반복하지 않는다.
 
 6. 기록
    왜 계속하는지, 왜 멈추는지, 어떤 로그가 근거인지 문서/최종 답변/커밋에 남긴다.

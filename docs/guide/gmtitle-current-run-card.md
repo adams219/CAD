@@ -23,7 +23,7 @@ CAD 화면 옆에 열어두고 따라가는 짧은 실행 순서입니다.
 2. 로그가 요구한 명령 하나만 실행
 3. 바로 SWTITLESTATUS 또는 SWTITLEVERIFY로 변화 확인
 4. 후보 수나 경고가 줄지 않으면 같은 명령 반복 금지
-5. raw bbox, A4 제목블록 생성, 도면 내부 객체 삭제가 보이면 중단
+5. raw bbox, 원본에 없던 제목블록 생성, 도면 내부 객체 삭제가 보이면 중단
 ```
 
 계속 진행해도 되는 증거:
@@ -445,7 +445,7 @@ Object move ON
 | `NEXT_REVIEW_ACCIDENTAL_COMMAND_TEXT` | 도면에 실수 명령어 텍스트 후보가 있음 | 후보 확인 후 `SWTITLEPREPARE` |
 | `NEXT_UPGRADE_NATIVE_GMTITLE` | A2/A3/A4 복제/shared-link 쌍을 fresh native로 교체해야 함 | `SWTITLECONVERTNEXT` |
 | `WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION` | 과거 상태명. 현재 기준으로는 title-missing 예외 전에 해당 DR_A*_Outline 검증 필요 | `SWTITLEPREPARE` |
-| `NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION` | A4 도면틀 정의 준비/검증 필요 | `SWTITLEPREPARE` |
+| `NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION` | 원본 표제란 부재가 검증된 시트의 같은 크기 DR 도면틀 정의 준비/검증 필요 | `SWTITLEPREPARE` |
 | `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX` | 도면틀 정의 선택 범위가 위험함 | 변환 반복 금지, 로그 확인 |
 | `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK` | 기존 도면 보호를 위해 중단됨 | 변환 반복 금지, 원인 분석 |
 | `SWTITLEVERIFY_FINAL_FAIL` | 완료 조건 미달 | `SWTITLESTATUS`로 다음 조치 확인 |
