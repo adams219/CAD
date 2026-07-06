@@ -698,7 +698,7 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
     if ((-not $script:LatestCadDwgTrustedForGoal) -or (-not $nestedProbeSource)) {
       $nestedProbeSource = $SourceWorkCopyPath
     }
-    Write-Output "  Next title-missing definition investigation probe command (current A4 sample):"
+    Write-Output "  Next title-missing definition investigation probe command (current A4-sized source-title-missing sample):"
     Write-Output ("    powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside,nested-direct-outside -WaitForGstarCADClose" -f $nestedProbeScript, $nestedProbeSource)
     Write-Output "    Note: SourceWorkCopyPath is shown explicitly to avoid ambiguity; the wrapper also uses the latest CAD next-step DWG when SourceWorkCopyPath is omitted."
     if (-not (Test-Path -LiteralPath $nestedProbeSource)) {
@@ -796,7 +796,7 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
       ($convertText -match "(?m)^After DR_A4_Outline target frame count:\s*1")
     ) {
       $script:A4FrameOnlyConvertProbePassed = $true
-      Write-Output "  title-missing/frame-only convert decision: verified on the current A4 sample; one source-title-missing sheet becomes DR_A4_Outline and no additional DR_titlea_3rd is created."
+      Write-Output "  title-missing/frame-only convert decision: verified on the current A4-sized source-title-missing sample; one source-title-missing sheet becomes DR_A4_Outline and no additional DR_titlea_3rd is created."
     }
   } else {
     Write-Output "  title-missing/frame-only convert probe (A4 sample): <not-run>"
@@ -805,7 +805,7 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
   if ($script:LatestCadStatusCode -in @("NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION", "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION")) {
     if ($script:A4PrepareProbeUnsafe -and $script:A4NestedProbeMissing) {
       Write-Output "  Interpretation: the current live state still reports SWTITLEPREPARE, but the copied-DWG prepare probe already shows the installed DR_A4_Outline path is expected to fail the strict A4 raw-bbox guard."
-      Write-Output "  If SWTITLEPREPARE has already been tried in the open CAD and SWTITLESTATUS still reports this same state, do not keep looping CAD commands. Save/close GstarCAD and run the title-missing definition probe for the current A4 sample."
+      Write-Output "  If SWTITLEPREPARE has already been tried in the open CAD and SWTITLESTATUS still reports this same state, do not keep looping CAD commands. Save/close GstarCAD and run the title-missing definition probe for the current A4-sized source-title-missing sample."
     } else {
       Write-Output "  Interpretation: current CAD still needs SWTITLEPREPARE for live evidence, but known probes expect the installed DR_A4_Outline to fail the strict A4 raw-bbox guard."
       Write-Output "  If SWTITLEPREPARE returns WARN_TITLE_MISSING_OUTLINE_DEFINITION_UNSAFE, do not repeat SWTITLECONVERT; continue with the source-title-missing definition strategy investigation."
@@ -1050,7 +1050,7 @@ if ($existingGstarCAD.Count -gt 0) {
         Write-Output ("       처리 유형: {0}" -f $script:DirectWorkcopyNextMissingRole)
       }
     }
-    Write-Output "    4. title-missing/frame-only A4 샘플 증거는 배경 정보입니다. SWTITLESTATUS가 요구하기 전에는 그 단계로 건너뛰지 않습니다."
+    Write-Output "    4. title-missing/frame-only A4 크기 샘플 증거는 source-title-missing 배경 정보입니다. SWTITLESTATUS가 요구하기 전에는 그 단계로 건너뛰지 않습니다."
     Write-Output ""
     Write-Output "  Hidden suite verification path only after saving/closing CAD or changing code:"
   } elseif ($latestCadNeedsNativeExemplar) {
@@ -1058,14 +1058,14 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output ("    1. 최신 열린 CAD 로그 상태: {0}" -f $script:LatestCadStatusCode)
     Write-Output "    2. direct probe 로그는 오래됐을 수 있으므로, 열린 CAD에서 SWTITLESTATUS로 현재 활성 DWG와 다음 상태를 먼저 확인하세요."
     Write-Output ("    3. 상태가 그대로면 SWTITLECONVERTNEXT를 실행하고 누락된 native GMTITLE 기준 객체를 {0} / {1}로 만드세요." -f $script:LatestCadNextFrame, $(if ($script:LatestCadNextTitle) { $script:LatestCadNextTitle } else { "DR_titlea_3rd" }))
-    Write-Output "    4. title-missing/frame-only A4 샘플 증거는 배경 정보입니다. SWTITLESTATUS가 요구하기 전에는 그 단계로 건너뛰지 않습니다."
+    Write-Output "    4. title-missing/frame-only A4 크기 샘플 증거는 source-title-missing 배경 정보입니다. SWTITLESTATUS가 요구하기 전에는 그 단계로 건너뛰지 않습니다."
     Write-Output ""
     Write-Output "  Hidden suite verification path only after saving/closing CAD or changing code:"
   } elseif ($a4FrameOnlyProductionPathVerified) {
-    Write-Output "  title-missing/frame-only 예외 경로는 현재 A4 샘플로 검증됨:"
-    Write-Output "    1. 현재 A4 샘플 scratch probe에서 공식 작은 바깥 마커를 가진 실제 native GMTITLE 쌍을 확인했습니다."
+    Write-Output "  source-title-missing 예외 경로는 현재 A4 크기 샘플로 검증됨(용지 전용 정책 아님):"
+    Write-Output "    1. 현재 A4 크기 source-title-missing scratch probe에서 공식 작은 바깥 마커를 가진 실제 native GMTITLE 쌍을 확인했습니다."
     Write-Output "    2. SWTITLEPREPARE는 형상/raw-selection 검사가 통과하면 이 정의를 ready-native-outside-markers로 허용합니다."
-    Write-Output "    3. title-missing/frame-only convert probe는 원본 표제란이 없는 현재 A4 샘플을 추가 DR_titlea_3rd 없이 DR_A4_Outline 도면틀 1개로 마무리했습니다."
+    Write-Output "    3. title-missing/frame-only convert probe는 원본 표제란이 없는 현재 A4 크기 샘플을 추가 DR_titlea_3rd 없이 DR_A4_Outline 도면틀 1개로 마무리했습니다."
     if ($script:DirectWorkcopyProbeTrusted -and $script:DirectWorkcopyStatusCode) {
       Write-Output ("    4. 실제 작업복사본 direct probe의 다음 상태: {0}" -f $script:DirectWorkcopyStatusCode)
       if ($script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") {
@@ -1084,7 +1084,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "  DR_A4_Outline outside-marker evidence exists for the current title-missing sample:"
     Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair with official small outside markers."
     Write-Output "    2. SWTITLEPREPARE now accepts that definition as ready-native-outside-markers when geometry/raw-selection checks pass."
-    Write-Output "    3. Run the focused title-missing/frame-only convert probe for the current A4 sample or the full hidden suite before using this on the real work-copy."
+    Write-Output "    3. Run the focused title-missing/frame-only convert probe for the current A4-sized source-title-missing sample or the full hidden suite before using this on the real work-copy."
     Write-Output "    4. Production title-missing/frame-only sheets must still not create an extra DR_titlea_3rd."
     Write-Output ""
     Write-Output "  Hidden suite verification path:"
@@ -1125,7 +1125,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output ""
     Write-Output "  Hidden suite verification path after A4 comparison/code changes:"
   } elseif ($a4InvestigationPreferred) {
-    Write-Output "  Title-missing definition investigation continuation (current A4 sample):"
+    Write-Output "  Title-missing definition investigation continuation (current A4-sized source-title-missing sample):"
     Write-Output ("    1. Confirm the open GstarCAD drawing matches: {0}" -f $script:LatestCadDwg)
     Write-Output "    2. If SWTITLEPREPARE was not tried in this exact open DWG state, run SWTITLEPREPARE once and then SWTITLESTATUS."
     Write-Output "    3. If SWTITLESTATUS still reports NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION, do not repeat SWTITLEPREPARE/SWTITLECONVERT."
@@ -1174,12 +1174,12 @@ if ($existingGstarCAD.Count -gt 0) {
         Write-Output ("       처리 유형: {0}" -f $script:DirectWorkcopyNextMissingRole)
       }
     }
-    Write-Output "    6. title-missing/frame-only A4 샘플 증거는 배경 정보입니다. SWTITLESTATUS가 요구하기 전에는 그 단계로 건너뛰지 않습니다."
+    Write-Output "    6. title-missing/frame-only A4 크기 샘플 증거는 source-title-missing 배경 정보입니다. SWTITLESTATUS가 요구하기 전에는 그 단계로 건너뛰지 않습니다."
   } elseif ($a4FrameOnlyProductionPathVerified) {
-    Write-Output "  title-missing/frame-only 예외 경로는 현재 A4 샘플로 검증됨:"
-    Write-Output "    1. 현재 A4 샘플 scratch probe에서 공식 작은 바깥 마커를 가진 실제 native GMTITLE 쌍을 확인했습니다."
+    Write-Output "  source-title-missing 예외 경로는 현재 A4 크기 샘플로 검증됨(용지 전용 정책 아님):"
+    Write-Output "    1. 현재 A4 크기 source-title-missing scratch probe에서 공식 작은 바깥 마커를 가진 실제 native GMTITLE 쌍을 확인했습니다."
     Write-Output "    2. SWTITLEPREPARE는 형상/raw-selection 검사가 통과하면 이 정의를 ready-native-outside-markers로 허용합니다."
-    Write-Output "    3. title-missing/frame-only convert probe는 원본 표제란이 없는 현재 A4 샘플을 추가 DR_titlea_3rd 없이 DR_A4_Outline 도면틀 1개로 마무리했습니다."
+    Write-Output "    3. title-missing/frame-only convert probe는 원본 표제란이 없는 현재 A4 크기 샘플을 추가 DR_titlea_3rd 없이 DR_A4_Outline 도면틀 1개로 마무리했습니다."
     Write-Output "    4. 전체 hidden suite에도 이 probe와 A4 변환 기대값이 포함되어 있습니다."
     Write-Output "  다음 실제 작업복사본 단계:"
     if ($script:DirectWorkcopyProbeTrusted -and $script:DirectWorkcopyStatusCode) {
@@ -1209,7 +1209,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "  DR_A4_Outline outside-marker evidence exists for the current title-missing sample:"
     Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair with official small outside markers."
     Write-Output "    2. SWTITLEPREPARE now accepts that definition as ready-native-outside-markers when geometry/raw-selection checks pass."
-    Write-Output "    3. Run the focused title-missing/frame-only convert probe for the current A4 sample or the full hidden suite before using this on the real work-copy."
+    Write-Output "    3. Run the focused title-missing/frame-only convert probe for the current A4-sized source-title-missing sample or the full hidden suite before using this on the real work-copy."
     Write-Output "    4. Production title-missing/frame-only sheets must still not create an extra DR_titlea_3rd."
   } elseif ($a4NativeOutsideMarkerDecisionNeeded) {
     Write-Output "  DR_A4_Outline native outside-marker decision for the current sample:"
