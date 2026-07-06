@@ -763,9 +763,9 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
     }
     if ($script:A4NativeExemplarMinorOutside) {
       if ($script:A4PrepareProbeReadyWithNativeOutside) {
-        Write-Output "  DR_A4_Outline native exemplar decision: official native outside markers are tolerated when effective A4 geometry and raw-selection checks pass."
+        Write-Output "  DR_A4_Outline native exemplar decision: official native outside markers are tolerated for this A4-sized source-title-missing sample when effective geometry and raw-selection checks pass."
       } else {
-        Write-Output "  DR_A4_Outline native exemplar decision: native A4 itself carries small outside marker geometry. Do not treat exact (0,0)-(210,297) raw bbox mismatch as proof of contamination by itself; production still needs an explicit keep/crop/tolerate decision before changing source-title-missing/frame-only conversion."
+        Write-Output "  DR_A4_Outline native exemplar decision: this A4-sized native sample carries small outside marker geometry. Do not treat exact (0,0)-(210,297) raw bbox mismatch as proof of contamination by itself; production still needs explicit source-title-missing evidence before outline-only conversion."
       }
     }
   } else {

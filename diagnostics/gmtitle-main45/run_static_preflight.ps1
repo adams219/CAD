@@ -1051,7 +1051,7 @@ Assert-Contains -Text $goalStatusText -Needle "SWTITLEPREPARE를 실행해 제�
 Assert-Contains -Text $goalStatusText -Needle "이 상태에서는 SWTITLECONVERTNEXT로 다음 용지를 만들지 않습니다" -Label "Goal status orphan target frame blocks convert-next"
 Assert-Contains -Text $goalStatusText -Needle "DR_A4_Outline definition decision" -Label "Goal status DR_A4 definition decision guidance"
 Assert-Contains -Text $goalStatusText -Needle "superseded by the official native outside marker policy" -Label "Goal status A4 superseded normalization guidance"
-Assert-Contains -Text $goalStatusText -Needle "official native outside markers are tolerated when effective A4 geometry and raw-selection checks pass" -Label "Goal status A4 adopted outside marker policy"
+Assert-Contains -Text $goalStatusText -Needle "official native outside markers are tolerated for this A4-sized source-title-missing sample when effective geometry and raw-selection checks pass" -Label "Goal status source-title-missing sample outside marker policy"
 Assert-Contains -Text $goalStatusText -Needle "Title-missing definition investigation continuation" -Label "Goal status title-missing nested probe continuation guidance"
 Assert-Contains -Text $goalStatusText -Needle "DR_A4_Outline normalization candidate review" -Label "Goal status DR_A4 safe-candidate review guidance"
 Assert-Contains -Text $goalStatusText -Needle "DR_A4_Outline native comparison investigation" -Label "Goal status DR_A4 unsafe-nested fallback guidance"

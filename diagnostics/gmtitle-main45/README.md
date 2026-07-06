@@ -170,7 +170,7 @@ actual work-copy first native guidance: A2 -> DR_A2_Outline + DR_titlea_3rd
 post-first-native marker gate proves an A2 target pair with only SWTITLE markers is not accepted as the first native GMTITLE; real GMTITLE internal native-link evidence is still required before the workflow can advance to the A3 native exemplar step
 A4 native exemplar gap: saved default work-copy has two frame-only sources but no DR_A4_Outline definition or target insert yet
 A4 clean scratch evidence: `work\scratch_native_a4_clean_260705.dwg` was saved from a clean gcadiso.dwt CAD test after DR_A4_Outline / DR_titlea_3rd inserted at 0,0 without the frame creation error; it still needs the focused A4 native exemplar probe after GstarCAD is closed
-A4 native outside marker prepare: imported DR_A4_Outline definitions with official small native outside markers are accepted when effective geometry/raw-selection checks pass; excessive raw bbox or raw-selection warnings still preserve the original A4 source frames
+A4-sized source-title-missing outside marker prepare: imported DR_A4_Outline definitions with official small native outside markers are accepted for the sample only when effective geometry/raw-selection checks pass; excessive raw bbox or raw-selection warnings still preserve the original source frames
 SWTITLECONVERT script guard aborts in SCRIPT mode without changing source/target counts, INSERT count, or DBMOD
 mixed/all_contaminated/all_native frame-class PASS results
 A2/A3/A4 style-normalization record count 3 -> 0 after rebuild cleanup
