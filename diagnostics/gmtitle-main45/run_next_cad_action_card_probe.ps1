@@ -126,7 +126,7 @@ function Write-FakeLog {
     "native-like-target-pair-count: 1",
     "non-native-like-target-pair-count: 12",
     "cloned-gmtitle-pair-count: 12",
-    "a3a4-native-upgrade-candidate-count: 12",
+    "a2a3a4-native-upgrade-candidate-count: 12",
     "orphan-target-frame-count: 0",
     "duplicate-target-pair-count: 0",
     "dbmod-after-commands: 0"
@@ -220,7 +220,7 @@ Invoke-CardCase `
 Invoke-CardCase `
   -Name "native_upgrade" `
   -Status "NEXT_UPGRADE_NATIVE_GMTITLE" `
-  -Expected @("Result: RUN_NATIVE_REPLACEMENT", "SWTITLECONVERTNEXT", "SWTITLECONVERT", "OPEN", "BATCH", "MANUAL", "A3/A4", "12")
+  -Expected @("Result: RUN_NATIVE_REPLACEMENT", "SWTITLECONVERTNEXT", "SWTITLECONVERT", "OPEN", "BATCH", "MANUAL", "A2/A3/A4", "12")
 
 Invoke-CardCase `
   -Name "structure_review" `

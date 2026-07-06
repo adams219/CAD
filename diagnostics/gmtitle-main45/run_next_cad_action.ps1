@@ -440,7 +440,10 @@ function Write-ManualSelectionForecast {
   $nativeLikeTargetPairCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*native-like-target-pair-count:\s*(\d+)"
   $nonNativeLikeTargetPairCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*non-native-like-target-pair-count:\s*(\d+)"
   $clonedPairCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*cloned-gmtitle-pair-count:\s*(\d+)"
-  $a3a4NativeUpgradeCandidateCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*a3a4-native-upgrade-candidate-count:\s*(\d+)"
+  $a3a4NativeUpgradeCandidateCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*a2a3a4-native-upgrade-candidate-count:\s*(\d+)"
+  if (-not $a3a4NativeUpgradeCandidateCount) {
+    $a3a4NativeUpgradeCandidateCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*a3a4-native-upgrade-candidate-count:\s*(\d+)"
+  }
 
   Write-Output ""
   Write-Output "예상 수동 GMTITLE 확인량:"
@@ -807,7 +810,10 @@ while ($true) {
   $nativeLikeTargetPairCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*native-like-target-pair-count:\s*(\d+)"
   $nonNativeLikeTargetPairCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*non-native-like-target-pair-count:\s*(\d+)"
   $clonedPairCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*cloned-gmtitle-pair-count:\s*(\d+)"
-  $a3a4NativeUpgradeCandidateCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*a3a4-native-upgrade-candidate-count:\s*(\d+)"
+  $a3a4NativeUpgradeCandidateCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*a2a3a4-native-upgrade-candidate-count:\s*(\d+)"
+  if (-not $a3a4NativeUpgradeCandidateCount) {
+    $a3a4NativeUpgradeCandidateCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*a3a4-native-upgrade-candidate-count:\s*(\d+)"
+  }
   $orphanTargetFrameCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*orphan-target-frame-count:\s*(\d+)"
   $duplicateTargetPairCount = Get-FirstRegexValue -Text $probeText -Pattern "^\s*duplicate-target-pair-count:\s*(\d+)"
 

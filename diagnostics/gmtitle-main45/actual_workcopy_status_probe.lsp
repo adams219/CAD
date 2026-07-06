@@ -248,7 +248,7 @@
           (swtitle-diag45-write-line handle (strcat "  native-like-target-pair-count: " (itoa native-like-pair-count)))
           (swtitle-diag45-write-line handle (strcat "  non-native-like-target-pair-count: " (itoa non-native-like-pair-count)))
           (swtitle-diag45-write-line handle (strcat "  cloned-gmtitle-pair-count: " (itoa cloned-pair-count)))
-          (swtitle-diag45-write-line handle (strcat "  a3a4-native-upgrade-candidate-count: " (itoa a3a4-native-upgrade-count)))
+          (swtitle-diag45-write-line handle (strcat "  a2a3a4-native-upgrade-candidate-count: " (itoa a3a4-native-upgrade-count)))
           (swtitle-diag45-write-line handle (strcat "  orphan-target-frame-count: " (itoa orphan-target-frame-count)))
           (swtitle-diag45-write-line handle (strcat "  duplicate-target-pair-count: " (itoa duplicate-target-pair-count)))
           (swtitle-diag45-write-line handle (strcat "  next-step-log: " next-step-log))
