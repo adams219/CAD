@@ -9,7 +9,7 @@
 ;;;
 ;;; The fixture creates DR_A2/A3/A4 frame definitions that contain title-like
 ;;; geometry in the frame definition itself, with no separate DR_titlea_3rd
-;;; insert. This isolates the A3/A4 problem where the paper frame already
+;;; insert. This isolates the A2/A3/A4 problem where the paper frame already
 ;;; carries title geometry before conversion.
 
 (defun swtitle-embedcmp-root (/ root)

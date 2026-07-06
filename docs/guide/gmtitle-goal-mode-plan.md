@@ -20,7 +20,7 @@
 정적 preflight: PASS
 hidden verification suite: PASS 여부는 `run_goal_status.ps1`가 최신 `work\main56_verification_suite_last_run.txt`의 Generated/Result를 읽어 판단
 GstarCAD /b script smoke probe: PASS
-GMTITLE LSP 버전: 260706-unified-title-missing-7
+GMTITLE LSP 버전: 260706-unified-title-missing-8
 loader 버전: 260706-loader-convert-next-response-guidance
 공개 사용자 명령: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLECONVERT, SWTITLEVERIFY, SWTITLEVERSION, SWSCALESCAN
 A4 raw bbox guard: 있음
@@ -320,7 +320,7 @@ nested-direct-outside probe:
 ```text
 LSP 기준:
 loader: 260706-loader-convert-next-response-guidance
-gmtitle: 260706-unified-title-missing-7
+gmtitle: 260706-unified-title-missing-8
 
 작업 도면:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
@@ -361,7 +361,7 @@ work\swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
 ```text
 신뢰 가능:
   DWG 파일이 현재 열린 work 복사본과 같음
-  SWTITLE LSP 버전이 260706-unified-title-missing-7
+  SWTITLE LSP 버전이 260706-unified-title-missing-8
   방금 실행한 명령 결과임
 
 신뢰 보류:
@@ -391,7 +391,7 @@ title-missing/frame-only 미처리:
 
 BATCH 자동화:
   사람이 보는 CAD 화면에서만 반복 입력을 줄이는 보조 기능
-  근거: SCRIPT 실행 중에는 ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE로 멈추고 후보를 보존하는 probe 통과
+  근거: SCRIPT 실행 중에는 ABORT_NATIVE_GMTITLE_BATCH_SCRIPT_ACTIVE로 멈추고 후보를 보존하는 probe 통과
 
 잔여물/삭제 위험:
   삭제 범위를 좁히는 보호 로직 검증됨
@@ -415,7 +415,7 @@ BATCH 자동화:
 
 | 작업 단위 | 해결하려는 질문 | 통과 증거 | 통과 전 금지 |
 | --- | --- | --- | --- |
-| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260706-unified-title-missing-7`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
+| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260706-unified-title-missing-8`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
 | 첫 native 기준 객체 | 이 DWG 안에 실제 GMTITLE 쌍이 최소 1개 있는가 | `target-title-count > 0`, 같은 크기 `DR_A*_Outline` 기준 객체 존재 | clone/fast batch 완료 판단 |
 | A2/A3/A4 native 교체 | 겉보기 복제본이 아니라 fresh native 쌍인가 | `A2/A3/A4 native 교체 후보: 0`, clone/shared-link 경고 0 | 도면틀 더블클릭만 보고 성공 판정 |
 | title-missing/frame-only | 원본에 없는 제목블록 없이 도면틀만 교체됐는가 | title-missing 도면틀-only 대상 수와 예상 수량 일치, 불필요한 `DR_titlea_3rd` 없음 | 원본에 없던 제목블록 생성 |
@@ -623,7 +623,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260706-unified-title-missing-7
+260706-unified-title-missing-8
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...
@@ -643,7 +643,7 @@ NEXT_CREATE_FIRST_NATIVE_GMTITLE
   -> 아직 이 도면 안에 실제 GstarCAD native GMTITLE 기준 객체가 없다.
   -> 다음 명령은 SWTITLECONVERTNEXT.
 
-NEXT_UPGRADE_A3_A4_NATIVE
+NEXT_UPGRADE_NATIVE_GMTITLE
   -> A2/A3/A4 복제 또는 shared-link 쌍을 fresh native GMTITLE로 교체해야 한다.
   -> 다음 명령은 SWTITLECONVERTNEXT.
 
@@ -669,7 +669,7 @@ SWTITLEVERIFY 안내
 `NEXT_CREATE_FIRST_NATIVE_GMTITLE`이면 아직 A2/A3/A4 교체 단계가 아니라, 먼저 첫 A2 native
 GMTITLE 기준 객체를 만들어야 한다.
 
-A2/A3/A4 native 교체 설명은 `SWTITLESTATUS`가 `NEXT_UPGRADE_A3_A4_NATIVE`를 출력한 뒤에만
+A2/A3/A4 native 교체 설명은 `SWTITLESTATUS`가 `NEXT_UPGRADE_NATIVE_GMTITLE`를 출력한 뒤에만
 적용한다. 이 조건 없이 A2/A3/A4 교체 절차를 따라 하면 과거 중간 workcopy 상태를 현재 도면에
 잘못 적용하게 된다.
 
@@ -689,7 +689,7 @@ YES
   첫 native GMTITLE 기준 객체를 1장 만든다.
 
 OPEN
-  NEXT_UPGRADE_A3_A4_NATIVE 상태에서 쓴다.
+  NEXT_UPGRADE_NATIVE_GMTITLE 상태에서 쓴다.
   다음 A2/A3/A4 native 교체 후보 1장만 처리한다.
 
 MANUAL
@@ -853,7 +853,7 @@ SWTITLECONVERTNEXT가 좌표 계산과 기존 값 복사를 처리한다.
 OPEN 성공 뒤 BATCH로 여러 후보를 이어서 처리한다.
 OPEN이 `NO_INSERTS`로 반복되면 MANUAL prepare/finish 복구 흐름을 사용한다.
 각 GMTITLE 창의 DR 선택은 사람이 눈으로 확인한다.
-SCRIPT/숨김 CAD 자동화에서는 BATCH가 ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE로 멈추고 후보를 보존해야 한다.
+SCRIPT/숨김 CAD 자동화에서는 BATCH가 ABORT_NATIVE_GMTITLE_BATCH_SCRIPT_ACTIVE로 멈추고 후보를 보존해야 한다.
 SWTITLECONVERT 자체도 SCRIPT/숨김 CAD 자동화에서는 ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE로 멈추고 원본/대상/INSERT/DBMOD를 보존해야 한다.
 ```
 
@@ -979,7 +979,7 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 
 ```text
 1. APPLOAD로 C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp 로드
-2. SWTITLEVERSION으로 gmtitle 버전이 260706-unified-title-missing-7인지 확인
+2. SWTITLEVERSION으로 gmtitle 버전이 260706-unified-title-missing-8인지 확인
 3. SWTITLESTATUS로 현재 상태 확인
 4. 기본 workcopy라면 NEXT_CREATE_FIRST_NATIVE_GMTITLE인지 확인
 5. SWTITLECONVERTNEXT 실행

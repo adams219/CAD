@@ -447,7 +447,7 @@ function Write-ManualSelectionForecast {
       Write-Output "  - 이 크기의 기준 객체가 생긴 뒤 같은 크기 나머지는 자동/일괄 처리 후보가 됩니다."
       return
     }
-    "^NEXT_UPGRADE_A3_A4_NATIVE$" {
+    "^NEXT_UPGRADE_NATIVE_GMTITLE$" {
       if ($a3a4NativeUpgradeCandidateCount) {
         Write-Output ("  - 현재 A2/A3/A4 native 교체 후보: {0}개" -f $a3a4NativeUpgradeCandidateCount)
       }
@@ -614,7 +614,7 @@ function Write-StatusBasedAction {
       return
     }
 
-    "^NEXT_UPGRADE_A3_A4_NATIVE$" {
+    "^NEXT_UPGRADE_NATIVE_GMTITLE$" {
       Write-Output "Result: RUN_NATIVE_REPLACEMENT"
       Write-ManualLoadStep
       Write-ConvertCommandStep

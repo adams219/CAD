@@ -1,4 +1,4 @@
-;;; Synthetic probe for the A3/A4 BATCH automation guard.
+﻿;;; Synthetic probe for the A3/A4 BATCH automation guard.
 ;;; The PowerShell wrapper sets:
 ;;;   SWCAD_TOOL_ROOT
 ;;;   SWCAD_COMPARE_LSP
@@ -169,7 +169,7 @@
               (= before-candidates 2)
               (= after-candidates 2)
               (= before-inserts after-inserts)
-              (equal status "ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE")
+              (equal status "ABORT_NATIVE_GMTITLE_BATCH_SCRIPT_ACTIVE")
             )
           )
           (swtitle-batchguard-write-line handle (strcat "Batch guard preserved candidates: " (if pass "yes" "no")))

@@ -332,7 +332,7 @@ The card now interprets common saved status codes directly:
 
 ```text
 NEXT_CREATE_FIRST_NATIVE_GMTITLE / NEXT_CREATE_MISSING_NATIVE_EXEMPLAR -> SWTITLECONVERTNEXT, or SWTITLECONVERT only when choosing responses manually
-NEXT_UPGRADE_A3_A4_NATIVE -> SWTITLECONVERTNEXT native replacement, or SWTITLECONVERT only when choosing OPEN/BATCH/MANUAL manually
+NEXT_UPGRADE_NATIVE_GMTITLE -> SWTITLECONVERTNEXT native replacement, or SWTITLECONVERT only when choosing OPEN/BATCH/MANUAL manually
 NEXT_PREPARE_* -> SWTITLEPREPARE, then SWTITLESTATUS
 NEXT_REVIEW_* / ABORT_* / WARN_* -> do not repeat SWTITLECONVERTNEXT/SWTITLECONVERT; inspect SWTITLESTATUS/SWTITLEVERIFY logs first
 SWTITLEVERIFY_FINAL_OK -> manual representative title-block double-click check
@@ -408,7 +408,7 @@ work\swtitle_a4_outline_prepare_probe_260705.txt
 Expected result for the current installed `DR_A4_Outline` state:
 
 ```text
-Loaded version: 260706-unified-title-missing-7
+Loaded version: 260706-unified-title-missing-8
 Before definition status: missing
 Prepare result: OK status=OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED
 After definition status: ready-native-outside-markers
@@ -670,7 +670,7 @@ Expected result:
 
 ```text
 Loaded loader version: 260706-loader-convert-next-response-guidance
-Loaded GMTITLE version: 260706-unified-title-missing-7
+Loaded GMTITLE version: 260706-unified-title-missing-8
 Command-line -GMTITLE default enabled: no
 SCRIPT command-line -GMTITLE enabled: no
 Command c:SWTITLESTATUS: yes
@@ -692,10 +692,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260706-unified-title-missing-7
+Loaded version: 260706-unified-title-missing-8
 A2/A3/A4 candidate count before SWTITLESTATUS: 1
 SWTITLESTATUS result: OK
-Status after SWTITLESTATUS: NEXT_UPGRADE_A3_A4_NATIVE
+Status after SWTITLESTATUS: NEXT_UPGRADE_NATIVE_GMTITLE
 A3 frame guidance note found: yes
 A3 native-candidate supplement found: yes
 A3 status guidance probe passed: yes
@@ -714,9 +714,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260706-unified-title-missing-7
+Loaded version: 260706-unified-title-missing-8
 Script active: yes
-Status after batch: ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE
+Status after batch: ABORT_NATIVE_GMTITLE_BATCH_SCRIPT_ACTIVE
 Candidates before/after: 2/2
 INSERT count before/after: 4/4
 Batch guard preserved candidates: yes
@@ -735,7 +735,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260706-unified-title-missing-7
+Loaded version: 260706-unified-title-missing-8
 Script active before convert: yes
 Status after convert: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE
 Source titles before/after: 12/12

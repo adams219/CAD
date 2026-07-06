@@ -28,7 +28,7 @@ GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 
 현재 LSP 버전:
 
 ```text
-260706-unified-title-missing-7
+260706-unified-title-missing-8
 ```
 
 현재 loader 버전은 `SWTITLEVERSION`에서 함께 확인합니다.
@@ -196,7 +196,7 @@ Style-normalization record count after clean: 0
 최종 gate 결과:
 
 ```text
-SWTITLESTATUS: NEXT_UPGRADE_A3_A4_NATIVE
+SWTITLESTATUS: NEXT_UPGRADE_NATIVE_GMTITLE
 SWTITLEVERIFY: SWTITLEVERIFY_FINAL_FAIL
 source-title-count: 0
 source-frame-count: 2

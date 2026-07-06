@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-7",
+  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-8",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -342,7 +342,7 @@ Assert-Contains -Text $mainText -Needle "A2/A3/A4 native-like completion:" -Labe
 Assert-NotContains -Text $mainText -Needle "복제된 A3/A4 GMTITLE" -Label "No stale visible A3/A4-only native replacement wording"
 Assert-NotContains -Text $mainText -Needle "교체된 A3/A4 native 도면틀" -Label "No stale visible A3/A4-only geometry wording"
 Assert-NotContains -Text $mainText -Needle "SCRIPT 실행 중에는 A3/A4 대화식 교체" -Label "No stale visible A3/A4-only interactive wording"
-Assert-NotContains -Text $mainText -Needle '("NEEDS_NATIVE_A3A4_UPGRADE" . "A3/A4 GMTITLE 중' -Label "No stale visible A3/A4-only trusted-pair wording"
+Assert-NotContains -Text $mainText -Needle '("NEEDS_NATIVE_GMTITLE_UPGRADE" . "A3/A4 GMTITLE 중' -Label "No stale visible A3/A4-only trusted-pair wording"
 Assert-NotContains -Text $mainText -Needle "이미 만들어진 A3/A4 GMTITLE" -Label "No stale visible A3/A4-only created-pair wording"
 Assert-NotContains -Text $mainText -Needle "일반 A3/A4 또는 ISO" -Label "No stale visible ordinary A3/A4 default wording"
 Assert-NotContains -Text $mainText -Needle "SWTITLECONVERT A3/A4" -Label "No stale visible A3/A4-only convert heading"
@@ -356,7 +356,7 @@ Assert-Contains -Text $mainText -Needle "ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE
 Assert-Contains -Text $mainText -Needle "INTERACTIVE_GMTITLE_EXCEPTION" -Label "Interactive GMTITLE exception guard status"
 Assert-Contains -Text $mainText -Needle "'swcad-title-run-native-gmtitle" -Label "Interactive GMTITLE exception wrapper"
 Assert-Contains -Text $mainText -Needle "기존 SOLIDWORKS 표제란/도면틀 내용은 삭제하지 않았습니다." -Label "Interactive GMTITLE exception preserves source"
-Assert-Contains -Text $mainText -Needle "ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE" -Label "A3/A4 batch script guard"
+Assert-Contains -Text $mainText -Needle "ABORT_NATIVE_GMTITLE_BATCH_SCRIPT_ACTIVE" -Label "A2/A3/A4 batch script guard"
 Assert-Contains -Text $mainText -Needle "c:SWTITLECONVERTNEXT" -Label "SWTITLECONVERTNEXT public command"
 Assert-Contains -Text $mainText -Needle "*swcad-title-convert-next-mode*" -Label "SWTITLECONVERTNEXT auto-next mode flag"
 Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT auto response" -Label "SWTITLECONVERTNEXT auto response log"
@@ -469,9 +469,9 @@ Assert-Contains -Text $readmeText -Needle "no-CAD next-action card probe" -Label
 Assert-Contains -Text $readmeText -Needle "Structure next action: SWTITLECONVERTNEXT" -Label "README structure next action recommends convert-next"
 Assert-NotContains -Text $readmeText -Needle "Structure next action: SWTITLECONVERT`r`n" -Label "README stale structure next action"
 Assert-Contains -Text $readmeText -Needle "NEXT_CREATE_FIRST_NATIVE_GMTITLE / NEXT_CREATE_MISSING_NATIVE_EXEMPLAR -> SWTITLECONVERTNEXT" -Label "README first-native status recommends convert-next"
-Assert-Contains -Text $readmeText -Needle "NEXT_UPGRADE_A3_A4_NATIVE -> SWTITLECONVERTNEXT native replacement" -Label "README native-upgrade status recommends convert-next"
+Assert-Contains -Text $readmeText -Needle "NEXT_UPGRADE_NATIVE_GMTITLE -> SWTITLECONVERTNEXT native replacement" -Label "README native-upgrade status recommends convert-next"
 Assert-NotContains -Text $readmeText -Needle "NEXT_CREATE_FIRST_NATIVE_GMTITLE / NEXT_CREATE_MISSING_NATIVE_EXEMPLAR -> SWTITLECONVERT`r`n" -Label "README stale first-native direct convert mapping"
-Assert-NotContains -Text $readmeText -Needle "NEXT_UPGRADE_A3_A4_NATIVE -> SWTITLECONVERT native replacement" -Label "README stale native-upgrade direct convert mapping"
+Assert-NotContains -Text $readmeText -Needle "NEXT_UPGRADE_NATIVE_GMTITLE -> SWTITLECONVERT native replacement" -Label "README stale native-upgrade direct convert mapping"
 Assert-Contains -Text $readmeText -Needle "A4 native outside marker prepare" -Label "README A4 native marker prepare guidance"
 Assert-Contains -Text $readmeText -Needle "nested-direct-outside" -Label "README nested-direct A4 probe guidance"
 Assert-Contains -Text $readmeText -Needle "run_gmtitle_selection_config_probe.ps1" -Label "README GMTITLE selection config probe guidance"
@@ -697,7 +697,7 @@ Assert-Contains -Text $readmeText -Needle "SKIP_OPEN_NO_GSTARCAD" -Label "README
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "Next CAD action card probe result: PASS" -Label "Next CAD action card probe pass marker"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_CREATE_FIRST_NATIVE_GMTITLE" -Label "Next CAD action card probe first-native case"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION" -Label "Next CAD action card probe title-missing prepare case"
-Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_UPGRADE_A3_A4_NATIVE" -Label "Next CAD action card probe native-upgrade case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_UPGRADE_NATIVE_GMTITLE" -Label "Next CAD action card probe native-upgrade case"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_REVIEW_TARGET_FRAME_GEOMETRY" -Label "Next CAD action card probe structure-review case"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS" -Label "Next CAD action card probe abort-warning case"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "SWTITLEVERIFY_FINAL_OK" -Label "Next CAD action card probe final-ok case"
@@ -897,7 +897,7 @@ Assert-Contains -Text $runCardText -Needle "BATCH는 OPEN으로 최소 1장 성�
 Assert-Contains -Text $runCardText -Needle "SWTITLECONVERTNEXT" -Label "Run card convert-next shortcut guidance"
 Assert-Contains -Text $runCardText -Needle '`SWTITLECONVERTNEXT`를 쓴 경우에는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않습니다' -Label "Run card no extra convert-next response guidance"
 Assert-Contains -Text $runCardText -Needle '| `NEXT_CREATE_FIRST_NATIVE_GMTITLE` | 아직 실제 native GMTITLE 기준 객체가 없음 | `SWTITLECONVERTNEXT` |' -Label "Run card first-native recommends convert-next"
-Assert-Contains -Text $runCardText -Needle '| `NEXT_UPGRADE_A3_A4_NATIVE` | A2/A3/A4 복제/shared-link 쌍을 fresh native로 교체해야 함 | `SWTITLECONVERTNEXT` |' -Label "Run card A3A4 recommends convert-next"
+Assert-Contains -Text $runCardText -Needle '| `NEXT_UPGRADE_NATIVE_GMTITLE` | A2/A3/A4 복제/shared-link 쌍을 fresh native로 교체해야 함 | `SWTITLECONVERTNEXT` |' -Label "Run card native-upgrade recommends convert-next"
 Assert-Contains -Text $runCardText -Needle "docs/history" -Label "Run card history-doc warning"
 Assert-Contains -Text $runCardText -Needle "docs/investigations" -Label "Run card investigations-doc warning"
 Assert-Contains -Text $runCardText -Needle 'A2/A3/A4는 모두 `DR_A*_Outline + DR_titlea_3rd` 공통 GMTITLE 흐름으로 판단' -Label "Run card unified GMTITLE current standard"

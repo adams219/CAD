@@ -86,7 +86,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260706-unified-title-missing-7
+260706-unified-title-missing-8
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -348,7 +348,7 @@ All expected log markers were verified.
 ```text
 NEXT_CREATE_FIRST_NATIVE_GMTITLE -> SWTITLECONVERTNEXT 권장, 수동 응답 직접 선택 시 SWTITLECONVERT
 NEXT_CREATE_MISSING_NATIVE_EXEMPLAR -> SWTITLECONVERTNEXT 권장, 수동 응답 직접 선택 시 SWTITLECONVERT
-NEXT_UPGRADE_A3_A4_NATIVE -> SWTITLECONVERTNEXT 권장, 수동 응답 직접 선택 시 SWTITLECONVERT
+NEXT_UPGRADE_NATIVE_GMTITLE -> SWTITLECONVERTNEXT 권장, 수동 응답 직접 선택 시 SWTITLECONVERT
 NEXT_PREPARE_* -> SWTITLEPREPARE
 NEXT_REVIEW_* 또는 ABORT_/WARN_ -> 같은 변환 반복 금지, SWTITLESTATUS/SWTITLEVERIFY 로그 확인
 SWTITLEVERIFY_FINAL_OK -> 대표 제목블록 더블클릭 확인
@@ -443,7 +443,7 @@ Object move ON
 | `NEXT_CREATE_FIRST_NATIVE_GMTITLE` | 아직 실제 native GMTITLE 기준 객체가 없음 | `SWTITLECONVERTNEXT` |
 | `NEXT_PREPARE_FRAME_STYLE_NORMALIZATION` | 도면틀 내부 형상과 별도 제목블록이 겹쳐 정규화 필요 | `SWTITLEPREPARE` |
 | `NEXT_REVIEW_ACCIDENTAL_COMMAND_TEXT` | 도면에 실수 명령어 텍스트 후보가 있음 | 후보 확인 후 `SWTITLEPREPARE` |
-| `NEXT_UPGRADE_A3_A4_NATIVE` | A2/A3/A4 복제/shared-link 쌍을 fresh native로 교체해야 함 | `SWTITLECONVERTNEXT` |
+| `NEXT_UPGRADE_NATIVE_GMTITLE` | A2/A3/A4 복제/shared-link 쌍을 fresh native로 교체해야 함 | `SWTITLECONVERTNEXT` |
 | `WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION` | 과거 상태명. 현재 기준으로는 title-missing 예외 전에 해당 DR_A*_Outline 검증 필요 | `SWTITLEPREPARE` |
 | `NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION` | A4 도면틀 정의 준비/검증 필요 | `SWTITLEPREPARE` |
 | `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX` | 도면틀 정의 선택 범위가 위험함 | 변환 반복 금지, 로그 확인 |

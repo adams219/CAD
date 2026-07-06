@@ -61,7 +61,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260706-unified-title-missing-7
+260706-unified-title-missing-8
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 로드합니다.
@@ -237,7 +237,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 
 A2/A3/A4 target이 화면에 보여도 복제/shared-link 구조라면 더블클릭 시 GMTITLE 표 편집창이 아니라 고급 속성 편집기로 열릴 수 있습니다.
 
-`SWTITLESTATUS`가 `NEXT_UPGRADE_A3_A4_NATIVE` 또는 A2/A3/A4 native 교체 후보를 안내하면 title-missing/frame-only 예외보다 먼저 처리합니다.
+`SWTITLESTATUS`가 `NEXT_UPGRADE_NATIVE_GMTITLE` 또는 A2/A3/A4 native 교체 후보를 안내하면 title-missing/frame-only 예외보다 먼저 처리합니다.
 
 ```text
 SWTITLECONVERTNEXT

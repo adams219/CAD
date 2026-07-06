@@ -65,7 +65,7 @@ function New-FakeRepoWorkCopy {
   New-Item -ItemType Directory -Path $workPath -Force | Out-Null
   New-Item -ItemType Directory -Path $gmtitlePath -Force | Out-Null
   Set-Content -LiteralPath (Join-Path $repoPath "swcad_load.lsp") -Encoding ASCII -Value "fake loader"
-  Set-Content -LiteralPath (Join-Path $gmtitlePath "swcad_title_scale.lsp") -Encoding ASCII -Value '(setq *swcad-title-scale-version* "260706-unified-title-missing-7")'
+  Set-Content -LiteralPath (Join-Path $gmtitlePath "swcad_title_scale.lsp") -Encoding ASCII -Value '(setq *swcad-title-scale-version* "260706-unified-title-missing-8")'
   $dwgPath = Join-Path $workPath "$DwgName.dwg"
   Set-Content -LiteralPath $dwgPath -Encoding ASCII -Value "fake dwg marker"
   return @{
@@ -96,8 +96,8 @@ function Write-FakeLog {
     [string]$VerifyStatus = "SWTITLEVERIFY_FINAL_FAIL",
     [string]$Frame = "DR_A2_Outline",
     [string]$Title = "DR_titlea_3rd",
-    [string]$LoadedVersion = "260706-unified-title-missing-7",
-    [string]$ExpectedVersion = "260706-unified-title-missing-7",
+    [string]$LoadedVersion = "260706-unified-title-missing-8",
+    [string]$ExpectedVersion = "260706-unified-title-missing-8",
     [string]$NextMissingFrame,
     [string]$NextMissingTitle,
     [string]$NextMissingRole
@@ -214,7 +214,7 @@ Invoke-CardCase `
 
 Invoke-CardCase `
   -Name "native_upgrade" `
-  -Status "NEXT_UPGRADE_A3_A4_NATIVE" `
+  -Status "NEXT_UPGRADE_NATIVE_GMTITLE" `
   -Expected @("Result: RUN_NATIVE_REPLACEMENT", "SWTITLECONVERTNEXT", "SWTITLECONVERT", "OPEN", "BATCH", "MANUAL", "A3/A4", "12")
 
 Invoke-CardCase `
@@ -235,7 +235,7 @@ Invoke-CardCase `
 
 Invoke-CardCase `
   -Name "stale_log" `
-  -Status "NEXT_UPGRADE_A3_A4_NATIVE" `
+  -Status "NEXT_UPGRADE_NATIVE_GMTITLE" `
   -MakeStale `
   -Expected @("Result: REFRESH_DIRECT_PROBE_FIRST", "Direct probe")
 
@@ -247,7 +247,7 @@ Invoke-CardCase `
 
 Invoke-CardCase `
   -Name "missing_log" `
-  -Status "NEXT_UPGRADE_A3_A4_NATIVE" `
+  -Status "NEXT_UPGRADE_NATIVE_GMTITLE" `
   -MissingLog `
   -Expected @("Result: RELOAD_LSP_AND_CONFIRM_STATUS", "final gate", "-AutoRefreshDirectProbe")
 
