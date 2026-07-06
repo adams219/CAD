@@ -41,6 +41,7 @@ $automationBoundaryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-autom
 $selectionConfigDeepRegistryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-selection-config-deep-registry-2026-07-06.md"
 $guidePaths = @(
   "docs\guide\commands.md",
+  "docs\guide\gmtitle-unified-flow-reset.md",
   "docs\guide\gmtitle-cad-conversion-checklist.md",
   "docs\guide\gmtitle-current-run-card.md",
   "docs\guide\gmtitle-goal-mode-plan.md",
@@ -231,6 +232,7 @@ $finalCompletionGateText = Read-Text $finalCompletionGatePath
 $selectionConfigProbeText = Read-Text $selectionConfigProbePath
 $goalStatusText = Read-Text $goalStatusPath
 $cadTextLogReaderText = Read-Text $cadTextLogReaderPath
+$unifiedFlowResetGuideText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-unified-flow-reset.md")
 $computerUseHistoryText = Read-Text $computerUseHistoryPath
 $computerUseA3DialogHistoryText = Read-Text $computerUseA3DialogHistoryPath
 $commandSurfaceHistoryText = Read-Text $commandSurfaceHistoryPath
@@ -720,12 +722,15 @@ Assert-NoKnownMojibake -Text $automationBoundaryHistoryText -Label "Automation b
 Assert-NoKnownMojibake -Text $selectionConfigDeepRegistryHistoryText -Label "Selection config deep registry history"
 Assert-NoKnownMojibake -Text $finalCompletionGateHistoryText -Label "Final completion gate history"
 Assert-NoKnownMojibake -Text $readmeText -Label "Diagnostics README"
+Assert-NoKnownMojibake -Text $unifiedFlowResetGuideText -Label "Unified flow reset guide"
 Assert-Contains -Text $commandSurfaceHistoryText -Needle "GMTITLE 명령/설정 표면 재확인" -Label "Command surface history readable Korean title"
 Assert-Contains -Text $commandSurfaceHistoryText -Needle "Result: GMTITLE_SELECTION_CONFIG_NOT_FOUND" -Label "Command surface history selection config result"
 Assert-Contains -Text $commandSurfaceHistoryText -Needle "리본 버튼 좌표 클릭은 자동화 근거로 채택하지 않는다" -Label "Command surface history no coordinate automation"
 Assert-Contains -Text $automationBoundaryHistoryText -Needle "GMTITLE 자동화 경계 감사" -Label "Automation boundary history readable Korean title"
 Assert-Contains -Text $automationBoundaryHistoryText -Needle "CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력하지 않는다" -Label "Automation boundary raw command guard"
-Assert-Contains -Text $automationBoundaryHistoryText -Needle "A4는 A2/A3와 같은 제목블록 있는 시트로 취급하지 않는다" -Label "Automation boundary A4 frame-only guard"
+Assert-Contains -Text $unifiedFlowResetGuideText -Needle "A2, A3, A4는 모두 같은 GMTITLE입니다" -Label "Unified reset A2/A3/A4 same-flow rule"
+Assert-Contains -Text $unifiedFlowResetGuideText -Needle '`A4`라는 용지 크기만으로 별도 frame-only 흐름을 선택하지 않습니다' -Label "Unified reset no A4-only frame-only rule"
+Assert-Contains -Text $unifiedFlowResetGuideText -Needle '`frame-only`는 A4 전용 정책이 아닙니다' -Label "Unified reset title-missing exception rule"
 Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "Recent File List" -Label "Selection config deep registry recent-file evidence"
 Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "최근 직접 열었던 파일 기록" -Label "Selection config deep registry non-evidence conclusion"
 Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "자동 선택할 근거가 없다" -Label "Selection config deep registry no-preselection conclusion"

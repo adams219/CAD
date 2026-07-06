@@ -1,5 +1,7 @@
 # GMTITLE 공통 흐름 재정렬 가이드
 
+현재 기준 버전: `260706-unified-title-missing-3`
+
 이 문서는 2026-07-06 이후 GMTITLE 변환 작업의 최우선 guide입니다.
 
 기존 guide, history, investigation 문서에 남아 있는 `A4 frame-only` 표현은 이 문서 기준으로 재해석합니다. 과거 기록은 왜 그런 판단을 했는지 보는 증거이고, 현재 실행 기준은 이 문서입니다.
@@ -183,4 +185,3 @@ SWTITLESTATUS가 A4라는 이유만으로 별도 경로를 안내함
 ```
 
 이 경우는 guide/history를 그대로 따라가지 말고, 이 문서의 공통 흐름 기준으로 원인을 다시 분류합니다.
-
