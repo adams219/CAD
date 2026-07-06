@@ -488,6 +488,12 @@ function Write-ManualSelectionForecast {
       Write-Output "  - 도면틀이 INSERT처럼 보이는 것 자체는 실패 기준이 아니며, 대표 DR_titlea_3rd 제목블록을 확인합니다."
       return
     }
+    "^NEXT_CLEAN_ORPHAN_TARGET_FRAMES$" {
+      Write-Output "  - 제목블록 없는 GMTITLE 도면틀이 남아 있습니다."
+      Write-Output "  - 이 상태에서는 다음 GMTITLE 용지를 만들지 말고 SWTITLEPREPARE로 고아 도면틀을 먼저 정리합니다."
+      Write-Output "  - title-missing 도면틀-only marker가 없는 도면틀은 완료된 title-sheet로 세지 않습니다."
+      return
+    }
     "^SWTITLEVERIFY_FINAL_OK$" {
       Write-Output "  - 새 GMTITLE 생성은 끝난 상태입니다."
       Write-Output "  - 대표 DR_titlea_3rd 제목블록 더블클릭 확인만 남았습니다. title-missing/frame-only 예외는 도면틀 수량/형상으로 확인합니다."
@@ -671,6 +677,16 @@ function Write-StatusBasedAction {
       Write-Output "  SWTITLESTATUS"
       Write-Output "의미: 변환 전에 도면틀 정의나 title-missing/frame-only 준비/검증이 먼저 필요합니다."
       Write-Output "주의: 같은 NEXT_PREPARE 상태가 그대로 반복되면 SWTITLECONVERT를 누르지 말고 로그 원인을 확인하세요."
+      return
+    }
+
+    "^NEXT_CLEAN_ORPHAN_TARGET_FRAMES$" {
+      Write-Output "Result: RUN_PREPARE_FIRST"
+      Write-ManualLoadStep
+      Write-Output "  SWTITLEPREPARE"
+      Write-Output "  SWTITLESTATUS"
+      Write-Output "의미: 제목블록 없는 GMTITLE 도면틀이 남아 있어, 다음 A2/A3/A4 변환으로 넘어가기 전에 정리해야 합니다."
+      Write-Output "주의: 이 도면틀은 title-missing 도면틀-only marker가 없는 한 완료된 title-sheet로 보지 않습니다."
       return
     }
 

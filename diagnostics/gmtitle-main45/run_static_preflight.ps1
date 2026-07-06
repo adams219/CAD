@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260707-unified-title-missing-13",
+  [string]$ExpectedGmtitleVersion = "260707-unified-title-missing-14",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -424,6 +424,8 @@ if (($integratedConvertStart -lt 0) -or ($integratedVerifyStart -le $integratedC
   $titleMissingApplyIndex = $integratedConvertText.IndexOf("(swcad-title-transfer-title-missing-outline-apply)")
   $legacyFrameOnlyApplyIndex = $integratedConvertText.IndexOf("(swcad-title-transfer-frame-only-apply)")
   $titleMissingUnavailableIndex = $integratedConvertText.IndexOf('(swcad-title-apply-result "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE")')
+  $orphanAbortIndex = $integratedConvertText.IndexOf('(swcad-title-apply-result "ABORT_ORPHAN_TARGET_FRAMES_REMAIN")')
+  $nativeUpgradeIndex = $integratedConvertText.IndexOf("((> a3a4-count 0)")
   if ($frameOnlyBranchIndex -lt 0) {
     Add-Failure "SWTITLECONVERT must have a source-count=0/frame-only-count>0 branch."
   }
@@ -438,6 +440,12 @@ if (($integratedConvertStart -lt 0) -or ($integratedVerifyStart -le $integratedC
   }
   if ($titleMissingUnavailableIndex -lt 0) {
     Add-Failure "SWTITLECONVERT must abort when verified title-missing outline-only policy is unavailable."
+  }
+  if ($orphanAbortIndex -lt 0) {
+    Add-Failure "SWTITLECONVERT must stop before continuing when orphan target frames remain."
+  }
+  if (($orphanAbortIndex -ge 0) -and ($nativeUpgradeIndex -ge 0) -and ($nativeUpgradeIndex -lt $orphanAbortIndex)) {
+    Add-Failure "SWTITLECONVERT must clean orphan target frames before A2/A3/A4 native replacement."
   }
   if ($legacyFrameOnlyApplyIndex -ge 0) {
     Add-Failure "SWTITLECONVERT must not call legacy frame-only native fallback."
@@ -461,6 +469,9 @@ if (($integratedConvertStart -lt 0) -or ($integratedVerifyStart -le $integratedC
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-prepare-title-missing-outline-definition (/ frame-block" -Label "Generic title-missing outline prepare implementation"
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-transfer-title-missing-outline-apply (/ *error*" -Label "Generic title-missing outline transfer implementation"
 Assert-Contains -Text $mainText -Needle "swcad-title-transfer-title-missing-outline-apply" -Label "Generic title-missing outline transfer wrapper"
+Assert-Contains -Text $mainText -Needle "NEXT_CLEAN_ORPHAN_TARGET_FRAMES" -Label "SWTITLESTATUS orphan target frame stop status"
+Assert-Contains -Text $mainText -Needle "ABORT_ORPHAN_TARGET_FRAMES_REMAIN" -Label "SWTITLECONVERT orphan target frame guard"
+Assert-Contains -Text $mainText -Needle "제목블록 없는 GMTITLE 도면틀은 title-missing 도면틀-only marker가 없는 한 완료된 title-sheet로 보지 않습니다." -Label "Status refresh orphan frames are not title-sheet complete"
 Assert-NotContains -Text $mainText -Needle "swcad-title-a4-frame-only-" -Label "No legacy A4 frame-only helper aliases"
 Assert-NotContains -Text $mainText -Needle "*swcad-title-allow-a4-frame-only" -Label "No legacy A4 frame-only option alias"
 Assert-NotContains -Text $mainText -Needle "swcad-title-single-a4-frame-only" -Label "No legacy single-A4 frame-only helper"
@@ -654,12 +665,15 @@ Assert-Contains -Text $nextCadActionRunnerText -Needle "기존 로그가 대상 
 Assert-Contains -Text $nextCadActionRunnerText -Needle "예상 수동 GMTITLE 확인량" -Label "Next CAD action manual selection forecast"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "저장된 시트 수량" -Label "Next CAD action expected sheet count forecast"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "title-missing/frame-only {0}장은 원본 표제란 부재가 검증된 경우에만" -Label "Next CAD action title-missing no-title forecast"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "NEXT_CLEAN_ORPHAN_TARGET_FRAMES" -Label "Next CAD action orphan target frame status"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "title-missing 도면틀-only marker가 없는 한 완료된 title-sheet로 보지 않습니다" -Label "Next CAD action orphan target frame blocks title-sheet completion"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "function Convert-LegacyTitleMissingStatusCode" -Label "Next CAD action normalizes legacy A4 title-missing statuses"
 Assert-NotContains -Text $nextCadActionRunnerText -Needle '$hasA4Missing' -Label "Next CAD action must not infer title-missing from A4-missing alone"
 Assert-NotContains -Text $nextCadActionRunnerText -Needle "DR_A3_Outline 또는 DR_A4_Outline" -Label "Next CAD action native replacement guidance must not be A3/A4-only"
 Assert-NotContains -Text $nextCadActionRunnerText -Needle '^NEXT_PREPARE_(TITLE_MISSING_OUTLINE_DEFINITION|A4_FRAME_ONLY_OUTLINE_DEFINITION|FRAME_STYLE_NORMALIZATION)$' -Label "Next CAD action switch must use normalized title-missing prepare status"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLESTATUS가 출력한 DR_A2/A3/A4_Outline" -Label "Next CAD action native replacement guidance uses A2/A3/A4"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "legacy_a4_prepare_status_normalized" -Label "Next CAD action card probe covers legacy A4 prepare status normalization"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "clean_orphan_target_frame" -Label "Next CAD action card probe covers orphan target frame cleanup"
 Assert-Contains -Text $actualDirectStatusProbeText -Needle "a2a3a4-native-upgrade-candidate-count" -Label "Actual workcopy probe native-upgrade candidate count"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "a2a3a4-native-upgrade-candidate-count" -Label "Next CAD action reads A2/A3/A4 native-upgrade candidate count"
 Assert-Contains -Text $actualDirectStatusProbeText -Needle "target-gmtitle-pair-count" -Label "Actual workcopy probe target pair count"

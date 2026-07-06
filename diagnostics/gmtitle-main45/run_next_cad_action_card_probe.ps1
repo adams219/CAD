@@ -65,7 +65,7 @@ function New-FakeRepoWorkCopy {
   New-Item -ItemType Directory -Path $workPath -Force | Out-Null
   New-Item -ItemType Directory -Path $gmtitlePath -Force | Out-Null
   Set-Content -LiteralPath (Join-Path $repoPath "swcad_load.lsp") -Encoding ASCII -Value "fake loader"
-  Set-Content -LiteralPath (Join-Path $gmtitlePath "swcad_title_scale.lsp") -Encoding ASCII -Value '(setq *swcad-title-scale-version* "260707-unified-title-missing-13")'
+  Set-Content -LiteralPath (Join-Path $gmtitlePath "swcad_title_scale.lsp") -Encoding ASCII -Value '(setq *swcad-title-scale-version* "260707-unified-title-missing-14")'
   $dwgPath = Join-Path $workPath "$DwgName.dwg"
   Set-Content -LiteralPath $dwgPath -Encoding ASCII -Value "fake dwg marker"
   return @{
@@ -96,8 +96,8 @@ function Write-FakeLog {
     [string]$VerifyStatus = "SWTITLEVERIFY_FINAL_FAIL",
     [string]$Frame = "DR_A2_Outline",
     [string]$Title = "DR_titlea_3rd",
-    [string]$LoadedVersion = "260707-unified-title-missing-13",
-    [string]$ExpectedVersion = "260707-unified-title-missing-13",
+    [string]$LoadedVersion = "260707-unified-title-missing-14",
+    [string]$ExpectedVersion = "260707-unified-title-missing-14",
     [string]$NextMissingFrame,
     [string]$NextMissingTitle,
     [string]$NextMissingRole
@@ -203,6 +203,11 @@ Invoke-CardCase `
   -Name "prepare_title_missing" `
   -Status "NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION" `
   -Expected @("Result: RUN_PREPARE_FIRST", "SWTITLEPREPARE")
+
+Invoke-CardCase `
+  -Name "clean_orphan_target_frame" `
+  -Status "NEXT_CLEAN_ORPHAN_TARGET_FRAMES" `
+  -Expected @("Result: RUN_PREPARE_FIRST", "SWTITLEPREPARE", "완료된 title-sheet로 보지 않습니다")
 
 Invoke-CardCase `
   -Name "legacy_a4_prepare_status_normalized" `
