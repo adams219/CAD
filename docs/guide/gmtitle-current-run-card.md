@@ -86,7 +86,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260706-unified-title-missing-6
+260706-unified-title-missing-7
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -124,7 +124,7 @@ CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력해서 우회�
 
 즉, 과거에 어떤 도면이 `NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION`이었더라도 지금 열린 도면에 그대로 적용하지 않습니다. 같은 명령을 반복하기 전에 항상 현재 도면의 `SWTITLESTATUS` 또는 direct probe 카드가 요구하는 한 단계만 따릅니다.
 
-A3/A4 참고:
+A2/A3/A4 참고:
 
 ```text
 DR_A3_Outline 도면틀 자체는 native GMTITLE에서도 INSERT/block 참조로 보일 수 있습니다.
@@ -156,11 +156,13 @@ raw selection warning:
 
 convert probe:
 FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER
-After target title count: 0
+Before target title count: 1
+After target title count: 1
+target title delta=0
 After DR_A4_Outline target frame count: 1
 ```
 
-즉 당시 title-missing으로 감지된 A4 케이스는 제목블록을 새로 만들지 않고 `DR_A4_Outline` 도면틀만 교체하는 쪽으로 검증됐습니다. 이 결론은 A4 전체 정책이 아니라 해당 원본 상태에 대한 예외입니다.
+즉 당시 title-missing으로 감지된 A4 케이스는 target title 수를 늘리지 않고 `DR_A4_Outline` 도면틀만 교체하는 쪽으로 검증됐습니다. 이 결론은 A4 전체 정책이 아니라 해당 원본 상태에 대한 예외입니다.
 다만 큰 raw bbox 위험이나 raw selection warning이 나오면 여전히 안전 중단입니다.
 
 scratch native A4 비교는 이미 완료된 과거 조사입니다. 같은 scratch A4를 다시 만들 필요는 없습니다.
@@ -174,7 +176,9 @@ scratch native A4 비교는 이미 완료된 과거 조사입니다. 같은 scra
 2026-07-05 production title-missing/frame-only probe:
   FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER
   After frame-only-count: 1
-  After target title count: 0
+  Before target title count: 1
+  After target title count: 1
+  target title delta=0
   After DR_A4_Outline target frame count: 1
 ```
 
@@ -480,7 +484,7 @@ DR_A*_Outline raw definition bbox가 해당 용지 범위 근처를 벗어나지
 원본에 표제란이 없던 위치에 `DR_titlea_3rd`가 생기면 멈추고 로그를 봅니다.
 `WARN_TITLE_MISSING_OUTLINE_DEFINITION_UNSAFE`는 원본 도면 내용을 지키기 위해 변환을 중단했다는 뜻입니다.
 반대로 `ready-native-outside-markers`는 공식 native 정의의 작은 바깥 마커는 있지만 effective 형상과 raw selection 검사가 통과했다는 뜻입니다.
-`run_a4_outline_convert_probe.ps1` 기준으로는 title-missing/frame-only 1장을 변환한 뒤에도 `After target title count: 0`, `After DR_A4_Outline target frame count: 1`이므로, 원본에 없던 표제란을 만들지 않는 조건을 만족합니다.
+`run_a4_outline_convert_probe.ps1` 기준으로는 title-missing/frame-only 1장을 변환한 뒤에도 `target title delta=0`, `After DR_A4_Outline target frame count: 1`이므로, 원본에 없던 표제란을 추가하지 않는 조건을 만족합니다.
 
 ## 로그를 볼 때 우선순위
 

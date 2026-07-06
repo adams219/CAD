@@ -110,7 +110,7 @@ Before the hidden GstarCAD probes, the suite now runs two no-CAD preflights:
 14. native adoption gate comparison probe
 15. post-first-native marker gate probe
 16. A3 status guidance probe
-17. A3/A4 batch guard probe
+17. A2/A3/A4 native replacement batch guard probe
 18. GMTITLE selection config probe
 
 ```powershell
@@ -179,7 +179,7 @@ sheet residue protection keeps real text, small SW_NOTE balloons, and BOM-like i
 embedded-title prepare comparison proves the plan copy routes native-format title geometry to SWTITLEPREPARE before conversion
 post-first-native marker gate probe proves the code does not mistake marker-only synthetic target pairs for real native GMTITLE evidence
 A3 status guidance probe proves SWTITLESTATUS explains that DR_A3_Outline remains an INSERT/block reference and clone/shared-link candidates are the real unfinished condition
-A3/A4 batch guard probe proves BATCH does not run inside SCRIPT automation and preserves existing candidates
+A2/A3/A4 native replacement batch guard probe proves BATCH does not run inside SCRIPT automation and preserves existing candidates
 GMTITLE selection config probe records that the checked PaperSet/config/deep-registry locations do not expose an active DR_A*_Outline / DR_titlea_3rd preselection value; Recent File List hits are ignored as direct-file open history
 ```
 
@@ -308,7 +308,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_next_cad_action_card_probe.ps1"
 ```
 
-It checks representative status codes such as first-native creation, A4 prepare, A3/A4 native replacement, review/abort states, final OK, stale logs, and missing logs.
+It checks representative status codes such as first-native creation, title-missing outline prepare, A2/A3/A4 native replacement, review/abort states, final OK, stale logs, and missing logs.
 
 Expected result:
 
@@ -408,7 +408,7 @@ work\swtitle_a4_outline_prepare_probe_260705.txt
 Expected result for the current installed `DR_A4_Outline` state:
 
 ```text
-Loaded version: 260706-unified-title-missing-6
+Loaded version: 260706-unified-title-missing-7
 Before definition status: missing
 Prepare result: OK status=OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED
 After definition status: ready-native-outside-markers
@@ -670,7 +670,7 @@ Expected result:
 
 ```text
 Loaded loader version: 260706-loader-convert-next-response-guidance
-Loaded GMTITLE version: 260706-unified-title-missing-6
+Loaded GMTITLE version: 260706-unified-title-missing-7
 Command-line -GMTITLE default enabled: no
 SCRIPT command-line -GMTITLE enabled: no
 Command c:SWTITLESTATUS: yes
@@ -692,8 +692,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260706-unified-title-missing-6
-A3/A4 candidate count before SWTITLESTATUS: 1
+Loaded version: 260706-unified-title-missing-7
+A2/A3/A4 candidate count before SWTITLESTATUS: 1
 SWTITLESTATUS result: OK
 Status after SWTITLESTATUS: NEXT_UPGRADE_A3_A4_NATIVE
 A3 frame guidance note found: yes
@@ -702,9 +702,9 @@ A3 status guidance probe passed: yes
 Runtime check completed: yes
 ```
 
-## A3/A4 Batch Guard Probe
+## A2/A3/A4 Native Replacement Batch Guard Probe
 
-Use `run_a3a4_batch_guard_probe.ps1` to create two synthetic cloned A3 GMTITLE target pairs in a copied DWG and call the internal A3/A4 batch path while GstarCAD is running a script. The expected behavior is to abort before opening interactive GMTITLE and preserve all candidates.
+Use `run_a3a4_batch_guard_probe.ps1` to create synthetic cloned GMTITLE target pairs in a copied DWG and call the internal A2/A3/A4 native replacement batch path while GstarCAD is running a script. The expected behavior is to abort before opening interactive GMTITLE and preserve all candidates.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
@@ -714,7 +714,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260706-unified-title-missing-6
+Loaded version: 260706-unified-title-missing-7
 Script active: yes
 Status after batch: ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE
 Candidates before/after: 2/2
@@ -735,7 +735,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260706-unified-title-missing-6
+Loaded version: 260706-unified-title-missing-7
 Script active before convert: yes
 Status after convert: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE
 Source titles before/after: 12/12

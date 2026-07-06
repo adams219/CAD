@@ -327,7 +327,7 @@ Assert-LogContains `
   -Patterns @(
     "Load result: OK",
     "Loaded loader version: 260706-loader-convert-next-response-guidance",
-    "Loaded GMTITLE version: 260706-unified-title-missing-6",
+    "Loaded GMTITLE version: 260706-unified-title-missing-7",
     "Command-line -GMTITLE default enabled: no",
     "SCRIPT command-line -GMTITLE enabled: no",
     "Command c:SWTITLESTATUS: yes",
@@ -353,7 +353,7 @@ Assert-LogContains `
   -Label "current LSP copy compare probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260706-unified-title-missing-6",
+    "Loaded version: 260706-unified-title-missing-7",
     "Command-line -GMTITLE default enabled: no",
     "SCRIPT command-line -GMTITLE enabled: no",
     "Command c:SWTITLESTATUS: yes",
@@ -385,7 +385,7 @@ Assert-LogContains `
   -Label "actual work-copy status probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260706-unified-title-missing-6",
+    "Loaded version: 260706-unified-title-missing-7",
     "Result: OK SWTITLESTATUS status=NEXT_CREATE_MISSING_NATIVE_EXEMPLAR",
     "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_FAIL",
     "source-title-count: 12",
@@ -431,7 +431,7 @@ Assert-LogContains `
   -Label "A4 native exemplar gap probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260706-unified-title-missing-6",
+    "Loaded version: 260706-unified-title-missing-7",
     "DBMOD before checks: 0",
     "Source frame-only count: 2",
     "A2: 1",
@@ -461,7 +461,7 @@ Assert-LogContains `
   -Label "A4 outline native outside marker prepare probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260706-unified-title-missing-6",
+    "Loaded version: 260706-unified-title-missing-7",
     "Before definition status: missing",
     "Before frame-only-count: 2",
     "Before target-sheet-counts:",
@@ -494,7 +494,7 @@ Assert-LogContains `
   -Label "Title-missing outline convert probe (A4 sample)" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260706-unified-title-missing-6",
+    "Loaded version: 260706-unified-title-missing-7",
     "Before source-title-count: 12",
     "Before frame-only-count: 2",
     "Before target title count: 1",
@@ -523,7 +523,7 @@ Assert-LogContains `
   -Label "SWTITLECONVERT script guard probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260706-unified-title-missing-6",
+    "Loaded version: 260706-unified-title-missing-7",
     "SWTITLECONVERT result: OK",
     "Script active before convert: yes",
     "Status after convert: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE",
@@ -601,7 +601,7 @@ Assert-LogContains `
   -Path $styleNormalizationLog `
   -Label "A2/A3/A4 style-normalization rebuild cleanup probe" `
   -Patterns @(
-    "Loaded version: 260706-unified-title-missing-6",
+    "Loaded version: 260706-unified-title-missing-7",
     "DR_A2_Outline: class=native-format-with-title-geometry",
     "DR_A3_Outline: class=native-format-with-title-geometry",
     "DR_A4_Outline: class=native-format-with-title-geometry",
@@ -623,7 +623,7 @@ Assert-LogContains `
   -Path $commandTextGuardLog `
   -Label "command-text guard comparison probe" `
   -Patterns @(
-    "Loaded version: 260706-unified-title-missing-6",
+    "Loaded version: 260706-unified-title-missing-7",
     "command-text-count-before: 1",
     "SWTITLESTATUS result: OK status=NEXT_REVIEW_ACCIDENTAL_COMMAND_TEXT",
     "structure-next-action: SWTITLEPREPARE",
@@ -643,7 +643,7 @@ Assert-LogContains `
   -Path $residueProtectionLog `
   -Label "sheet residue protection probe" `
   -Patterns @(
-    "Loaded version: 260706-unified-title-missing-6",
+    "Loaded version: 260706-unified-title-missing-7",
     "bottom-left logo line candidate: yes",
     "bottom-left real text preserved: yes",
     "upper small SW_NOTE balloon preserved: yes",
@@ -666,7 +666,7 @@ Assert-LogContains `
   -Path $embeddedPrepareLog `
   -Label "embedded-title prepare comparison probe" `
   -Patterns @(
-    "Loaded version: 260706-unified-title-missing-6",
+    "Loaded version: 260706-unified-title-missing-7",
     "DR_A2_Outline: class=native-format-with-title-geometry, embedded=4",
     "DR_A3_Outline: class=native-format-with-title-geometry, embedded=4",
     "DR_A4_Outline: class=native-format-with-title-geometry, embedded=4",
@@ -692,7 +692,7 @@ Assert-LogContains `
   -Path $duplicateTargetPairLog `
   -Label "duplicate target pair comparison probe" `
   -Patterns @(
-    "Loaded version: 260706-unified-title-missing-6",
+    "Loaded version: 260706-unified-title-missing-7",
     "Duplicate function present: yes",
     "Duplicate target pair count: 1",
     "Keep frame/title role:",
@@ -715,7 +715,7 @@ Assert-LogContains `
   -Path $adoptionGateLog `
   -Label "native adoption gate comparison probe" `
   -Patterns @(
-    "Loaded version: 260706-unified-title-missing-6",
+    "Loaded version: 260706-unified-title-missing-7",
     "Adoption function present: yes",
     "Status after transfer: ADOPTED_EXISTING_NATIVE_GMTITLE_TRANSFER",
     "Danger action: <none>",
@@ -735,7 +735,7 @@ Assert-LogContains `
   -Path $postFirstNativeTransitionLog `
   -Label "post-first-native marker gate probe" `
   -Patterns @(
-    "Loaded version: 260706-unified-title-missing-6",
+    "Loaded version: 260706-unified-title-missing-7",
     "Bootstrap before fixture: A2 / DR_A2_Outline / DR_titlea_3rd",
     "A2 marker-only title native-link kinds: <none>",
     "Source title count after fixture: 12",
@@ -758,8 +758,8 @@ Assert-LogContains `
   -Path $a3StatusGuidanceLog `
   -Label "A3 status guidance probe" `
   -Patterns @(
-    "Loaded version: 260706-unified-title-missing-6",
-    "A3/A4 candidate count before SWTITLESTATUS: 1",
+    "Loaded version: 260706-unified-title-missing-7",
+    "A2/A3/A4 candidate count before SWTITLESTATUS: 1",
     "SWTITLESTATUS result: OK",
     "Status after SWTITLESTATUS: NEXT_UPGRADE_A3_A4_NATIVE",
     "A3 frame guidance note found: yes",
@@ -769,17 +769,17 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 17. A3/A4 batch guard probe ====="
+Write-Output "===== 17. A2/A3/A4 native replacement batch guard probe ====="
 & (Join-Path $PSScriptRoot "run_a3a4_batch_guard_probe.ps1") `
   -SourceWorkCopyPath $SourceWorkCopyPath `
   -LogPath $a3a4BatchGuardLog `
   -TimeoutSeconds $TimeoutSeconds
 Assert-LogContains `
   -Path $a3a4BatchGuardLog `
-  -Label "A3/A4 batch guard probe" `
+  -Label "A2/A3/A4 native replacement batch guard probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260706-unified-title-missing-6",
+    "Loaded version: 260706-unified-title-missing-7",
     "Script active: yes",
     "Batch result: OK",
     "Status after batch: ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE",
@@ -841,7 +841,7 @@ Set-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value @(
   "  Native adoption gate comparison probe: PASS",
   "  Post-first-native marker gate probe: PASS",
   "  A3 status guidance probe: PASS",
-  "  A3/A4 batch guard probe: PASS",
+  "  A2/A3/A4 native replacement batch guard probe: PASS",
   "  GMTITLE selection config deep registry probe: PASS",
   "All expected log markers were verified.",
   "===== GMTITLE main56 verification suite complete ====="

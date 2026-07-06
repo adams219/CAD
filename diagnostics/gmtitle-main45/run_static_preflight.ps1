@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-6",
+  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-7",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -339,6 +339,13 @@ Assert-Contains -Text $mainText -Needle "(defun swcad-title-native-upgrade-candi
 Assert-Contains -Text $mainText -Needle "(swcad-title-target-pair-upgrade-candidate-records '(`"A2`" `"A3`" `"A4`"))" -Label "Native-upgrade candidates include A2/A3/A4"
 Assert-Contains -Text $mainText -Needle "WARN_A2_A3_A4_TARGET_FRAME_NOT_NATIVE_LIKE" -Label "Generic A2/A3/A4 native-like warning status"
 Assert-Contains -Text $mainText -Needle "A2/A3/A4 native-like completion:" -Label "Generic A2/A3/A4 native-like completion log"
+Assert-NotContains -Text $mainText -Needle "복제된 A3/A4 GMTITLE" -Label "No stale visible A3/A4-only native replacement wording"
+Assert-NotContains -Text $mainText -Needle "교체된 A3/A4 native 도면틀" -Label "No stale visible A3/A4-only geometry wording"
+Assert-NotContains -Text $mainText -Needle "SCRIPT 실행 중에는 A3/A4 대화식 교체" -Label "No stale visible A3/A4-only interactive wording"
+Assert-NotContains -Text $mainText -Needle '("NEEDS_NATIVE_A3A4_UPGRADE" . "A3/A4 GMTITLE 중' -Label "No stale visible A3/A4-only trusted-pair wording"
+Assert-NotContains -Text $mainText -Needle "이미 만들어진 A3/A4 GMTITLE" -Label "No stale visible A3/A4-only created-pair wording"
+Assert-NotContains -Text $mainText -Needle "일반 A3/A4 또는 ISO" -Label "No stale visible ordinary A3/A4 default wording"
+Assert-NotContains -Text $mainText -Needle "SWTITLECONVERT A3/A4" -Label "No stale visible A3/A4-only convert heading"
 Assert-NotContains -Text $mainText -Needle 'swcad-title-frame-name-matches-p frame-name "DR_A4_Outline"' -Label "No A4-only trusted-frame exception"
 Assert-NotContains -Text $mainText -Needle "A4 special handling" -Label "Stale A4 special handling wording"
 Assert-NotContains -Text $mainText -Needle "A4 보호 중단" -Label "Stale A4-only protection wording"

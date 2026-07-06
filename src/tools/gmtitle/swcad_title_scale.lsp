@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260706-unified-title-missing-6")
+(setq *swcad-title-scale-version* "260706-unified-title-missing-7")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -210,7 +210,7 @@
         ("NEXT_PREPARE_FRAME_STYLE_NORMALIZATION" . "도면틀 안 native 표제란 형상이 별도 제목블록과 겹쳐 정규화가 먼저 필요합니다.")
         ("NEXT_REVIEW_TARGET_FRAME_GEOMETRY" . "대상 도면틀의 크기나 선택 범위가 이상하므로 먼저 확인해야 합니다.")
         ("NEXT_REVIEW_TARGET_FRAME_SELECTION" . "도면틀 선택 범위가 겹치거나 너무 커서 더블클릭/편집 대상이 빗나갈 수 있습니다.")
-        ("NEXT_UPGRADE_A3_A4_NATIVE" . "복제된 A3/A4 GMTITLE을 실제 native GMTITLE로 교체해야 합니다.")
+        ("NEXT_UPGRADE_A3_A4_NATIVE" . "복제/shared-link A2/A3/A4 GMTITLE을 실제 native GMTITLE로 교체해야 합니다.")
         ("NEXT_CREATE_FIRST_NATIVE_GMTITLE" . "첫 실제 native GMTITLE 기준 객체를 하나 만들어야 합니다.")
         ("NEXT_CREATE_MISSING_NATIVE_EXEMPLAR" . "남은 용지 크기와 같은 native GMTITLE 기준 객체를 먼저 만들어야 합니다.")
         ("NEXT_RUN_FAST_BATCH" . "필요한 native 기준 객체가 준비됐으므로 남은 시트를 빠른 변환으로 처리할 수 있습니다.")
@@ -260,7 +260,7 @@
         ("ABORT_NATIVE_UPGRADE_USER" . "사용자가 A2/A3/A4 native 교체를 열기 전에 중단했습니다.")
         ("ABORT_NATIVE_UPGRADE_ALIGN_FAILED" . "A2/A3/A4 native 교체 결과를 기존 위치에 맞추지 못해 중단했습니다.")
         ("ABORT_NATIVE_UPGRADE_REQUIRES_NATIVE_PLACEMENT" . "A2/A3/A4 native 교체 배치 기준이 맞지 않습니다. GMTITLE 옵션을 다시 확인하세요.")
-        ("ABORT_NATIVE_UPGRADE_INVALID_FRAME_GEOMETRY" . "교체된 A3/A4 native 도면틀 크기/범위가 예상과 맞지 않습니다.")
+        ("ABORT_NATIVE_UPGRADE_INVALID_FRAME_GEOMETRY" . "교체된 A2/A3/A4 native 도면틀 크기/범위가 예상과 맞지 않습니다.")
         ("ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS" . "GMTITLE 창을 취소했거나 새 GMTITLE 객체가 생성되지 않았습니다. 기존 쌍은 보존됩니다.")
         ("ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE" . "SCRIPT/자동화 실행 중에는 대화식 GMTITLE 생성/교체를 안전하게 진행할 수 없어 중단했습니다.")
         ("ABORT_PREPARE_SCRIPT_ACTIVE" . "SCRIPT/자동화 실행 중에는 YES 확인이 필요한 SWTITLEPREPARE 정리를 안전하게 진행할 수 없어 중단했습니다.")
@@ -273,15 +273,15 @@
         ("ABORT_MANUAL_NATIVE_GMTITLE_WRONG_SELECTION" . "수동 GMTITLE의 용지/제목블록 선택이 예상과 다릅니다.")
         ("ABORT_SELECTED_ENTITY_IS_NOT_TARGET_GMTITLE_PAIR" . "선택한 객체가 대상 GMTITLE 도면틀/제목블록 쌍이 아닙니다.")
         ("ABORT_WRONG_NATIVE_GMTITLE_SELECTION" . "native GMTITLE 용지/제목블록 선택이 예상과 다릅니다.")
-        ("ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE" . "SCRIPT 실행 중에는 A3/A4 대화식 교체를 안전하게 진행할 수 없어 중단했습니다.")
-        ("ABORT_NATIVE_A3A4_UPGRADE_BATCH_USER" . "사용자가 A3/A4 native 일괄 교체를 취소했습니다.")
+        ("ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE" . "SCRIPT 실행 중에는 A2/A3/A4 대화식 교체를 안전하게 진행할 수 없어 중단했습니다.")
+        ("ABORT_NATIVE_A3A4_UPGRADE_BATCH_USER" . "사용자가 A2/A3/A4 native 일괄 교체를 취소했습니다.")
         ("ABORT_NATIVE_UPGRADE_BATCH_USER" . "사용자가 native 교체 일괄 작업을 취소했습니다.")
         ("ABORT_REVIEW_ACCIDENTAL_COMMAND_TEXT_FIRST" . "A2/A3/A4 교체 전에 실수 명령어 텍스트 후보를 먼저 확인해야 합니다.")
         ("ABORT_FRAME_DEFINITION_NOT_NORMALIZED" . "도면틀 정의 안에 표제란 형상 또는 오염 의심 구조가 남아 있어 변환을 중단했습니다.")
         ("ERROR_NATIVE_UPGRADE" . "native 교체 중 오류가 발생했습니다.")
         ("ERROR_NATIVE_UPGRADE_BATCH" . "native 교체 일괄 작업 중 오류가 발생했습니다.")
         ("ERROR_NATIVE_A3A4_UPGRADE_BATCH" . "A2/A3/A4 native 교체 일괄 작업 중 오류가 발생했습니다.")
-        ("NEEDS_NATIVE_A3A4_UPGRADE" . "A3/A4 GMTITLE 중 native 더블클릭 동작이 아직 증명되지 않은 쌍이 남아 있습니다.")
+        ("NEEDS_NATIVE_A3A4_UPGRADE" . "A2/A3/A4 GMTITLE 중 native 더블클릭 동작이 아직 증명되지 않은 쌍이 남아 있습니다.")
         ("NEEDS_NATIVE_FRAME_UPGRADE" . "대상 도면틀/제목블록 쌍을 native GMTITLE로 교체하거나 재검증해야 합니다.")
         ("NEEDS_NATIVE_FRAME_REVIEW" . "native-like 여부가 애매한 GMTITLE 쌍을 검토해야 합니다.")
         ("NEEDS_GMTITLE_PAIR_REVIEW" . "선택한 위치의 GMTITLE 도면틀/제목블록 쌍을 검토해야 합니다.")
@@ -291,7 +291,7 @@
         ("STOP_NO_A3A4_NATIVE_UPGRADE_CANDIDATE" . "A2/A3/A4 native 교체 후보가 없습니다.")
         ("STOP_NO_CLONED_GMTITLE_PAIR" . "복제 GMTITLE 쌍이 남아 있지 않습니다.")
         ("OK_A3A4_NATIVE_UPGRADE_COMPLETE" . "A2/A3/A4 native 교체가 필요한 쌍이 없습니다.")
-        ("OK_NO_A3A4_FIX_CANDIDATE" . "A3/A4 복구 후보가 없습니다.")
+        ("OK_NO_A3A4_FIX_CANDIDATE" . "A2/A3/A4 복구 후보가 없습니다.")
         ("OK_NO_CLONED_GMTITLE_PAIR" . "복제 GMTITLE 쌍이 없습니다.")
         ("OK_NO_TARGET_GMTITLE_PAIR" . "검토할 대상 GMTITLE 쌍이 없습니다.")
         ("OK_NATIVE_UPGRADE_BATCH_COMPLETE" . "native 교체 일괄 작업이 완료됐습니다.")
@@ -486,7 +486,7 @@
           ("No A2/A3/A4 target pairs need native replacement." . "native 교체가 필요한 A2/A3/A4 대상 쌍이 없습니다.")
           ("Next A3/A4 native upgrade candidate:" . "다음 A2/A3/A4 native 교체 후보:")
           ("This step upgrades only one sheet." . "이 단계는 한 번에 한 장만 교체합니다.")
-          ("The GMTITLE dialog may still open with ordinary A3/A4 or ISO title defaults." . "GMTITLE 창이 일반 A3/A4 또는 ISO 제목블록 기본값으로 열릴 수 있습니다.")
+          ("The GMTITLE dialog may still open with ordinary A3/A4 or ISO title defaults." . "GMTITLE 창이 DR이 아닌 일반 용지 또는 ISO 제목블록 기본값으로 열릴 수 있습니다.")
           ("Do not press OK unless the dialog shows the DR paper and DR_titlea_3rd." . "DR 용지와 DR_titlea_3rd가 보이지 않으면 OK를 누르지 마세요.")
           ("Dialog selection required:" . "GMTITLE 창에서 필요한 선택:")
           ("Prepared next target:" . "준비된 다음 대상:")
@@ -649,10 +649,10 @@
           ("No A3/A4 target pair is currently queued for native replacement." . "현재 native 교체 대기 중인 A2/A3/A4 대상 쌍이 없습니다.")
           ("Cloned GMTITLE pairs needing native frame upgrade:" . "native 도면틀 교체가 필요한 복제 GMTITLE 쌍:")
           ("Reason: possible command text exists in the drawing while A2/A3/A4 native replacement candidates are present." . "이유: A2/A3/A4 native 교체 후보가 있는 상태에서 도면 안에 명령어 텍스트 후보가 있습니다.")
-          ("Reason: some A3/A4 GMTITLE pairs are still not trusted as fresh native GMTITLE pairs." . "이유: 일부 A3/A4 GMTITLE 쌍이 아직 fresh native GMTITLE 쌍으로 신뢰되지 않습니다.")
+          ("Reason: some A3/A4 GMTITLE pairs are still not trusted as fresh native GMTITLE pairs." . "이유: 일부 A2/A3/A4 GMTITLE 쌍이 아직 fresh native GMTITLE 쌍으로 신뢰되지 않습니다.")
           ("Cause: clone, preserve-copy, native-finalize, and native-frame-only results can be visually correct, but GstarCAD's native double-click recognition is not guaranteed for every sheet." . "원인: clone, preserve-copy, native-finalize, native-frame-only 결과는 화면상 맞아 보여도 모든 시트에서 GstarCAD native 더블클릭 인식이 보장되지는 않습니다.")
           ("This command does not create missing title-missing/frame-only target sheets; it only repairs native recognition of target pairs already created." . "이 단계는 누락된 title-missing/frame-only 대상 시트를 새로 만들지 않고, 이미 만들어진 대상 쌍의 native 인식만 복구합니다.")
-          ("This fixes native double-click behavior for already-created A3/A4 GMTITLE target pairs." . "이미 만들어진 A3/A4 GMTITLE 대상 쌍의 native 더블클릭 동작을 복구하는 단계입니다.")
+          ("This fixes native double-click behavior for already-created A3/A4 GMTITLE target pairs." . "이미 만들어진 A2/A3/A4 GMTITLE 대상 쌍의 native 더블클릭 동작을 복구하는 단계입니다.")
           ("This experiment is limited to Documents/CAD tool/work copies." . "이 실험은 Documents/CAD tool/work 안의 복사본에서만 실행할 수 있습니다.")
           ("Next safest path: run SWTITLECONVERT; it will enter the native replacement phase." . "다음 안전한 경로: SWTITLECONVERTNEXT를 실행하면 native 교체 단계로 들어갑니다.")
           ("SWTITLECONVERT processes the next candidate from " . "SWTITLECONVERTNEXT는 현재 후보 ")
@@ -670,7 +670,7 @@
           ("No A3/A4 native-recheck or cloned GMTITLE pair was found." . "native 재확인 또는 복제 GMTITLE 상태의 A2/A3/A4 쌍을 찾지 못했습니다.")
           ("Reason: old SOLIDWORKS source title/frame candidates still remain." . "이유: 기존 SOLIDWORKS 원본 표제란/도면틀 후보가 아직 남아 있습니다.")
           ("Reason: at least one required A2/A3/A4 target GMTITLE frame is still missing." . "이유: 현재 원본/대상 기준으로 필요한 GMTITLE 도면틀이 아직 없습니다.")
-          ("Reason: no converted A3/A4 GMTITLE target pair exists yet; source sheets still remain." . "이유: 변환된 A3/A4 GMTITLE 대상 쌍이 아직 없고 원본 시트가 남아 있습니다.")
+          ("Reason: no converted A3/A4 GMTITLE target pair exists yet; source sheets still remain." . "이유: 변환된 A2/A3/A4 GMTITLE 대상 쌍이 아직 없고 원본 시트가 남아 있습니다.")
           ("Reason: each candidate may need the interactive GMTITLE dialog, and SCRIPT mode suppresses that fallback." . "이유: 각 후보는 대화식 GMTITLE 창이 필요할 수 있는데 SCRIPT 모드에서는 그 fallback이 막힙니다.")
           ("Manual native replacement is limited to Documents/CAD tool/work copies." . "수동 native 교체는 Documents/CAD tool/work 아래 작업복사본에서만 가능합니다.")
           ("Manual native finish is limited to Documents/CAD tool/work copies." . "수동 native 마무리는 Documents/CAD tool/work 아래 작업복사본에서만 가능합니다.")
@@ -708,7 +708,7 @@
           ("Fix: replace each listed A3/A4 pair with one fresh native GMTITLE dialog result; the command copies values and deletes the old untrusted pair." . "해결: 목록의 각 A2/A3/A4 쌍을 새 native GMTITLE 창 결과로 교체합니다. 명령이 값을 복사하고 신뢰할 수 없는 기존 쌍을 삭제합니다.")
           ("For every GMTITLE dialog: choose the printed DR_A*_Outline paper, choose DR_titlea_3rd, keep Frame positioning ON, turn Object move OFF, then OK." . "모든 GMTITLE 창에서 표시된 DR_A*_Outline 용지와 DR_titlea_3rd를 고르고, Frame positioning은 ON, Object move는 OFF로 둔 뒤 OK를 누르세요.")
           ("Next: create/finalize the missing sheet size before final double-click checks." . "다음: 최종 더블클릭 확인 전에 누락된 용지 크기를 생성/마무리하세요.")
-          ("Note: remaining untrusted/non-marker pairs are outside the A3/A4 upgrade queue, usually the pre-existing A2 baseline." . "참고: 남은 신뢰 불가/non-marker 쌍은 A2/A3/A4 교체 대기열 밖에 있으며, 보통 기존 A2 기준 객체입니다.")
+          ("Note: remaining untrusted/non-marker pairs are outside the A3/A4 upgrade queue, usually the pre-existing A2 baseline." . "참고: 남은 신뢰 불가/non-marker 쌍은 현재 A2/A3/A4 교체 후보 규칙 밖의 legacy 기준 객체일 수 있습니다.")
           ("Next: rerun the command and let GMTITLE accept the lower-left placement point, with Object move OFF." . "다음: 명령을 다시 실행하고 Object move를 OFF로 둔 상태에서 GMTITLE이 왼쪽 아래 배치점을 받도록 하세요.")
           ("Next: rerun with Frame positioning ON and Object move OFF, then let GMTITLE accept the lower-left placement point." . "다음: Frame positioning을 ON, Object move를 OFF로 둔 상태에서 명령을 다시 실행하고, GMTITLE이 왼쪽 아래 배치점을 받도록 하세요.")
           ("Next: recreate this sheet with the expected DR paper size before retrying the A3/A4 native upgrade." . "다음: A2/A3/A4 native 교체를 다시 시도하기 전에 이 시트를 예상 DR 용지 크기로 다시 만드세요.")
@@ -816,7 +816,7 @@
           ("The new GMTITLE was not created at the pending frame lower-left point." . "새 GMTITLE이 대기 중인 도면틀 왼쪽 아래 점에 생성되지 않았습니다.")
           ("Select a cloned or target GMTITLE frame/title to upgrade to real native GMTITLE." . "실제 native GMTITLE로 교체할 복제 또는 대상 GMTITLE 도면틀/제목블록을 선택하세요.")
           ("This step upgrades only one sheet." . "이 단계는 한 시트만 교체합니다.")
-          ("The GMTITLE dialog may still open with ordinary A3/A4 or ISO title defaults." . "GMTITLE 창이 일반 A3/A4 또는 ISO 제목블록 기본값으로 열릴 수 있습니다.")
+          ("The GMTITLE dialog may still open with ordinary A3/A4 or ISO title defaults." . "GMTITLE 창이 DR이 아닌 일반 용지 또는 ISO 제목블록 기본값으로 열릴 수 있습니다.")
           ("Do not press OK unless the dialog shows the DR paper and DR_titlea_3rd." . "창에 DR 용지와 DR_titlea_3rd가 표시되지 않으면 OK를 누르지 마세요.")
           ("User did not type OPEN, so GMTITLE was not opened." . "OPEN, MANUAL, BATCH를 입력하지 않아 GMTITLE을 열지 않았습니다.")
           ("A2/A3/A4 batch native upgrade is limited to Documents/CAD tool/work copies." . "A2/A3/A4 일괄 native 교체는 Documents/CAD tool/work 안의 복사본에서만 실행합니다.")
@@ -4711,7 +4711,7 @@
 (defun swcad-title-print-native-batch-safety-guidance ()
   (swcad-title-princ-line "BATCH 안전 조건: 먼저 OPEN으로 1장을 성공시킨 뒤 SWTITLESTATUS/direct probe에서 후보 수가 줄었는지 확인하세요.")
   (swcad-title-princ-line "BATCH 사용 시점: 남은 후보들이 같은 DR 용지/DR_titlea_3rd/Frame positioning ON/Object move OFF로 반복된다고 눈으로 확인될 때만 사용하세요.")
-  (swcad-title-princ-line "BATCH 금지 조건: 첫 후보부터 바로 BATCH를 쓰거나, GMTITLE 창이 ISO/일반 A3/A4 기본값이면 진행하지 마세요.")
+  (swcad-title-princ-line "BATCH 금지 조건: 첫 후보부터 바로 BATCH를 쓰거나, GMTITLE 창이 DR이 아닌 일반/ISO 기본값이면 진행하지 마세요.")
 )
 
 (defun swcad-title-next-step (/ summary source-count frame-only-count source-frame-count contaminated definition-raw-risk-records definition-raw-risk-count example-title frame-records geometry-risk-count overlap-risk-count selection-risk-count target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records missing-target-sheets missing-required-native a3a4-records a3a4-count style-records style-count command-text-count next-frame-block)
@@ -4832,7 +4832,7 @@
               "개의 표제란 없는 도면틀 시트가 아직 남아 있습니다. 원본 제목블록 부재가 검증된 경우에만 title-missing 예외로 처리합니다."
             )
           )
-          (swcad-title-princ-line "SWTITLECONVERTNEXT는 이미 만들어진 A3/A4 GMTITLE 중 더블클릭 동작을 신뢰할 수 없는 쌍을 먼저 한 장씩 교체합니다.")
+          (swcad-title-princ-line "SWTITLECONVERTNEXT는 이미 만들어진 A2/A3/A4 GMTITLE 중 더블클릭 동작을 신뢰할 수 없는 쌍을 먼저 한 장씩 교체합니다.")
           (swcad-title-princ-line "그 뒤 SWTITLESTATUS를 다시 실행하면 남은 title-missing 도면틀 시트의 같은 크기 DR_A*_Outline 기준 객체 필요 여부를 확인할 수 있습니다.")
         )
       )
@@ -4959,7 +4959,7 @@
       (swcad-title-princ-line "SWTITLECONVERTNEXT는 다음 후보 1장의 OPEN 응답을 자동 선택합니다. BATCH는 수동 SWTITLECONVERT에서만 직접 선택하세요.")
       (swcad-title-print-native-batch-safety-guidance)
       (swcad-title-princ-line "BATCH를 써도 각 GMTITLE 창의 DR 용지/DR_titlea_3rd/Frame positioning ON/Object move OFF 확인은 사람이 해야 합니다.")
-      (swcad-title-princ-line "이미 만들어진 A3/A4 GMTITLE 대상 쌍의 더블클릭 native 동작을 복구하는 단계입니다.")
+      (swcad-title-princ-line "이미 만들어진 A2/A3/A4 GMTITLE 대상 쌍의 더블클릭 native 동작을 복구하는 단계입니다.")
       (if (> frame-only-count 0)
         (swcad-title-princ-line "원본 표제란이 없는 title-missing/frame-only 시트가 아직 남아 있습니다. 현재 native 교체가 끝난 뒤 처리합니다.")
       )
@@ -16622,7 +16622,7 @@
     )
     ((> a3a4-total 0)
       (swcad-title-apply-result "NEEDS_NATIVE_A3A4_UPGRADE")
-      (swcad-title-princ-line "이유: 일부 A3/A4 GMTITLE 쌍이 아직 새 native GMTITLE 쌍으로 신뢰되지 않습니다.")
+      (swcad-title-princ-line "이유: 일부 A2/A3/A4 GMTITLE 쌍이 아직 새 native GMTITLE 쌍으로 신뢰되지 않습니다.")
       (swcad-title-princ-line "이 쌍들은 속성과 SWTITLE 표식이 맞아도 GMTITLE 표 편집창 대신 GMPOWEREDIT/REFEDIT로 열릴 수 있습니다.")
       (swcad-title-princ-line "원인: clone, preserve-copy, native-finalize, native-frame-only 결과는 모양이 맞아도 모든 시트의 더블클릭 native 인식이 보장되지는 않습니다.")
       (swcad-title-princ-line "해결: 목록의 A2/A3/A4 쌍을 새 native GMTITLE 결과로 한 장씩 교체합니다. 값은 복사하고 신뢰되지 않은 기존 쌍은 삭제합니다.")
@@ -16729,7 +16729,7 @@
   (cond
     ((not pair)
       (swcad-title-apply-result "STOP_NO_NATIVE_UPGRADE_CANDIDATE")
-      (swcad-title-princ-line "No A3/A4 native-recheck or cloned GMTITLE pair was found.")
+      (swcad-title-princ-line "No A2/A3/A4 native-recheck or cloned GMTITLE pair was found.")
       (swcad-title-princ-line "도면틀 선택이 여전히 이상하면 SWTITLESTATUS와 SWTITLEVERIFY 로그를 함께 확인하세요.")
     )
     ((swcad-title-document-read-only-p)
@@ -16906,7 +16906,7 @@
                     )
                     (swcad-title-princ-line "Old cloned title deleted: yes")
                     (swcad-title-princ-line "Old cloned frame deleted: yes")
-                    (swcad-title-princ-line (strcat "Remaining A3/A4 native upgrade candidates: " (itoa remaining-a3a4-count)))
+                    (swcad-title-princ-line (strcat "Remaining A2/A3/A4 native upgrade candidates: " (itoa remaining-a3a4-count)))
                     (swcad-title-apply-result "UPGRADED_CLONE_TO_NATIVE_GMTITLE")
                     (swcad-title-princ-line "Manual check: double-click the upgraded title block and confirm the GMTITLE table editor opens.")
                     (if (> remaining-a3a4-count 0)
@@ -16949,7 +16949,7 @@
               (swcad-title-princ-line "The existing GMTITLE pair was kept.")
               (cond
                 (geometry-warning
-                  (swcad-title-princ-line "Next: recreate this sheet with the expected DR paper size before retrying the A3/A4 native upgrade.")
+                  (swcad-title-princ-line "Next: recreate this sheet with the expected DR paper size before retrying the A2/A3/A4 native upgrade.")
                 )
                 ((= (length new-enames) 0)
                   (swcad-title-princ-line "Next: rerun the command and complete the GMTITLE dialog; canceling the dialog leaves the old pair unchanged.")
@@ -16996,7 +16996,7 @@
     ((not pair)
       (setq *swcad-title-pending-manual-native-upgrade* nil)
       (swcad-title-apply-result "STOP_NO_A3A4_NATIVE_UPGRADE_CANDIDATE")
-      (swcad-title-princ-line "No A3/A4 target pair currently needs native replacement.")
+      (swcad-title-princ-line "No A2/A3/A4 target pair currently needs native replacement.")
       (swcad-title-princ-line "현재 상태를 확인하려면 SWTITLESTATUS를 실행하세요.")
     )
     ((swcad-title-document-read-only-p)
@@ -17186,7 +17186,7 @@
               (swcad-title-princ-line (strcat "Native upgrade marker set: " (if marker-ok "yes" "no") ", role=native-upgrade"))
               (swcad-title-princ-line "Old cloned/untrusted title deleted: yes")
               (swcad-title-princ-line "Old cloned/untrusted frame deleted: yes")
-              (swcad-title-princ-line (strcat "Remaining A3/A4 native upgrade candidates: " (itoa remaining-a3a4-count)))
+              (swcad-title-princ-line (strcat "Remaining A2/A3/A4 native upgrade candidates: " (itoa remaining-a3a4-count)))
               (swcad-title-apply-result "FINISHED_MANUAL_NATIVE_GMTITLE_UPGRADE")
               (if (> remaining-a3a4-count 0)
                 (swcad-title-princ-line "다음: SWTITLESTATUS를 실행한 뒤 SWTITLECONVERTNEXT로 다음 후보를 처리하세요.")
@@ -17314,7 +17314,7 @@
       (setq reason (swcad-title-target-pair-upgrade-reason pair))
       (swcad-title-princ-line
         (strcat
-          "Next A3/A4 native upgrade candidate: sheet="
+          "Next A2/A3/A4 native upgrade candidate: sheet="
           (if sheet sheet "<unknown>")
           ", title="
           (swcad-title-ename-handle (car pair))
@@ -17334,7 +17334,7 @@
         )
       )
       (swcad-title-princ-line "기본은 한 번에 한 시트만 교체합니다. 여러 장을 이어서 처리하려면 BATCH를 사용할 수 있습니다.")
-      (swcad-title-princ-line "GMTITLE 창은 여전히 일반 A3/A4 또는 ISO 제목블록 기본값으로 열릴 수 있습니다.")
+      (swcad-title-princ-line "GMTITLE 창은 여전히 DR이 아닌 일반 용지 또는 ISO 제목블록 기본값으로 열릴 수 있습니다.")
       (swcad-title-princ-line "창에 DR 용지와 DR_titlea_3rd가 표시되지 않으면 OK를 누르지 마세요.")
       (swcad-title-princ-line
         (strcat
@@ -17388,7 +17388,7 @@
         (T
         (progn
           (swcad-title-open-native-upgrade-log)
-          (swcad-title-princ-line "----- SWTITLECONVERT A3/A4 한 장 native 교체 사전 확인 -----")
+      (swcad-title-princ-line "----- SWTITLECONVERT A2/A3/A4 한 장 native 교체 사전 확인 -----")
           (swcad-title-print-loaded-version)
           (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
           (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -17417,12 +17417,12 @@
     )
     (progn
       (swcad-title-open-native-upgrade-log)
-      (swcad-title-princ-line "----- SWTITLECONVERT A3/A4 한 장 native 교체 -----")
+      (swcad-title-princ-line "----- SWTITLECONVERT A2/A3/A4 한 장 native 교체 -----")
       (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
       (swcad-title-print-work-copy-status)
       (swcad-title-apply-result "STOP_NO_A3A4_NATIVE_UPGRADE_CANDIDATE")
-      (swcad-title-princ-line "No A3/A4 target pair currently needs native replacement.")
+      (swcad-title-princ-line "No A2/A3/A4 target pair currently needs native replacement.")
       (swcad-title-princ-line "다음: SWTITLEVERIFY를 실행한 뒤 수동 더블클릭 확인을 하세요.")
       (swcad-title-princ-line "No drawing data was changed.")
       (swcad-title-close-log)
@@ -17577,7 +17577,7 @@
       (setq frame-only-count (swcad-title-fast-summary-value summary "frame-only-count"))
       (if (or (> source-count 0) (> frame-only-count 0))
         (progn
-          (swcad-title-princ-line "Reason: no converted A3/A4 GMTITLE target pair exists yet; source sheets still remain.")
+          (swcad-title-princ-line "Reason: no converted A2/A3/A4 GMTITLE target pair exists yet; source sheets still remain.")
           (swcad-title-print-fast-sheet-summary summary)
           (setq missing-required (swcad-title-missing-required-native-frame-blocks summary))
           (if missing-required
@@ -17686,7 +17686,7 @@
               (progn
                 (swcad-title-princ-line
                   (strcat
-                    "--- SWTITLECONVERT A3/A4 시트 "
+                    "--- SWTITLECONVERT A2/A3/A4 시트 "
                     (itoa index)
                     " / "
                     (itoa count)
@@ -17700,7 +17700,7 @@
                     (setq *swcad-title-last-apply-status* "ERROR_NATIVE_A3A4_UPGRADE_BATCH_APPLY")
                     (swcad-title-princ-line
                       (strcat
-                        "A3/A4 native upgrade batch apply error: "
+                        "A2/A3/A4 native upgrade batch apply error: "
                         (vl-catch-all-error-message result)
                       )
                     )
@@ -17711,7 +17711,7 @@
                   (progn
                     (swcad-title-princ-line
                       (strcat
-                        "A3/A4 native upgrade batch stopped after status: "
+                        "A2/A3/A4 native upgrade batch stopped after status: "
                         (swcad-title-string *swcad-title-last-apply-status*)
                       )
                     )
@@ -17726,7 +17726,7 @@
           )
           (setq *swcad-title-native-upgrade-batch-mode* old-batch-mode)
           (setq remaining (length (swcad-title-a3a4-native-upgrade-candidate-records)))
-          (swcad-title-princ-line (strcat "Remaining A3/A4 native upgrade candidates after batch: " (itoa remaining)))
+          (swcad-title-princ-line (strcat "Remaining A2/A3/A4 native upgrade candidates after batch: " (itoa remaining)))
           (if (= remaining 0)
             (swcad-title-apply-result "OK_NATIVE_A3A4_UPGRADE_BATCH_COMPLETE")
             (if (equal *swcad-title-last-apply-status* "UPGRADED_CLONE_TO_NATIVE_GMTITLE")
@@ -17764,7 +17764,7 @@
     (progn
       (swcad-title-princ-line
         (strcat
-          "SWTITLECONVERT A3/A4 대화식 교체 오류: "
+          "SWTITLECONVERT A2/A3/A4 대화식 교체 오류: "
           (vl-catch-all-error-message result)
         )
       )
@@ -18198,7 +18198,7 @@
         ((> a3a4-count 0)
           (swcad-title-princ-text
             (strcat
-              "\n이미 만들어진 A3/A4 GMTITLE 중 native 더블클릭 검증이 필요한 쌍이 "
+              "\n이미 만들어진 A2/A3/A4 GMTITLE 중 native 더블클릭 검증이 필요한 쌍이 "
               (itoa a3a4-count)
               "개 있습니다."
             )

@@ -167,7 +167,7 @@
             )
           )
           (setq candidate-count (length (swcad-title-a3a4-native-upgrade-candidate-records)))
-          (swtitle-a3guide-write-line handle (strcat "A3/A4 candidate count before SWTITLESTATUS: " (itoa candidate-count)))
+          (swtitle-a3guide-write-line handle (strcat "A2/A3/A4 candidate count before SWTITLESTATUS: " (itoa candidate-count)))
           (setq status-result (vl-catch-all-apply 'c:SWTITLESTATUS nil))
           (if (vl-catch-all-error-p status-result)
             (swtitle-a3guide-write-line handle (strcat "SWTITLESTATUS result: ERROR - " (vl-catch-all-error-message status-result)))

@@ -28,7 +28,7 @@ $script:LatestCadNextFrame = $null
 $script:LatestCadNextTitle = $null
 $script:LatestCadDwgTrustedForGoal = $false
 $script:LatestCadDwgTrustReason = "not evaluated"
-$script:ExpectedGmtitleVersion = "260706-unified-title-missing-6"
+$script:ExpectedGmtitleVersion = "260706-unified-title-missing-7"
 $script:A4PrepareProbeUnsafe = $false
 $script:A4NestedProbeMissing = $false
 $script:A4NestedProbeUnsafe = $false
@@ -759,9 +759,12 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
   if ($convertProbeLog) {
     $convertText = Read-TextWithFallback -Path $convertProbeLog
     $convertResult = Get-FirstMatchingLine -Text $convertText -Pattern "^Convert result:"
+    $beforeTargetTitle = Get-FirstMatchingLine -Text $convertText -Pattern "^Before target title count:"
     $afterFrameOnly = Get-FirstMatchingLine -Text $convertText -Pattern "^After frame-only-count:"
     $afterTargetTitle = Get-FirstMatchingLine -Text $convertText -Pattern "^After target title count:"
     $afterA4Frame = Get-FirstMatchingLine -Text $convertText -Pattern "^After DR_A4_Outline target frame count:"
+    $beforeTargetTitleCount = Get-FirstRegexValue -Text $convertText -Pattern "^Before target title count:\s*(\d+)"
+    $afterTargetTitleCount = Get-FirstRegexValue -Text $convertText -Pattern "^After target title count:\s*(\d+)"
 
     if ($convertResult) {
       $convertResultDisplay = Convert-LegacyTitleMissingStatusLine -Line $convertResult
@@ -771,8 +774,15 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
     if ($afterFrameOnly) {
       Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $afterFrameOnly)
     }
+    if ($beforeTargetTitle) {
+      Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $beforeTargetTitle)
+    }
     if ($afterTargetTitle) {
       Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $afterTargetTitle)
+    }
+    if (($beforeTargetTitleCount -ne $null) -and ($afterTargetTitleCount -ne $null)) {
+      $titleDelta = ([int]$afterTargetTitleCount) - ([int]$beforeTargetTitleCount)
+      Write-Output ("  title-missing/frame-only convert probe (A4 sample): target title delta={0}" -f $titleDelta)
     }
     if ($afterA4Frame) {
       Write-Output ("  title-missing/frame-only convert probe (A4 sample): {0}" -f $afterA4Frame)
@@ -780,11 +790,13 @@ function Write-TitleMissingFrameOnlyEvidenceSummary {
     if (
       ($convertText -match "Convert result: OK status=(FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER|FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER)") -and
       ($convertText -match "(?m)^After frame-only-count:\s*1") -and
-      ($convertText -match "(?m)^After target title count:\s*0") -and
+      ($beforeTargetTitleCount -ne $null) -and
+      ($afterTargetTitleCount -ne $null) -and
+      ([int]$beforeTargetTitleCount -eq [int]$afterTargetTitleCount) -and
       ($convertText -match "(?m)^After DR_A4_Outline target frame count:\s*1")
     ) {
       $script:A4FrameOnlyConvertProbePassed = $true
-      Write-Output "  title-missing/frame-only convert decision: verified on the current A4 sample; one source-title-missing sheet becomes DR_A4_Outline and no DR_titlea_3rd is created."
+      Write-Output "  title-missing/frame-only convert decision: verified on the current A4 sample; one source-title-missing sheet becomes DR_A4_Outline and no additional DR_titlea_3rd is created."
     }
   } else {
     Write-Output "  title-missing/frame-only convert probe (A4 sample): <not-run>"
@@ -1053,7 +1065,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "  title-missing/frame-only 예외 경로는 현재 A4 샘플로 검증됨:"
     Write-Output "    1. 현재 A4 샘플 scratch probe에서 공식 작은 바깥 마커를 가진 실제 native GMTITLE 쌍을 확인했습니다."
     Write-Output "    2. SWTITLEPREPARE는 형상/raw-selection 검사가 통과하면 이 정의를 ready-native-outside-markers로 허용합니다."
-    Write-Output "    3. title-missing/frame-only convert probe는 원본 표제란이 없는 현재 A4 샘플을 DR_titlea_3rd 없이 DR_A4_Outline 도면틀 1개로 마무리했습니다."
+    Write-Output "    3. title-missing/frame-only convert probe는 원본 표제란이 없는 현재 A4 샘플을 추가 DR_titlea_3rd 없이 DR_A4_Outline 도면틀 1개로 마무리했습니다."
     if ($script:DirectWorkcopyProbeTrusted -and $script:DirectWorkcopyStatusCode) {
       Write-Output ("    4. 실제 작업복사본 direct probe의 다음 상태: {0}" -f $script:DirectWorkcopyStatusCode)
       if ($script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_FIRST_NATIVE_GMTITLE") {
@@ -1167,7 +1179,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "  title-missing/frame-only 예외 경로는 현재 A4 샘플로 검증됨:"
     Write-Output "    1. 현재 A4 샘플 scratch probe에서 공식 작은 바깥 마커를 가진 실제 native GMTITLE 쌍을 확인했습니다."
     Write-Output "    2. SWTITLEPREPARE는 형상/raw-selection 검사가 통과하면 이 정의를 ready-native-outside-markers로 허용합니다."
-    Write-Output "    3. title-missing/frame-only convert probe는 원본 표제란이 없는 현재 A4 샘플을 DR_titlea_3rd 없이 DR_A4_Outline 도면틀 1개로 마무리했습니다."
+    Write-Output "    3. title-missing/frame-only convert probe는 원본 표제란이 없는 현재 A4 샘플을 추가 DR_titlea_3rd 없이 DR_A4_Outline 도면틀 1개로 마무리했습니다."
     Write-Output "    4. 전체 hidden suite에도 이 probe와 A4 변환 기대값이 포함되어 있습니다."
     Write-Output "  다음 실제 작업복사본 단계:"
     if ($script:DirectWorkcopyProbeTrusted -and $script:DirectWorkcopyStatusCode) {

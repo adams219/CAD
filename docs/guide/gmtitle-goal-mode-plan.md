@@ -20,7 +20,7 @@
 정적 preflight: PASS
 hidden verification suite: PASS 여부는 `run_goal_status.ps1`가 최신 `work\main56_verification_suite_last_run.txt`의 Generated/Result를 읽어 판단
 GstarCAD /b script smoke probe: PASS
-GMTITLE LSP 버전: 260706-unified-title-missing-6
+GMTITLE LSP 버전: 260706-unified-title-missing-7
 loader 버전: 260706-loader-convert-next-response-guidance
 공개 사용자 명령: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLECONVERT, SWTITLEVERIFY, SWTITLEVERSION, SWSCALESCAN
 A4 raw bbox guard: 있음
@@ -139,7 +139,7 @@ Object move가 OFF인지 확인
 대표 제목블록 더블클릭 시 GMTITLE 표 편집창이 열리는지 확인
 ```
 
-이 사람이 필요한 부분은 자동화가 불가능해서 남겨 둔 것이 아니다. 현재 증거상 GstarCAD가 기본값을 일반 A3/A4 또는 ISO 제목블록으로 열 수 있으므로, 잘못된 native 객체를 대량 생성하지 않기 위한 안전장치다.
+이 사람이 필요한 부분은 자동화가 불가능해서 남겨 둔 것이 아니다. 현재 증거상 GstarCAD가 기본값을 DR이 아닌 일반 용지 또는 ISO 제목블록으로 열 수 있으므로, 잘못된 native 객체를 대량 생성하지 않기 위한 안전장치다.
 
 ### 진행률 판단
 
@@ -292,9 +292,11 @@ nested-direct-outside probe:
     After prepare definition status: ready-native-outside-markers
     Convert result: OK status=FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER
     After frame-only-count: 1
-    After target title count: 0
+    Before target title count: 1
+    After target title count: 1
+    target title delta=0
     After DR_A4_Outline target frame count: 1
-  즉 production title-missing/frame-only 경로는 원본에 없던 DR_titlea_3rd 제목블록을 만들지 않고 도면틀만 교체하는 것으로 검증됐다.
+  즉 production title-missing/frame-only 경로는 target title 수를 늘리지 않고 도면틀만 교체하는 것으로 검증됐다.
 ```
 
 `DR_A4_Outline` 프레임만 안전해 보여도 native link가 있는 `DR_titlea_3rd` 쌍이 없으면 비교 기준으로 인정하지 않는다. 이 경우 `A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR`가 정상 중단이다.
@@ -318,7 +320,7 @@ nested-direct-outside probe:
 ```text
 LSP 기준:
 loader: 260706-loader-convert-next-response-guidance
-gmtitle: 260706-unified-title-missing-6
+gmtitle: 260706-unified-title-missing-7
 
 작업 도면:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
@@ -359,7 +361,7 @@ work\swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
 ```text
 신뢰 가능:
   DWG 파일이 현재 열린 work 복사본과 같음
-  SWTITLE LSP 버전이 260706-unified-title-missing-6
+  SWTITLE LSP 버전이 260706-unified-title-missing-7
   방금 실행한 명령 결과임
 
 신뢰 보류:
@@ -413,7 +415,7 @@ BATCH 자동화:
 
 | 작업 단위 | 해결하려는 질문 | 통과 증거 | 통과 전 금지 |
 | --- | --- | --- | --- |
-| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260706-unified-title-missing-6`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
+| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260706-unified-title-missing-7`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
 | 첫 native 기준 객체 | 이 DWG 안에 실제 GMTITLE 쌍이 최소 1개 있는가 | `target-title-count > 0`, 같은 크기 `DR_A*_Outline` 기준 객체 존재 | clone/fast batch 완료 판단 |
 | A2/A3/A4 native 교체 | 겉보기 복제본이 아니라 fresh native 쌍인가 | `A2/A3/A4 native 교체 후보: 0`, clone/shared-link 경고 0 | 도면틀 더블클릭만 보고 성공 판정 |
 | title-missing/frame-only | 원본에 없는 제목블록 없이 도면틀만 교체됐는가 | title-missing 도면틀-only 대상 수와 예상 수량 일치, 불필요한 `DR_titlea_3rd` 없음 | 원본에 없던 제목블록 생성 |
@@ -621,7 +623,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260706-unified-title-missing-6
+260706-unified-title-missing-7
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...
@@ -877,7 +879,7 @@ GMTITLE 창의 DR_A*_Outline / DR_titlea_3rd 선택까지 자동화할 수 있�
 <!-- RIBBON_ACCESSIBILITY_NOT_STABLE -->
 
 ```text
-과거 명령줄 -GMTITLE 자동 선택이 일반 A3/A4 또는 ISO 흐름으로 잘못 간 이력이 있다.
+과거 명령줄 -GMTITLE 자동 선택이 DR이 아닌 일반 용지 또는 ISO 흐름으로 잘못 간 이력이 있다.
 PaperSet.ini/dat와 HKCU 설정에서 DR_A*_Outline / DR_titlea_3rd 기본 선택값을 고정하는 근거를 찾지 못했다.
 GstarCAD native 구조는 paperset.grx 같은 내부 Mechanical 모듈이 만드는 것으로 보이며, LISP 복사만으로 완전 재현되지 않는다.
 2026-07-05 확인에서는 FILEDIA=1, CMDDIA=1이어도 직접 GMTITLE 실행이 선택창 없이 삽입 지점 프롬프트로 들어갔다.
@@ -977,7 +979,7 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 
 ```text
 1. APPLOAD로 C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp 로드
-2. SWTITLEVERSION으로 gmtitle 버전이 260706-unified-title-missing-6인지 확인
+2. SWTITLEVERSION으로 gmtitle 버전이 260706-unified-title-missing-7인지 확인
 3. SWTITLESTATUS로 현재 상태 확인
 4. 기본 workcopy라면 NEXT_CREATE_FIRST_NATIVE_GMTITLE인지 확인
 5. SWTITLECONVERTNEXT 실행
