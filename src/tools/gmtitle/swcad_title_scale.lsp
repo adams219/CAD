@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260707-unified-title-missing-15")
+(setq *swcad-title-scale-version* "260707-unified-title-missing-16")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -15151,12 +15151,12 @@
       (if (> frame-only-count 0)
         (progn
           (setq frame-only-target-frame-block (swcad-title-next-frame-only-target-missing-native-p))
-          (if frame-only-target-frame-block
-            (progn
+          (cond
+            (frame-only-target-frame-block
               (setq *swcad-title-last-apply-status* "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
               (swcad-title-princ-text
                 (strcat
-                  "\nFast batch paused before frame-only phase: "
+                  "\nFast batch paused before title-missing/frame-only phase: "
                   frame-only-target-frame-block
                   " needs one real native GMTITLE exemplar first."
                 )
@@ -15173,25 +15173,32 @@
               )
               (swcad-title-princ-text "\nSWTITLESTATUS로 frame-only 대상을 확인한 뒤 SWTITLECONVERTNEXT로 첫 native GMTITLE 단계를 진행하세요.")
             )
-            (progn
-              (swcad-title-princ-text (strcat "\nFast batch: processing frame-only sheets, count=" (itoa frame-only-count)))
-              (setq frame-result
-                (vl-catch-all-apply
-                  'swcad-title-transfer-frame-only-clone-batch-run
-                  (list frame-only-count)
+            ((swcad-title-title-missing-outline-definition-needed-p)
+              (setq *swcad-title-last-apply-status* "WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION")
+              (swcad-title-princ-text
+                (strcat
+                  "\nFast batch paused before title-missing/frame-only phase: "
+                  (itoa frame-only-count)
+                  "개 표제란 없는 도면틀 시트의 같은 크기 DR 도면틀 정의 검증이 먼저 필요합니다."
                 )
               )
-              (if (vl-catch-all-error-p frame-result)
-                (progn
-                  (setq *swcad-title-last-apply-status* "ERROR_FAST_BATCH_FRAME_ONLY_FATAL")
-                  (swcad-title-princ-text
-                    (strcat
-                      "\nFast batch frame-only error: "
-                      (vl-catch-all-error-message frame-result)
-                    )
-                  )
+              (swcad-title-princ-text "\nTitle-missing/frame-only sheets were not changed. Run SWTITLESTATUS, then SWTITLEPREPARE if requested.")
+            )
+            ((swcad-title-title-missing-outline-policy-blocked-p)
+              (setq *swcad-title-last-apply-status* "READY_FOR_TITLE_MISSING_OUTLINE")
+              (swcad-title-princ-text
+                (strcat
+                  "\nFast batch paused before title-missing/frame-only phase: "
+                  (itoa frame-only-count)
+                  "개 표제란 없는 도면틀 시트는 원본 표제란 부재 예외 경로에서 한 장씩 처리합니다."
                 )
               )
+              (swcad-title-princ-text "\nTitle-missing/frame-only sheets were not cloned. Run SWTITLESTATUS, then SWTITLECONVERTNEXT to replace only the same-size DR outline.")
+            )
+            (T
+              (setq *swcad-title-last-apply-status* "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE")
+              (swcad-title-princ-text "\nFast batch stopped before title-missing/frame-only phase because the source-title-missing outline-only policy is unavailable.")
+              (swcad-title-princ-text "\nTitle-missing/frame-only sheets were not cloned and no new title block was created.")
             )
           )
         )
@@ -15217,6 +15224,10 @@
     ((equal *swcad-title-last-apply-status* "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
       (swcad-title-princ-text "\nResult: WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
       (swcad-title-princ-text "\nFast batch paused so the next sheet size can be created once with real native GMTITLE.")
+      (swcad-title-princ-text "\n다음 정확한 작업은 SWTITLESTATUS로 확인하고, 변환은 SWTITLECONVERTNEXT로 계속하세요.")
+    )
+    ((member *swcad-title-last-apply-status* '("WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION" "READY_FOR_TITLE_MISSING_OUTLINE" "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE"))
+      (swcad-title-princ-text (strcat "\nResult: " *swcad-title-last-apply-status*))
       (swcad-title-princ-text "\n다음 정확한 작업은 SWTITLESTATUS로 확인하고, 변환은 SWTITLECONVERTNEXT로 계속하세요.")
     )
     ((or (> final-source-count 0) (> final-frame-only-count 0))
@@ -15324,37 +15335,40 @@
           nil
         )
       )
-      (if frame-only-target-frame-block
+      (if (> frame-only-count 0)
         (progn
-          (swcad-title-princ-text
-            (strcat
-              "\n주의: frame-only 시트 "
-              (itoa frame-only-count)
-              "장은 "
-              frame-only-target-frame-block
-              " 실제 native 기준 객체가 아직 없어 이번 빠른 변환에서 건너뜁니다."
+          (if frame-only-target-frame-block
+            (swcad-title-princ-text
+              (strcat
+                "\n주의: frame-only 시트 "
+                (itoa frame-only-count)
+                "장은 "
+                frame-only-target-frame-block
+                " 실제 native 기준 객체가 아직 없어 이번 빠른 변환에서 건너뜁니다."
+              )
+            )
+            (swcad-title-princ-text
+              (strcat
+                "\n주의: frame-only 시트 "
+                (itoa frame-only-count)
+                "장은 빠른 clone 변환에서 제외하고 title-missing 도면틀-only 경로로 넘깁니다."
+              )
             )
           )
-          (swcad-title-princ-text "\n이 단계에서는 표제란 있는 시트만 처리하고, frame-only 시트는 SWTITLESTATUS 후 SWTITLECONVERTNEXT에서 별도 native 생성/검사로 진행합니다.")
+          (swcad-title-princ-text "\n이 단계에서는 표제란 있는 시트만 처리하고, frame-only 시트는 SWTITLESTATUS 후 SWTITLECONVERTNEXT에서 원본 표제란 부재 예외로 진행합니다.")
         )
       )
       (setq answer
         (swcad-title-auto-next-answer-or-prompt
           "YES"
           "남은 시트 빠른 변환"
-          (if frame-only-target-frame-block
+          (if (> frame-only-count 0)
             (strcat
               "\n처리할 표제란 시트 "
               (itoa source-count)
               "장만 처리하려면 YES를 입력하세요: "
             )
-            (strcat
-              "\n처리할 표제란 시트 "
-              (itoa source-count)
-              "장과 frame-only 시트 "
-              (itoa frame-only-count)
-              "장을 처리하려면 YES를 입력하세요: "
-            )
+            (strcat "\n처리할 표제란 시트 " (itoa source-count) "장을 처리하려면 YES를 입력하세요: ")
           )
         )
       )

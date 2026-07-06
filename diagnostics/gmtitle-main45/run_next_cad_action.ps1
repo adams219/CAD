@@ -670,6 +670,17 @@ function Write-StatusBasedAction {
       return
     }
 
+    "^READY_FOR_TITLE_MISSING_OUTLINE$" {
+      Write-Output "Result: RUN_TITLE_MISSING_OUTLINE_CONVERT"
+      Write-ManualLoadStep
+      Write-Output "  SWTITLESTATUS"
+      Write-Output "  SWTITLECONVERTNEXT"
+      Write-Output "의미: 원본 표제란 부재가 검증된 title-missing/frame-only 시트는 새 제목블록 없이 같은 크기 DR 도면틀만 교체합니다."
+      Write-Output "주의: 이 단계는 A4 전용이 아니며, SWTITLESTATUS가 source-title-missing 예외를 명확히 안내할 때만 실행합니다."
+      Write-AfterStatusRefresh
+      return
+    }
+
     "^NEXT_PREPARE_(TITLE_MISSING_OUTLINE_DEFINITION|FRAME_STYLE_NORMALIZATION)$" {
       Write-Output "Result: RUN_PREPARE_FIRST"
       Write-ManualLoadStep

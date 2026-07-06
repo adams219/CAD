@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260707-unified-title-missing-15",
+  [string]$ExpectedGmtitleVersion = "260707-unified-title-missing-16",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -469,6 +469,32 @@ if (($integratedConvertStart -lt 0) -or ($integratedVerifyStart -le $integratedC
     Add-Failure "SWTITLECONVERT must handle verified title-missing outline-only apply before aborting unavailable legacy fallback."
   }
 }
+$fastBatchPhasesStart = $mainText.IndexOf("(defun swcad-title-run-fast-batch-phases")
+$fastBatchPhasesEnd = if ($fastBatchPhasesStart -ge 0) { $mainText.IndexOf("(defun swcad-title-transfer-fast-batch", $fastBatchPhasesStart) } else { -1 }
+if (($fastBatchPhasesStart -lt 0) -or ($fastBatchPhasesEnd -le $fastBatchPhasesStart)) {
+  Add-Failure "swcad-title-run-fast-batch-phases function block not found."
+} else {
+  $fastBatchPhasesText = $mainText.Substring($fastBatchPhasesStart, $fastBatchPhasesEnd - $fastBatchPhasesStart)
+  if ($fastBatchPhasesText.Contains("swcad-title-transfer-frame-only-clone-batch-run")) {
+    Add-Failure "Fast batch phases must not call the legacy frame-only clone batch runner."
+  } else {
+    Write-Output "Fast batch phases legacy frame-only clone call: absent"
+  }
+  Assert-Contains -Text $fastBatchPhasesText -Needle "WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION" -Label "Fast batch phases title-missing definition pause"
+  Assert-Contains -Text $fastBatchPhasesText -Needle "READY_FOR_TITLE_MISSING_OUTLINE" -Label "Fast batch phases title-missing ready pause"
+  Assert-Contains -Text $fastBatchPhasesText -Needle "Title-missing/frame-only sheets were not cloned" -Label "Fast batch phases no frame-only clone message"
+  Assert-Contains -Text $fastBatchPhasesText -Needle "SWTITLECONVERTNEXT to replace only the same-size DR outline" -Label "Fast batch phases title-missing convert-next guidance"
+}
+$transferFastBatchStart = $mainText.IndexOf("(defun swcad-title-transfer-fast-batch")
+$transferFastBatchEnd = if ($transferFastBatchStart -ge 0) { $mainText.IndexOf("(defun swcad-title-transfer-bootstrap-fast", $transferFastBatchStart) } else { -1 }
+if (($transferFastBatchStart -lt 0) -or ($transferFastBatchEnd -le $transferFastBatchStart)) {
+  Add-Failure "swcad-title-transfer-fast-batch function block not found."
+} else {
+  $transferFastBatchText = $mainText.Substring($transferFastBatchStart, $transferFastBatchEnd - $transferFastBatchStart)
+  Assert-Contains -Text $transferFastBatchText -Needle "빠른 clone 변환에서 제외하고 title-missing 도면틀-only 경로" -Label "Fast batch prompt excludes frame-only clone"
+  Assert-Contains -Text $transferFastBatchText -Needle "원본 표제란 부재 예외" -Label "Fast batch prompt routes frame-only by source-title-missing exception"
+  Assert-NotContains -Text $transferFastBatchText -Needle "장과 frame-only 시트" -Label "Fast batch prompt must not bundle title sheets and frame-only sheets"
+}
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-prepare-title-missing-outline-definition (/ frame-block" -Label "Generic title-missing outline prepare implementation"
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-transfer-title-missing-outline-apply (/ *error*" -Label "Generic title-missing outline transfer implementation"
 Assert-Contains -Text $mainText -Needle "swcad-title-transfer-title-missing-outline-apply" -Label "Generic title-missing outline transfer wrapper"
@@ -671,6 +697,9 @@ Assert-Contains -Text $nextCadActionRunnerText -Needle "title-missing/frame-only
 Assert-Contains -Text $nextCadActionRunnerText -Needle "NEXT_CLEAN_ORPHAN_TARGET_FRAMES" -Label "Next CAD action orphan target frame status"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "title-missing 도면틀-only marker가 없는 한 완료된 title-sheet로 보지 않습니다" -Label "Next CAD action orphan target frame blocks title-sheet completion"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "function Convert-LegacyTitleMissingStatusCode" -Label "Next CAD action normalizes legacy A4 title-missing statuses"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "RUN_TITLE_MISSING_OUTLINE_CONVERT" -Label "Next CAD action ready title-missing outline conversion guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "새 제목블록 없이 같은 크기 DR 도면틀만 교체합니다" -Label "Next CAD action title-missing no-new-title guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "이 단계는 A4 전용이 아니며" -Label "Next CAD action title-missing not-A4-only guidance"
 Assert-NotContains -Text $nextCadActionRunnerText -Needle '$hasA4Missing' -Label "Next CAD action must not infer title-missing from A4-missing alone"
 Assert-NotContains -Text $nextCadActionRunnerText -Needle "DR_A3_Outline 또는 DR_A4_Outline" -Label "Next CAD action native replacement guidance must not be A3/A4-only"
 Assert-NotContains -Text $nextCadActionRunnerText -Needle '^NEXT_PREPARE_(TITLE_MISSING_OUTLINE_DEFINITION|A4_FRAME_ONLY_OUTLINE_DEFINITION|FRAME_STYLE_NORMALIZATION)$' -Label "Next CAD action switch must use normalized title-missing prepare status"
@@ -867,6 +896,8 @@ Assert-Contains -Text $readmeText -Needle "SKIP_OPEN_NO_GSTARCAD" -Label "README
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "Next CAD action card probe result: PASS" -Label "Next CAD action card probe pass marker"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_CREATE_FIRST_NATIVE_GMTITLE" -Label "Next CAD action card probe first-native case"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION" -Label "Next CAD action card probe title-missing prepare case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "ready_title_missing_outline" -Label "Next CAD action card probe ready title-missing case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle '"Result: RUN_TITLE_MISSING_OUTLINE_CONVERT", "SWTITLESTATUS", "SWTITLECONVERTNEXT"' -Label "Next CAD action card probe ready title-missing expectation"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_UPGRADE_NATIVE_GMTITLE" -Label "Next CAD action card probe native-upgrade case"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_REVIEW_TARGET_FRAME_GEOMETRY" -Label "Next CAD action card probe structure-review case"
 Assert-Contains -Text $nextCadActionCardProbeText -Needle "ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS" -Label "Next CAD action card probe abort-warning case"

@@ -1,4 +1,4 @@
-# CAD Tool 명령어
+﻿# CAD Tool 명령어
 
 > 2026-07-06 기준 변경: `docs/guide/gmtitle-unified-flow-reset.md`가 GMTITLE 변환의 최우선 기준입니다. A2/A3/A4는 모두 같은 GMTITLE 흐름으로 보고, `frame-only`는 A4 전용 정책이 아니라 원본 표제란 부재가 검증된 경우의 예외로만 해석합니다.
 
@@ -33,7 +33,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260707-unified-title-missing-15
+260707-unified-title-missing-16
 ```
 
 다른 버전이 보이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
