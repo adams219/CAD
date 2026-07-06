@@ -392,7 +392,7 @@ function Write-AutomationBoundarySummary {
       Write-Output "  - 이번 단계: OPEN 1장 성공으로 후보 수 감소를 확인한 뒤에만 BATCH 반복 처리를 검토합니다."
     }
     "RemainingConversion" {
-      Write-Output "  - 이번 단계: 이미 검증된 native 기준 객체로 남은 시트를 처리하되, A4 frame-only에는 새 제목블록을 만들지 않습니다."
+      Write-Output "  - 이번 단계: 이미 검증된 native 기준 객체로 남은 시트를 처리하되, title-missing/frame-only 예외에는 원본에 없던 새 제목블록을 만들지 않습니다."
     }
   }
 }
@@ -434,7 +434,7 @@ function Write-ManualSelectionForecast {
         Write-Output ("  - 이후 예상: A3 {0}장을 처리하기 위한 첫 native 기준 객체 1회가 추가로 필요할 수 있습니다." -f ($(if ($expectedA3) { $expectedA3 } else { "여러" })))
       }
       if (($frameOnlyCount -as [int]) -gt 0 -or $hasA4Missing) {
-        Write-Output ("  - A4 frame-only {0}장은 제목블록 생성 대상이 아닙니다. 검증된 DR_A4_Outline 도면틀-only 경로로 처리합니다." -f ($(if ($frameOnlyCount) { $frameOnlyCount } else { "해당" })))
+        Write-Output ("  - title-missing/frame-only {0}장은 원본 표제란 부재가 검증된 경우에만 제목블록 생성 대상에서 제외됩니다. 같은 크기 DR_A*_Outline 도면틀-only 경로로 처리합니다." -f ($(if ($frameOnlyCount) { $frameOnlyCount } else { "해당" })))
       }
       Write-Output "  - 좌표 입력, 값 복사, 기존 원본 정리는 SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 자동 처리합니다."
       return
@@ -467,7 +467,7 @@ function Write-ManualSelectionForecast {
     }
     "^SWTITLEVERIFY_FINAL_OK$" {
       Write-Output "  - 새 GMTITLE 생성은 끝난 상태입니다."
-      Write-Output "  - 대표 A2/A3 DR_titlea_3rd 제목블록 더블클릭 확인만 남았습니다. A4 frame-only는 도면틀 수량/형상으로 확인합니다."
+      Write-Output "  - 대표 DR_titlea_3rd 제목블록 더블클릭 확인만 남았습니다. title-missing/frame-only 예외는 도면틀 수량/형상으로 확인합니다."
       return
     }
     default {
@@ -518,7 +518,7 @@ function Write-ConvertPromptGuidance {
     "RemainingConversion" {
       Write-Output "  YES: 준비된 native 기준 객체로 남은 원본 시트를 변환합니다."
       Write-Output "  Enter: 변환 없이 중단합니다."
-      Write-Output "  A4 frame-only 단계에서 원본에 없던 제목블록이 생기면 즉시 멈추고 SWTITLESTATUS를 확인하세요."
+      Write-Output "  title-missing/frame-only 예외 단계에서 원본에 없던 제목블록이 생기면 즉시 멈추고 SWTITLESTATUS를 확인하세요."
     }
   }
 }
@@ -537,7 +537,7 @@ function Write-AfterStatusRefresh {
 function Write-FinalDoubleClickGuidance {
   Write-Output "최종 수동 확인:"
   Write-Output "  - 실제 DR_titlea_3rd 제목블록이 있는 대표 A2/A3 용지만 더블클릭하세요."
-  Write-Output "  - 표제란 없는 A4 frame-only 시트는 더블클릭할 제목블록이 없으므로 DR_A4_Outline 수량/형상을 SWTITLEVERIFY로 확인하세요."
+  Write-Output "  - 원본 표제란 부재가 검증된 title-missing/frame-only 시트는 더블클릭할 제목블록이 없으므로 해당 DR_A*_Outline 수량/형상을 SWTITLEVERIFY로 확인하세요."
   Write-Output "  - DR_A*_Outline 도면틀을 더블클릭하면 GMPOWEREDIT/REFEDIT가 열릴 수 있으니 완료 판단 대상이 아닙니다."
 }
 
@@ -645,7 +645,7 @@ function Write-StatusBasedAction {
       Write-ManualLoadStep
       Write-Output "  SWTITLEPREPARE"
       Write-Output "  SWTITLESTATUS"
-      Write-Output "의미: 변환 전에 도면틀 정의나 A4 frame-only 준비/검증이 먼저 필요합니다."
+      Write-Output "의미: 변환 전에 도면틀 정의나 title-missing/frame-only 준비/검증이 먼저 필요합니다."
       Write-Output "주의: 같은 NEXT_PREPARE 상태가 그대로 반복되면 SWTITLECONVERT를 누르지 말고 로그 원인을 확인하세요."
       return
     }

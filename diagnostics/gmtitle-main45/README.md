@@ -153,7 +153,7 @@ The suite also refreshes a concise latest-run summary:
 work\main56_verification_suite_last_run.txt
 ```
 
-At suite start this file is reset to `Result: RUNNING_OR_FAILED_BEFORE_PASS`. If the suite stops before the final pass gate, it appends `Result: FAILED_BEFORE_PASS` plus the failure message/command. Only a fully successful run rewrites it to `Result: PASS` and records the actual work-copy state, A4 frame-only evidence, and A3/A4 batch guard evidence. Treat this file as the quick current suite summary, but keep using the individual probe logs for detailed diagnosis.
+At suite start this file is reset to `Result: RUNNING_OR_FAILED_BEFORE_PASS`. If the suite stops before the final pass gate, it appends `Result: FAILED_BEFORE_PASS` plus the failure message/command. Only a fully successful run rewrites it to `Result: PASS` and records the actual work-copy state, title-missing/frame-only evidence, and native batch guard evidence. Treat this file as the quick current suite summary, but keep using the individual probe logs for detailed diagnosis.
 
 The suite also fails before the first probe if `gcad.exe` is already running and `-WaitForGstarCADClose` is not used. Save the work-copy DWG and close GstarCAD first, otherwise hidden `/b` probes can attach to the visible session and never create their log.
 
@@ -223,7 +223,7 @@ DWG 저장 상태: 저장되지 않은 변경 있음 (DBMOD=...)
 
 If `DBMOD` is not 0 and another computer or hidden probe should continue the work, save the work-copy DWG first.
 
-For the saved pre-conversion work-copy, the probe should also prove that `SWTITLEVERIFY` does not tell the user to handle A4 frame-only sheets before the remaining SolidWorks source title/frame sheets:
+For the saved pre-conversion work-copy, the probe should also prove that `SWTITLEVERIFY` does not tell the user to handle title-missing/frame-only sheets before the remaining SolidWorks source title/frame sheets:
 
 ```text
 a4-frame-only-deferred-note-found: yes
@@ -385,7 +385,7 @@ Use `-PreflightOnly` when you want the refreshed next-action card and short GMTI
 
 ## A4 Outline Prepare Probe
 
-Use `run_a4_outline_prepare_probe.ps1` to copy a work DWG, load the current GMTITLE LSP, and run the internal A4 frame-only `DR_A4_Outline` definition preflight on the copy.
+Use `run_a4_outline_prepare_probe.ps1` to copy a work DWG, load the current GMTITLE LSP, and run the internal title-missing/frame-only `DR_A*_Outline` definition preflight on the copy.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
@@ -408,7 +408,7 @@ work\swtitle_a4_outline_prepare_probe_260705.txt
 Expected result for the current installed `DR_A4_Outline` state:
 
 ```text
-Loaded version: 260706-convert-next-quoted-pause
+Loaded version: 260706-unified-title-missing
 Before definition status: missing
 Prepare result: OK status=OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED
 After definition status: ready-native-outside-markers
@@ -416,11 +416,11 @@ After frame-only-count: 2
 Runtime check completed: yes
 ```
 
-This is a readiness pass, not a completed A4 conversion. It proves that the tool accepts the official native A4 outline only after the test insert has correct effective A4 geometry and no raw-selection warning. The production conversion still must not create a `DR_titlea_3rd` for source A4 frame-only sheets.
+This is a readiness pass, not a completed conversion. It proves that the tool accepts the official native outline only after the test insert has correct effective sheet geometry and no raw-selection warning. The production conversion still must not create a `DR_titlea_3rd` for source title-missing/frame-only sheets.
 
 ## A4 Outline Convert Probe
 
-Use `run_a4_outline_convert_probe.ps1` to copy a work DWG, prepare the official native `DR_A4_Outline` definition, and run the A4 frame-only conversion on the copy.
+Use `run_a4_outline_convert_probe.ps1` to copy a work DWG, prepare the official native `DR_A*_Outline` definition, and run the title-missing/frame-only conversion on the copy.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
@@ -448,7 +448,7 @@ After target-sheet-counts:
 Runtime check completed: yes
 ```
 
-This proves the A4 frame-only path replaces one source A4 frame with a native `DR_A4_Outline` frame without creating an extra `DR_titlea_3rd` title block.
+This proves the title-missing/frame-only path replaces one source frame with a matching native `DR_A*_Outline` frame without creating an extra `DR_titlea_3rd` title block.
 
 ## A4 Outline Normalization Probe
 
@@ -564,7 +564,7 @@ Definition minor native outside markers: yes
 Result: A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS
 ```
 
-That result is intentionally not collapsed into `UNSAFE_DEFINITION`. It means GstarCAD can create a real native A4 GMTITLE pair, but the official native `DR_A4_Outline` definition carries small outside marker geometry. Production A4 frame-only conversion must still decide explicitly whether to tolerate, crop, or preserve those official native outside markers, and it must not create an extra `DR_titlea_3rd` for a source A4 that had no title block.
+That result is intentionally not collapsed into `UNSAFE_DEFINITION`. It means GstarCAD can create a real native GMTITLE pair, but the official native `DR_A*_Outline` definition may carry small outside marker geometry. Production title-missing/frame-only conversion must still decide explicitly whether to tolerate, crop, or preserve those official native outside markers, and it must not create an extra `DR_titlea_3rd` for a source sheet that had no title block.
 
 If a scratch DWG contains only a clean-looking `DR_A4_Outline` frame but no nearby `DR_titlea_3rd` with native GMTITLE link evidence, the probe reports:
 
@@ -574,7 +574,7 @@ Result: A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR
 
 That failure is intentional. A frame-only production result must not create a new title block, but the separate scratch comparison sample must still prove that the `DR_A4_Outline` came from a native GMTITLE structure rather than from an arbitrary block definition.
 
-The scratch/native A4 sheet is only for comparison. It may include `DR_titlea_3rd` if native GMTITLE creates one, but production A4 frame-only conversion must still not create a title block that was not present in the source.
+The scratch/native sheet is only for comparison. It may include `DR_titlea_3rd` if native GMTITLE creates one, but production title-missing/frame-only conversion must still not create a title block that was not present in the source.
 
 2026-07-05 CAD evidence: even when the GMTITLE dialog is manually set to `DR_A4_Outline`, `DR_titlea_3rd`, Frame positioning ON, and Object move OFF, GstarCAD can return `프레임 작성 오류`. If the follow-up status still shows `DR_titlea_3rd` inserts=0, that scratch DWG is failed evidence, not an A4 native exemplar.
 
@@ -631,7 +631,7 @@ Treat that as a strict incomplete result, not as a partial success. Use the prin
 
 The final completion gate uses a default timeout of 180 seconds. On this workstation, 90 seconds can occasionally start GstarCAD but miss the SCR completion log, which produces a log-missing failure instead of useful completion evidence.
 
-When the automated evidence passes, completion is still not proven until the representative A2/A3 `DR_titlea_3rd` title blocks open the GMTITLE table editor on double-click. A4 frame-only sheets do not have a `DR_titlea_3rd` title block; confirm their `DR_A4_Outline` count and geometry through `SWTITLEVERIFY` instead.
+When the automated evidence passes, completion is still not proven until representative `DR_titlea_3rd` title blocks open the GMTITLE table editor on double-click. Title-missing/frame-only sheets do not have a `DR_titlea_3rd` title block by design; confirm the matching `DR_A*_Outline` count and geometry through `SWTITLEVERIFY` instead.
 
 ## GstarCAD /b Script Smoke Probe
 
@@ -669,7 +669,7 @@ Expected result:
 
 ```text
 Loaded loader version: 260706-loader-convert-next-response-guidance
-Loaded GMTITLE version: 260706-convert-next-quoted-pause
+Loaded GMTITLE version: 260706-unified-title-missing
 Command-line -GMTITLE default enabled: no
 SCRIPT command-line -GMTITLE enabled: no
 Command c:SWTITLESTATUS: yes
@@ -691,7 +691,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260706-convert-next-quoted-pause
+Loaded version: 260706-unified-title-missing
 A3/A4 candidate count before SWTITLESTATUS: 1
 SWTITLESTATUS result: OK
 Status after SWTITLESTATUS: NEXT_UPGRADE_A3_A4_NATIVE
@@ -713,7 +713,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260706-convert-next-quoted-pause
+Loaded version: 260706-unified-title-missing
 Script active: yes
 Status after batch: ABORT_NATIVE_A3A4_BATCH_SCRIPT_ACTIVE
 Candidates before/after: 2/2
@@ -734,7 +734,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260706-convert-next-quoted-pause
+Loaded version: 260706-unified-title-missing
 Script active before convert: yes
 Status after convert: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE
 Source titles before/after: 13/13

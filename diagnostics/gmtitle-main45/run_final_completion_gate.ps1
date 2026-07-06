@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$SourceWorkCopyPath,
 
   [int]$TimeoutSeconds = 180,
@@ -162,8 +162,8 @@ function Write-CompletionFailureSummary {
   Write-Output ""
   Write-Output "Next:"
   Write-Output ("  powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}""" -f (Join-Path $PSScriptRoot "run_next_cad_action.ps1"))
-  Write-Output "Completion is not proven until SWTITLEVERIFY_FINAL_OK and representative A2/A3 title-block double-click checks are confirmed."
-  Write-Output "A4 frame-only sheets have no DR_titlea_3rd title block; verify their DR_A4_Outline count/geometry instead."
+  Write-Output "Completion is not proven until SWTITLEVERIFY_FINAL_OK and representative DR_titlea_3rd title-block double-click checks are confirmed."
+  Write-Output "Title-missing/frame-only sheets have no DR_titlea_3rd title block by design; verify the matching DR_A*_Outline count/geometry instead."
 }
 
 if (-not $SourceWorkCopyPath) {
@@ -195,7 +195,7 @@ Assert-LogContains `
   -Label "final completion status probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260706-convert-next-quoted-pause",
+    "Loaded version: 260706-unified-title-missing",
     "Result: OK SWTITLESTATUS",
     "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_OK",
     "source-title-count: 0",
@@ -227,5 +227,5 @@ if ($completionFailures.Count -gt 0) {
 }
 
 Write-Output "Final automated completion evidence passed."
-Write-Output "Manual completion still requires representative A2/A3 DR_titlea_3rd title-block double-click checks."
-Write-Output "A4 frame-only sheets have no DR_titlea_3rd title block; verify their DR_A4_Outline count/geometry instead."
+Write-Output "Manual completion still requires representative DR_titlea_3rd title-block double-click checks."
+Write-Output "Title-missing/frame-only sheets have no DR_titlea_3rd title block by design; verify the matching DR_A*_Outline count/geometry instead."

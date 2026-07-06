@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260706-convert-next-quoted-pause")
+(setq *swcad-title-scale-version* "260706-unified-title-missing")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -152,13 +152,13 @@
         ("FINALIZED_EXISTING_GMTITLE_TRANSFER" . "기존/native GMTITLE 변환이 완료됐습니다.")
         ("ADOPTED_EXISTING_NATIVE_GMTITLE_TRANSFER" . "이미 같은 위치에 있던 native GMTITLE 쌍을 채택해 값 입력과 기존 잔여물 정리를 완료했습니다.")
         ("FINALIZED_FRAME_ONLY_GMTITLE_TRANSFER" . "표제란 없는 도면틀 시트 변환이 완료됐습니다.")
-        ("FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER" . "표제란 없는 A4 시트의 도면틀만 교체했습니다.")
-        ("READY_FOR_A4_FRAME_ONLY_OUTLINE" . "표제란 없는 A4 시트를 제목블록 없이 도면틀만 교체할 수 있습니다.")
-        ("WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION" . "표제란 없는 A4 변환 전에 DR_A4_Outline 도면틀 정의를 먼저 검증해야 합니다.")
-        ("NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" . "표제란 없는 A4 변환 전에 SWTITLEPREPARE로 DR_A4_Outline 정의를 준비해야 합니다.")
-        ("OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED" . "DR_A4_Outline 정의를 가져와 A4 frame-only 변환 준비가 됐습니다.")
-        ("WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE" . "DR_A4_Outline 정의를 가져왔지만 A4 형상/선택범위 검사를 통과하지 못했습니다.")
-        ("ABORT_A4_FRAME_ONLY_OUTLINE_DEFINITION_USER" . "사용자가 DR_A4_Outline 정의 준비를 취소했습니다.")
+        ("FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER" . "원본 표제란 부재가 검증된 시트의 도면틀만 교체했습니다.")
+        ("READY_FOR_A4_FRAME_ONLY_OUTLINE" . "title-missing/frame-only 시트를 제목블록 없이 도면틀만 교체할 수 있습니다.")
+        ("WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION" . "title-missing/frame-only 변환 전에 같은 크기 DR 도면틀 정의를 먼저 검증해야 합니다.")
+        ("NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" . "title-missing/frame-only 변환 전에 SWTITLEPREPARE로 같은 크기 DR 도면틀 정의를 준비해야 합니다.")
+        ("OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED" . "DR 도면틀 정의를 가져와 title-missing/frame-only 변환 준비가 됐습니다.")
+        ("WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE" . "DR 도면틀 정의를 가져왔지만 형상/선택범위 검사를 통과하지 못했습니다.")
+        ("ABORT_A4_FRAME_ONLY_OUTLINE_DEFINITION_USER" . "사용자가 title-missing/frame-only 도면틀 정의 준비를 취소했습니다.")
         ("WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS" . "남은 시트 크기와 같은 첫 native GMTITLE이 필요합니다.")
         ("OK_FAST_BATCH_COMPLETE" . "빠른 일괄 변환이 완료됐습니다.")
         ("OK_NO_REMAINING_SOURCES" . "남은 원본 시트가 없습니다.")
@@ -172,9 +172,9 @@
         ("ABORT_EXISTING_GMTITLE_WRONG_SELECTION" . "GMTITLE 용지/제목블록 선택이 예상과 다릅니다.")
         ("ABORT_NATIVE_UPGRADE_WRONG_GMTITLE_SELECTION" . "native 교체 중 잘못된 용지/제목블록이 선택되어 새 객체를 제거하고 기존 객체를 보존했습니다.")
         ("ABORT_NATIVE_UPGRADE_WRONG_LOCATION" . "GMTITLE이 대상 도면틀 왼쪽 아래 위치에 생성되지 않아 중단했습니다.")
-        ("ABORT_EXISTING_FRAME_ONLY_GMTITLE_RAW_BBOX_EXTRA_OBJECTS" . "A4 GMTITLE 도면틀의 실제 선택 범위에 틀 밖 객체가 붙어 있어 기존 A4를 지우지 않고 중단했습니다.")
-        ("ABORT_A4_FRAME_ONLY_OUTLINE_UNAVAILABLE" . "표제란 없는 A4 도면틀만 교체 경로를 사용할 수 없어 중단했습니다.")
-        ("ABORT_A4_FRAME_ONLY_OUTLINE_INVALID_GEOMETRY" . "새 A4 도면틀 범위가 원본과 맞지 않아 중단했습니다.")
+        ("ABORT_EXISTING_FRAME_ONLY_GMTITLE_RAW_BBOX_EXTRA_OBJECTS" . "title-missing GMTITLE 도면틀의 실제 선택 범위에 틀 밖 객체가 붙어 있어 기존 원본 도면틀을 지우지 않고 중단했습니다.")
+        ("ABORT_A4_FRAME_ONLY_OUTLINE_UNAVAILABLE" . "title-missing 도면틀만 교체 경로를 사용할 수 없어 중단했습니다.")
+        ("ABORT_A4_FRAME_ONLY_OUTLINE_INVALID_GEOMETRY" . "새 도면틀 범위가 원본과 맞지 않아 중단했습니다.")
         ("WARN_REQUIRED_TARGET_SHEET_MISSING" . "현재 원본/대상 기준으로 필요한 GMTITLE 대상 용지가 누락됐습니다.")
         ("WARN_REQUIRED_A2_A3_A4_TARGET_SHEET_MISSING" . "현재 원본/대상 기준으로 필요한 GMTITLE 대상 용지가 누락됐습니다.")
         ("UPGRADED_CLONE_TO_NATIVE_GMTITLE" . "clone GMTITLE을 실제 native GMTITLE로 교체했습니다.")
@@ -413,10 +413,10 @@
           ("Clone batch apply error:" . "복제 일괄 변환 적용 오류:")
           ("internal fast title clone phase sheet" . "내부 빠른 표제란 복제 단계 시트")
           ("Next native GMTITLE bootstrap selection:" . "다음 첫 native GMTITLE 선택:")
-          ("A4 native template caution:" . "A4 native 템플릿 주의:")
-          ("A4 frame-only special handling: GMTITLE was created at the default location and moved to the old A4 frame." . "A4 frame-only 특수 처리: GMTITLE이 기본 위치에 생성되어 기존 A4 도면틀 위치로 이동했습니다.")
+          ("Title-missing/frame-only native template caution:" . "title-missing/frame-only native 템플릿 주의:")
+          ("Title-missing/frame-only exception handling: GMTITLE was created at the default location and moved to the old source frame." . "title-missing/frame-only 예외 처리: GMTITLE이 기본 위치에 생성되어 기존 도면틀 위치로 이동했습니다.")
           ("A4 special handling: GMTITLE was created at the default location and moved to the target A4 frame." . "A4 특수 처리: GMTITLE이 기본 위치에 생성되어 대상 A4 도면틀 위치로 이동했습니다.")
-          ("This is allowed only for DR_A4_Outline frame-only sheets; run SWTITLEVERIFY after conversion." . "이 처리는 DR_A4_Outline frame-only 시트에만 허용됩니다. 변환 후 SWTITLEVERIFY로 A4 도면틀 수량/형상을 검증하세요.")
+          ("This is allowed only for verified title-missing/frame-only sheets; run SWTITLEVERIFY after conversion." . "이 처리는 원본 표제란 부재가 검증된 title-missing/frame-only 시트에만 허용됩니다. 변환 후 SWTITLEVERIFY로 해당 DR 도면틀 수량/형상을 검증하세요.")
           ("Run final double-click verification after conversion." . "변환 후 최종 더블클릭 검증을 실행하세요.")
           ("Important: fast batch may create clone GMTITLE pairs. Clone pairs can look correct but still fail GMPOWEREDIT/double-click native behavior." . "중요: 빠른 일괄 변환은 clone GMTITLE 쌍을 만들 수 있습니다. 겉으로 맞아 보여도 GMPOWEREDIT/더블클릭 native 동작은 실패할 수 있습니다.")
           ("Final success requires no clone/native-upgrade warnings and manual double-click checks for title blocks that actually exist." . "최종 성공은 clone/native-upgrade 경고가 없고 실제 제목블록이 있는 대표 용지의 더블클릭 확인까지 통과해야 합니다.")
@@ -473,12 +473,12 @@
           ("GMPOWEREDIT diagnosis: multiple GMTITLE titles share the same internal native recognition handle." . "GMPOWEREDIT 진단: 여러 GMTITLE 제목블록이 같은 내부 native 인식 handle을 공유합니다.")
           ("This is typical of preserve-copy/clone output: it can look correct, but double-click recognition can fall back to REFEDIT or block editing." . "preserve-copy/clone 결과에서 흔한 상태입니다. 겉으로 맞아 보여도 더블클릭 인식이 REFEDIT나 블록 편집으로 빠질 수 있습니다.")
           ("Missing-sheet diagnosis: old SOLIDWORKS frame-only sheets still remain." . "누락 용지 진단: 기존 SOLIDWORKS frame-only 시트가 아직 남아 있습니다.")
-          ("Next after A3 clone review: run SWTITLECONVERT to handle remaining A4 frame-only sheets." . "A3 clone 검토 뒤 다음 단계: 남은 A4 frame-only 시트는 SWTITLECONVERTNEXT로 처리하세요.")
+          ("Next after native clone review: run SWTITLECONVERT to handle remaining title-missing/frame-only exception sheets." . "native 복제 검토 뒤 다음 단계: 남은 title-missing/frame-only 예외 시트는 SWTITLECONVERTNEXT로 처리하세요.")
           ("Note: DR_A*_Outline sheet frames are still INSERT/block references; test the paired title block for the GMTITLE table editor." . "참고: DR_A*_Outline 도면틀은 여전히 INSERT/block 참조입니다. GMTITLE 표 편집창은 짝 제목블록에서 확인하세요.")
           ("참고: DR_A*_Outline sheet frames are still INSERT/block references; test the paired title block for the GMTITLE table editor." . "참고: DR_A*_Outline 도면틀은 여전히 INSERT/block 참조입니다. GMTITLE 표 편집창은 짝 제목블록에서 확인하세요.")
           ("These pairs can have correct attributes and SWTITLE markers but still open GMPOWEREDIT/REFEDIT instead of the GMTITLE table editor." . "이 쌍들은 속성과 SWTITLE marker가 맞아도 GMTITLE 표 편집창 대신 GMPOWEREDIT/REFEDIT가 열릴 수 있습니다.")
           ("Remaining source sheets are a separate follow-up after the listed clone/non-native pairs are reviewed." . "남은 원본 시트 처리는 표시된 clone/non-native 쌍을 검토한 뒤 별도로 이어집니다.")
-          ("You can upgrade the listed A3/A4 target pairs now even if A4 frame-only source sheets still remain." . "A4 frame-only 원본 시트가 남아 있어도 표시된 A3/A4 대상 쌍은 지금 교체할 수 있습니다.")
+          ("You can upgrade the listed native target pairs now even if title-missing/frame-only source sheets still remain." . "title-missing/frame-only 원본 시트가 남아 있어도 표시된 native 대상 쌍은 지금 교체할 수 있습니다.")
           ("After this command succeeds, rerun SWTITLESTATUS; repeat SWTITLECONVERT until A3/A4 target pairs needing native replacement is 0." . "이 명령이 성공하면 SWTITLESTATUS를 다시 실행하세요. native 교체가 필요한 A3/A4 대상 쌍이 0이 될 때까지 SWTITLECONVERTNEXT를 반복합니다.")
           ("No A3/A4 target pairs need native replacement." . "native 교체가 필요한 A3/A4 대상 쌍이 없습니다.")
           ("Next A3/A4 native upgrade candidate:" . "다음 A3/A4 native 교체 후보:")
@@ -620,10 +620,10 @@
           ("Cloned GMTITLE was finalized for frame-only source; native upgrade is still required for double-click behavior." . "frame-only 원본의 복제 GMTITLE 마무리는 완료됐지만, 더블클릭 동작을 위해 native 교체가 아직 필요합니다.")
           ("Existing/default native GMTITLE was used for frame-only source." . "frame-only 원본에는 기존/기본 native GMTITLE을 사용했습니다.")
           ("WARNING: frame-only GMTITLE was moved by LISP after creation because native placement was not captured." . "경고: native 배치점을 잡지 못해 생성 후 LISP가 frame-only GMTITLE을 이동했습니다.")
-          ("The created GMTITLE frame bbox will be checked before any old A4 frame-only content is removed." . "기존 A4 frame-only 내용을 지우기 전에 새 GMTITLE 도면틀 범위를 먼저 검사합니다.")
-          ("Create one native GMTITLE with the detected DR sheet and verify its bbox first; if A4 keeps failing, inspect the GMTITLE A4 selection/format definition." . "감지된 DR 용지로 native GMTITLE 1장을 만들고 범위를 먼저 확인하세요. A4가 계속 실패하면 GMTITLE A4 선택/형식 정의를 점검하세요.")
+          ("The created GMTITLE frame bbox will be checked before any old title-missing/frame-only content is removed." . "기존 title-missing/frame-only 내용을 지우기 전에 새 GMTITLE 도면틀 범위를 먼저 검사합니다.")
+          ("Create one native GMTITLE with the detected DR sheet and verify its bbox first; if the sheet keeps failing, inspect the GMTITLE sheet selection/format definition." . "감지된 DR 용지로 native GMTITLE 1장을 만들고 범위를 먼저 확인하세요. 같은 용지가 계속 실패하면 GMTITLE 용지 선택/형식 정의를 점검하세요.")
           ("Native GMTITLE will open once for this frame-only sheet." . "이 frame-only 시트에 대해 native GMTITLE 창이 한 번 열립니다.")
-          ("Do not force a clone for this A4 size until a real DR_A4_Outline exemplar passes the bbox check." . "실제 DR_A4_Outline 기준 객체가 bbox 검사를 통과하기 전에는 이 A4 크기에 clone을 강제로 적용하지 마세요.")
+          ("Do not force a clone for this sheet size until a real matching DR_A*_Outline exemplar passes the bbox check." . "실제 같은 크기 DR_A*_Outline 기준 객체가 bbox 검사를 통과하기 전에는 이 용지 크기에 clone을 강제로 적용하지 마세요.")
           ("Frame-only clone error:" . "frame-only clone 오류:")
           ("Clone error:" . "clone 오류:")
           ("verified native GMTITLE exemplar or target frame could not be created." . "검증된 native GMTITLE 기준 객체 또는 대상 도면틀을 만들 수 없습니다.")
@@ -638,8 +638,8 @@
           ("Fast batch not started because bootstrap phase ended with status:" . "bootstrap 단계가 다음 상태로 끝나 빠른 일괄 변환을 시작하지 않았습니다:")
           (": run SWTITLECONVERT to create/finalize one real title sheet for this size, then rerun SWTITLESTATUS." . ": 이 크기의 실제 표제란 시트 1장을 생성/마무리하려면 SWTITLECONVERTNEXT를 실행한 뒤 SWTITLESTATUS를 다시 실행하세요.")
           (": run SWTITLECONVERT to create/finalize one real frame-only sheet for this size, then rerun SWTITLESTATUS." . ": 이 크기의 실제 frame-only 시트 1장을 생성/마무리하려면 SWTITLECONVERTNEXT를 실행한 뒤 SWTITLESTATUS를 다시 실행하세요.")
-          ("Do not continue with clone/fast batch for this A4 size until the created DR_A4_Outline frame passes the bbox check." . "생성된 DR_A4_Outline 도면틀이 bbox 검사를 통과하기 전에는 이 A4 크기의 clone/빠른 일괄 변환을 계속하지 마세요.")
-          ("If SWTITLECONVERT aborts with invalid A4 geometry, inspect the GMTITLE A4 selection or repair/check the frame definition before retrying." . "SWTITLECONVERTNEXT/SWTITLECONVERT가 A4 형상 오류로 중단되면 다시 시도하기 전에 GMTITLE A4 선택값을 확인하거나 도면틀 정의를 복구/점검하세요.")
+          ("Do not continue with clone/fast batch for this sheet size until the created matching DR_A*_Outline frame passes the bbox check." . "생성된 같은 크기 DR_A*_Outline 도면틀이 bbox 검사를 통과하기 전에는 이 용지 크기의 clone/빠른 일괄 변환을 계속하지 마세요.")
+          ("If SWTITLECONVERT aborts with invalid A4 geometry, inspect the GMTITLE A4 selection or repair/check the frame definition before retrying." . "SWTITLECONVERTNEXT/SWTITLECONVERT가 도면틀 형상 오류로 중단되면 다시 시도하기 전에 GMTITLE 용지 선택값을 확인하거나 도면틀 정의를 복구/점검하세요.")
           ("It will process " . "내부 처리 예정: ")
           (" currently listed A3/A4 native replacement candidate(s) internally." . "개의 현재 A3/A4 native 교체 후보")
           ("Important: native-finalize and native-frame-only must be legacy-uncertain=yes." . "중요: native-finalize와 native-frame-only는 legacy-uncertain=yes로 분류되어야 합니다.")
@@ -740,9 +740,9 @@
           ("Next command:" . "다음 명령:")
           ("It will process " . "내부 처리 예정: ")
           (" currently listed A3/A4 native replacement candidate(s) internally." . "개의 현재 A3/A4 native 교체 후보")
-          ("Frame-only A4 source sheets still remain; handle them after this native upgrade." . "frame-only A4 원본 시트가 아직 남아 있습니다. 이 native 교체 후 처리하세요.")
-          ("Frame-only A4 sheets will be handled inside the convert flow after required native checks." . "frame-only A4 시트는 필요한 native 확인 뒤 변환 흐름 안에서 처리됩니다.")
-          ("Final manual check: double-click representative DR_titlea_3rd title blocks. A4 frame-only sheets have no title block to double-click." . "최종 수동 확인: 실제 DR_titlea_3rd 제목블록이 있는 대표 용지만 더블클릭하세요. 표제란 없는 A4는 더블클릭할 제목블록이 없습니다.")
+          ("Title-missing/frame-only source sheets still remain; handle them after this native upgrade." . "title-missing/frame-only 원본 시트가 아직 남아 있습니다. 이 native 교체 후 처리하세요.")
+          ("Title-missing/frame-only sheets will be handled inside the convert flow after required native checks." . "title-missing/frame-only 시트는 필요한 native 확인 뒤 변환 흐름 안에서 처리됩니다.")
+          ("Final manual check: double-click representative DR_titlea_3rd title blocks. Title-missing/frame-only sheets have no title block to double-click." . "최종 수동 확인: 실제 DR_titlea_3rd 제목블록이 있는 대표 용지만 더블클릭하세요. 원본 표제란이 없는 title-missing/frame-only 시트는 더블클릭할 제목블록이 없습니다.")
           ("Important: native-finalize and native-frame-only must be legacy-uncertain=yes." . "중요: native-finalize와 native-frame-only는 legacy-uncertain=yes로 분류되어야 합니다.")
           ("If they are safe-native-source=yes, A3/A4 GMPOWEREDIT failures can be hidden by stale logic." . "safe-native-source=yes로 분류되면 오래된 로직 때문에 A3/A4 GMPOWEREDIT 실패가 가려질 수 있습니다.")
           ("Open a writable work copy before repairing frame definitions." . "도면틀 정의를 복구하기 전에 쓰기 가능한 작업복사본을 여세요.")
@@ -770,7 +770,7 @@
           ("GMPOWEREDIT diagnosis: multiple GMTITLE titles share the same internal native recognition handle." . "GMPOWEREDIT 진단: 여러 GMTITLE 제목블록이 같은 내부 native 인식 핸들을 공유합니다.")
           ("This is typical of preserve-copy/clone output: it can look correct, but double-click recognition can fall back to REFEDIT or block editing." . "preserve-copy/clone 결과에서 흔한 상태입니다. 모양은 맞아 보여도 더블클릭 인식이 REFEDIT 또는 블록 편집으로 돌아갈 수 있습니다.")
           ("Missing-sheet diagnosis: old SOLIDWORKS frame-only sheets still remain." . "누락 시트 진단: 기존 SOLIDWORKS frame-only 시트가 아직 남아 있습니다.")
-          ("Next after A3 clone review: run SWTITLECONVERT to handle remaining A4 frame-only sheets." . "A3 clone 검토 후 다음 단계: 남은 A4 frame-only 시트는 SWTITLECONVERTNEXT로 처리하세요.")
+          ("Next after native clone review: run SWTITLECONVERT to handle remaining title-missing/frame-only exception sheets." . "native 복제 검토 후 다음 단계: 남은 title-missing/frame-only 예외 시트는 SWTITLECONVERTNEXT로 처리하세요.")
           ("Loose text scale candidates:" . "분리된 텍스트 스케일 후보:")
           ("Possible accidental command text entities:" . "실수로 도면에 들어간 명령어 텍스트 후보:")
           ("Command text cleanup is limited to Documents/CAD tool/work copies." . "명령어 텍스트 정리는 Documents/CAD tool/work 안의 복사본에서만 실행합니다.")
@@ -789,10 +789,10 @@
           ("Cloned GMTITLE was finalized; native upgrade is still required for double-click behavior." . "복제 GMTITLE 마무리는 완료됐지만, 더블클릭 동작을 위해 native 교체가 아직 필요합니다.")
           ("Cloned GMTITLE was finalized for frame-only source; native upgrade is still required for double-click behavior." . "frame-only 원본에 대한 복제 GMTITLE 마무리는 완료됐지만, 더블클릭 동작을 위해 native 교체가 아직 필요합니다.")
           ("Existing/default native GMTITLE was used for frame-only source." . "frame-only 원본에 기존/기본 native GMTITLE을 사용했습니다.")
-          ("A4 frame-only special handling: GMTITLE was created at the default location and moved to the old A4 frame." . "A4 frame-only 특수 처리: GMTITLE이 기본 위치에 생성된 뒤 기존 A4 도면틀로 이동됐습니다.")
-          ("This is allowed only for DR_A4_Outline frame-only sheets; run SWTITLEVERIFY after conversion." . "이 처리는 DR_A4_Outline frame-only 시트에서만 허용됩니다. 변환 후 SWTITLEVERIFY로 A4 도면틀 수량/형상을 검증하세요.")
+          ("Title-missing/frame-only exception handling: GMTITLE was created at the default location and moved to the old source frame." . "title-missing/frame-only 예외 처리: GMTITLE이 기본 위치에 생성된 뒤 기존 도면틀로 이동됐습니다.")
+          ("This is allowed only for verified title-missing/frame-only sheets; run SWTITLEVERIFY after conversion." . "이 처리는 원본 표제란 부재가 검증된 title-missing/frame-only 시트에서만 허용됩니다. 변환 후 SWTITLEVERIFY로 해당 DR 도면틀 수량/형상을 검증하세요.")
           ("Visible A4 frame size is usable, but extra dependency/block geometry is attached outside the frame." . "보이는 A4 도면틀 크기는 사용할 수 있지만, 도면틀 밖에 추가 의존/블록 형상이 붙어 있습니다.")
-          ("The created GMTITLE frame bbox will be checked before any old A4 frame-only content is removed." . "기존 A4 frame-only 내용을 삭제하기 전에 새 GMTITLE 도면틀 bbox를 먼저 검사합니다.")
+          ("The created GMTITLE frame bbox will be checked before any old title-missing/frame-only content is removed." . "기존 title-missing/frame-only 내용을 삭제하기 전에 새 GMTITLE 도면틀 bbox를 먼저 검사합니다.")
           ("Native GMTITLE will open once for this frame-only sheet." . "이 frame-only 시트에 대해 native GMTITLE 창이 한 번 열립니다.")
           ("Frame-only clone error: verified GMTITLE exemplar or target frame could not be created." . "frame-only clone 오류: 검증된 GMTITLE 기준 객체 또는 대상 도면틀을 만들 수 없습니다.")
           ("Double-click note: this is the DR_A*_Outline frame INSERT. GMPOWEREDIT may show block/reference editing here." . "더블클릭 참고: 이것은 DR_A*_Outline 도면틀 INSERT입니다. 여기서는 GMPOWEREDIT가 블록/참조 편집을 보일 수 있습니다.")
@@ -869,6 +869,14 @@
       answer
     )
     nil
+  )
+)
+
+(defun swcad-title-auto-next-answer-or-prompt (auto-answer auto-message prompt / answer)
+  (setq answer (swcad-title-auto-next-answer auto-answer auto-message))
+  (if answer
+    answer
+    (getstring T prompt)
   )
 )
 
@@ -4055,8 +4063,8 @@
             (if risk-message
               (progn
                 (swcad-title-princ-line (strcat "    경고: " risk-message))
-                (swcad-title-princ-line "    생성된 DR_A4_Outline 도면틀이 bbox 검사를 통과하기 전에는 이 A4 크기의 복제/빠른 일괄 변환을 계속하지 마세요.")
-                (swcad-title-princ-line "    SWTITLECONVERTNEXT/SWTITLECONVERT가 A4 형상 오류로 중단되면 다시 시도하기 전에 GMTITLE A4 선택값을 확인하거나 도면틀 정의를 복구/점검하세요.")
+                (swcad-title-princ-line "    생성된 같은 크기 DR_A*_Outline 도면틀이 bbox 검사를 통과하기 전에는 이 용지 크기의 복제/빠른 일괄 변환을 계속하지 마세요.")
+                (swcad-title-princ-line "    SWTITLECONVERTNEXT/SWTITLECONVERT가 도면틀 형상 오류로 중단되면 다시 시도하기 전에 GMTITLE 용지 선택값을 확인하거나 도면틀 정의를 복구/점검하세요.")
               )
             )
           )
@@ -4081,7 +4089,7 @@
   (swcad-title-target-frame-block-name-for-sheet sheet)
 )
 
-(defun swcad-title-a4-frame-only-outline-policy-blocked-p (/ source-frame frame-block)
+(defun swcad-title-title-missing-outline-policy-active-p (/ source-frame frame-block sheet)
   (setq source-frame (car (swcad-title-frame-only-source-candidates)))
   (setq frame-block
     (if source-frame
@@ -4089,14 +4097,20 @@
       nil
     )
   )
+  (setq sheet (if source-frame (swcad-title-normalized-sheet-size (nth 5 source-frame)) nil))
   (and
     source-frame
-    (equal (swcad-title-normalized-sheet-size (nth 5 source-frame)) "A4")
-    (equal (strcase (swcad-title-string frame-block)) "DR_A4_OUTLINE")
+    sheet
+    (wcmatch sheet "A1,A2,A3,A4")
+    (swcad-title-frame-name-matches-p frame-block (strcat "DR_" sheet "_Outline"))
   )
 )
 
-(defun swcad-title-a4-frame-only-outline-target-block (/ source-frame)
+(defun swcad-title-a4-frame-only-outline-policy-blocked-p ()
+  (swcad-title-title-missing-outline-policy-active-p)
+)
+
+(defun swcad-title-title-missing-outline-target-block (/ source-frame)
   (setq source-frame (car (swcad-title-frame-only-source-candidates)))
   (if source-frame
     (swcad-title-target-frame-block-name-for-sheet (nth 5 source-frame))
@@ -4104,32 +4118,50 @@
   )
 )
 
-(defun swcad-title-a4-frame-only-outline-raw-a4-warning (frame-block / bbox tol)
+(defun swcad-title-a4-frame-only-outline-target-block ()
+  (swcad-title-title-missing-outline-target-block)
+)
+
+(defun swcad-title-title-missing-outline-raw-sheet-warning (frame-block / bbox sheet dims tol)
   (setq bbox
     (if frame-block
       (swcad-title-block-definition-raw-bbox frame-block)
       nil
     )
   )
+  (setq sheet (swcad-title-sheet-size-from-block-name frame-block))
+  (setq dims (swcad-title-sheet-dimensions sheet))
   (setq tol 2.0)
   (if
     (and
       bbox
+      dims
       (numberp (car bbox))
       (numberp (cadr bbox))
       (numberp (caddr bbox))
       (numberp (cadddr bbox))
       (<= (abs (- (car bbox) 0.0)) tol)
       (<= (abs (- (cadr bbox) 0.0)) tol)
-      (<= (abs (- (caddr bbox) 210.0)) tol)
-      (<= (abs (- (cadddr bbox) 297.0)) tol)
+      (<= (abs (- (caddr bbox) (car dims))) tol)
+      (<= (abs (- (cadddr bbox) (cadr dims))) tol)
     )
     nil
     (strcat
-      "DR_A4_Outline 정의 raw bbox가 보이는 A4 범위 (0,0)-(210,297)과 맞지 않습니다: "
+      (swcad-title-string frame-block)
+      " 정의 raw bbox가 보이는 "
+      (if sheet sheet "<unknown>")
+      " 범위 (0,0)-("
+      (if dims (swcad-title-number-string (car dims)) "?")
+      ","
+      (if dims (swcad-title-number-string (cadr dims)) "?")
+      ")과 맞지 않습니다: "
       (swcad-title-bbox-string bbox)
     )
   )
+)
+
+(defun swcad-title-a4-frame-only-outline-raw-a4-warning (frame-block)
+  (swcad-title-title-missing-outline-raw-sheet-warning frame-block)
 )
 
 (defun swcad-title-a4-frame-only-outline-native-outside-marker-p (frame-block / raw-risk strict-warning)
@@ -4138,15 +4170,15 @@
     (swcad-title-block-exists-p frame-block)
     (not (swcad-title-target-frame-block-contaminated-p frame-block))
     (not (swcad-title-frame-definition-raw-bbox-risk-record frame-block))
-    (setq strict-warning (swcad-title-a4-frame-only-outline-raw-a4-warning frame-block))
+    (setq strict-warning (swcad-title-title-missing-outline-raw-sheet-warning frame-block))
   )
 )
 
 (defun swcad-title-a4-frame-only-outline-definition-status (/ frame-block raw-risk)
   (setq frame-block (swcad-title-a4-frame-only-outline-target-block))
   (cond
-    ((not (swcad-title-a4-frame-only-outline-policy-blocked-p)) "not-a4-frame-only")
-    ((not (swcad-title-frame-name-matches-p frame-block "DR_A4_Outline")) "wrong-target")
+    ((not (swcad-title-title-missing-outline-policy-active-p)) "not-title-missing-outline")
+    ((not (swcad-title-frame-name-matches-p frame-block (swcad-title-title-missing-outline-target-block))) "wrong-target")
     ((not (swcad-title-block-exists-p frame-block)) "missing")
     ((swcad-title-target-frame-block-contaminated-p frame-block) "contaminated")
     ((setq raw-risk (swcad-title-frame-definition-raw-bbox-risk-record frame-block)) "raw-bbox-risk")
@@ -4164,7 +4196,7 @@
 
 (defun swcad-title-a4-frame-only-outline-definition-needed-p ()
   (and
-    (swcad-title-a4-frame-only-outline-policy-blocked-p)
+    (swcad-title-title-missing-outline-policy-active-p)
     (not (swcad-title-a4-frame-only-outline-definition-ready-p))
   )
 )
@@ -4180,13 +4212,13 @@
   )
   (setq strict-warning
     (if (and frame-block (swcad-title-block-exists-p frame-block))
-      (swcad-title-a4-frame-only-outline-raw-a4-warning frame-block)
+      (swcad-title-title-missing-outline-raw-sheet-warning frame-block)
       nil
     )
   )
   (swcad-title-princ-line
     (strcat
-      "A4 frame-only DR_A4_Outline 정의 상태: "
+      "title-missing/frame-only 도면틀 정의 상태: "
       status
       ", 대상="
       (if frame-block frame-block "<unknown>")
@@ -4194,27 +4226,27 @@
   )
   (cond
     ((equal status "ready")
-      (swcad-title-princ-line "  변환 가능: 현재 도면 안의 DR_A4_Outline 정의가 clean/raw-bbox 검사를 통과했습니다.")
+      (swcad-title-princ-line "  변환 가능: 현재 도면 안의 title-missing/frame-only 대상 DR 도면틀 정의가 clean/raw-bbox 검사를 통과했습니다.")
     )
     ((equal status "ready-native-outside-markers")
-      (swcad-title-princ-line "  변환 가능: 현재 DR_A4_Outline 정의는 공식 native A4의 작은 바깥 마커를 포함하지만, 과도한 raw bbox/선택 위험은 없습니다.")
+      (swcad-title-princ-line "  변환 가능: 현재 title-missing/frame-only 대상 DR 도면틀 정의는 공식 native 바깥 마커를 포함하지만, 과도한 raw bbox/선택 위험은 없습니다.")
       (if strict-warning
         (swcad-title-princ-line (strcat "  참고: " strict-warning))
       )
     )
     ((equal status "missing")
-      (swcad-title-princ-line "  필요 작업(A4 frame-only 단계): SWTITLEPREPARE로 설치 원본 정의를 가져와 형상/선택범위를 먼저 검증하세요.")
+      (swcad-title-princ-line "  필요 작업(title-missing 예외): SWTITLEPREPARE로 설치 원본 정의를 가져와 형상/선택범위를 먼저 검증하세요.")
     )
     ((equal status "contaminated")
-      (swcad-title-princ-line "  필요 작업(A4 frame-only 단계): SWTITLEPREPARE로 오염된 DR_A4_Outline 정의를 정리/복구해야 합니다.")
+      (swcad-title-princ-line "  필요 작업(title-missing 예외): SWTITLEPREPARE로 오염된 DR 도면틀 정의를 정리/복구해야 합니다.")
     )
     ((equal status "raw-bbox-risk")
-      (swcad-title-princ-line "  필요 작업(A4 frame-only 단계): DR_A4_Outline 정의의 실제 선택 범위가 커서 기존 A4를 삭제하지 않습니다.")
+      (swcad-title-princ-line "  필요 작업(title-missing 예외): DR 도면틀 정의의 실제 선택 범위가 커서 기존 원본 도면틀을 삭제하지 않습니다.")
       (if raw-risk
         (swcad-title-princ-line (strcat "  정의 선택범위 위험: " (caddr raw-risk)))
       )
       (if strict-warning
-        (swcad-title-princ-line (strcat "  A4 정의 범위 위험: " strict-warning))
+        (swcad-title-princ-line (strcat "  정의 범위 위험: " strict-warning))
       )
     )
   )
@@ -4409,10 +4441,13 @@
   )
 )
 
-(defun swcad-title-print-compact-next-gmtitle-card (summary missing-required-native example-title a3a4-count / source-count record frame-block title-block role)
+(defun swcad-title-print-compact-next-gmtitle-card (summary missing-required-native example-title a3a4-count / source-count record frame-block title-block role pair sheet)
   (setq source-count (swcad-title-fast-summary-value summary "source-title-count"))
   (setq record nil)
   (cond
+    ((> a3a4-count 0)
+      (setq record nil)
+    )
     ((and (not example-title) (> source-count 0))
       (setq record (swcad-title-next-bootstrap-selection-record))
     )
@@ -4440,10 +4475,16 @@
     )
     (if (> a3a4-count 0)
       (progn
+        (setq pair (car (swcad-title-a3a4-native-upgrade-candidate-records)))
+        (setq frame-block (if pair (caddr pair) "DR_A*_Outline"))
+        (setq sheet (swcad-title-sheet-size-from-block-name frame-block))
         (swcad-title-princ-line "짧은 GMTITLE 선택 카드:")
         (swcad-title-princ-line "  다음 명령: SWTITLECONVERTNEXT")
-        (swcad-title-princ-line "  대상: 아래 A3/A4 후보 상세의 다음 1장")
-        (swcad-title-princ-line "  용지/제목블록: 출력된 DR_A*_Outline / DR_titlea_3rd")
+        (swcad-title-princ-line "  대상: A3/A4 native 교체 후보 다음 1장")
+        (swcad-title-princ-line "  우선순위: native 교체 후보가 title-missing/frame-only 예외 준비보다 먼저입니다.")
+        (swcad-title-princ-line (strcat "  용지/도면틀: " (if frame-block frame-block "DR_A*_Outline")))
+        (swcad-title-princ-line (strcat "  제목블록: " (swcad-title-target-title-block-name)))
+        (swcad-title-princ-line (strcat "  원본 용지: " (if sheet sheet "<unknown>")))
         (swcad-title-princ-line "  켜둘 옵션: Frame positioning")
         (swcad-title-princ-line "  꺼둘 옵션: Object move")
         (swcad-title-princ-line "  취소 조건: ISO 용지/제목블록, Object move ON, 예상과 다른 DR 용지가 보이면 확인하지 말고 취소하세요.")
@@ -4522,9 +4563,9 @@
   (if (> frame-only-count 0)
     (swcad-title-princ-line
       (strcat
-        "  - A4 표제란 없는 도면틀 "
+        "  - title-missing/frame-only 도면틀 "
         (itoa frame-only-count)
-        "장은 제목블록 생성 대상이 아닙니다. DR_A4_Outline 도면틀-only 경로로 처리합니다."
+        "장은 원본 표제란 부재가 검증된 경우에만 제목블록 생성 대상에서 제외합니다. 같은 크기 DR_A*_Outline 도면틀-only 경로로 처리합니다."
       )
     )
   )
@@ -4621,12 +4662,12 @@
     ((equal status "READY_FOR_A4_FRAME_ONLY_OUTLINE")
       (swcad-title-princ-line "다음: SWTITLECONVERTNEXT를 실행하세요. 원본에 없던 제목블록은 만들지 않고 A4 도면틀만 교체합니다.")
       (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
-      (swcad-title-princ-line "형상 검사를 통과하지 못하면 새 도면틀은 삭제하고 기존 A4는 보존합니다.")
+      (swcad-title-princ-line "형상 검사를 통과하지 못하면 새 도면틀은 삭제하고 기존 원본 도면틀은 보존합니다.")
     )
     ((equal status "WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION")
       (swcad-title-print-a4-frame-only-outline-definition-status)
-      (swcad-title-princ-line "다음: SWTITLEPREPARE를 실행해 DR_A4_Outline 정의를 먼저 가져오고 검증하세요.")
-      (swcad-title-princ-line "검증 전에는 기존 A4 도면틀을 삭제하지 않습니다.")
+      (swcad-title-princ-line "다음: SWTITLEPREPARE를 실행해 대상 DR 도면틀 정의를 먼저 가져오고 검증하세요.")
+      (swcad-title-princ-line "검증 전에는 기존 원본 도면틀을 삭제하지 않습니다.")
     )
     ((equal status "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
       (swcad-title-princ-line "다음: SWTITLECONVERTNEXT를 실행해서 누락된 같은 크기의 native GMTITLE 기준 객체를 만들거나 안내받으세요.")
@@ -4766,7 +4807,7 @@
       (swcad-title-princ-line "이유: DR 도면틀 정의 자체의 raw bbox가 예상 용지보다 과도하게 큽니다.")
       (swcad-title-print-frame-definition-raw-bbox-risk-records definition-raw-risk-records)
       (swcad-title-princ-line "다음: 현재 단계에서는 SWTITLECONVERT를 반복하지 말고, 정의 복구/정규화 설계를 먼저 확인하세요.")
-      (swcad-title-princ-line "기존 A4 도면틀은 raw bbox 검사를 통과하기 전까지 삭제하지 않습니다.")
+      (swcad-title-princ-line "기존 원본 도면틀은 raw bbox 검사를 통과하기 전까지 삭제하지 않습니다.")
     )
     ((> geometry-risk-count 0)
       (swcad-title-apply-result "NEXT_REVIEW_TARGET_FRAME_GEOMETRY")
@@ -4812,12 +4853,12 @@
         ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-definition-needed-p))
           (swcad-title-apply-result "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION")
           (swcad-title-print-a4-frame-only-outline-definition-status)
-          (swcad-title-princ-line "다음: SWTITLEPREPARE를 실행하세요. DR_A4_Outline 정의를 가져와 A4 형상/선택범위를 먼저 검사합니다.")
-          (swcad-title-princ-line "이 검사를 통과하기 전에는 SWTITLECONVERTNEXT가 기존 A4 도면틀을 삭제하지 않습니다.")
+          (swcad-title-princ-line "다음: SWTITLEPREPARE를 실행하세요. 같은 크기 DR_A*_Outline 정의를 가져와 형상/선택범위를 먼저 검사합니다.")
+          (swcad-title-princ-line "이 검사를 통과하기 전에는 SWTITLECONVERTNEXT가 기존 원본 도면틀을 삭제하지 않습니다.")
         )
         ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-policy-blocked-p))
           (swcad-title-apply-result "READY_FOR_A4_FRAME_ONLY_OUTLINE")
-          (swcad-title-princ-line "다음: SWTITLECONVERTNEXT를 실행하세요. 표제란 없는 A4는 도면틀만 교체합니다.")
+          (swcad-title-princ-line "다음: SWTITLECONVERTNEXT를 실행하세요. 원본 표제란 부재가 검증된 시트는 도면틀만 교체합니다.")
           (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
           (swcad-title-princ-line "원본에 없던 DR_titlea_3rd 제목블록은 만들지 않습니다.")
         )
@@ -4857,7 +4898,7 @@
       (swcad-title-apply-result "NEXT_FINAL_VERIFY_AND_DOUBLE_CLICK")
       (swcad-title-princ-line "다음: SWTITLEVERIFY를 실행하세요.")
       (swcad-title-princ-line "최종 수동 확인: GstarCAD에서 실제 DR_titlea_3rd 제목블록이 있는 대표 용지만 더블클릭하세요.")
-      (swcad-title-princ-line "표제란 없는 A4는 더블클릭할 제목블록이 없으므로 SWTITLEVERIFY의 A4 도면틀 수량/형상 검증으로 확인하세요.")
+      (swcad-title-princ-line "원본 표제란이 없는 title-missing/frame-only 시트는 더블클릭할 제목블록이 없으므로 SWTITLEVERIFY의 도면틀 수량/형상 검증으로 확인하세요.")
     )
   )
   (swcad-title-princ-line "도면 데이터는 변경하지 않았습니다.")
@@ -4916,30 +4957,30 @@
       (swcad-title-princ-line "BATCH를 써도 각 GMTITLE 창의 DR 용지/DR_titlea_3rd/Frame positioning ON/Object move OFF 확인은 사람이 해야 합니다.")
       (swcad-title-princ-line "이미 만들어진 A3/A4 GMTITLE 대상 쌍의 더블클릭 native 동작을 복구하는 단계입니다.")
       (if (> frame-only-count 0)
-        (swcad-title-princ-line "표제란 없는 A4 원본 시트가 아직 남아 있습니다. 현재 native 교체가 끝난 뒤 처리합니다.")
+        (swcad-title-princ-line "원본 표제란이 없는 title-missing/frame-only 시트가 아직 남아 있습니다. 현재 native 교체가 끝난 뒤 처리합니다.")
       )
     )
     ((equal status "NEXT_TRANSFER_REMAINING_SOURCE_SHEETS")
       (swcad-title-princ-line "다음 명령: SWTITLECONVERTNEXT")
       (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
       (if (> frame-only-count 0)
-        (swcad-title-princ-line "표제란 없는 A4 시트는 필요한 native 검사를 거친 뒤 같은 변환 흐름 안에서 처리됩니다.")
+        (swcad-title-princ-line "원본 표제란이 없는 title-missing/frame-only 시트는 필요한 native 검사를 거친 뒤 같은 변환 흐름 안에서 처리됩니다.")
       )
     )
     ((equal status "READY_FOR_A4_FRAME_ONLY_OUTLINE")
       (swcad-title-princ-line "다음 명령: SWTITLECONVERTNEXT")
       (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
-      (swcad-title-princ-line "표제란 없는 A4 시트는 원본에 없던 제목블록을 만들지 않고 도면틀만 교체합니다.")
-      (swcad-title-princ-line "형상 검사를 통과하지 못하면 기존 A4는 삭제하지 않습니다.")
+      (swcad-title-princ-line "원본 표제란이 없는 title-missing/frame-only 시트는 원본에 없던 제목블록을 만들지 않고 도면틀만 교체합니다.")
+      (swcad-title-princ-line "형상 검사를 통과하지 못하면 기존 원본 도면틀은 삭제하지 않습니다.")
     )
     ((equal status "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION")
       (swcad-title-princ-line "다음 명령: SWTITLEPREPARE")
       (swcad-title-print-a4-frame-only-outline-definition-status)
-      (swcad-title-princ-line "DR_A4_Outline 정의 검증이 끝난 뒤 SWTITLESTATUS와 SWTITLECONVERTNEXT를 이어서 실행하세요.")
+      (swcad-title-princ-line "대상 DR 도면틀 정의 검증이 끝난 뒤 SWTITLESTATUS와 SWTITLECONVERTNEXT를 이어서 실행하세요.")
     )
     ((equal status "NEXT_FINAL_VERIFY_AND_DOUBLE_CLICK")
       (swcad-title-princ-line "다음 명령: SWTITLEVERIFY")
-      (swcad-title-princ-line "최종 수동 확인: 실제 DR_titlea_3rd 제목블록이 있는 대표 용지만 더블클릭하세요. 표제란 없는 A4는 더블클릭할 제목블록이 없습니다.")
+      (swcad-title-princ-line "최종 수동 확인: 실제 DR_titlea_3rd 제목블록이 있는 대표 용지만 더블클릭하세요. 원본 표제란이 없는 title-missing/frame-only 시트는 더블클릭할 제목블록이 없습니다.")
     )
     (T
       (swcad-title-princ-line "다음: 위 상태가 가리키는 상세 로그를 확인하세요.")
@@ -8457,15 +8498,15 @@
 (defun swcad-title-prepare-a4-frame-only-outline-definition (/ frame-block status answer doc existed imported test-frame test-bbox geometry-warning raw-warning raw-risk strict-warning native-outside-marker-ok cleanup-ok backup-name)
   (setq frame-block (swcad-title-a4-frame-only-outline-target-block))
   (setq status (swcad-title-a4-frame-only-outline-definition-status))
-  (swcad-title-princ-text "\nA4 frame-only DR_A4_Outline 정의 준비:")
+  (swcad-title-princ-text "\ntitle-missing/frame-only DR 도면틀 정의 준비:")
   (swcad-title-print-a4-frame-only-outline-definition-status)
   (cond
     ((swcad-title-a4-frame-only-outline-definition-ready-p)
-      (swcad-title-princ-text "\nA4 frame-only 정의 준비: 이미 준비됨")
+      (swcad-title-princ-text "\ntitle-missing/frame-only 정의 준비: 이미 준비됨")
     )
     ((not (equal status "missing"))
       (swcad-title-apply-result "WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE")
-      (swcad-title-princ-line "기존 DR_A4_Outline 정의가 없어진 상태가 아니라 오염/범위 위험 상태입니다.")
+      (swcad-title-princ-line "기존 DR 도면틀 정의가 없어진 상태가 아니라 오염/범위 위험 상태입니다.")
       (swcad-title-princ-line "기존 정의를 자동 교체하지 않습니다. 위의 도면틀 정의 정리/복구 로그를 먼저 확인하세요.")
     )
     ((swcad-title-document-read-only-p)
@@ -8474,13 +8515,13 @@
     )
     ((not (swcad-title-apply-work-copy-confirmed-p))
       (swcad-title-apply-result "ABORT_NOT_WORK_COPY")
-      (swcad-title-princ-line "Documents/CAD tool/work 아래 작업복사본에서만 A4 정의를 가져옵니다.")
+      (swcad-title-princ-line "Documents/CAD tool/work 아래 작업복사본에서만 DR 도면틀 정의를 가져옵니다.")
     )
     (T
       (setq answer
         (getstring
           T
-          "\nDR_A4_Outline 정의를 설치 원본에서 가져와 A4 형상/선택범위를 검사하려면 YES를 입력하세요: "
+          "\n같은 크기 DR_A*_Outline 정의를 설치 원본에서 가져와 형상/선택범위를 검사하려면 YES를 입력하세요: "
         )
       )
       (if (not (equal (strcase answer) "YES"))
@@ -8505,7 +8546,7 @@
           (setq geometry-warning
             (if test-frame
               (swcad-title-frame-bbox-size-warning-for-block frame-block test-bbox)
-              "DR_A4_Outline 테스트 INSERT를 만들 수 없습니다."
+              "DR 도면틀 테스트 INSERT를 만들 수 없습니다."
             )
           )
           (setq raw-warning
@@ -8540,15 +8581,15 @@
           (cond
             ((and imported (not geometry-warning) (not raw-warning) (not raw-risk))
               (swcad-title-apply-result "OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED")
-              (swcad-title-princ-line (strcat "가져온 DR_A4_Outline 테스트 범위: " (swcad-title-bbox-string test-bbox)))
+              (swcad-title-princ-line (strcat "가져온 DR 도면틀 테스트 범위: " (swcad-title-bbox-string test-bbox)))
               (if native-outside-marker-ok
                 (progn
-                  (swcad-title-princ-line "가져온 DR_A4_Outline 정의에는 공식 native A4의 작은 바깥 마커가 있습니다.")
-                  (swcad-title-princ-line "테스트 INSERT의 effective A4 형상과 raw selection 검사가 통과했으므로 A4 도면틀-only 변환에는 사용할 수 있습니다.")
+                  (swcad-title-princ-line "가져온 DR 도면틀 정의에는 공식 native 도면틀의 작은 바깥 마커가 있습니다.")
+                  (swcad-title-princ-line "테스트 INSERT의 effective 형상과 raw selection 검사가 통과했으므로 title-missing 도면틀-only 변환에는 사용할 수 있습니다.")
                   (swcad-title-princ-line (strcat "참고 정의 범위: " strict-warning))
                 )
               )
-              (swcad-title-princ-line "다음: SWTITLESTATUS를 다시 실행한 뒤 SWTITLECONVERTNEXT로 A4 도면틀-only 변환을 진행하세요.")
+              (swcad-title-princ-line "다음: SWTITLESTATUS를 다시 실행한 뒤 SWTITLECONVERTNEXT로 title-missing 도면틀-only 변환을 진행하세요.")
             )
             (T
               (if (and imported (not existed) (swcad-title-block-exists-p frame-block))
@@ -8563,7 +8604,7 @@
                 )
               )
               (swcad-title-apply-result "WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE")
-              (swcad-title-princ-line "가져온 DR_A4_Outline 정의가 A4 frame-only 자동 교체 기준을 통과하지 못했습니다.")
+              (swcad-title-princ-line "가져온 DR 도면틀 정의가 title-missing/frame-only 자동 교체 기준을 통과하지 못했습니다.")
               (swcad-title-princ-line (strcat "imported=" (if imported "yes" "no")))
               (if test-bbox
                 (swcad-title-princ-line (strcat "테스트 범위: " (swcad-title-bbox-string test-bbox)))
@@ -8581,9 +8622,9 @@
                 (swcad-title-princ-line (strcat "정의 범위 경고: " strict-warning))
               )
               (if (and imported (not existed))
-                (swcad-title-princ-line "실패한 DR_A4_Outline 정의는 사용하지 않도록 제거/격리했습니다.")
+                (swcad-title-princ-line "실패한 DR 도면틀 정의는 사용하지 않도록 제거/격리했습니다.")
               )
-              (swcad-title-princ-line "기존 A4 원본 도면틀은 삭제하지 않았습니다.")
+              (swcad-title-princ-line "기존 원본 도면틀은 삭제하지 않았습니다.")
             )
           )
           (vl-catch-all-apply 'vla-EndUndoMark (list doc))
@@ -10715,7 +10756,7 @@
   (if (and missing-required-sheets (> (length source-frames) 0))
     (progn
       (swcad-title-princ-line "누락 용지 진단: 기존 SOLIDWORKS 표제란 없는 도면틀 시트가 아직 남아 있습니다.")
-      (swcad-title-princ-line "A3 복제 검토가 끝난 뒤 SWTITLECONVERTNEXT로 남은 A4 frame-only 시트를 처리하세요.")
+      (swcad-title-princ-line "native 복제 검토가 끝난 뒤 SWTITLECONVERTNEXT로 남은 title-missing/frame-only 예외 시트를 처리하세요.")
     )
   )
   (swcad-title-princ-line "최종 수동 확인 필요: GstarCAD에서 변환된 대표 용지의 DR_titlea_3rd 제목블록을 더블클릭하세요.")
@@ -11459,7 +11500,7 @@
   (list title-ename frame-ename new-enames)
 )
 
-(defun swcad-title-run-native-gmtitle-prefer-commandline (frame-block placement-point / result new-count deleted-count commandline-error script-active commandline-disabled skip-commandline skip-interactive-batch)
+(defun swcad-title-run-native-gmtitle-prefer-commandline (frame-block placement-point / result new-count deleted-count commandline-error interactive-result interactive-error script-active commandline-disabled skip-commandline skip-interactive-batch)
   (setq script-active (swcad-title-script-active-p))
   (setq commandline-disabled (not *swcad-title-allow-commandline-gmtitle*))
   (setq skip-commandline
@@ -11575,7 +11616,32 @@
             (swcad-title-princ-line
               "주의: GMTITLE 창 기본값이나 키보드 자동 입력 결과를 믿지 말고, 아래 선택값을 눈으로 확인하세요."
             )
-            (swcad-title-run-native-gmtitle frame-block placement-point)
+            (setq interactive-result
+              (vl-catch-all-apply
+                'swcad-title-run-native-gmtitle
+                (list frame-block placement-point)
+              )
+            )
+            (if (vl-catch-all-error-p interactive-result)
+              (progn
+                (setq interactive-error (vl-catch-all-error-message interactive-result))
+                (setq *swcad-title-last-native-gmtitle-abort-reason*
+                  "INTERACTIVE_GMTITLE_EXCEPTION"
+                )
+                (swcad-title-princ-line
+                  (strcat
+                    "대화식 GMTITLE 실행 중 예외가 발생해 변환을 중단합니다: "
+                    interactive-error
+                  )
+                )
+                (swcad-title-princ-line
+                  "기존 SOLIDWORKS 표제란/도면틀 내용은 삭제하지 않았습니다."
+                )
+                (swcad-title-cancel-active-command)
+                (list nil nil nil)
+              )
+              interactive-result
+            )
           )
         )
       )
@@ -12522,21 +12588,35 @@
   result
 )
 
-(defun swcad-title-single-a4-frame-only-risk-message (source-frame frame-block / bbox sheet width height long-edge short-edge)
+(defun swcad-title-single-a4-frame-only-risk-message (source-frame frame-block / bbox sheet width height long-edge short-edge dims expected-long expected-short)
   (setq sheet (if source-frame (nth 5 source-frame) nil))
   (setq bbox (if source-frame (caddr source-frame) nil))
+  (setq dims (swcad-title-sheet-dimensions sheet))
   (setq width (swcad-title-bbox-width bbox))
   (setq height (swcad-title-bbox-height bbox))
   (setq long-edge (max width height))
   (setq short-edge (min width height))
+  (setq expected-long (if dims (max (car dims) (cadr dims)) nil))
+  (setq expected-short (if dims (min (car dims) (cadr dims)) nil))
   (if
     (and
-      (equal (strcase (swcad-title-string sheet)) "A4")
-      (equal (strcase (swcad-title-string frame-block)) "DR_A4_OUTLINE")
-      (swcad-title-near-p long-edge 297.0 2.0)
-      (swcad-title-near-p short-edge 210.0 2.0)
+      dims
+      (swcad-title-frame-name-matches-p frame-block (swcad-title-target-frame-block-name-for-sheet sheet))
+      (swcad-title-near-p long-edge expected-long 2.0)
+      (swcad-title-near-p short-edge expected-short 2.0)
+      (not (swcad-title-block-exists-p frame-block))
     )
-    "CAD 테스트 경고: 이 원본은 210 x 297 A4 frame-only 시트인데, 현재 GstarCAD 설정에서 DR_A4_Outline이 일치하는 단일 A4 GMTITLE 도면틀로 삽입되지 않은 이력이 있습니다."
+    (strcat
+      "CAD 테스트 경고: 이 원본은 "
+      (swcad-title-number-string (car dims))
+      " x "
+      (swcad-title-number-string (cadr dims))
+      " "
+      (swcad-title-string sheet)
+      " title-missing/frame-only 시트인데, 현재 도면 안에 같은 크기 "
+      (swcad-title-string frame-block)
+      " 기준 정의가 없습니다."
+    )
     nil
   )
 )
@@ -12544,8 +12624,11 @@
 (defun swcad-title-a4-frame-only-moved-native-allowed-p (source-sheet frame-block)
   (and
     *swcad-title-allow-a4-frame-only-moved-native*
-    (equal (swcad-title-normalized-sheet-size source-sheet) "A4")
-    (equal (strcase (swcad-title-string frame-block)) "DR_A4_OUTLINE")
+    (swcad-title-normalized-sheet-size source-sheet)
+    (swcad-title-frame-name-matches-p
+      frame-block
+      (swcad-title-target-frame-block-name-for-sheet source-sheet)
+    )
   )
 )
 
@@ -12587,8 +12670,9 @@
   (setq sheet (swcad-title-sheet-size-from-block-name frame-block))
   (setq role (if frame-ename (swcad-title-exemplar-role frame-ename) ""))
   (and
-    (equal (swcad-title-normalized-sheet-size sheet) "A4")
-    (swcad-title-frame-name-matches-p frame-block "DR_A4_Outline")
+    (swcad-title-normalized-sheet-size sheet)
+    (wcmatch (swcad-title-normalized-sheet-size sheet) "A1,A2,A3,A4")
+    (swcad-title-frame-name-matches-p frame-block (swcad-title-target-frame-block-name-for-sheet sheet))
     (equal (strcase (swcad-title-string role)) "FRAME-ONLY-OUTLINE")
   )
 )
@@ -13862,9 +13946,9 @@
           (swcad-title-frame-name-matches-p actual-frame-name "DR_A4_Outline")
         )
         (progn
-          (setq geometry-warning "표제란 없는 A4 원본에 없는 별도 제목블록이 생성됨")
+          (setq geometry-warning "원본 표제란이 없는 시트에 별도 제목블록이 생성됨")
           (swcad-title-princ-line "A4 보호 중단: 원본 A4에는 표제란이 없는데 GMTITLE이 별도 제목블록을 만들었습니다.")
-          (swcad-title-princ-line "기존 A4 시트는 삭제하지 않습니다. SWTITLECONVERTNEXT의 A4 도면틀-only 경로로 다시 처리하세요.")
+          (swcad-title-princ-line "기존 원본 도면틀은 삭제하지 않습니다. SWTITLECONVERTNEXT의 title-missing/frame-only 도면틀-only 경로로 다시 처리하세요.")
         )
       )
       (setq values (swcad-title-frame-only-default-values source-frame))
@@ -13987,8 +14071,8 @@
               )
               (if (equal (strcase marker-role) "NATIVE-FRAME-ONLY-A4-MOVED-ACCEPTED")
                 (progn
-                  (swcad-title-princ-line "A4 frame-only special handling: GMTITLE was created at the default location and moved to the old A4 frame.")
-                  (swcad-title-princ-line "This is allowed only for DR_A4_Outline frame-only sheets; run final double-click verification after conversion.")
+                  (swcad-title-princ-line "title-missing/frame-only exception handling: GMTITLE was created at the default location and moved to the old source frame.")
+                  (swcad-title-princ-line "This is allowed only for verified title-missing/frame-only sheets; run final verification after conversion.")
                 )
               )
               (swcad-title-princ-line
@@ -14049,7 +14133,7 @@
             )
           )
           (swcad-title-princ-line "같은 크기의 native GMTITLE이 형상 검사를 통과하기 전까지 이 용지 크기의 빠른 변환을 계속하지 마세요.")
-          (swcad-title-princ-line "감지된 DR 용지로 native GMTITLE 1장을 만들고 bbox를 먼저 확인하세요. A4가 계속 실패하면 GMTITLE A4 선택값/형식 정의를 점검하세요.")
+          (swcad-title-princ-line "감지된 DR 용지로 native GMTITLE 1장을 만들고 bbox를 먼저 확인하세요. 같은 용지가 계속 실패하면 GMTITLE 용지 선택값/형식 정의를 점검하세요.")
           (swcad-title-princ-line "기존 frame-only 시트 내용은 삭제하지 않았습니다.")
         )
       )
@@ -14062,7 +14146,7 @@
   (princ)
 )
 
-(defun swcad-title-transfer-a4-frame-only-outline-apply (/ *error* source-frame source-frame-ename source-frame-data source-frame-bbox source-frame-block source-sheet frame-block placement-point answer doc new-frame-ename new-effective-bbox geometry-warning raw-selection-warning bbox-ok raw-definition-risk residue-records residue-handles deleted-residue-count marker-ok)
+(defun swcad-title-transfer-a4-frame-only-outline-apply (/ *error* source-frame source-frame-ename source-frame-data source-frame-bbox source-frame-block source-sheet normalized-sheet frame-block placement-point answer doc new-frame-ename new-effective-bbox geometry-warning raw-selection-warning bbox-ok raw-definition-risk residue-records residue-handles deleted-residue-count marker-ok)
   (defun *error* (msg)
     (if doc
       (vl-catch-all-apply 'vla-EndUndoMark (list doc))
@@ -14071,7 +14155,7 @@
       (swcad-title-delete-ename new-frame-ename)
     )
     (if msg
-      (swcad-title-princ-line (strcat "A4 도면틀-only 변환 오류: " (swcad-title-string msg)))
+      (swcad-title-princ-line (strcat "title-missing 도면틀-only 변환 오류: " (swcad-title-string msg)))
     )
     (swcad-title-apply-result "ABORT_A4_FRAME_ONLY_OUTLINE_UNAVAILABLE")
     (swcad-title-close-log)
@@ -14084,18 +14168,19 @@
   (setq source-frame-bbox (if source-frame (caddr source-frame) nil))
   (setq source-frame-block (if source-frame (cadddr source-frame) nil))
   (setq source-sheet (if source-frame (nth 5 source-frame) nil))
+  (setq normalized-sheet (swcad-title-normalized-sheet-size source-sheet))
   (setq frame-block (swcad-title-target-frame-block-name-for-sheet source-sheet))
   (setq placement-point (swcad-title-bbox-lower-left-point source-frame-bbox))
   (setq raw-definition-risk (if frame-block (swcad-title-frame-definition-raw-bbox-risk-record frame-block) nil))
   (swcad-title-open-apply-log)
-  (swcad-title-princ-line "----- SWTITLECONVERT 내부 A4 도면틀-only 변환 -----")
+  (swcad-title-princ-line "----- SWTITLECONVERT 내부 title-missing 도면틀-only 변환 -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-loaded-version)
   (swcad-title-print-work-copy-status)
   (swcad-title-princ-line
     (strcat
-      "원본 표제란 없는 A4 도면틀: "
+      "원본 표제란 없는 도면틀: "
       (if source-frame-data
         (strcat
           "핸들="
@@ -14115,13 +14200,13 @@
     ((not source-frame-bbox)
       (swcad-title-apply-result "ABORT_NO_FRAME_ONLY_SOURCE")
     )
-    ((not (equal (swcad-title-normalized-sheet-size source-sheet) "A4"))
+    ((not (and normalized-sheet (wcmatch normalized-sheet "A1,A2,A3,A4")))
       (swcad-title-apply-result "ABORT_A4_FRAME_ONLY_OUTLINE_UNAVAILABLE")
-      (swcad-title-princ-line "이 경로는 표제란 없는 A4 시트에만 적용합니다.")
+      (swcad-title-princ-line "이 경로는 용지 크기를 A1/A2/A3/A4로 판정할 수 있는 title-missing 시트에만 적용합니다.")
     )
-    ((not (swcad-title-frame-name-matches-p frame-block "DR_A4_Outline"))
+    ((not (swcad-title-frame-name-matches-p frame-block (strcat "DR_" normalized-sheet "_Outline")))
       (swcad-title-apply-result "ABORT_A4_FRAME_ONLY_OUTLINE_UNAVAILABLE")
-      (swcad-title-princ-line (strcat "예상 도면틀이 DR_A4_Outline이 아닙니다: " (swcad-title-string frame-block)))
+      (swcad-title-princ-line (strcat "예상 도면틀이 " (strcat "DR_" normalized-sheet "_Outline") "이 아닙니다: " (swcad-title-string frame-block)))
     )
     ((swcad-title-document-read-only-p)
       (swcad-title-apply-result "ABORT_READ_ONLY_DOCUMENT")
@@ -14133,21 +14218,21 @@
     )
     (raw-definition-risk
       (swcad-title-apply-result "ABORT_A4_FRAME_ONLY_OUTLINE_UNAVAILABLE")
-      (swcad-title-princ-line "DR_A4_Outline 정의 raw bbox 위험이 남아 있어 기존 A4를 삭제하지 않습니다.")
+      (swcad-title-princ-line "DR 도면틀 정의 raw bbox 위험이 남아 있어 기존 원본 도면틀을 삭제하지 않습니다.")
       (swcad-title-print-frame-definition-raw-bbox-risk-records (list raw-definition-risk))
       (swcad-title-princ-line "먼저 SWTITLEPREPARE로 도면틀 정의를 복구/정규화하고 SWTITLESTATUS를 다시 확인하세요.")
     )
     ((not (and (swcad-title-block-exists-p frame-block) (not (swcad-title-target-frame-block-contaminated-p frame-block))))
       (swcad-title-apply-result "ABORT_A4_FRAME_ONLY_OUTLINE_UNAVAILABLE")
-      (swcad-title-princ-line "현재 도면 안의 DR_A4_Outline 블록 정의가 없거나 정규화되지 않았습니다.")
+      (swcad-title-princ-line (strcat "현재 도면 안의 " (swcad-title-string frame-block) " 블록 정의가 없거나 정규화되지 않았습니다."))
       (swcad-title-princ-line "먼저 SWTITLEPREPARE로 도면틀 정의를 정리하고 SWTITLESTATUS를 다시 확인하세요.")
     )
     (T
-      (swcad-title-princ-line "정책: 원본 A4에는 표제란이 없으므로 DR_titlea_3rd 제목블록을 만들지 않습니다.")
+      (swcad-title-princ-line "정책: 원본 시트에 표제란이 없다고 검증된 경우만 DR_titlea_3rd 제목블록을 만들지 않습니다.")
       (setq answer
         (if (or *swcad-title-batch-mode* *swcad-title-convert-next-mode*)
           "YES"
-          (getstring T "\n표제란 없는 A4 시트의 도면틀만 DR_A4_Outline으로 교체하려면 YES를 입력하세요: ")
+          (getstring T "\n표제란 없는 시트의 도면틀만 같은 크기 DR_A*_Outline으로 교체하려면 YES를 입력하세요: ")
         )
       )
       (if (/= (strcase answer) "YES")
@@ -14164,15 +14249,15 @@
               (vl-catch-all-apply 'vla-EndUndoMark (list doc))
               (setq doc nil)
               (swcad-title-apply-result "ABORT_A4_FRAME_ONLY_OUTLINE_UNAVAILABLE")
-              (swcad-title-princ-line "DR_A4_Outline 도면틀 INSERT 생성에 실패했습니다.")
+              (swcad-title-princ-line (strcat (swcad-title-string frame-block) " 도면틀 INSERT 생성에 실패했습니다."))
             )
             (progn
               (setq new-effective-bbox (swcad-title-frame-reference-effective-bbox new-frame-ename frame-block))
               (setq geometry-warning (swcad-title-frame-bbox-size-warning-for-block frame-block new-effective-bbox))
               (setq raw-selection-warning (swcad-title-frame-reference-raw-selection-warning new-frame-ename frame-block new-effective-bbox))
               (setq bbox-ok (swcad-title-bbox-nearly-same-p source-frame-bbox new-effective-bbox 2.0))
-              (swcad-title-insert-log-label "새 A4 도면틀 INSERT" new-frame-ename)
-              (swcad-title-princ-line (strcat "새 A4 도면틀 보이는 범위: " (swcad-title-bbox-string new-effective-bbox)))
+              (swcad-title-insert-log-label "새 title-missing 도면틀 INSERT" new-frame-ename)
+              (swcad-title-princ-line (strcat "새 도면틀 보이는 범위: " (swcad-title-bbox-string new-effective-bbox)))
               (cond
                 ((or geometry-warning raw-selection-warning (not bbox-ok))
                   (swcad-title-delete-ename new-frame-ename)
@@ -14187,9 +14272,9 @@
                     (swcad-title-princ-line (strcat "도면틀 선택 범위 경고: " raw-selection-warning))
                   )
                   (if (not bbox-ok)
-                    (swcad-title-princ-line "새 A4 도면틀 범위가 원본 A4 범위와 충분히 일치하지 않습니다.")
+                    (swcad-title-princ-line "새 도면틀 범위가 원본 도면틀 범위와 충분히 일치하지 않습니다.")
                   )
-                  (swcad-title-princ-line "기존 A4 시트는 삭제하지 않았습니다.")
+                  (swcad-title-princ-line "기존 원본 시트는 삭제하지 않았습니다.")
                 )
                 (T
                   (swcad-title-delete-ename source-frame-ename)
@@ -14198,10 +14283,10 @@
                   (vl-catch-all-apply 'vla-EndUndoMark (list doc))
                   (setq doc nil)
                   (swcad-title-apply-result "FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER")
-                  (swcad-title-princ-line (strcat "A4 도면틀-only marker set: " (if marker-ok "yes" "no")))
-                  (swcad-title-princ-line "새 DR_A4_Outline 도면틀은 원본 A4 위치/크기에 맞게 삽입되었습니다.")
+                  (swcad-title-princ-line (strcat "title-missing 도면틀-only marker set: " (if marker-ok "yes" "no")))
+                  (swcad-title-princ-line (strcat "새 " (swcad-title-string frame-block) " 도면틀은 원본 위치/크기에 맞게 삽입되었습니다."))
                   (swcad-title-princ-line "원본에 없던 DR_titlea_3rd 제목블록은 만들지 않았습니다.")
-                  (swcad-title-princ-line "기존 A4 frame INSERT 삭제: yes")
+                  (swcad-title-princ-line "기존 원본 frame INSERT 삭제: yes")
                   (swcad-title-princ-line (strcat "기존 시트 잔여물 삭제: " (itoa deleted-residue-count)))
                 )
               )
@@ -14278,17 +14363,15 @@
     (T
       (if (setq risk-message (swcad-title-single-a4-frame-only-risk-message source-frame frame-block))
         (progn
-          (swcad-title-princ-line (strcat "A4 native template caution: " risk-message))
-          (swcad-title-princ-line "새 GMTITLE 도면틀 bbox를 검사한 뒤에만 기존 A4 frame-only 내용을 제거합니다.")
+          (swcad-title-princ-line (strcat "title-missing/frame-only native template caution: " risk-message))
+          (swcad-title-princ-line "새 GMTITLE 도면틀 bbox를 검사한 뒤에만 기존 title-missing/frame-only 내용을 제거합니다.")
         )
       )
       (setq answer
-        (or
-          (swcad-title-auto-next-answer "YES" "frame-only native GMTITLE 1장 생성")
-          (getstring
-            T
-            "\n다음 frame-only 시트에 native GMTITLE 1장을 만들고 기존 도면틀을 제거하려면 YES를 입력하세요: "
-          )
+        (swcad-title-auto-next-answer-or-prompt
+          "YES"
+          "frame-only native GMTITLE 1장 생성"
+          "\n다음 frame-only 시트에 native GMTITLE 1장을 만들고 기존 도면틀을 제거하려면 YES를 입력하세요: "
         )
       )
       (if (/= (strcase answer) "YES")
@@ -14687,11 +14770,11 @@
               (if (setq risk-message (swcad-title-single-a4-frame-only-risk-message source-frame target-frame-block))
                 (progn
                   (swcad-title-princ-line (strcat "A4 native 템플릿 주의: " risk-message))
-                  (swcad-title-princ-line "실제 DR_A4_Outline 기준 객체가 bbox 검사를 통과하기 전에는 이 A4 크기에 clone을 강제로 적용하지 마세요.")
+                  (swcad-title-princ-line "실제 같은 크기 DR_A*_Outline 기준 객체가 bbox 검사를 통과하기 전에는 이 용지 크기에 clone을 강제로 적용하지 마세요.")
                 )
               )
               (swcad-title-princ-line "동일 크기 native clone에는 같은 DR_A*_Outline 용지 크기의 실제 GMTITLE 기준 객체가 1개 필요합니다.")
-              (swcad-title-princ-line "첫 A4 frame-only 시트는 SWTITLESTATUS로 상태를 확인한 뒤 SWTITLECONVERTNEXT로 진행하세요.")
+              (swcad-title-princ-line "첫 title-missing/frame-only 예외 시트는 SWTITLESTATUS로 상태를 확인한 뒤 SWTITLECONVERTNEXT로 진행하세요.")
               (swcad-title-princ-line "대상 도면틀 블록 정의 확인:")
               (swcad-title-print-frame-def-check-lines)
               (swcad-title-apply-result "ABORT_FRAME_ONLY_CLONE_FAILED")
@@ -14757,8 +14840,8 @@
             )
             (if (setq risk-message (swcad-title-single-a4-frame-only-risk-message source-frame target-frame-block))
               (progn
-                (swcad-title-princ-text (strcat "\nA4 native template caution: " risk-message))
-                (swcad-title-princ-text "\nA4 형상 오류로 중단되면 A4 clone/fast batch를 계속하지 말고 SWTITLESTATUS로 상태를 다시 확인하세요.")
+                (swcad-title-princ-text (strcat "\ntitle-missing/frame-only native template caution: " risk-message))
+                (swcad-title-princ-text "\n도면틀 형상 오류로 중단되면 clone/fast batch를 계속하지 말고 SWTITLESTATUS로 상태를 다시 확인하세요.")
               )
             )
             (swcad-title-princ-text "\nSWTITLESTATUS로 frame-only 대상을 확인한 뒤 SWTITLECONVERTNEXT로 첫 native GMTITLE 단계를 진행하세요.")
@@ -14936,8 +15019,8 @@
                   (setq risk-message (swcad-title-single-a4-frame-only-risk-message source-frame frame-only-target-frame-block))
                 )
                 (progn
-                  (swcad-title-princ-text (strcat "\nA4 native template caution: " risk-message))
-                  (swcad-title-princ-text "\nFrame-only A4 sheets were not changed. Create/check one real DR_A4_Outline first with SWTITLECONVERTNEXT.")
+                  (swcad-title-princ-text (strcat "\ntitle-missing/frame-only native template caution: " risk-message))
+                  (swcad-title-princ-text "\nTitle-missing/frame-only sheets were not changed. Create/check one real matching DR_A*_Outline first with SWTITLECONVERTNEXT.")
                 )
               )
               (swcad-title-princ-text "\nSWTITLESTATUS로 frame-only 대상을 확인한 뒤 SWTITLECONVERTNEXT로 첫 native GMTITLE 단계를 진행하세요.")
@@ -15108,23 +15191,21 @@
         )
       )
       (setq answer
-        (or
-          (swcad-title-auto-next-answer "YES" "남은 시트 빠른 변환")
-          (getstring
-            T
-            (if frame-only-target-frame-block
-              (strcat
-                "\n처리할 표제란 시트 "
-                (itoa source-count)
-                "장만 처리하려면 YES를 입력하세요: "
-              )
-              (strcat
-                "\n처리할 표제란 시트 "
-                (itoa source-count)
-                "장과 frame-only 시트 "
-                (itoa frame-only-count)
-                "장을 처리하려면 YES를 입력하세요: "
-              )
+        (swcad-title-auto-next-answer-or-prompt
+          "YES"
+          "남은 시트 빠른 변환"
+          (if frame-only-target-frame-block
+            (strcat
+              "\n처리할 표제란 시트 "
+              (itoa source-count)
+              "장만 처리하려면 YES를 입력하세요: "
+            )
+            (strcat
+              "\n처리할 표제란 시트 "
+              (itoa source-count)
+              "장과 frame-only 시트 "
+              (itoa frame-only-count)
+              "장을 처리하려면 YES를 입력하세요: "
             )
           )
         )
@@ -15220,12 +15301,10 @@
     )
     (example-title
       (setq answer
-        (or
-          (swcad-title-auto-next-answer "YES" "기존 native 기준 객체로 남은 시트 변환")
-          (getstring
-            T
-            "\n기존 native GMTITLE 기준 객체를 찾았습니다. 남은 시트 빠른 일괄 변환을 실행하려면 YES를 입력하세요: "
-          )
+        (swcad-title-auto-next-answer-or-prompt
+          "YES"
+          "기존 native 기준 객체로 남은 시트 변환"
+          "\n기존 native GMTITLE 기준 객체를 찾았습니다. 남은 시트 빠른 일괄 변환을 실행하려면 YES를 입력하세요: "
         )
       )
       (if (/= (strcase answer) "YES")
@@ -15244,12 +15323,10 @@
     )
     (T
       (setq answer
-        (or
-          (swcad-title-auto-next-answer "YES" "첫 native GMTITLE 생성")
-          (getstring
-            T
-            "\n첫 native GMTITLE을 생성/마무리하고, 같은 크기 native 기준 객체가 준비된 경우에만 계속하려면 YES를 입력하세요: "
-          )
+        (swcad-title-auto-next-answer-or-prompt
+          "YES"
+          "첫 native GMTITLE 생성"
+          "\n첫 native GMTITLE을 생성/마무리하고, 같은 크기 native 기준 객체가 준비된 경우에만 계속하려면 YES를 입력하세요: "
         )
       )
       (if (/= (strcase answer) "YES")
@@ -16442,7 +16519,7 @@
         (progn
           (swcad-title-princ-line "남은 원본 시트 처리는 목록의 clone/non-native 쌍을 검토한 뒤 별도로 이어집니다.")
           (swcad-title-princ-line "이 단계는 누락된 frame-only A4 대상 시트를 만들지 않고, 이미 만들어진 대상 쌍의 native 인식만 복구합니다.")
-          (swcad-title-princ-line "A4 frame-only 원본 시트가 남아 있어도 표시된 A3/A4 대상 쌍은 지금 교체할 수 있습니다.")
+          (swcad-title-princ-line "title-missing/frame-only 원본 시트가 남아 있어도 표시된 native 대상 쌍은 지금 교체할 수 있습니다.")
         )
       )
       (swcad-title-princ-line "다음 안전한 경로: SWTITLECONVERTNEXT를 실행하면 native 교체 단계로 들어갑니다.")
@@ -17163,12 +17240,10 @@
       (swcad-title-princ-line "BATCH 중에도 각 GMTITLE 창에서 DR 용지/DR_titlea_3rd/옵션을 반드시 눈으로 확인하세요.")
       (swcad-title-princ-line "처리 후에는 SWTITLESTATUS를 다시 실행하세요. native 교체가 필요한 A3/A4 대상 쌍이 0이 될 때까지 진행합니다.")
       (setq answer
-        (or
-          (swcad-title-auto-next-answer "OPEN" "A3/A4 native 교체 후보 1장 처리")
-          (getstring
-            T
-            "\n이 한 장의 GMTITLE 창을 열려면 OPEN, 수동 생성 후 마무리하려면 MANUAL, 여러 장을 이어서 처리하려면 BATCH, 안전하게 중단하려면 Enter를 누르세요: "
-          )
+        (swcad-title-auto-next-answer-or-prompt
+          "OPEN"
+          "A3/A4 native 교체 후보 1장 처리"
+          "\n이 한 장의 GMTITLE 창을 열려면 OPEN, 수동 생성 후 마무리하려면 MANUAL, 여러 장을 이어서 처리하려면 BATCH, 안전하게 중단하려면 Enter를 누르세요: "
         )
       )
       (cond
@@ -17552,7 +17627,7 @@
               (swcad-title-princ-line "다음: GMTITLE 창이 ISO 기본값으로 열려 batch를 안전하게 계속할 수 없습니다.")
               (swcad-title-princ-line "권장: SWTITLECONVERTNEXT를 다시 실행하고 한 장씩 확인하세요.")
               (swcad-title-princ-line "GMTITLE 창마다 요청된 DR 용지와 DR_titlea_3rd를 선택하세요.")
-              (swcad-title-princ-line "A4 frame-only 시트도 이후 SWTITLESTATUS로 상태를 확인하고 SWTITLECONVERTNEXT로 진행하세요.")
+              (swcad-title-princ-line "title-missing/frame-only 예외 시트도 이후 SWTITLESTATUS로 상태를 확인하고 SWTITLECONVERTNEXT로 진행하세요.")
             )
             (T
               (swcad-title-princ-line "다음: SWTITLEVERIFY를 실행한 뒤 실제 DR_titlea_3rd 제목블록이 있는 대표 용지만 수동으로 더블클릭하세요.")
@@ -17707,8 +17782,8 @@
       ((or (> raw-count 0) (> geometry-count 0) (> overlap-count 0)) "SWTITLEPREPARE 또는 구조 점검 - 도면틀 선택 범위/크기/겹침 위험 먼저 확인")
       (contaminated "SWTITLEPREPARE - 오염 의심 대상 도면틀 정의 정규화")
       ((> a3a4-count 0) "SWTITLECONVERTNEXT - A3/A4 native 교체 후보를 먼저 한 장 처리")
-      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-definition-needed-p)) "SWTITLEPREPARE - DR_A4_Outline 정의를 먼저 가져오고 A4 형상/선택범위 검증")
-      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-policy-blocked-p)) "SWTITLECONVERTNEXT - 표제란 없는 A4 도면틀만 교체")
+      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-definition-needed-p)) "SWTITLEPREPARE - 같은 크기 DR_A*_Outline 정의를 먼저 가져오고 형상/선택범위 검증")
+      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-a4-frame-only-outline-policy-blocked-p)) "SWTITLECONVERTNEXT - 원본 표제란 부재가 검증된 시트의 도면틀만 교체")
       ((or (> source-count 0) (> frame-only-count 0)) "SWTITLECONVERTNEXT - 남은 원본 SolidWorks 시트 변환")
       (missing-required "SWTITLECONVERTNEXT - 누락된 대상 용지 크기의 native GMTITLE 생성")
       ((and (= source-frame-count 0) count-shortage-records) "SWTITLEVERIFY - 변환 기준 수량 대비 누락된 대상 도면틀 확인")
@@ -17790,7 +17865,7 @@
       (swcad-title-princ-line "A3 판단: 도면틀 안에 표제란 형상 후보가 있어 변환 반복보다 SWTITLEPREPARE가 먼저입니다.")
     )
     ((> a3a4-count 0)
-      (swcad-title-princ-line "A3 판단: native 교체 후보가 남아 있습니다. A4 frame-only보다 이 후보를 먼저 한 장씩 처리합니다.")
+      (swcad-title-princ-line "A3 판단: native 교체 후보가 남아 있습니다. title-missing/frame-only 예외보다 이 후보를 먼저 한 장씩 처리합니다.")
       (swcad-title-princ-line "A3 판단 보충: 도면틀이 block처럼 보이는 현상 자체보다 clone/shared-native-link 후보가 남았는지가 실제 문제입니다.")
     )
     ((> (swcad-title-count-value "A3" target-sheet-counts) 0)
@@ -17799,24 +17874,24 @@
   )
   (cond
     ((> a4-definition-raw-risk-count 0)
-      (swcad-title-princ-line "A4 판단: DR_A4_Outline 정의 자체의 raw bbox가 A4보다 큽니다. 정의 복구/정규화 전에는 기존 A4를 삭제하지 않습니다.")
+      (swcad-title-princ-line "도면틀 판단: 대상 DR 도면틀 정의 자체의 raw bbox가 실제 용지보다 큽니다. 정의 복구/정규화 전에는 기존 원본 도면틀을 삭제하지 않습니다.")
     )
     ((> a4-raw-count 0)
-      (swcad-title-princ-line "A4 판단: 실제 선택 bbox가 보이는 A4보다 큽니다. bbox 검사를 통과하기 전에는 기존 A4를 삭제하지 않습니다.")
+      (swcad-title-princ-line "도면틀 판단: 실제 선택 bbox가 보이는 용지보다 큽니다. bbox 검사를 통과하기 전에는 기존 원본 도면틀을 삭제하지 않습니다.")
     )
     ((and (> frame-only-count 0) (swcad-title-a4-frame-only-outline-definition-needed-p))
-      (swcad-title-princ-line "A4 판단: 표제란 없는 A4 도면틀은 남아 있지만, DR_A4_Outline 정의가 아직 변환 기준을 통과하지 못했습니다.")
+      (swcad-title-princ-line "title-missing 판단: 표제란 없는 도면틀은 남아 있지만, 같은 크기 DR 도면틀 정의가 아직 변환 기준을 통과하지 못했습니다.")
       (swcad-title-print-a4-frame-only-outline-definition-status)
       (if (> source-count 0)
         (progn
-          (swcad-title-princ-line "A4 판단 보충: 아직 원본 표제란 시트가 남아 있어 A4 frame-only 준비보다 원본 시트 변환이 먼저입니다.")
-          (swcad-title-princ-line "현재 권장 다음 명령은 아래의 권장 다음 명령 줄을 따르세요. A4 정의 준비는 원본 시트 변환 뒤에 다시 안내됩니다.")
+          (swcad-title-princ-line "title-missing 판단 보충: 아직 원본 표제란 시트가 남아 있어 예외 준비보다 원본 시트 변환이 먼저입니다.")
+          (swcad-title-princ-line "현재 권장 다음 명령은 아래의 권장 다음 명령 줄을 따르세요. 도면틀 정의 준비는 원본 시트 변환 뒤에 다시 안내됩니다.")
         )
-        (swcad-title-princ-line "다음: SWTITLEPREPARE로 DR_A4_Outline 정의를 먼저 준비/검증하세요.")
+        (swcad-title-princ-line "다음: SWTITLEPREPARE로 같은 크기 DR 도면틀 정의를 먼저 준비/검증하세요.")
       )
     )
     ((and (> frame-only-count 0) (swcad-title-a4-frame-only-outline-policy-blocked-p))
-      (swcad-title-princ-line "A4 판단: 표제란 없는 도면틀 시트가 남아 있습니다. 원본에 없던 제목블록은 만들지 않고 도면틀만 교체합니다.")
+      (swcad-title-princ-line "title-missing 판단: 표제란 없는 도면틀 시트가 남아 있습니다. 원본에 없던 제목블록은 만들지 않고 도면틀만 교체합니다.")
       (if (> a3a4-count 0)
         (swcad-title-princ-line "다만 A3/A4 native 교체 후보가 남아 있으므로, SWTITLECONVERTNEXT는 그 후보를 먼저 처리합니다.")
         (progn
@@ -17826,7 +17901,7 @@
       )
     )
     ((> frame-only-count 0)
-      (swcad-title-princ-line "A4 판단: 표제란 없는 도면틀 시트가 남아 있습니다. SWTITLECONVERTNEXT가 표제란 없는 도면틀 흐름으로 처리합니다.")
+      (swcad-title-princ-line "title-missing 판단: 표제란 없는 도면틀 시트가 남아 있습니다. SWTITLECONVERTNEXT가 표제란 없는 도면틀 흐름으로 처리합니다.")
     )
   )
   (swcad-title-print-automation-policy-summary)
@@ -17888,7 +17963,7 @@
           (itoa (length contaminated-definition-records))
           "\n  DR 도면틀 정의 raw bbox 위험: "
           (itoa (length definition-raw-risk-records))
-          "\n  A4 frame-only DR_A4_Outline 정의 준비 필요: "
+          "\n  title-missing/frame-only DR 도면틀 정의 준비 필요: "
           (if a4-outline-needed "예" "아니오")
           "\n  제목블록 없는 고아 GMTITLE 도면틀: "
           (itoa (length orphan-records))
@@ -17921,7 +17996,7 @@
       (setq a4-outline-needed (swcad-title-a4-frame-only-outline-definition-needed-p))
       (if a4-outline-needed
         (swcad-title-prepare-a4-frame-only-outline-definition)
-        (swcad-title-princ-text "\nA4 frame-only DR_A4_Outline 정의 준비: 후보 없음")
+        (swcad-title-princ-text "\ntitle-missing/frame-only DR 도면틀 정의 준비: 후보 없음")
       )
       (if orphan-records
         (swcad-title-clean-orphan-target-frames)
@@ -18007,7 +18082,7 @@
           (swcad-title-apply-result "ABORT_FRAME_DEFINITION_RAW_BBOX_RISK")
           (swcad-title-princ-text "\n변환 전 도면틀 정의 raw bbox 위험을 먼저 확인해야 합니다.")
           (swcad-title-print-frame-definition-raw-bbox-risk-records definition-raw-risk-records)
-          (swcad-title-princ-text "\n다음: SWTITLESTATUS 로그를 확인하고, 도면틀 정의 복구/정규화가 준비될 때까지 기존 A4를 삭제하지 마세요.")
+          (swcad-title-princ-text "\n다음: SWTITLESTATUS 로그를 확인하고, 도면틀 정의 복구/정규화가 준비될 때까지 기존 원본 도면틀을 삭제하지 마세요.")
         )
         ((> a3a4-count 0)
           (swcad-title-princ-text
@@ -18047,13 +18122,13 @@
               (if (swcad-title-a4-frame-only-outline-definition-needed-p)
                 (progn
                   (swcad-title-apply-result "WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION")
-                  (swcad-title-princ-text "\nDR_A4_Outline 정의가 아직 A4 frame-only 변환 기준을 통과하지 못했습니다.")
+                  (swcad-title-princ-text "\n같은 크기 DR 도면틀 정의가 아직 title-missing/frame-only 변환 기준을 통과하지 못했습니다.")
                   (swcad-title-print-a4-frame-only-outline-definition-status)
-                  (swcad-title-princ-text "\n다음: SWTITLEPREPARE를 실행해 DR_A4_Outline 정의를 먼저 준비/검증하세요.")
-                  (swcad-title-princ-text "\n기존 A4 도면틀은 삭제하지 않았습니다.")
+                  (swcad-title-princ-text "\n다음: SWTITLEPREPARE를 실행해 같은 크기 DR 도면틀 정의를 먼저 준비/검증하세요.")
+                  (swcad-title-princ-text "\n기존 원본 도면틀은 삭제하지 않았습니다.")
                 )
                 (progn
-                  (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 A4 도면틀-only 변환 단계를 실행합니다.")
+                  (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 title-missing 도면틀-only 변환 단계를 실행합니다.")
                   (swcad-title-transfer-a4-frame-only-outline-apply)
                 )
               )
@@ -18088,12 +18163,10 @@
             )
             (progn
               (setq answer
-                (or
-                  (swcad-title-auto-next-answer "YES" "누락된 용지 크기의 첫 native GMTITLE 생성")
-                  (getstring
-                    T
-                    "\n이 크기의 첫 native GMTITLE을 생성/마무리하려면 YES를 입력하세요: "
-                  )
+                (swcad-title-auto-next-answer-or-prompt
+                  "YES"
+                  "누락된 용지 크기의 첫 native GMTITLE 생성"
+                  "\n이 크기의 첫 native GMTITLE을 생성/마무리하려면 YES를 입력하세요: "
                 )
               )
               (if (/= (strcase answer) "YES")
@@ -18271,7 +18344,7 @@
   (swcad-title-princ-line (strcat "대상 도면틀 수: " (itoa target-frame-count)))
   (swcad-title-princ-line (strcat "대상 제목블록 수: " (itoa target-title-count)))
   (swcad-title-princ-line (strcat "도면틀/제목블록 쌍 수: " (itoa pair-count)))
-  (swcad-title-princ-line (strcat "A4 도면틀-only 대상 수: " (itoa a4-frame-only-outline-count)))
+  (swcad-title-princ-line (strcat "title-missing 도면틀-only 대상 수: " (itoa a4-frame-only-outline-count)))
   (swcad-title-princ-line (strcat "제목블록 없는 대상 도면틀 수: " (itoa missing-title-count)))
   (swcad-title-princ-line (strcat "도면틀과 짝이 없는 대상 제목블록 수: " (itoa extra-title-count)))
   (swcad-title-princ-line (strcat "속성 태그 누락 제목블록 수: " (itoa title-missing-tags-count)))
@@ -18314,16 +18387,16 @@
           (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
         )
         ((or (> (length source-titles) 0) (> (length source-frames) 0))
-          (swcad-title-princ-line "다음 단계 코드: SOURCE_SHEETS_BEFORE_A4_FRAME_ONLY")
-          (swcad-title-princ-line "다음: 아직 원본 SolidWorks 표제란/도면틀이 남아 있으므로 A4 frame-only보다 원본 시트 변환이 먼저입니다.")
+          (swcad-title-princ-line "다음 단계 코드: SOURCE_SHEETS_BEFORE_TITLE_MISSING")
+          (swcad-title-princ-line "다음: 아직 원본 SolidWorks 표제란/도면틀이 남아 있으므로 title-missing 예외보다 원본 시트 변환이 먼저입니다.")
           (swcad-title-princ-line "SWTITLESTATUS로 현재 상태를 확인한 뒤 SWTITLECONVERTNEXT로 남은 원본 SolidWorks 시트를 처리하세요.")
           (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
         )
         ((and (> (length source-frames) 0) (member "A4" missing-required-sheets))
-          (swcad-title-princ-line "다음 단계 코드: A4_FRAME_ONLY_AFTER_SOURCES")
-          (swcad-title-princ-line "다음: 남은 A4 표제란 없는 도면틀 시트를 SWTITLECONVERTNEXT로 처리하세요.")
+          (swcad-title-princ-line "다음 단계 코드: TITLE_MISSING_AFTER_SOURCES")
+          (swcad-title-princ-line "다음: 남은 표제란 없는 도면틀 시트를 SWTITLECONVERTNEXT로 처리하세요.")
           (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
-          (swcad-title-princ-line "원본 A4에는 제목블록이 없으므로 새 DR_titlea_3rd를 만들지 않고 DR_A4_Outline 도면틀만 검증합니다.")
+          (swcad-title-princ-line "원본에 제목블록이 없다고 검증된 시트이므로 새 DR_titlea_3rd를 만들지 않고 같은 크기 DR 도면틀만 검증합니다.")
         )
         ((> title-missing-tags-count 0)
           (swcad-title-princ-line "다음 단계 코드: REVIEW_TITLE_TAGS")
