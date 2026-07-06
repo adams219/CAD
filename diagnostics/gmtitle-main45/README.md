@@ -226,9 +226,9 @@ If `DBMOD` is not 0 and another computer or hidden probe should continue the wor
 For the saved pre-conversion work-copy, the probe should also prove that `SWTITLEVERIFY` does not tell the user to handle title-missing/frame-only sheets before the remaining SolidWorks source title/frame sheets:
 
 ```text
-a4-frame-only-deferred-note-found: yes
+title-missing-deferred-note-found: yes
 verify-source-priority-note-found: yes
-verify-a4-frame-only-first-note-found: no
+verify-title-missing-first-note-found: no
 ```
 
 ## Actual Work-Copy Direct Status Probe

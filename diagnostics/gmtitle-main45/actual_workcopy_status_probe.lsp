@@ -82,7 +82,7 @@
   )
 )
 
-(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count pair-records pair-count native-like-pair-count non-native-like-pair-count cloned-pair-count a3a4-native-upgrade-count orphan-target-frame-count duplicate-target-pair-count record bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames missing-selection-record missing-selection-sheet missing-selection-frame missing-selection-title missing-selection-role first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note first-native-selection-log-note manual-forecast-log-note structure-log a4-deferred-note verify-summary-log verify-source-priority verify-a4-first)
+(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count pair-records pair-count native-like-pair-count non-native-like-pair-count cloned-pair-count a3a4-native-upgrade-count orphan-target-frame-count duplicate-target-pair-count record bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames missing-selection-record missing-selection-sheet missing-selection-frame missing-selection-title missing-selection-role first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note first-native-selection-log-note manual-forecast-log-note structure-log title-missing-deferred-note verify-summary-log verify-source-priority verify-title-missing-first)
   (setq load-result
     (vl-catch-all-apply
       'load
@@ -219,7 +219,7 @@
             )
           )
           (setq structure-log (swcad-title-work-log-path "swcad_title_structure_diagnosis_last.txt"))
-          (setq a4-deferred-note
+          (setq title-missing-deferred-note
             (swtitle-diag45-file-contains-p
               structure-log
               "A4 판단 보충:"
@@ -229,13 +229,13 @@
           (setq verify-source-priority
             (swtitle-diag45-file-contains-p
               verify-summary-log
-              "SOURCE_SHEETS_BEFORE_A4_FRAME_ONLY"
+              "SOURCE_SHEETS_BEFORE_TITLE_MISSING"
             )
           )
-          (setq verify-a4-first
+          (setq verify-title-missing-first
             (swtitle-diag45-file-contains-p
               verify-summary-log
-              "A4_FRAME_ONLY_AFTER_SOURCES"
+              "TITLE_MISSING_AFTER_SOURCES"
             )
           )
           (swtitle-diag45-write-line handle "Summary after SWTITLESTATUS:")
@@ -258,10 +258,10 @@
           (swtitle-diag45-write-line handle (strcat "  first-native-selection-log-note-found: " (if first-native-selection-log-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  manual-forecast-log-note-found: " (if manual-forecast-log-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  structure-log: " structure-log))
-          (swtitle-diag45-write-line handle (strcat "  a4-frame-only-deferred-note-found: " (if a4-deferred-note "yes" "no")))
+          (swtitle-diag45-write-line handle (strcat "  title-missing-deferred-note-found: " (if title-missing-deferred-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  verify-summary-log: " verify-summary-log))
           (swtitle-diag45-write-line handle (strcat "  verify-source-priority-note-found: " (if verify-source-priority "yes" "no")))
-          (swtitle-diag45-write-line handle (strcat "  verify-a4-frame-only-first-note-found: " (if verify-a4-first "yes" "no")))
+          (swtitle-diag45-write-line handle (strcat "  verify-title-missing-first-note-found: " (if verify-title-missing-first "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  frame-definition-blockers: " (itoa (length blockers))))
           (swtitle-diag45-write-line handle (strcat "  frame-embedded-cleanup-records: " (itoa (length embedded-records))))
           (swtitle-diag45-write-line handle (strcat "  next-bootstrap-source-sheet: " bootstrap-sheet))
