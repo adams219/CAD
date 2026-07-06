@@ -39,12 +39,11 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260706-unified-title-missing-4")
+(setq *swcad-title-scale-version* "260706-unified-title-missing-5")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
 (setq *swcad-title-allow-moved-native-placement-after-geometry-check* T)
-(setq *swcad-title-allow-a4-frame-only-moved-native* *swcad-title-allow-moved-native-placement-after-geometry-check*) ; legacy alias
 (setq *swcad-title-debug-log-path* nil)
 (setq *swcad-title-debug-log-handle* nil)
 (setq *swcad-title-batch-mode* nil)
@@ -160,13 +159,6 @@
         ("OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED" . "DR 도면틀 정의를 가져와 title-missing/frame-only 변환 준비가 됐습니다.")
         ("WARN_TITLE_MISSING_OUTLINE_DEFINITION_UNSAFE" . "DR 도면틀 정의를 가져왔지만 형상/선택범위 검사를 통과하지 못했습니다.")
         ("ABORT_TITLE_MISSING_OUTLINE_DEFINITION_USER" . "사용자가 title-missing/frame-only 도면틀 정의 준비를 취소했습니다.")
-        ("FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER" . "원본 표제란 부재가 검증된 시트의 도면틀만 교체했습니다.")
-        ("READY_FOR_A4_FRAME_ONLY_OUTLINE" . "title-missing/frame-only 시트를 제목블록 없이 도면틀만 교체할 수 있습니다.")
-        ("WAITING_FOR_A4_FRAME_ONLY_OUTLINE_DEFINITION" . "title-missing/frame-only 변환 전에 같은 크기 DR 도면틀 정의를 먼저 검증해야 합니다.")
-        ("NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION" . "title-missing/frame-only 변환 전에 SWTITLEPREPARE로 같은 크기 DR 도면틀 정의를 준비해야 합니다.")
-        ("OK_A4_FRAME_ONLY_OUTLINE_DEFINITION_IMPORTED" . "DR 도면틀 정의를 가져와 title-missing/frame-only 변환 준비가 됐습니다.")
-        ("WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE" . "DR 도면틀 정의를 가져왔지만 형상/선택범위 검사를 통과하지 못했습니다.")
-        ("ABORT_A4_FRAME_ONLY_OUTLINE_DEFINITION_USER" . "사용자가 title-missing/frame-only 도면틀 정의 준비를 취소했습니다.")
         ("WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS" . "남은 시트 크기와 같은 첫 native GMTITLE이 필요합니다.")
         ("OK_FAST_BATCH_COMPLETE" . "빠른 일괄 변환이 완료됐습니다.")
         ("OK_NO_REMAINING_SOURCES" . "남은 원본 시트가 없습니다.")
@@ -183,8 +175,6 @@
         ("ABORT_EXISTING_FRAME_ONLY_GMTITLE_RAW_BBOX_EXTRA_OBJECTS" . "title-missing GMTITLE 도면틀의 실제 선택 범위에 틀 밖 객체가 붙어 있어 기존 원본 도면틀을 지우지 않고 중단했습니다.")
         ("ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE" . "title-missing 도면틀만 교체 경로를 사용할 수 없어 중단했습니다.")
         ("ABORT_TITLE_MISSING_OUTLINE_INVALID_GEOMETRY" . "새 도면틀 범위가 원본과 맞지 않아 중단했습니다.")
-        ("ABORT_A4_FRAME_ONLY_OUTLINE_UNAVAILABLE" . "title-missing 도면틀만 교체 경로를 사용할 수 없어 중단했습니다.")
-        ("ABORT_A4_FRAME_ONLY_OUTLINE_INVALID_GEOMETRY" . "새 도면틀 범위가 원본과 맞지 않아 중단했습니다.")
         ("WARN_REQUIRED_TARGET_SHEET_MISSING" . "현재 원본/대상 기준으로 필요한 GMTITLE 대상 용지가 누락됐습니다.")
         ("WARN_REQUIRED_A2_A3_A4_TARGET_SHEET_MISSING" . "현재 원본/대상 기준으로 필요한 GMTITLE 대상 용지가 누락됐습니다.")
         ("UPGRADED_CLONE_TO_NATIVE_GMTITLE" . "clone GMTITLE을 실제 native GMTITLE로 교체했습니다.")
@@ -4128,20 +4118,12 @@
   (swcad-title-title-missing-outline-policy-active-p)
 )
 
-(defun swcad-title-a4-frame-only-outline-policy-blocked-p ()
-  (swcad-title-title-missing-outline-policy-blocked-p)
-)
-
 (defun swcad-title-title-missing-outline-target-block (/ source-frame)
   (setq source-frame (car (swcad-title-frame-only-source-candidates)))
   (if source-frame
     (swcad-title-target-frame-block-name-for-sheet (nth 5 source-frame))
     nil
   )
-)
-
-(defun swcad-title-a4-frame-only-outline-target-block ()
-  (swcad-title-title-missing-outline-target-block)
 )
 
 (defun swcad-title-title-missing-outline-raw-sheet-warning (frame-block / bbox sheet dims tol)
@@ -4182,10 +4164,6 @@
   )
 )
 
-(defun swcad-title-a4-frame-only-outline-raw-a4-warning (frame-block)
-  (swcad-title-title-missing-outline-raw-sheet-warning frame-block)
-)
-
 (defun swcad-title-title-missing-outline-native-outside-marker-p (frame-block / raw-risk strict-warning)
   (and
     frame-block
@@ -4194,10 +4172,6 @@
     (not (swcad-title-frame-definition-raw-bbox-risk-record frame-block))
     (setq strict-warning (swcad-title-title-missing-outline-raw-sheet-warning frame-block))
   )
-)
-
-(defun swcad-title-a4-frame-only-outline-native-outside-marker-p (frame-block)
-  (swcad-title-title-missing-outline-native-outside-marker-p frame-block)
 )
 
 (defun swcad-title-title-missing-outline-definition-status (/ frame-block raw-risk)
@@ -4276,22 +4250,6 @@
       )
     )
   )
-)
-
-(defun swcad-title-a4-frame-only-outline-definition-status ()
-  (swcad-title-title-missing-outline-definition-status)
-)
-
-(defun swcad-title-a4-frame-only-outline-definition-ready-p ()
-  (swcad-title-title-missing-outline-definition-ready-p)
-)
-
-(defun swcad-title-a4-frame-only-outline-definition-needed-p ()
-  (swcad-title-title-missing-outline-definition-needed-p)
-)
-
-(defun swcad-title-print-a4-frame-only-outline-definition-status ()
-  (swcad-title-print-title-missing-outline-definition-status)
 )
 
 (defun swcad-title-next-fast-target-frame-block (/ bootstrap-record)
@@ -8765,10 +8723,6 @@
   (princ)
 )
 
-(defun swcad-title-prepare-a4-frame-only-outline-definition ()
-  (swcad-title-prepare-title-missing-outline-definition)
-)
-
 (defun swcad-title-frame-def-clean-safe (/ doc answer frame-name exists old-child-names raw-risk-record raw-risk-after insert-count children rename-names rename-results target-renamed target backup-name renamed imported imported-valid rollback any-contaminated cleaned skipped failed skipped-referenced skipped-missing)
   (swcad-title-open-frame-def-clean-log)
   (swcad-title-princ-line "----- SWTITLEPREPARE 내부 대상 도면틀 정의 안전 정리 -----")
@@ -12752,10 +12706,6 @@
   )
 )
 
-(defun swcad-title-single-a4-frame-only-risk-message (source-frame frame-block)
-  (swcad-title-title-missing-outline-risk-message source-frame frame-block)
-)
-
 (defun swcad-title-moved-native-placement-allowed-p (source-sheet frame-block)
   (and
     *swcad-title-allow-moved-native-placement-after-geometry-check*
@@ -12765,10 +12715,6 @@
       (swcad-title-target-frame-block-name-for-sheet source-sheet)
     )
   )
-)
-
-(defun swcad-title-a4-frame-only-moved-native-allowed-p (source-sheet frame-block)
-  (swcad-title-moved-native-placement-allowed-p source-sheet frame-block)
 )
 
 (defun swcad-title-frame-only-source-for-existing-gmtitle (/ frames frame frame-block found)
@@ -12825,14 +12771,6 @@
     )
   )
   count
-)
-
-(defun swcad-title-a4-frame-only-outline-frame-record-p (frame-record)
-  (swcad-title-title-missing-outline-frame-record-p frame-record)
-)
-
-(defun swcad-title-a4-frame-only-outline-frame-count ()
-  (swcad-title-title-missing-outline-frame-count)
 )
 
 (defun swcad-title-title-missing-outline-frame-block-present-p (frame-block / records found record)
@@ -14464,10 +14402,6 @@
   )
   (swcad-title-close-log)
   (princ)
-)
-
-(defun swcad-title-transfer-a4-frame-only-outline-apply ()
-  (swcad-title-transfer-title-missing-outline-apply)
 )
 
 (defun swcad-title-transfer-frame-only-apply (/ *error* source-frame source-frame-bbox source-sheet frame-block risk-message answer placement-point gmtitle-result gmtitle-title-ename gmtitle-frame-ename finalize-result)

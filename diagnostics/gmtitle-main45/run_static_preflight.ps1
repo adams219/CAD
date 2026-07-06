@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-4",
+  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-5",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -316,7 +316,6 @@ if ($legacyStillPublic.Count -eq 0) {
   Add-Failure ("Legacy public command(s) still exposed: {0}" -f ($legacyStillPublic -join ", "))
 }
 
-Assert-Contains -Text $mainText -Needle "swcad-title-a4-frame-only-outline-raw-a4-warning" -Label "Legacy A4 alias delegates to title-missing raw-bbox function"
 Assert-Contains -Text $mainText -Needle "WARN_TITLE_MISSING_OUTLINE_DEFINITION_UNSAFE" -Label "Generic title-missing unsafe definition status"
 Assert-Contains -Text $mainText -Needle "ready-native-outside-markers" -Label "A4 native outside marker ready status"
 Assert-Contains -Text $mainText -Needle "swcad-title-title-missing-outline-definition-needed-p" -Label "Generic title-missing outline definition gate"
@@ -326,6 +325,11 @@ Assert-Contains -Text $mainText -Needle "swcad-title-title-missing-outline-risk-
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-prepare-title-missing-outline-definition (/ frame-block" -Label "Generic title-missing outline prepare implementation"
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-transfer-title-missing-outline-apply (/ *error*" -Label "Generic title-missing outline transfer implementation"
 Assert-Contains -Text $mainText -Needle "swcad-title-transfer-title-missing-outline-apply" -Label "Generic title-missing outline transfer wrapper"
+Assert-NotContains -Text $mainText -Needle "swcad-title-a4-frame-only-" -Label "No legacy A4 frame-only helper aliases"
+Assert-NotContains -Text $mainText -Needle "*swcad-title-allow-a4-frame-only" -Label "No legacy A4 frame-only option alias"
+Assert-NotContains -Text $mainText -Needle "swcad-title-single-a4-frame-only" -Label "No legacy single-A4 frame-only helper"
+Assert-NotContains -Text $mainText -Needle "swcad-title-transfer-a4-frame-only" -Label "No legacy A4 frame-only transfer wrapper"
+Assert-NotContains -Text $mainText -Needle "swcad-title-prepare-a4-frame-only" -Label "No legacy A4 frame-only prepare wrapper"
 Assert-NotContains -Text $mainText -Needle "(setq risk-message (swcad-title-single-a4-frame-only-risk-message" -Label "No legacy A4 risk-message calls"
 Assert-NotContains -Text $mainText -Needle '(swcad-title-apply-result "FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER")' -Label "No legacy A4 finalized status emission"
 Assert-NotContains -Text $mainText -Needle '(swcad-title-apply-result "WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE")' -Label "No legacy A4 warning status emission"

@@ -93,7 +93,7 @@
 
           (setq prepare-result
             (vl-catch-all-apply
-              'swcad-title-prepare-a4-frame-only-outline-definition
+              'swcad-title-prepare-title-missing-outline-definition
               nil
             )
           )
@@ -101,12 +101,12 @@
             (swtitle-a4convert-write-line handle (strcat "Prepare result: ERROR - " (vl-catch-all-error-message prepare-result)))
             (swtitle-a4convert-write-line handle (strcat "Prepare result: OK status=" (swtitle-a4convert-status-value)))
           )
-          (setq after-prepare-status (swcad-title-a4-frame-only-outline-definition-status))
+          (setq after-prepare-status (swcad-title-title-missing-outline-definition-status))
           (swtitle-a4convert-write-line handle (strcat "After prepare definition status: " after-prepare-status))
 
           (setq convert-result
             (vl-catch-all-apply
-              'swcad-title-transfer-a4-frame-only-outline-apply
+              'swcad-title-transfer-title-missing-outline-apply
               nil
             )
           )

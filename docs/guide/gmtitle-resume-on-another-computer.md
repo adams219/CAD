@@ -1,4 +1,4 @@
-# GMTITLE 다른 컴퓨터에서 이어가기
+﻿# GMTITLE 다른 컴퓨터에서 이어가기
 
 > 2026-07-06 기준 변경: `docs/guide/gmtitle-unified-flow-reset.md`가 GMTITLE 변환의 최우선 기준입니다. A2/A3/A4는 모두 같은 GMTITLE 흐름으로 보고, `frame-only`는 A4 전용 정책이 아니라 원본 표제란 부재가 검증된 경우의 예외로만 해석합니다.
 
@@ -29,7 +29,7 @@ codex/gm-title
 주의:
 
 ```text
-2026-07-05 현재 로컬 작업 기준은 `260706-unified-title-missing-4`입니다.
+2026-07-05 현재 로컬 작업 기준은 `260706-unified-title-missing-5`입니다.
 현재 로컬 브랜치는 GitHub보다 앞선 커밋이 있을 수 있으므로, 다른 PC에서 이어가기 전에 이 브랜치가 GitHub에 push됐는지 확인합니다.
 다른 PC에서는 `codex/gm-title` 브랜치를 받은 뒤, CAD에서 `SWTITLEVERSION`으로 실제 로드 버전을 확인합니다.
 ```
@@ -79,7 +79,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260706-unified-title-missing-4
+260706-unified-title-missing-5
 ```
 
 다른 버전이면 변환하지 말고 다시 APPLOAD 합니다. 그래도 다른 버전이면 다른 브랜치를 받았거나, 열린 CAD 세션이 예전 LSP를 유지하고 있을 수 있습니다.

@@ -373,7 +373,7 @@
           (swtitle-a4native-write-line handle (strcat "Source frame-only count: " (itoa (swcad-title-fast-summary-value summary "frame-only-count"))))
           (swtitle-a4native-count-line handle "Expected sheet counts:" (swcad-title-expected-sheet-counts-for-marker))
           (swtitle-a4native-count-line handle "Current target sheet counts:" target-counts)
-          (setq definition-status (swcad-title-a4-frame-only-outline-definition-status))
+          (setq definition-status (swcad-title-title-missing-outline-definition-status))
           (swtitle-a4native-write-line handle (strcat "A4 outline definition status: " definition-status))
           (setq definition-result (swtitle-a4native-print-definition handle frame-name))
           (setq definition-safe (if definition-result (car definition-result) nil))

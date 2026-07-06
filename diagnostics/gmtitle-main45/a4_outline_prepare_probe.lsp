@@ -175,7 +175,7 @@
           (swtitle-a4prep-write-line handle (strcat "Loaded version: " *swcad-title-scale-version*))
           (swtitle-a4prep-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
           (swtitle-a4prep-write-line handle (strcat "CTAB: " (getvar "CTAB")))
-          (setq before-status (swcad-title-a4-frame-only-outline-definition-status))
+          (setq before-status (swcad-title-title-missing-outline-definition-status))
           (setq before-counts (swcad-title-fast-sheet-summary))
           (setq before-target (swcad-title-target-frame-sheet-counts))
           (swtitle-a4prep-write-line handle (strcat "Before definition status: " before-status))
@@ -184,7 +184,7 @@
           (swtitle-a4prep-print-definition-details handle "Before DR_A4_Outline definition details:" "DR_A4_Outline")
           (setq prepare-result
             (vl-catch-all-apply
-              'swcad-title-prepare-a4-frame-only-outline-definition
+              'swcad-title-prepare-title-missing-outline-definition
               nil
             )
           )
@@ -192,7 +192,7 @@
             (swtitle-a4prep-write-line handle (strcat "Prepare result: ERROR - " (vl-catch-all-error-message prepare-result)))
             (swtitle-a4prep-write-line handle (strcat "Prepare result: OK status=" (swtitle-a4prep-status-value)))
           )
-          (setq after-status (swcad-title-a4-frame-only-outline-definition-status))
+          (setq after-status (swcad-title-title-missing-outline-definition-status))
           (setq after-counts (swcad-title-fast-sheet-summary))
           (setq after-target (swcad-title-target-frame-sheet-counts))
           (swtitle-a4prep-write-line handle (strcat "After definition status: " after-status))
