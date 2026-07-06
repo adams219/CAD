@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-3",
+  [string]$ExpectedGmtitleVersion = "260706-unified-title-missing-4",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -334,6 +334,7 @@ Assert-NotContains -Text $mainText -Needle "A4 special handling" -Label "Stale A
 Assert-NotContains -Text $mainText -Needle "A4 보호 중단" -Label "Stale A4-only protection wording"
 Assert-NotContains -Text $mainText -Needle "frame-only A4 대상" -Label "Stale A4-only frame-only target wording"
 Assert-NotContains -Text $mainText -Needle "보통 원본 제목블록이 없는 A4" -Label "Stale A4-only source-title-missing assumption"
+Assert-NotContains -Text $mainText -Needle '(member "A4" missing-required-sheets)' -Label "No A4-only title-missing verify branch"
 Assert-Contains -Text $mainText -Needle "ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE" -Label "Interactive GMTITLE script guard"
 Assert-Contains -Text $mainText -Needle "INTERACTIVE_GMTITLE_EXCEPTION" -Label "Interactive GMTITLE exception guard status"
 Assert-Contains -Text $mainText -Needle "'swcad-title-run-native-gmtitle" -Label "Interactive GMTITLE exception wrapper"

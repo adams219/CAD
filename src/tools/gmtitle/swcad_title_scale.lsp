@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260706-unified-title-missing-3")
+(setq *swcad-title-scale-version* "260706-unified-title-missing-4")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -18090,7 +18090,7 @@
   (princ)
 )
 
-(defun swcad-title-integrated-prepare (/ command-text-records frame-title-records embedded-title-records style-records frame-definition-blockers contaminated-definition-records definition-raw-risk-records a4-outline-needed orphan-records duplicate-pair-records)
+(defun swcad-title-integrated-prepare (/ command-text-records frame-title-records embedded-title-records style-records frame-definition-blockers contaminated-definition-records definition-raw-risk-records title-missing-outline-needed orphan-records duplicate-pair-records)
   (swcad-title-integrated-command-header "SWTITLEPREPARE" "도면틀/블록 정의 정규화")
   (if (swcad-title-script-active-p)
     (progn
@@ -18110,7 +18110,7 @@
       (setq frame-definition-blockers (swcad-title-frame-definition-blocking-records))
       (setq contaminated-definition-records (swcad-title-frame-definition-blocking-records-by-class "source-contaminated"))
       (setq definition-raw-risk-records (swcad-title-frame-definition-raw-bbox-risk-records))
-      (setq a4-outline-needed (swcad-title-title-missing-outline-definition-needed-p))
+      (setq title-missing-outline-needed (swcad-title-title-missing-outline-definition-needed-p))
       (setq orphan-records (swcad-title-orphan-target-frame-records))
       (setq duplicate-pair-records (swcad-title-duplicate-target-pair-records))
       (swcad-title-princ-text
@@ -18131,7 +18131,7 @@
           "\n  DR 도면틀 정의 raw bbox 위험: "
           (itoa (length definition-raw-risk-records))
           "\n  title-missing/frame-only DR 도면틀 정의 준비 필요: "
-          (if a4-outline-needed "예" "아니오")
+          (if title-missing-outline-needed "예" "아니오")
           "\n  제목블록 없는 고아 GMTITLE 도면틀: "
           (itoa (length orphan-records))
           "\n  같은 위치에 겹친 GMTITLE target 쌍: "
@@ -18160,8 +18160,8 @@
         (swcad-title-frame-def-clean-safe)
         (swcad-title-princ-text "\n오염된 DR 도면틀 정의 복구: 후보 없음")
       )
-      (setq a4-outline-needed (swcad-title-title-missing-outline-definition-needed-p))
-      (if a4-outline-needed
+      (setq title-missing-outline-needed (swcad-title-title-missing-outline-definition-needed-p))
+      (if title-missing-outline-needed
         (swcad-title-prepare-title-missing-outline-definition)
         (swcad-title-princ-text "\ntitle-missing/frame-only DR 도면틀 정의 준비: 후보 없음")
       )
@@ -18398,7 +18398,7 @@
   (princ)
 )
 
-(defun swcad-title-integrated-verify-final-summary (/ summary source-titles source-frames command-text-records embedded-title-records style-records frame-definition-records frame-definition-blockers orphan-records contaminated frame-records title-enames pair-records geometry-risk-count overlap-risk-count a3a4-count target-title-count target-frame-count pair-count a4-frame-only-outline-count missing-title-count extra-title-count title-missing-tags-count title-empty-attrs-count non-native-like-count required-missing-count required-sheets missing-required-sheets target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records count-shortage-count count-excess-count status record title-ename attr-pairs)
+(defun swcad-title-integrated-verify-final-summary (/ summary source-titles source-frames command-text-records embedded-title-records style-records frame-definition-records frame-definition-blockers orphan-records contaminated frame-records title-enames pair-records geometry-risk-count overlap-risk-count a3a4-count target-title-count target-frame-count pair-count title-missing-outline-count frame-only-source-count source-frame-with-title-count missing-title-count extra-title-count title-missing-tags-count title-empty-attrs-count non-native-like-count required-missing-count required-sheets missing-required-sheets target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records count-shortage-count count-excess-count status record title-ename attr-pairs)
   (swcad-title-open-verify-summary-log)
   (setq summary (swcad-title-fast-sheet-summary))
   (setq source-titles (swcad-title-source-title-candidates))
@@ -18419,10 +18419,15 @@
   (setq target-title-count (length title-enames))
   (setq target-frame-count (length frame-records))
   (setq pair-count (length pair-records))
-  (setq a4-frame-only-outline-count (swcad-title-title-missing-outline-frame-count))
+  (setq title-missing-outline-count (swcad-title-title-missing-outline-frame-count))
+  (setq frame-only-source-count (swcad-title-frame-only-source-count))
+  (setq source-frame-with-title-count (- (length source-frames) frame-only-source-count))
+  (if (< source-frame-with-title-count 0)
+    (setq source-frame-with-title-count 0)
+  )
   (setq missing-title-count
-    (if (> target-frame-count (+ pair-count a4-frame-only-outline-count))
-      (- target-frame-count pair-count a4-frame-only-outline-count)
+    (if (> target-frame-count (+ pair-count title-missing-outline-count))
+      (- target-frame-count pair-count title-missing-outline-count)
       0
     )
   )
@@ -18464,8 +18469,8 @@
       (
         (or
           (= target-frame-count 0)
-          (and (= target-title-count 0) (= a4-frame-only-outline-count 0))
-          (and (= pair-count 0) (= a4-frame-only-outline-count 0))
+          (and (= target-title-count 0) (= title-missing-outline-count 0))
+          (and (= pair-count 0) (= title-missing-outline-count 0))
           (> title-missing-tags-count 0)
           (> required-missing-count 0)
           (> count-shortage-count 0)
@@ -18511,7 +18516,7 @@
   (swcad-title-princ-line (strcat "대상 도면틀 수: " (itoa target-frame-count)))
   (swcad-title-princ-line (strcat "대상 제목블록 수: " (itoa target-title-count)))
   (swcad-title-princ-line (strcat "도면틀/제목블록 쌍 수: " (itoa pair-count)))
-  (swcad-title-princ-line (strcat "title-missing 도면틀-only 대상 수: " (itoa a4-frame-only-outline-count)))
+  (swcad-title-princ-line (strcat "title-missing 도면틀-only 대상 수: " (itoa title-missing-outline-count)))
   (swcad-title-princ-line (strcat "제목블록 없는 대상 도면틀 수: " (itoa missing-title-count)))
   (swcad-title-princ-line (strcat "도면틀과 짝이 없는 대상 제목블록 수: " (itoa extra-title-count)))
   (swcad-title-princ-line (strcat "속성 태그 누락 제목블록 수: " (itoa title-missing-tags-count)))
@@ -18553,17 +18558,17 @@
           (swcad-title-princ-line "SWTITLESTATUS로 후보를 확인한 뒤 SWTITLECONVERTNEXT를 실행해 다음 A3/A4 후보를 처리하세요.")
           (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
         )
-        ((or (> (length source-titles) 0) (> (length source-frames) 0))
-          (swcad-title-princ-line "다음 단계 코드: SOURCE_SHEETS_BEFORE_TITLE_MISSING")
-          (swcad-title-princ-line "다음: 아직 원본 SolidWorks 표제란/도면틀이 남아 있으므로 title-missing 예외보다 원본 시트 변환이 먼저입니다.")
-          (swcad-title-princ-line "SWTITLESTATUS로 현재 상태를 확인한 뒤 SWTITLECONVERTNEXT로 남은 원본 SolidWorks 시트를 처리하세요.")
-          (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
-        )
-        ((and (> (length source-frames) 0) (member "A4" missing-required-sheets))
+        ((and (= (length source-titles) 0) (> frame-only-source-count 0))
           (swcad-title-princ-line "다음 단계 코드: TITLE_MISSING_AFTER_SOURCES")
           (swcad-title-princ-line "다음: 남은 표제란 없는 도면틀 시트를 SWTITLECONVERTNEXT로 처리하세요.")
           (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
           (swcad-title-princ-line "원본에 제목블록이 없다고 검증된 시트이므로 새 DR_titlea_3rd를 만들지 않고 같은 크기 DR 도면틀만 검증합니다.")
+        )
+        ((or (> (length source-titles) 0) (> source-frame-with-title-count 0))
+          (swcad-title-princ-line "다음 단계 코드: SOURCE_SHEETS_BEFORE_TITLE_MISSING")
+          (swcad-title-princ-line "다음: 아직 원본 SolidWorks 표제란/도면틀이 남아 있으므로 title-missing 예외보다 원본 시트 변환이 먼저입니다.")
+          (swcad-title-princ-line "SWTITLESTATUS로 현재 상태를 확인한 뒤 SWTITLECONVERTNEXT로 남은 원본 SolidWorks 시트를 처리하세요.")
+          (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
         )
         ((> title-missing-tags-count 0)
           (swcad-title-princ-line "다음 단계 코드: REVIEW_TITLE_TAGS")
