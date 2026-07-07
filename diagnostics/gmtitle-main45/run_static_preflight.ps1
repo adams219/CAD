@@ -566,6 +566,8 @@ Assert-Contains -Text $mainText -Needle "(defun swcad-title-native-upgrade-candi
 Assert-Contains -Text $mainText -Needle "(swcad-title-target-pair-upgrade-candidate-records '(`"A2`" `"A3`" `"A4`"))" -Label "Native-upgrade candidates include A2/A3/A4"
 Assert-Contains -Text $mainText -Needle "WARN_A2_A3_A4_TARGET_FRAME_NOT_NATIVE_LIKE" -Label "Generic A2/A3/A4 native-like warning status"
 Assert-Contains -Text $mainText -Needle "A2/A3/A4 native-like completion:" -Label "Generic A2/A3/A4 native-like completion log"
+Assert-Contains -Text $mainText -Needle "다음 단계 코드: UPGRADE_NATIVE_GMTITLE" -Label "Generic native GMTITLE next-step code"
+Assert-NotContains -Text $mainText -Needle "다음 단계 코드: UPGRADE_A3_A4_NATIVE" -Label "No stale A3/A4-only native next-step code"
 Assert-NotContains -Text $mainText -Needle "복제된 A3/A4 GMTITLE" -Label "No stale visible A3/A4-only native replacement wording"
 Assert-NotContains -Text $mainText -Needle "교체된 A3/A4 native 도면틀" -Label "No stale visible A3/A4-only geometry wording"
 Assert-NotContains -Text $mainText -Needle "SCRIPT 실행 중에는 A3/A4 대화식 교체" -Label "No stale visible A3/A4-only interactive wording"

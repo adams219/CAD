@@ -16703,7 +16703,7 @@
       (swcad-title-princ-line (strcat "SWTITLECONVERTNEXT는 현재 표시된 후보 " (itoa a3a4-total) "개 중 다음 1개를 처리한 뒤 상태 확인으로 돌아갑니다."))
       (swcad-title-print-native-batch-safety-guidance)
       (swcad-title-princ-line "각 GMTITLE 창에서는 출력된 DR_A*_Outline 용지와 DR_titlea_3rd를 선택하고, Frame positioning은 ON, Object move는 OFF로 둔 뒤 확인하세요.")
-      (swcad-title-princ-line "ISO A3/A4 또는 ISO 제목블록 기본값이면 확인하지 말고 취소한 뒤 다시 실행하세요.")
+      (swcad-title-princ-line "DR이 아닌 일반 용지 또는 ISO 제목블록 기본값이면 확인하지 말고 취소한 뒤 다시 실행하세요.")
       (swcad-title-princ-line "특정 시트를 먼저 진단하려면 해당 제목블록 위치와 SWTITLEVERIFY 로그를 비교하세요.")
       (if (or (> (length source-titles) 0) (> (length source-frames) 0))
         (swcad-title-princ-line "그 뒤 SWTITLESTATUS를 다시 실행하고 남은 원본 시트는 SWTITLECONVERTNEXT로 처리하세요.")
@@ -18680,7 +18680,7 @@
     (T
       (cond
         ((> a3a4-count 0)
-          (swcad-title-princ-line "다음 단계 코드: UPGRADE_A3_A4_NATIVE")
+          (swcad-title-princ-line "다음 단계 코드: UPGRADE_NATIVE_GMTITLE")
           (swcad-title-princ-line "다음: 특정 용지 누락이나 title-missing 예외가 있더라도 A2/A3/A4 native 교체 후보가 먼저입니다.")
           (swcad-title-princ-line "SWTITLESTATUS로 후보를 확인한 뒤 SWTITLECONVERTNEXT를 실행해 다음 A2/A3/A4 후보를 처리하세요.")
           (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLECONVERT를 사용하세요.")
