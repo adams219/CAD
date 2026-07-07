@@ -199,6 +199,10 @@ function Write-AfterManualCardShortSummary {
   $result = Get-LastRegexValue -Text $CardText -Pattern "^Result:\s*(\S+)\s*$"
   $status = Get-LastRegexValue -Text $CardText -Pattern "^(?:\s*SWTITLESTATUS:|현재 저장 상태:)\s*(\S+)"
   $verify = Get-LastRegexValue -Text $CardText -Pattern "^(?:\s*SWTITLEVERIFY:|검증 상태:)\s*(\S+)"
+  $directProbeTime = Get-LastRegexValue -Text $CardText -Pattern "^Direct probe 시간:\s*(.+)$"
+  $workCopySaveTime = Get-LastRegexValue -Text $CardText -Pattern "^작업복사본 저장 시간:\s*(.+)$"
+  $directProbeCurrent = Get-LastRegexValue -Text $CardText -Pattern "^Direct probe 최신 상태:\s*(예|아니오)"
+  $directProbeReused = ($CardText -match "Direct probe 자동 갱신: 기존 로그가 대상 작업복사본, 저장 시간, 현재 LSP 버전과 일치해 재사용합니다")
   $frame = $null
   $title = $null
   $selectionText = Get-TextAfterLastMarker -Text $CardText -Marker "GMTITLE 창에서 반드시 아래 값으로 선택:"
@@ -229,6 +233,12 @@ function Write-AfterManualCardShortSummary {
   if ($result) { Write-Log ("  결과 코드: {0}" -f $result) }
   if ($status) { Write-Log ("  저장된 DWG 상태: {0}" -f $status) }
   if ($verify) { Write-Log ("  검증 상태: {0}" -f $verify) }
+  if ($workCopySaveTime) { Write-Log ("  작업복사본 저장 시간: {0}" -f $workCopySaveTime) }
+  if ($directProbeTime) { Write-Log ("  direct probe 시간: {0}" -f $directProbeTime) }
+  if ($directProbeCurrent) { Write-Log ("  direct probe 최신 상태: {0}" -f $directProbeCurrent) }
+  if ($directProbeReused) {
+    Write-Log "  참고: 기존 direct probe가 재사용됐습니다. 방금 저장했는데 작업복사본 저장 시간이 바뀌지 않았다면 다른 DWG를 저장했을 수 있습니다."
+  }
   if ($frame) { Write-Log ("  다음 GMTITLE 용지/도면틀: {0}" -f $frame) }
   else { Write-Log "  다음 GMTITLE 용지/도면틀: SWTITLESTATUS의 짧은 GMTITLE 선택 카드를 다시 확인하세요." }
   if ($title) { Write-Log ("  다음 GMTITLE 제목블록: {0}" -f $title) }
