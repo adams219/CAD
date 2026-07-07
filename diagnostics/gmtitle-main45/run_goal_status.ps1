@@ -1326,7 +1326,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "  Hidden suite verification path only if you changed code again:"
   } elseif ($a4NativeOutsideMarkerPolicyReady) {
     Write-Output "  DR_A4_Outline outside-marker evidence exists for the current title-missing sample:"
-    Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair with official small outside markers."
+    Write-Output "    1. The focused source-title-missing scratch probe found a real native GMTITLE pair with official small outside markers. The current evidence sample is A4-sized."
     Write-Output "    2. SWTITLEPREPARE now accepts that definition as ready-native-outside-markers when geometry/raw-selection checks pass."
     Write-Output "    3. Run the focused title-missing/frame-only convert probe for the current source-title-missing sample (A4-sized evidence) or the full hidden suite before using this on the real work-copy."
     Write-Output "    4. Production title-missing/frame-only sheets must still not create an extra DR_titlea_3rd."
@@ -1334,19 +1334,19 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "  Hidden suite verification path:"
   } elseif ($a4NativeOutsideMarkerDecisionNeeded) {
     Write-Output "  DR_A4_Outline native outside-marker decision for the current sample:"
-    Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair, but native DR_A4_Outline itself has small geometry outside (0,0)-(210,297)."
-    Write-Output "    2. Do not keep creating more scratch A4 sheets. Treat this as source-title-missing evidence only; accept official outside markers only when geometry/raw-selection checks pass."
+    Write-Output "    1. The focused source-title-missing scratch probe found a real native GMTITLE pair, but native DR_A4_Outline itself has small geometry outside (0,0)-(210,297)."
+    Write-Output "    2. Do not keep creating more scratch sheets for this question. Treat this as source-title-missing evidence only; accept official outside markers only when geometry/raw-selection checks pass."
     Write-Output "    3. Because a production source-title-missing sheet is frame-only, keep the rule that it must not receive an extra DR_titlea_3rd."
     Write-Output "    4. After any code or definition-readiness changes, rerun the focused source-title-missing probe and the full hidden suite."
     Write-Output ""
-    Write-Output "  Hidden suite verification path after A4 production code changes:"
+    Write-Output "  Hidden suite verification path after source-title-missing sample code changes:"
   } elseif ($a4CandidateSafeNeedsReview) {
     Write-Output "  DR_A4_Outline normalization candidate review for the current sample:"
-    Write-Output "    1. Inspect the copied-DWG nested A4 normalization probe log that reported safe=yes."
+    Write-Output "    1. Inspect the copied-DWG nested normalization probe log for the A4-sized source-title-missing sample that reported safe=yes."
     Write-Output "    2. Do not run more CAD conversion commands until that strategy is promoted into SWTITLEPREPARE/SWTITLECONVERT production logic."
-    Write-Output "    3. After code changes, save/close GstarCAD and run the focused A4 probe plus hidden suite."
+    Write-Output "    3. After code changes, save/close GstarCAD and run the focused title-missing sample probe plus hidden suite."
     Write-Output ""
-    Write-Output "  Hidden suite verification path after A4 production code changes:"
+    Write-Output "  Hidden suite verification path after source-title-missing sample code changes:"
   } elseif ($a4NativeA4ComparisonNeeded) {
     Write-Output "  DR_A4_Outline native comparison investigation for the current sample:"
     Write-Output "    1. Do not repeat SWTITLEPREPARE/SWTITLECONVERT; the installed outline and nested cleanup probes are both unsafe."
@@ -1367,17 +1367,17 @@ if ($existingGstarCAD.Count -gt 0) {
       Write-Output ("    10. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
     }
     Write-Output ""
-    Write-Output "  Hidden suite verification path after A4 comparison/code changes:"
+    Write-Output "  Hidden suite verification path after source-title-missing comparison/code changes:"
   } elseif ($a4InvestigationPreferred) {
     Write-Output "  Title-missing definition investigation continuation (current source-title-missing sample; A4-sized evidence):"
     Write-Output ("    1. Confirm the open GstarCAD drawing matches: {0}" -f $script:LatestCadDwg)
     Write-Output "    2. If SWTITLEPREPARE was not tried in this exact open DWG state, run SWTITLEPREPARE once and then SWTITLESTATUS."
     Write-Output "    3. If SWTITLESTATUS still reports NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION, do not repeat SWTITLEPREPARE/SWTITLECONVERT."
-    Write-Output "    4. Save the work-copy DWG, close GstarCAD, then run the copied-DWG nested A4 probe:"
+    Write-Output "    4. Save the work-copy DWG, close GstarCAD, then run the copied-DWG nested source-title-missing sample probe:"
     Write-Output ("       powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside,nested-direct-outside" -f $nestedProbeScript, $nestedProbeSource)
     Write-Output "    5. Only if one nested probe is safe should SWTITLEPREPARE/SWTITLECONVERT production logic be changed."
     Write-Output ""
-    Write-Output "  Hidden suite verification path after A4 probe/code changes:"
+    Write-Output "  Hidden suite verification path after source-title-missing sample probe/code changes:"
   } elseif ($script:LatestCadDwgTrustedForGoal -and $script:LatestCadRecommendedCommand) {
     Write-Output "  Visible CAD continuation:"
     Write-Output ("    1. Confirm the open GstarCAD drawing matches: {0}" -f $script:LatestCadDwg)
@@ -1486,21 +1486,21 @@ if ($existingGstarCAD.Count -gt 0) {
     }
   } elseif ($a4NativeOutsideMarkerPolicyReady) {
     Write-Output "  DR_A4_Outline outside-marker evidence exists for the current title-missing sample:"
-    Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair with official small outside markers."
+    Write-Output "    1. The focused source-title-missing scratch probe found a real native GMTITLE pair with official small outside markers. The current evidence sample is A4-sized."
     Write-Output "    2. SWTITLEPREPARE now accepts that definition as ready-native-outside-markers when geometry/raw-selection checks pass."
     Write-Output "    3. Run the focused title-missing/frame-only convert probe for the current source-title-missing sample (A4-sized evidence) or the full hidden suite before using this on the real work-copy."
     Write-Output "    4. Production title-missing/frame-only sheets must still not create an extra DR_titlea_3rd."
   } elseif ($a4NativeOutsideMarkerDecisionNeeded) {
     Write-Output "  DR_A4_Outline native outside-marker decision for the current sample:"
-    Write-Output "    1. The focused A4 scratch probe found a real native GMTITLE pair, but native DR_A4_Outline itself has small geometry outside (0,0)-(210,297)."
-    Write-Output "    2. Do not keep creating more scratch A4 sheets. Treat this as source-title-missing evidence only; accept official outside markers only when geometry/raw-selection checks pass."
+    Write-Output "    1. The focused source-title-missing scratch probe found a real native GMTITLE pair, but native DR_A4_Outline itself has small geometry outside (0,0)-(210,297)."
+    Write-Output "    2. Do not keep creating more scratch sheets for this question. Treat this as source-title-missing evidence only; accept official outside markers only when geometry/raw-selection checks pass."
     Write-Output "    3. Because a production source-title-missing sheet is frame-only, keep the rule that it must not receive an extra DR_titlea_3rd."
     Write-Output "    4. After any code or definition-readiness changes, rerun the focused source-title-missing probe and the full hidden suite."
   } elseif ($a4CandidateSafeNeedsReview) {
     Write-Output "  DR_A4_Outline normalization candidate review for the current sample:"
-    Write-Output "    1. Inspect the copied-DWG nested A4 normalization probe log that reported safe=yes."
+    Write-Output "    1. Inspect the copied-DWG nested normalization probe log for the A4-sized source-title-missing sample that reported safe=yes."
     Write-Output "    2. Promote the safe strategy into SWTITLEPREPARE/SWTITLECONVERT only after confirming it preserves the A4 frame."
-    Write-Output "    3. Then run the focused A4 probe and the full hidden suite."
+    Write-Output "    3. Then run the focused title-missing sample probe and the full hidden suite."
   } elseif ($a4NativeA4ComparisonNeeded) {
     Write-Output "  DR_A4_Outline native comparison investigation for the current sample:"
     Write-Output "    1. Do not run more SWTITLEPREPARE/SWTITLECONVERT attempts on the work-copy."
@@ -1519,7 +1519,7 @@ if ($existingGstarCAD.Count -gt 0) {
     } else {
       Write-Output ("    9. After saving that scratch DWG, run: powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""<scratch-native-a4-dwg>"" -WaitForGstarCADClose" -f (Join-Path $repoRoot "diagnostics\gmtitle-main45\run_a4_native_exemplar_probe.ps1"))
     }
-    Write-Output "    10. After a safer A4 definition strategy is implemented, rerun the focused A4 probe and full hidden suite."
+    Write-Output "    10. After a safer source-title-missing sample definition strategy is implemented, rerun the focused sample probe and full hidden suite."
   } elseif ($a4InvestigationPreferred) {
     Write-Output "  지금은 복사본 DWG 기준 title-missing definition probe를 먼저 실행하세요:"
     Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -SourceWorkCopyPath ""{1}"" -Strategies nested-outside,nested-direct-outside" -f $nestedProbeScript, $nestedProbeSource)
