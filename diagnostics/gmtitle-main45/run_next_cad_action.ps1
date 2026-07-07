@@ -460,6 +460,8 @@ function Write-AutomationBoundarySummary {
     }
     "RemainingConversion" {
       Write-Output "  - 이번 단계: 이미 검증된 native 기준 객체로 남은 시트를 처리하되, title-missing/frame-only 예외에는 원본에 없던 새 제목블록을 만들지 않습니다."
+      Write-Output "  - SWTITLECONVERTNEXT는 안전을 위해 다음 표제란 시트 1장을 clone 변환한 뒤, 바로 생긴 native 교체 후보 1장을 이어서 확인합니다."
+      Write-Output "  - 그래서 이 상태에서도 GMTITLE 창의 DR 용지/제목블록/옵션 확인은 필요합니다. 여러 장 연속 처리는 수동 SWTITLECONVERT에서 BATCH를 명시적으로 선택할 때만 검토합니다."
     }
   }
 }
@@ -653,8 +655,9 @@ function Write-ConvertPromptGuidance {
       Write-Output "  Enter: 기존 쌍을 보존하고 중단합니다."
     }
     "RemainingConversion" {
-      Write-Output "  YES: 준비된 native 기준 객체로 남은 원본 시트를 변환합니다."
+      Write-Output "  YES: 준비된 native 기준 객체로 남은 원본 시트를 처리합니다. SWTITLECONVERTNEXT에서는 다음 1장만 처리합니다."
       Write-Output "  Enter: 변환 없이 중단합니다."
+      Write-Output "  수동 SWTITLECONVERT의 BATCH: 같은 DR 용지/제목블록/옵션 반복이 검증된 뒤에만 여러 장 연속 처리를 검토합니다."
       Write-Output "  title-missing/frame-only 예외 단계에서 원본에 없던 제목블록이 생기면 즉시 멈추고 SWTITLESTATUS를 확인하세요."
     }
   }

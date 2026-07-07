@@ -1234,7 +1234,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output ("    1. 저장 후 direct probe 상태: {0}" -f $script:DirectWorkcopyStatusCode)
     Write-Output "       native 교체 후보는 정리됐지만, 전체 시트 변환은 아직 남아 있습니다."
     Write-Output "    2. 열린 CAD에서 SWTITLESTATUS로 현재 활성 DWG가 같은 작업복사본인지 확인하세요."
-    Write-Output "    3. 상태가 그대로면 SWTITLECONVERTNEXT를 실행해 남은 준비된 시트를 계속 변환하세요."
+    Write-Output "    3. 상태가 그대로면 SWTITLECONVERTNEXT를 실행해 다음 표제란 시트 1장을 변환하고, 바로 이어지는 native 교체 후보 1장을 확인하세요."
     if ($script:DirectWorkcopyNextFrame) {
       Write-Output ("       다음 GMTITLE 용지/도면틀: {0}" -f $script:DirectWorkcopyNextFrame)
     }
@@ -1242,7 +1242,7 @@ if ($existingGstarCAD.Count -gt 0) {
       Write-Output ("       다음 GMTITLE 제목블록: {0}" -f $script:DirectWorkcopyNextTitle)
     }
     Write-Output "       필수 옵션: Frame positioning ON, Object move OFF"
-    Write-Output "    4. 변환 후 저장하고 GstarCAD를 닫은 뒤 run_after_manual_gmtitle_step.ps1 -Compact로 다음 상태를 갱신하세요."
+    Write-Output "    4. 한 장 처리 후 저장하고 GstarCAD를 닫은 뒤 run_after_manual_gmtitle_step.ps1 -Compact로 다음 상태를 갱신하세요."
     Write-Output ""
     Write-Output "  Hidden suite verification path only after saving/closing CAD or changing code:"
   } elseif ($script:LatestNativeUpgradeReadyForVerify) {
@@ -1411,7 +1411,7 @@ if ($existingGstarCAD.Count -gt 0) {
     Write-Output "    2. GstarCAD에서 실제 작업복사본 DWG를 열거나 활성화하세요."
     Write-Output "    3. 필요하면 최신 swcad_title_scale.lsp를 APPLOAD 하세요."
     Write-Output "    4. SWTITLESTATUS로 현재 활성 DWG가 같은 작업복사본인지 확인하세요."
-    Write-Output "    5. 상태가 그대로면 SWTITLECONVERTNEXT를 실행해 남은 준비된 시트를 계속 변환하세요."
+    Write-Output "    5. 상태가 그대로면 SWTITLECONVERTNEXT를 실행해 다음 표제란 시트 1장을 변환하고, 바로 이어지는 native 교체 후보 1장을 확인하세요."
     if ($script:DirectWorkcopyNextFrame) {
       Write-Output ("       다음 GMTITLE 용지/도면틀: {0}" -f $script:DirectWorkcopyNextFrame)
     }
@@ -1419,7 +1419,7 @@ if ($existingGstarCAD.Count -gt 0) {
       Write-Output ("       다음 GMTITLE 제목블록: {0}" -f $script:DirectWorkcopyNextTitle)
     }
     Write-Output "       필수 옵션: Frame positioning ON, Object move OFF"
-    Write-Output "    6. 변환 후 저장하고 GstarCAD를 닫은 뒤 run_after_manual_gmtitle_step.ps1 -Compact로 다음 상태를 갱신하세요."
+    Write-Output "    6. 한 장 처리 후 저장하고 GstarCAD를 닫은 뒤 run_after_manual_gmtitle_step.ps1 -Compact로 다음 상태를 갱신하세요."
   } elseif ($script:LatestNativeUpgradeReadyForVerify) {
     Write-Output "  실제 작업복사본 우선 단계:"
     Write-Output "    1. 최신 native 교체 로그에서 A2/A3/A4 교체 후보가 0개로 확인됐습니다."
