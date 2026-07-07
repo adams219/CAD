@@ -140,4 +140,10 @@ SWPURGESTYLES
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
 ```
 
-현재 변환 전 기준 상태는 GMTITLE 대상 객체가 아직 없는 상태입니다. 따라서 final gate가 실패하는 것은 실제 변환 전에는 정상입니다.
+현재 작업복사본의 진행 상태는 README에 고정하지 않습니다. 상태가 필요하면 아래 명령으로 최신 로그와 현재 커밋 기준 신선도를 확인합니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_goal_status.ps1
+```
+
+`final completion gate`가 실패하더라도 `run_goal_status.ps1`의 `Final gate log older than current commit`, `status-after-status`, `status-after-verify`, source/target count를 같이 보고 다음 CAD 단계를 판단합니다.
