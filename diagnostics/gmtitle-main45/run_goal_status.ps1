@@ -460,13 +460,26 @@ function Write-LatestCadLogSummary {
     }
   }
 
-  $nextPairMatch = [regex]::Match($text, ":\s*(DR_A[0-4]_Outline)\s*/\s*(DR_titlea_3rd)\s*1")
-  if ($nextPairMatch.Success) {
-    $nextFrameFromLog = $nextPairMatch.Groups[1].Value
-    $nextTitleFromLog = $nextPairMatch.Groups[2].Value
+  $nextHintLabel = $null
+  if ($statusCode -eq "NEXT_RUN_FAST_BATCH") {
+    $nextFrameFromLog = Get-FirstRegexValue -Text $text -Pattern "다음 대상 도면틀=(DR_A[0-4]_Outline)"
+    if ($nextFrameFromLog) {
+      $nextHintLabel = "Next conversion target frame"
+    }
   } else {
-    $nextFrameFromLog = Get-FirstRegexValue -Text $text -Pattern "(DR_A[0-4]_Outline)"
-    $nextTitleFromLog = Get-FirstRegexValue -Text $text -Pattern "(DR_titlea_3rd)"
+    $nextPairMatch = [regex]::Match($text, "지금 필요한 확인:\s*(DR_A[0-4]_Outline)\s*/\s*(DR_titlea_3rd|<[^>]+>)")
+    if ($nextPairMatch.Success) {
+      $nextFrameFromLog = $nextPairMatch.Groups[1].Value
+      $nextTitleFromLog = $nextPairMatch.Groups[2].Value
+      $nextHintLabel = "Manual GMTITLE check"
+    } else {
+      $nextPairMatch = [regex]::Match($text, ":\s*(DR_A[0-4]_Outline)\s*/\s*(DR_titlea_3rd)\s*1")
+      if ($nextPairMatch.Success) {
+        $nextFrameFromLog = $nextPairMatch.Groups[1].Value
+        $nextTitleFromLog = $nextPairMatch.Groups[2].Value
+        $nextHintLabel = "Manual GMTITLE check"
+      }
+    }
   }
 
   $missingLines = @()
@@ -488,7 +501,13 @@ function Write-LatestCadLogSummary {
   }
   if ($dwg) { Write-Output ("  DWG: {0}" -f $dwg) }
   if ($statusCode) { Write-Output ("  Status code: {0}" -f $statusCode) }
-  if ($nextFrameFromLog) { Write-Output ("  Next frame/title hint: {0} / {1}" -f $nextFrameFromLog, $(if ($nextTitleFromLog) { $nextTitleFromLog } else { "<unknown>" })) }
+  if ($nextFrameFromLog) {
+    if ($nextHintLabel -eq "Next conversion target frame") {
+      Write-Output ("  Next conversion target frame: {0}" -f $nextFrameFromLog)
+    } else {
+      Write-Output ("  Next frame/title hint: {0} / {1}" -f $nextFrameFromLog, $(if ($nextTitleFromLog) { $nextTitleFromLog } else { "<unknown>" }))
+    }
+  }
   if ($visibleCounts.Count -gt 0) {
     Write-Output ("  Sheet-count lines mentioned: {0}" -f ($visibleCounts -join ", "))
   }
