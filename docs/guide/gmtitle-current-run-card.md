@@ -233,10 +233,60 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 현재 기대 결과는 `GMTITLE_SELECTION_CONFIG_NOT_FOUND`입니다.
 `-DeepRegistrySearch`에서 `Recent File List`에 DR 파일 경로가 보여도 최근 직접 열었던 파일 기록일 뿐, GMTITLE 대화상자의 용지/제목블록을 자동 선택할 근거로 쓰지 않습니다.
 
-### 기본 작업복사본 초기 상태
+### 현재 저장본 direct probe 상태
+
+2026-07-08 저장 후 direct probe 기준, 현재 기본 작업복사본은 첫 native 전 상태가 아닙니다.
+A2와 일부 A3 native-like 쌍은 만들어졌고, 남은 A3/A4 처리가 필요합니다.
+
+```text
+direct probe 로그:
+work\swtitle_actual_workcopy_direct_status_260705.txt
+
+DWG:
+C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
+
+현재 저장 상태:
+NEXT_RUN_FAST_BATCH
+
+검증 상태:
+SWTITLEVERIFY_FINAL_FAIL
+
+target title/frame:
+4 / 4
+
+GMTITLE pair/native-like:
+4 / 4
+
+A2/A3/A4 native 교체 후보:
+0
+
+남은 원본:
+  표제란 시트 9
+  원본 도면틀 11
+  title-missing/frame-only 시트 2
+
+현재 부족한 target 수량:
+  A3: 필요 12, 현재 3
+  A4: 필요 2, 현재 0
+
+다음 CAD 단계:
+SWTITLECONVERTNEXT
+
+다음 GMTITLE 확인값:
+DR_A3_Outline / DR_titlea_3rd
+Frame positioning: ON
+Object move: OFF
+```
+
+이 상태에서 `SWTITLECONVERTNEXT`는 남은 A3 전체를 한 번에 끝내는 뜻이 아닙니다.
+다음 표제란 시트 1장을 clone 변환한 뒤, 바로 생긴 native 교체 후보 1장을 visible CAD에서 확인하는 안전 흐름입니다.
+한 장 처리 후에는 저장하고 GstarCAD를 닫은 뒤 `run_after_manual_gmtitle_step.ps1 -Compact`로 상태를 다시 잠급니다.
+
+### 새 작업복사본 초기 상태 참고
 
 2026-07-06 01:02 final completion gate 기준, 기본 작업복사본은 아직 변환 전 상태입니다.
-이 내용은 새 복사본에서 처음부터 시작할 때 쓰는 기준입니다.
+이 내용은 같은 원본에서 새 work 복사본을 다시 만들고 처음부터 시작할 때만 쓰는 기준입니다.
+이미 변환이 진행된 현재 저장본에는 위 direct probe 상태를 우선 적용합니다.
 
 ```text
 SWTITLESTATUS: NEXT_CREATE_FIRST_NATIVE_GMTITLE
@@ -261,7 +311,7 @@ target 도면틀/제목블록: 0
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_actual_workcopy_direct_status_probe.ps1
 ```
 
-이 direct probe는 저장된 `work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg`를 읽고 `work\swtitle_actual_workcopy_direct_status_260705.txt`를 갱신합니다. 결과는 계속 `dbmod-after-commands: 0`이어야 합니다. 이 명령은 실제 CAD 변환을 대신하지 않고, `SWTITLECONVERT` 전에 저장된 기준 상태만 확인합니다.
+이 direct probe는 저장된 `work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg`를 읽고 `work\swtitle_actual_workcopy_direct_status_260705.txt`를 갱신합니다. 결과는 계속 `dbmod-after-commands: 0`이어야 합니다. 이 명령은 실제 CAD 변환을 대신하지 않고, `SWTITLECONVERTNEXT` 전에 저장된 기준 상태와 다음 한 단계만 확인합니다.
 
 현재 PC에서는 실제 작업복사본 direct probe 기본 제한 시간을 180초로 둡니다. 90초 제한에서는 GstarCAD 시작은 됐지만 로그가 쓰이기 전에 timeout이 나서 근거 로그가 비는 경우가 있었습니다.
 
@@ -363,8 +413,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 
 ```text
 no-CAD next-action card probe: PASS
-GstarCAD /b script smoke probe: PASS
-actual work-copy status probe: NEXT_CREATE_FIRST_NATIVE_GMTITLE
+GstarCAD /b script smoke probe: 최근 run_goal_status 결과를 우선 확인
+actual work-copy status probe: 현재 direct probe는 NEXT_RUN_FAST_BATCH
 A4 outline prepare: OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED
 title-missing/frame-only convert: FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER
 selection config deep registry: GMTITLE_SELECTION_CONFIG_NOT_FOUND
@@ -385,7 +435,9 @@ NEXT_REVIEW_* 또는 ABORT_/WARN_ -> 같은 변환 반복 금지, SWTITLESTATUS/
 SWTITLEVERIFY_FINAL_OK -> 대표 제목블록 더블클릭 확인
 ```
 
-이 상태에서 다음 실제 CAD 명령은 `SWTITLECONVERTNEXT`를 권장합니다. 첫 대상은 보통 A2입니다. `YES`/`OPEN` 같은 반복 응답을 직접 고르고 싶을 때만 `SWTITLECONVERT`를 사용합니다.
+현재 저장본 direct probe가 `NEXT_RUN_FAST_BATCH`라면 다음 실제 CAD 명령은 `SWTITLECONVERTNEXT`입니다. 현재 다음 대상은 `DR_A3_Outline / DR_titlea_3rd`입니다.
+새 work 복사본을 처음부터 다시 시작한 경우에만 첫 대상이 보통 `DR_A2_Outline / DR_titlea_3rd`입니다.
+`YES`/`OPEN` 같은 반복 응답을 직접 고르고 싶을 때만 `SWTITLECONVERT`를 사용합니다.
 
 중요: 위 초기 상태를 이미 변환이 진행된 CAD 도면에 그대로 적용하지 않습니다.
 항상 최신 `SWTITLESTATUS` 또는 `swcad_title_next_step_last.txt`의 DWG 경로가 현재 열린 도면과 같은지 먼저 확인합니다.

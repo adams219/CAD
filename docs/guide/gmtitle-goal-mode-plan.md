@@ -10,7 +10,7 @@
 
 ## 현재 목표 진행판
 
-2026-07-05 현재 목표는 아직 완료가 아니다. 완료로 판단하려면 실제 work DWG에서 최종 검증까지 통과해야 한다.
+2026-07-08 현재 목표는 아직 완료가 아니다. 완료로 판단하려면 실제 work DWG에서 최종 검증까지 통과해야 한다.
 
 현재 증명된 것:
 
@@ -19,12 +19,16 @@
 작업트리: clean
 정적 preflight: PASS
 hidden verification suite: PASS 여부는 `run_goal_status.ps1`가 최신 `work\main56_verification_suite_last_run.txt`의 Generated/Result를 읽어 판단
-GstarCAD /b script smoke probe: PASS
+GstarCAD /b script smoke probe: 현재 PC에서는 최근 suite가 FAILED_BEFORE_PASS일 수 있으므로 run_goal_status 결과를 우선
 GMTITLE LSP 버전: 260707-convert-next-clone-upgrade-19
 loader 버전: 260706-loader-convert-next-response-guidance
 공개 사용자 명령: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLECONVERT, SWTITLEVERIFY, SWTITLEVERSION, SWSCALESCAN
 A4 raw bbox guard: 있음
 SCRIPT/숨김 CAD interactive GMTITLE guard: 있음
+저장된 실제 작업복사본 direct probe: NEXT_RUN_FAST_BATCH
+A2/A3/A4 native 교체 후보: 0
+target title/frame: 4 / 4
+다음 visible CAD 대상: DR_A3_Outline / DR_titlea_3rd
 ```
 
 아직 증명되지 않은 것:
@@ -175,23 +179,45 @@ Object move가 OFF인지 확인
 
 따라서 과거에 어떤 도면이 `NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION`이었더라도, 그 상태를 현재 열린 도면에 그대로 적용하지 않는다. 현재 도면의 `SWTITLESTATUS` 또는 direct probe 카드가 요구하는 한 단계만 실행한다.
 
-현재 기본 workcopy direct probe 기준은 아직 첫 native GMTITLE 기준 객체가 없는 상태다.
+현재 기본 workcopy direct probe 기준은 첫 native GMTITLE 전 상태가 아니다.
+2026-07-08 저장본은 A2와 일부 A3가 만들어졌고, 남은 A3/A4를 계속 처리해야 한다.
 
 ```text
 상태 코드:
-NEXT_CREATE_FIRST_NATIVE_GMTITLE
+NEXT_RUN_FAST_BATCH
 
-다음 기준 객체:
-DR_A2_Outline / DR_titlea_3rd
+다음 visible CAD 확인값:
+DR_A3_Outline / DR_titlea_3rd
+Frame positioning: ON
+Object move: OFF
 
 검증 상태:
 SWTITLEVERIFY_FINAL_FAIL
 
 target title/frame:
-0 / 0
+4 / 4
+
+GMTITLE pair/native-like:
+4 / 4
+
+A2/A3/A4 native 교체 후보:
+0
+
+남은 원본:
+  표제란 시트 9
+  원본 도면틀 11
+  title-missing/frame-only 시트 2
+
+현재 부족한 target 수량:
+  A3: 필요 12, 현재 3
+  A4: 필요 2, 현재 0
 ```
 
-이미 변환이 진행된 별도 work 도면에서는 기본 workcopy 상태를 그대로 쓰지 않는다. 그 경우 현재 CAD에서 새로 생성한 `SWTITLESTATUS` 로그가 우선이다.
+`SWTITLECONVERTNEXT`는 이 상태에서 남은 A3 전체를 한 번에 끝내지 않는다.
+다음 표제란 시트 1장을 clone 변환하고, 바로 생긴 native 교체 후보 1장을 이어서 visible CAD에서 확인한다.
+한 장 처리 후 저장/닫기와 `run_after_manual_gmtitle_step.ps1 -Compact`로 direct probe를 다시 잠근다.
+
+새 work 복사본을 처음부터 다시 만든 경우에는 위 상태를 그대로 쓰지 않는다. 그 경우 현재 CAD에서 새로 생성한 `SWTITLESTATUS` 로그가 우선이며, 보통 `NEXT_CREATE_FIRST_NATIVE_GMTITLE`에서 시작한다.
 
 A3 판단 기준:
 
@@ -313,16 +339,16 @@ nested-direct-outside probe:
 
 이 단계에서는 `SWTITLECONVERT`를 반복해서 누르지 않는다. A4 정의가 준비되지 않은 상태에서 변환을 반복하면, 원본에 없던 제목블록이 생기거나 A4 원본 도면틀이 잘못 삭제될 수 있다.
 
-## 기본 작업복사본 초기 기준 상태
+## 새 작업복사본 초기 기준 상태
 
-아래 상태는 새 work 복사본에서 처음부터 시작할 때의 기준이다. 이미 변환이 진행된 CAD 도면에는 최신 `SWTITLESTATUS`/`swcad_title_next_step_last.txt`를 먼저 적용한다.
+아래 상태는 같은 원본에서 새 work 복사본을 다시 만들고 처음부터 시작할 때의 기준이다. 이미 변환이 진행된 현재 저장본에는 최신 direct probe의 `NEXT_RUN_FAST_BATCH` 상태를 먼저 적용한다.
 
 ```text
 LSP 기준:
 loader: 260706-loader-convert-next-response-guidance
 gmtitle: 260707-convert-next-clone-upgrade-19
 
-작업 도면:
+초기 기준 작업 도면:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
 
 SWTITLESTATUS 결과:
@@ -341,7 +367,8 @@ SWTITLEVERIFY_FINAL_FAIL
   필요한 native 기준 객체: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline
 ```
 
-이 상태는 변환 전 기준이다. 지금은 A2/A3/A4 후보를 바로 복제 처리하는 단계가 아니라, 먼저 실제 GstarCAD `GMTITLE`로 각 용지 크기의 native 기준 객체를 만들어야 한다.
+이 상태는 변환 전 기준이다. 새 복사본에서 이 상태가 나오면 A2/A3/A4 후보를 바로 복제 처리하는 단계가 아니라, 먼저 실제 GstarCAD `GMTITLE`로 각 용지 크기의 native 기준 객체를 만들어야 한다.
+현재 저장본은 이 초기 상태를 지나 `NEXT_RUN_FAST_BATCH`에 있으므로, 다음 1장 A3 흐름을 진행한다.
 
 ### 로그 신뢰 기준
 
@@ -374,20 +401,24 @@ work\swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
 
 ## 현재 증거 기반 원인 판정
 
-2026-07-05 `run_main45_verification_suite.ps1` 기준으로, 현재 작업복사본의 원인은 아래처럼 분리한다.
+2026-07-08 저장된 실제 작업복사본 direct probe 기준으로, 현재 작업복사본의 원인은 아래처럼 분리한다.
 
 ```text
 첫 native GMTITLE 기준 객체 부재:
-  현재 주원인
-  근거: target-title-count=0, target-frame-count=0, status=NEXT_CREATE_FIRST_NATIVE_GMTITLE
+  현재 저장본에서는 이미 지나간 단계
+  근거: target-title-count=4, target-frame-count=4, status=NEXT_RUN_FAST_BATCH
 
 A2/A3/A4 native 인식 문제:
-  아직 기본 workcopy에서는 시작 전
-  근거: A2/A3/A4 native 기준 객체가 모두 missing
+  현재 저장본에서는 직전 native 교체 후보가 0으로 정리됨
+  근거: A2/A3/A4 native 교체 후보=0, native-like GMTITLE 쌍=4
+
+남은 표제란 시트 변환:
+  현재 주원인
+  근거: 남은 원본 표제란 시트=9, A3 target 부족=필요 12 / 현재 3, status=NEXT_RUN_FAST_BATCH
 
 title-missing/frame-only 미처리:
   원본 표제란 부재가 검증된 경우에만 별도 주의 대상
-  근거: 표제란 없는 도면틀 시트=2, DR_A4_Outline raw bbox 안전성은 별도 검증 필요
+  근거: title-missing/frame-only 시트=2, A4 target 부족=필요 2 / 현재 0
 
 BATCH 자동화:
   사람이 보는 CAD 화면에서만 반복 입력을 줄이는 보조 기능
@@ -402,11 +433,12 @@ BATCH 자동화:
 
 ```text
 1. 먼저 SWTITLEVERSION / SWTITLESTATUS로 현재 workcopy와 LSP 버전을 확인한다.
-2. SWTITLECONVERTNEXT로 첫 native GMTITLE 기준 객체를 만든다. 현재 기본 workcopy의 첫 대상은 A2다.
+2. 현재 저장본 상태가 NEXT_RUN_FAST_BATCH이면 SWTITLECONVERTNEXT로 다음 A3 표제란 시트 1장을 처리한다.
 3. GMTITLE 창에서는 로그가 요구한 DR_A*_Outline, DR_titlea_3rd, Frame positioning ON, Object move OFF만 허용한다.
-4. 한 장이 끝나면 SWTITLESTATUS로 다음 missing exact-size native 기준 객체를 확인한다.
+4. 한 장이 끝나면 SWTITLESTATUS 또는 저장/닫기 후 run_after_manual_gmtitle_step.ps1 -Compact로 다음 상태를 확인한다.
 5. 같은 선택값이 반복되는 구간에서만 BATCH를 쓰고, 숨김/SCRIPT 자동화에는 쓰지 않는다.
-6. 원본에 표제란이 없는 시트는 title-missing/frame-only 단계에서 불필요한 DR_titlea_3rd가 생기면 중단한다.
+6. 새 work 복사본에서 NEXT_CREATE_FIRST_NATIVE_GMTITLE이 나오면 그때만 첫 대상이 DR_A2_Outline이다.
+7. 원본에 표제란이 없는 시트는 title-missing/frame-only 단계에서 불필요한 DR_titlea_3rd가 생기면 중단한다.
 ```
 
 ## 목표모드 작업 단위
@@ -663,15 +695,19 @@ SWTITLEVERIFY 안내
   -> 변환 후보가 없으므로 최종 검증 단계다.
 ```
 
-### 3단계: 첫 native 생성 또는 A2/A3/A4 native 교체
+### 3단계: 현재 상태에 맞는 한 단계만 실행
 
-이 단계는 `SWTITLESTATUS` 상태 코드에 따라 두 갈래다. 현재 기본 workcopy direct probe가
-`NEXT_CREATE_FIRST_NATIVE_GMTITLE`이면 아직 A2/A3/A4 교체 단계가 아니라, 먼저 첫 A2 native
-GMTITLE 기준 객체를 만들어야 한다.
+이 단계는 `SWTITLESTATUS` 상태 코드에 따라 갈린다.
+현재 저장된 기본 workcopy direct probe는 `NEXT_RUN_FAST_BATCH`이므로, 다음 실제 단계는
+`SWTITLECONVERTNEXT`로 다음 A3 표제란 시트 1장을 처리하고 바로 이어지는 native 교체 후보 1장을
+visible CAD에서 확인하는 것이다.
 
-A2/A3/A4 native 교체 설명은 `SWTITLESTATUS`가 `NEXT_UPGRADE_NATIVE_GMTITLE`를 출력한 뒤에만
-적용한다. 이 조건 없이 A2/A3/A4 교체 절차를 따라 하면 과거 중간 workcopy 상태를 현재 도면에
-잘못 적용하게 된다.
+새 work 복사본을 처음부터 다시 만든 경우에만 `NEXT_CREATE_FIRST_NATIVE_GMTITLE`에서 시작할 수 있다.
+그때는 아직 A2/A3/A4 교체 단계가 아니라, 먼저 첫 A2 native GMTITLE 기준 객체를 만들어야 한다.
+
+A2/A3/A4 native 교체 설명은 `SWTITLESTATUS`가 `NEXT_UPGRADE_NATIVE_GMTITLE` 또는
+`NEXT_RUN_FAST_BATCH` 뒤의 native 교체 후보를 출력한 경우에만 적용한다.
+이 조건 없이 A2/A3/A4 교체 절차를 따라 하면 과거 중간 workcopy 상태를 현재 도면에 잘못 적용하게 된다.
 
 ```text
 SWTITLECONVERTNEXT
@@ -981,13 +1017,13 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 1. APPLOAD로 C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp 로드
 2. SWTITLEVERSION으로 gmtitle 버전이 260707-convert-next-clone-upgrade-19인지 확인
 3. SWTITLESTATUS로 현재 상태 확인
-4. 기본 workcopy라면 NEXT_CREATE_FIRST_NATIVE_GMTITLE인지 확인
+4. 현재 저장본이라면 NEXT_RUN_FAST_BATCH인지 확인
 5. SWTITLECONVERTNEXT 실행
-6. 첫 GMTITLE 창에서 로그가 요구한 용지를 선택한다. 현재 기본 workcopy의 첫 대상은 DR_A2_Outline이다.
+6. GMTITLE 창에서 로그가 요구한 용지를 선택한다. 현재 저장본의 다음 대상은 DR_A3_Outline이다.
 7. 제목블록은 DR_titlea_3rd, Frame positioning은 ON, Object move는 OFF로 확인
 8. 변환이 끝나면 SWTITLESTATUS 실행
-9. 다음 missing exact-size native 기준 객체가 있으면 SWTITLECONVERTNEXT로 한 장씩 만든다.
-10. 같은 선택값이 반복되는 A3 후보 구간에서만 BATCH를 사용한다.
+9. 저장하고 GstarCAD를 닫은 뒤 run_after_manual_gmtitle_step.ps1 -Compact로 direct probe를 갱신한다.
+10. 같은 선택값이 반복되는 A3 후보 구간에서만 BATCH를 검토한다.
 11. BATCH도 각 GMTITLE 창 선택을 대신하지 않으므로 DR 용지/제목블록/옵션을 눈으로 확인한다.
 12. title-missing/frame-only 단계에서는 원본에 없는 DR_titlea_3rd가 생기면 중단한다.
 13. SWTITLEVERIFY_FINAL_OK와 대표 더블클릭 확인
