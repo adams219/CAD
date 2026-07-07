@@ -270,9 +270,11 @@ A2/A3/A4 native 교체 후보:
   A4: 필요 2, 현재 0
 
 최신 final completion gate:
-  2026-07-08 05:03 기준 FAIL
+  2026-07-08 05:40 기준 FAIL
   SWTITLESTATUS: NEXT_RUN_FAST_BATCH
   SWTITLEVERIFY: SWTITLEVERIFY_FINAL_FAIL
+  source-title/source-frame/frame-only: 9 / 11 / 2
+  target-title/target-frame: 4 / 4
   direct probe와 다음 상태/검증/다음 GMTITLE 선택값 일치
 
 다음 CAD 단계:
