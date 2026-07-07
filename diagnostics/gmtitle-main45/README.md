@@ -97,8 +97,8 @@ Before the hidden GstarCAD probes, the suite now runs two no-CAD preflights:
 1. loader probe
 2. current LSP compare-copy probe
 3. actual work-copy status/verify probe
-4. A4 native exemplar gap probe
-5. A4 native outside marker prepare probe
+4. A4-sized source-title-missing native exemplar gap probe
+5. A4-sized source-title-missing native outside marker prepare probe
 6. title-missing outline convert probe (A4-sized source-title-missing sample)
 7. SWTITLECONVERT script guard probe
 8. common A2/A3/A4 frame-definition classification probe
@@ -168,8 +168,8 @@ actual work-copy source/target counts
 A2/A3/A4 expected sheet counts
 actual work-copy first native guidance: A2 -> DR_A2_Outline + DR_titlea_3rd
 post-first-native marker gate proves an A2 target pair with only SWTITLE markers is not accepted as native-like GMTITLE evidence; the workflow routes it to NEXT_UPGRADE_NATIVE_GMTITLE before continuing
-A4 native exemplar gap: saved default work-copy has two frame-only sources but no DR_A4_Outline definition or target insert yet
-A4 clean scratch evidence: `work\scratch_native_a4_clean_260705.dwg` was saved from a clean gcadiso.dwt CAD test after DR_A4_Outline / DR_titlea_3rd inserted at 0,0 without the frame creation error; it still needs the focused A4 native exemplar probe after GstarCAD is closed
+A4-sized source-title-missing exemplar gap: the saved work-copy still has two title-missing/frame-only sources and no matching DR_A4_Outline target insert yet; this is sample evidence, not an A4-only policy
+A4 clean scratch comparison evidence: `work\scratch_native_a4_clean_260705.dwg` was saved from a clean gcadiso.dwt CAD test after DR_A4_Outline / DR_titlea_3rd inserted at 0,0 without the frame creation error; it exists only to compare official native DR_A4_Outline structure
 A4-sized source-title-missing outside marker prepare: imported DR_A4_Outline definitions with official small native outside markers are accepted for the sample only when effective geometry/raw-selection checks pass; excessive raw bbox or raw-selection warnings still preserve the original source frames
 SWTITLECONVERT script guard aborts in SCRIPT mode without changing source/target counts, INSERT count, or DBMOD
 mixed/all_contaminated/all_native frame-class PASS results
@@ -387,6 +387,8 @@ Use `-PreflightOnly` when you want the refreshed next-action card and short GMTI
 
 Use `run_a4_outline_prepare_probe.ps1` to copy a work DWG, load the current GMTITLE LSP, and run the internal title-missing/frame-only `DR_A*_Outline` definition preflight on the copy.
 
+The script name is historical. Treat this as the focused probe for the current A4-sized source-title-missing sample, not as an A4-only conversion policy. Production flow still uses `SWTITLESTATUS` -> `SWTITLECONVERTNEXT`, and title-missing/frame-only is selected only after source title absence is verified.
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_a4_outline_prepare_probe.ps1"
@@ -422,6 +424,8 @@ This is a readiness pass, not a completed conversion. It proves that the tool ac
 
 Use `run_a4_outline_convert_probe.ps1` to copy a work DWG, prepare the official native `DR_A*_Outline` definition, and run the title-missing/frame-only conversion on the copy.
 
+This probe exercises one A4-sized source-title-missing sample because that is the real sample available in the current work-copy. The rule being tested is generic: no source title means no new `DR_titlea_3rd`, regardless of sheet size.
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_a4_outline_convert_probe.ps1"
@@ -454,6 +458,8 @@ This proves the title-missing/frame-only path replaces one source frame with a m
 ## A4 Outline Normalization Probe
 
 Use `run_a4_outline_normalization_probe.ps1` to test whether simple `DR_A4_Outline` definition cleanup strategies can make the imported A4-sized sample outline safe for source-title-missing conversion.
+
+This is historical comparison evidence for the A4-sized sample. It should not be used to route all A4 sheets into a separate frame-only workflow.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File `
