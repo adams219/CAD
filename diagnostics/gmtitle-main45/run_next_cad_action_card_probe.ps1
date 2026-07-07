@@ -169,8 +169,10 @@ function Invoke-CardCase {
     [string]$NextMissingRole
   )
 
-  $dwg = New-FakeDwg -Name $Name
-  $log = Join-Path $caseRoot "$Name.txt"
+  $repo = New-FakeRepoWorkCopy -RepoName "repo_$Name" -DwgName "${Name}_workcopy"
+  $dwg = $repo.WorkCopyPath
+  $caseWorkDir = Split-Path -Parent $dwg
+  $log = Join-Path $caseWorkDir "$Name.txt"
 
   if (-not $MissingLog) {
     if ($MakeVersionStale) {
@@ -185,6 +187,11 @@ function Invoke-CardCase {
       (Get-Item -LiteralPath $dwg).LastWriteTime = (Get-Date).AddMinutes(-10)
       (Get-Item -LiteralPath $log).LastWriteTime = Get-Date
     }
+  } else {
+    $gateLog = Join-Path $caseWorkDir "swtitle_final_completion_gate_status.txt"
+    Write-FakeLog -Path $gateLog -DwgPath $dwg -Status $Status -VerifyStatus $VerifyStatus -Frame $Frame -Title $Title -NextMissingFrame $NextMissingFrame -NextMissingTitle $NextMissingTitle -NextMissingRole $NextMissingRole
+    (Get-Item -LiteralPath $dwg).LastWriteTime = (Get-Date).AddMinutes(-10)
+    (Get-Item -LiteralPath $gateLog).LastWriteTime = Get-Date
   }
 
   Write-Output "===== card case: $Name ====="
