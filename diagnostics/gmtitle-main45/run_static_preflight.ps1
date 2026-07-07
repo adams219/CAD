@@ -1185,6 +1185,8 @@ Assert-Contains -Text $goalStatusText -Needle "automation/guard probes passed; t
 Assert-Contains -Text $goalStatusText -Needle "the suite stopped before final PASS" -Label "Goal status hidden suite failure boundary"
 Assert-Contains -Text $goalStatusText -Needle "Write-FinalCompletionGateSummary" -Label "Goal status final completion gate helper"
 Assert-Contains -Text $goalStatusText -Needle "Final completion gate last run" -Label "Goal status final completion gate heading"
+Assert-Contains -Text $goalStatusText -Needle "Final gate log older than current commit" -Label "Goal status final gate stale flag"
+Assert-Contains -Text $goalStatusText -Needle "final completion gate is rerun" -Label "Goal status stale final gate meaning"
 Assert-Contains -Text $goalStatusText -Needle "real work-copy completion evidence is still missing" -Label "Goal status final completion gate incomplete meaning"
 Assert-Contains -Text $goalStatusText -Needle "not a title-missing blocker yet" -Label "Goal status first-native before title-missing interpretation"
 Assert-Contains -Text $goalStatusText -Needle "target title/frame counts 0/0" -Label "Goal status target-zero first-native interpretation"

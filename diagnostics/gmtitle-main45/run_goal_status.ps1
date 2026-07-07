@@ -341,6 +341,12 @@ function Write-FinalCompletionGateSummary {
 
   Write-Output ("  Path: {0}" -f $gateLog)
   Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
+  $gateOlderThanHead = $false
+  if ($script:HeadCommitTimeUtc) {
+    $gateOlderThanHead = $item.LastWriteTimeUtc -lt $script:HeadCommitTimeUtc.AddSeconds(-2)
+    Write-Output ("  Current commit time: {0}" -f $script:HeadCommitTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"))
+    Write-Output ("  Final gate log older than current commit: {0}" -f ($(if ($gateOlderThanHead) { "yes" } else { "no" })))
+  }
   if ($loadedVersion) { Write-Output ("  loaded-version: {0}" -f $loadedVersion) }
   Write-Output ("  Result: {0}" -f $gateResult)
   if ($statusAfterStatus) { Write-Output ("  status-after-status: {0}" -f $statusAfterStatus) }
@@ -359,9 +365,21 @@ function Write-FinalCompletionGateSummary {
   if ($runtimeDone) { Write-Output ("  Runtime check completed: {0}" -f $runtimeDone) }
 
   if ($gateResult -eq "PASS") {
-    Write-Output "  Meaning: automated completion evidence passed; representative A2/A3/A4 title-block double-click checks are still required where DR_titlea_3rd exists."
+    if ($script:WorkingTreeDirty) {
+      Write-Output "  Meaning: this PASS was produced before the current uncommitted changes. Treat it as historical evidence until final completion gate is rerun on the current worktree."
+    } elseif ($gateOlderThanHead) {
+      Write-Output "  Meaning: this PASS is older than the current commit. Treat it as historical evidence until final completion gate is rerun."
+    } else {
+      Write-Output "  Meaning: automated completion evidence passed; representative A2/A3/A4 title-block double-click checks are still required where DR_titlea_3rd exists."
+    }
   } else {
-    Write-Output "  Meaning: real work-copy completion evidence is still missing; continue from SWTITLESTATUS/SWTITLECONVERTNEXT."
+    if ($script:WorkingTreeDirty) {
+      Write-Output "  Meaning: real work-copy completion evidence is still missing, and this FAIL predates current uncommitted changes. Continue from SWTITLESTATUS/SWTITLECONVERTNEXT, then rerun final completion gate."
+    } elseif ($gateOlderThanHead) {
+      Write-Output "  Meaning: real work-copy completion evidence is still missing, and this FAIL is older than the current commit. Continue from SWTITLESTATUS/SWTITLECONVERTNEXT, then rerun final completion gate."
+    } else {
+      Write-Output "  Meaning: real work-copy completion evidence is still missing; continue from SWTITLESTATUS/SWTITLECONVERTNEXT."
+    }
   }
 }
 
