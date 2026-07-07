@@ -269,6 +269,12 @@ A2/A3/A4 native 교체 후보:
   A3: 필요 12, 현재 3
   A4: 필요 2, 현재 0
 
+최신 final completion gate:
+  2026-07-08 05:03 기준 FAIL
+  SWTITLESTATUS: NEXT_RUN_FAST_BATCH
+  SWTITLEVERIFY: SWTITLEVERIFY_FINAL_FAIL
+  direct probe와 다음 상태/검증/다음 GMTITLE 선택값 일치
+
 다음 CAD 단계:
 SWTITLECONVERTNEXT
 
@@ -284,9 +290,10 @@ Object move: OFF
 
 ### 새 작업복사본 초기 상태 참고
 
-2026-07-06 01:02 final completion gate 기준, 기본 작업복사본은 아직 변환 전 상태입니다.
-이 내용은 같은 원본에서 새 work 복사본을 다시 만들고 처음부터 시작할 때만 쓰는 기준입니다.
-이미 변환이 진행된 현재 저장본에는 위 direct probe 상태를 우선 적용합니다.
+아래 2026-07-06 01:02 final completion gate 기록은 과거 초기 상태 참고입니다.
+현재 기본 작업복사본에는 적용하지 않습니다.
+같은 원본에서 새 work 복사본을 다시 만들고 처음부터 시작할 때만 쓰는 기준입니다.
+이미 변환이 진행된 현재 저장본에는 위 direct probe와 최신 final completion gate 상태를 우선 적용합니다.
 
 ```text
 SWTITLESTATUS: NEXT_CREATE_FIRST_NATIVE_GMTITLE
