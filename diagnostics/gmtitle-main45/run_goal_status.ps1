@@ -30,6 +30,11 @@ $script:LatestCadDwgTrustedForGoal = $false
 $script:LatestCadDwgTrustReason = "not evaluated"
 $script:LatestCadLogVersion = $null
 $script:LatestCadLogVersionCurrent = $false
+$script:LatestNativeUpgradeDwg = $null
+$script:LatestNativeUpgradeTrustedForGoal = $false
+$script:LatestNativeUpgradeReadyForVerify = $false
+$script:LatestNativeUpgradeRemaining = $null
+$script:LatestNativeUpgradeResult = $null
 $script:ExpectedGmtitleVersion = "260707-convert-next-clone-upgrade-19"
 $script:A4PrepareProbeUnsafe = $false
 $script:A4NestedProbeMissing = $false
@@ -380,6 +385,26 @@ function Test-PathUnderDirectoryString {
   }
 }
 
+function Test-SamePathString {
+  param(
+    [string]$Left,
+    [string]$Right
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Left) -or [string]::IsNullOrWhiteSpace($Right)) {
+    return $false
+  }
+
+  try {
+    return [System.IO.Path]::GetFullPath($Left).Equals(
+      [System.IO.Path]::GetFullPath($Right),
+      [System.StringComparison]::OrdinalIgnoreCase
+    )
+  } catch {
+    return $false
+  }
+}
+
 function Get-GoalCadDwgTrustInfo {
   param(
     [string]$DwgPath,
@@ -567,6 +592,56 @@ function Write-LatestCadLogSummary {
   $script:LatestCadRecommendedCommand = $recommended
   $script:LatestCadNextFrame = $nextFrameFromLog
   $script:LatestCadNextTitle = $nextTitleFromLog
+}
+
+function Write-LatestNativeUpgradeSummary {
+  param(
+    [string]$WorkDir,
+    [string]$SourceWorkCopyPath
+  )
+
+  $logPath = Join-Path $WorkDir "swcad_title_native_upgrade_last.txt"
+  if (-not (Test-Path -LiteralPath $logPath)) {
+    Write-Output "Latest native-upgrade log: <missing>"
+    return
+  }
+
+  $item = Get-Item -LiteralPath $logPath
+  $text = Read-TextWithFallback -Path $logPath
+  $dwg = Get-FirstRegexValue -Text $text -Pattern "^DWG\s*파일:\s*(.+)$"
+  if (-not $dwg) {
+    $dwg = Get-FirstRegexValue -Text $text -Pattern "^DWG[^:]*:\s*(.+)$"
+  }
+  $result = Get-FirstRegexValue -Text $text -Pattern "^(?:결과|Result):\s*(\S+)"
+  $remaining = Get-FirstRegexValue -Text $text -Pattern "^Remaining\s+A2/A3/A4\s+native.*?:\s*(\d+)"
+  $trustInfo = Get-GoalCadDwgTrustInfo -DwgPath $dwg -WorkDir $WorkDir
+  $sameSource = Test-SamePathString -Left $dwg -Right $SourceWorkCopyPath
+  $suggestsVerify = ($text -match "SWTITLEVERIFY")
+  $readyForVerify = (
+    $trustInfo.Trusted -and
+    $sameSource -and
+    ($result -eq "UPGRADED_CLONE_TO_NATIVE_GMTITLE") -and
+    ($remaining -eq "0") -and
+    $suggestsVerify
+  )
+
+  $script:LatestNativeUpgradeDwg = $dwg
+  $script:LatestNativeUpgradeTrustedForGoal = $trustInfo.Trusted -and $sameSource
+  $script:LatestNativeUpgradeReadyForVerify = $readyForVerify
+  $script:LatestNativeUpgradeRemaining = $remaining
+  $script:LatestNativeUpgradeResult = $result
+
+  Write-Output "Latest native-upgrade log:"
+  Write-Output ("  Path: {0}" -f $logPath)
+  Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
+  if ($dwg) { Write-Output ("  DWG: {0}" -f $dwg) }
+  if ($result) { Write-Output ("  Result: {0}" -f $result) }
+  if ($remaining) { Write-Output ("  Remaining A2/A3/A4 native-upgrade candidates: {0}" -f $remaining) }
+  Write-Output ("  Goal-log trust: {0} ({1})" -f ($(if ($script:LatestNativeUpgradeTrustedForGoal) { "yes" } else { "no" }), $(if ($sameSource) { $trustInfo.Reason } else { "DWG does not match the default work-copy" })))
+  if ($readyForVerify) {
+    Write-Output "  Next evidence-based command: SWTITLEVERIFY"
+    Write-Output "  Meaning: do not repeat SWTITLECONVERTNEXT just because older status/direct logs still mention conversion."
+  }
 }
 
 function Write-DirectActualWorkcopyProbeSummary {
@@ -1042,6 +1117,9 @@ Write-Output ""
 Write-LatestCadLogSummary -WorkDir (Join-Path $repoRoot "work")
 
 Write-Output ""
+Write-LatestNativeUpgradeSummary -WorkDir (Join-Path $repoRoot "work") -SourceWorkCopyPath $SourceWorkCopyPath
+
+Write-Output ""
 Write-DirectActualWorkcopyProbeSummary -WorkDir (Join-Path $repoRoot "work") -SourceWorkCopyPath $SourceWorkCopyPath
 
 Write-Output ""
@@ -1126,7 +1204,16 @@ $scratchNativeA4Path = Join-Path $repoRoot "work\scratch_native_a4_clean_260705.
 $scratchNativeA4Log = Join-Path $repoRoot "work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt"
 $scratchNativeA4Exists = Test-Path -LiteralPath $scratchNativeA4Path
 if ($existingGstarCAD.Count -gt 0) {
-  if ($directWorkcopyNeedsOrphanCleanup) {
+  if ($script:LatestNativeUpgradeReadyForVerify) {
+    Write-Output "  실제 작업복사본 우선 단계:"
+    Write-Output "    1. 최신 native 교체 로그에서 A2/A3/A4 교체 후보가 0개로 확인됐습니다."
+    Write-Output "    2. 열린 CAD에서 APPLOAD/SWTITLEVERSION으로 최신 LSP인지 확인하세요."
+    Write-Output "    3. SWTITLESTATUS를 실행해 현재 활성 DWG가 같은 작업복사본인지 확인하세요."
+    Write-Output "    4. SWTITLEVERIFY를 실행하세요. 지금은 GMTITLE 창을 새로 열거나 SWTITLECONVERTNEXT를 반복하지 않습니다."
+    Write-Output "    5. SWTITLEVERIFY_FINAL_OK이면 대표 DR_titlea_3rd 제목블록 더블클릭 확인으로 넘어가세요."
+    Write-Output ""
+    Write-Output "  Hidden suite verification path only after saving/closing CAD or changing code:"
+  } elseif ($directWorkcopyNeedsOrphanCleanup) {
     Write-Output "  실제 작업복사본 우선 단계:"
     Write-Output ("    1. 실제 작업복사본 direct probe 상태: {0}" -f $script:DirectWorkcopyStatusCode)
     if ($script:DirectWorkcopyOrphanTargetFrameCount) {
@@ -1276,7 +1363,15 @@ if ($existingGstarCAD.Count -gt 0) {
   Write-Output "  Or start the suite in waiting mode first:"
   Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -WaitForGstarCADClose" -f $suite)
 } else {
-  if ($directWorkcopyNeedsOrphanCleanup) {
+  if ($script:LatestNativeUpgradeReadyForVerify) {
+    Write-Output "  실제 작업복사본 우선 단계:"
+    Write-Output "    1. 최신 native 교체 로그에서 A2/A3/A4 교체 후보가 0개로 확인됐습니다."
+    Write-Output "    2. GstarCAD에서 실제 작업복사본 DWG를 열거나 활성화하세요."
+    Write-Output "    3. 필요하면 최신 swcad_title_scale.lsp를 APPLOAD 하세요."
+    Write-Output "    4. SWTITLESTATUS로 현재 활성 DWG가 같은 작업복사본인지 확인하세요."
+    Write-Output "    5. SWTITLEVERIFY를 실행하세요. 지금은 GMTITLE 창을 새로 열거나 SWTITLECONVERTNEXT를 반복하지 않습니다."
+    Write-Output "    6. SWTITLEVERIFY_FINAL_OK이면 대표 DR_titlea_3rd 제목블록 더블클릭 확인으로 넘어가세요."
+  } elseif ($directWorkcopyNeedsOrphanCleanup) {
     Write-Output "  실제 작업복사본 우선 단계:"
     Write-Output ("    1. 실제 작업복사본 direct probe 상태: {0}" -f $script:DirectWorkcopyStatusCode)
     if ($script:DirectWorkcopyOrphanTargetFrameCount) {

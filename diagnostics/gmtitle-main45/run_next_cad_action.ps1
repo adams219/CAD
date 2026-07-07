@@ -248,6 +248,52 @@ function Get-ExpectedGmtitleVersion {
   return $null
 }
 
+function Get-NativeUpgradeVerifyEvidence {
+  param(
+    [string]$WorkDirPath,
+    [string]$SourceWorkCopyPath,
+    [System.IO.FileInfo]$SourceItem
+  )
+
+  $logPath = Join-Path $WorkDirPath "swcad_title_native_upgrade_last.txt"
+  if (-not (Test-Path -LiteralPath $logPath)) {
+    return $null
+  }
+
+  $logItem = Get-Item -LiteralPath $logPath
+  $text = Read-TextWithFallback -Path $logPath
+  $dwg = Get-FirstRegexValue -Text $text -Pattern "^DWG\s*파일:\s*(.+)$"
+  if (-not $dwg) {
+    $dwg = Get-FirstRegexValue -Text $text -Pattern "^DWG[^:]*:\s*(.+)$"
+  }
+  $result = Get-FirstRegexValue -Text $text -Pattern "^(?:결과|Result):\s*(\S+)"
+  $remaining = Get-FirstRegexValue -Text $text -Pattern "^Remaining\s+A2/A3/A4\s+native.*?:\s*(\d+)"
+  $suggestsVerify = ($text -match "SWTITLEVERIFY")
+  $sameDwg = Test-SamePath -Left $dwg -Right $SourceWorkCopyPath
+  $notTooOldForSavedDwg = $true
+  if ($SourceItem) {
+    $notTooOldForSavedDwg = $logItem.LastWriteTimeUtc.AddMinutes(10) -ge $SourceItem.LastWriteTimeUtc
+  }
+
+  if (
+    $sameDwg -and
+    $notTooOldForSavedDwg -and
+    ($result -eq "UPGRADED_CLONE_TO_NATIVE_GMTITLE") -and
+    ($remaining -eq "0") -and
+    $suggestsVerify
+  ) {
+    return @{
+      Path = $logPath
+      LastWriteTime = $logItem.LastWriteTime
+      Result = $result
+      Remaining = $remaining
+      Dwg = $dwg
+    }
+  }
+
+  return $null
+}
+
 function Write-SuiteLastRunSummary {
   $suiteLog = Join-Path (Join-Path $displayRepoRoot "work") "main56_verification_suite_last_run.txt"
   Write-Output ""
@@ -861,6 +907,28 @@ while ($true) {
       $refreshAttempted = $true
       [void](Invoke-DirectProbeRefresh)
       continue
+    }
+    $nativeUpgradeEvidence = Get-NativeUpgradeVerifyEvidence `
+      -WorkDirPath $workDir `
+      -SourceWorkCopyPath $SourceWorkCopyPath `
+      -SourceItem $sourceItem
+    if ($nativeUpgradeEvidence) {
+      Write-Output "최근 native 교체 성공 로그:"
+      Write-Output ("  로그: {0}" -f $nativeUpgradeEvidence.Path)
+      Write-Output ("  LastWriteTime: {0}" -f $nativeUpgradeEvidence.LastWriteTime)
+      Write-Output ("  DWG: {0}" -f $nativeUpgradeEvidence.Dwg)
+      Write-Output ("  결과: {0}" -f $nativeUpgradeEvidence.Result)
+      Write-Output ("  남은 A2/A3/A4 native 교체 후보: {0}" -f $nativeUpgradeEvidence.Remaining)
+      Write-Output "Result: RUN_VERIFY_AFTER_NATIVE_UPGRADE"
+      Write-Output "이유: direct probe는 없지만, 현재 작업복사본의 최신 native 교체 로그가 모든 A2/A3/A4 교체 후보 정리와 SWTITLEVERIFY 실행을 안내합니다."
+      Write-ManualLoadStep
+      Write-Output "  SWTITLEVERIFY"
+      Write-Output "검증이 SWTITLEVERIFY_FINAL_OK이면 대표 DR_titlea_3rd 제목블록 더블클릭 확인으로 넘어가세요."
+      Write-FinalDoubleClickGuidance
+      Write-Output "주의: SWTITLEVERIFY 결과가 FAIL/WARN이면 같은 SWTITLECONVERTNEXT를 반복하지 말고 SWTITLESTATUS 출력으로 다음 원인을 확인하세요."
+      Write-Output "hidden direct probe를 먼저 만들고 싶으면 아래 명령을 쓸 수 있습니다. 다만 현재 PC에서는 /b probe가 실패할 수 있습니다."
+      Write-DirectProbeRefreshCommand
+      exit 0
     }
     if ($script:FinalCompletionGateStatusAfterStatus -and $script:FinalCompletionGateNextFrame) {
       Write-Output "Result: RELOAD_LSP_AND_CONFIRM_STATUS"

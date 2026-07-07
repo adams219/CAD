@@ -184,10 +184,11 @@ function Write-InitialCardShortSummary {
   $status = Get-LastRegexValue -Text $CardText -Pattern "^(?:\s*SWTITLESTATUS:|현재 저장 상태:)\s*(\S+)"
   $verify = Get-LastRegexValue -Text $CardText -Pattern "^(?:\s*SWTITLEVERIFY:|검증 상태:)\s*(\S+)"
   $needsReload = $result -eq "RELOAD_LSP_AND_CONFIRM_STATUS"
+  $needsVerify = $result -eq "RUN_VERIFY_AFTER_NATIVE_UPGRADE"
   $frame = $null
   $title = $null
 
-  if (-not $needsReload) {
+  if ((-not $needsReload) -and (-not $needsVerify)) {
     $frame = Get-LastRegexValue -Text $CardText -Pattern "^\s*(?:용지/도면틀|다음 GMTITLE 용지/도면틀|GMTITLE에서 고를 용지/도면틀):\s*(DR_A[1-4]_Outline)\b"
     $title = Get-LastRegexValue -Text $CardText -Pattern "^\s*(?:제목블록|다음 GMTITLE 제목블록|GMTITLE에서 고를 제목블록):\s*(DR_titlea_3rd)\b"
 
@@ -213,12 +214,15 @@ function Write-InitialCardShortSummary {
   Write-Step ""
   Write-Step "처음 실행할 다음 작업 짧은 요약:"
   if ($result) { Write-Step ("  결과 코드: {0}" -f $result) }
-  if ($status) { Write-Step ("  저장된 DWG 상태: {0}" -f $status) }
-  if ($verify) { Write-Step ("  검증 상태: {0}" -f $verify) }
+  if ($status -and (-not $needsVerify)) { Write-Step ("  저장된 DWG 상태: {0}" -f $status) }
+  if ($verify -and (-not $needsVerify)) { Write-Step ("  검증 상태: {0}" -f $verify) }
   if ($frame) { Write-Step ("  GMTITLE에서 고를 용지/도면틀: {0}" -f $frame) }
   if ($title) { Write-Step ("  GMTITLE에서 고를 제목블록: {0}" -f $title) }
   if ($needsReload) {
     Write-Step "  상태: 이전 direct probe가 오래됐으므로 아직 GMTITLE 용지/제목블록을 고르지 않습니다."
+  } elseif ($needsVerify) {
+    Write-Step "  상태: 최신 native 교체 로그상 A2/A3/A4 교체 후보가 0개입니다. GMTITLE 창을 새로 열지 말고 검증을 실행합니다."
+    Write-Step "  참고: 오래된 status/final gate 로그가 남아 있어도 최신 native 교체 성공 로그가 우선입니다."
   } else {
     Write-Step "  필수 옵션: Frame positioning ON, Object move OFF"
   }
@@ -230,6 +234,9 @@ function Write-InitialCardShortSummary {
   if ($needsReload) {
     Write-Step "    SWTITLESTATUS가 변환을 안내할 때만 SWTITLECONVERTNEXT"
     Write-Step "  GMTITLE 창: 최신 SWTITLESTATUS가 용지/제목블록을 안내하기 전에는 열지 않습니다."
+  } elseif ($needsVerify) {
+    Write-Step "    SWTITLEVERIFY"
+    Write-Step "  GMTITLE 창: 지금은 열지 않습니다. SWTITLEVERIFY가 OK이면 대표 제목블록 더블클릭 확인으로 넘어갑니다."
   } else {
     Write-Step "    SWTITLECONVERTNEXT"
     Write-Step "  GMTITLE 창: 위 용지/제목블록/옵션만 확인하세요."
@@ -239,6 +246,8 @@ function Write-InitialCardShortSummary {
   Write-Step "  배치점: 긴 좌표를 직접 치지 말고 자동 입력을 기다리세요."
   if ($needsReload) {
     Write-Step "  처리 후: 상태 로그만 갱신했다면 저장하지 않아도 됩니다. GstarCAD를 닫거나 SWTITLESTATUS 출력만 공유하세요."
+  } elseif ($needsVerify) {
+    Write-Step "  처리 후: SWTITLEVERIFY 출력만 공유하세요. OK이면 대표 DR_titlea_3rd 제목블록 더블클릭 확인만 남습니다."
   } else {
     Write-Step "  처리 후: 작업복사본을 저장하고 GstarCAD를 닫으세요."
   }
@@ -250,11 +259,18 @@ function Assert-ManualSessionConversionReady {
   $result = Get-LastRegexValue -Text $CardText -Pattern "^Result:\s*(\S+)\s*$"
   $script:InitialNextActionResult = $result
   $script:InitialNextActionNeedsReload = $result -eq "RELOAD_LSP_AND_CONFIRM_STATUS"
+  $script:InitialNextActionNeedsVerify = $result -eq "RUN_VERIFY_AFTER_NATIVE_UPGRADE"
   $script:InitialNextActionAllowsConversion = $result -match "^(READY_FOR_FIRST_NATIVE_GMTITLE|CREATE_MISSING_NATIVE_GMTITLE_SIZE|RUN_NATIVE_REPLACEMENT|RUN_REMAINING_CONVERSION)$"
 
   if ($script:InitialNextActionNeedsReload) {
     Write-Step "처음 다음 작업 카드는 visible CAD에서 최신 LSP와 현재 상태를 다시 확인해야 하는 상태입니다."
     Write-Step "참고: direct probe 버전은 오래됐습니다. CAD 안에서 APPLOAD, SWTITLEVERSION, SWTITLESTATUS를 먼저 실행하고, 그 결과가 안내할 때만 SWTITLECONVERTNEXT를 진행하세요."
+    return
+  }
+
+  if ($script:InitialNextActionNeedsVerify) {
+    Write-Step "처음 다음 작업 카드는 변환 1단계가 아니라 SWTITLEVERIFY 검증을 요구합니다."
+    Write-Step "참고: 같은 SWTITLECONVERTNEXT를 반복하지 말고, CAD 안에서 APPLOAD, SWTITLEVERSION, SWTITLESTATUS, SWTITLEVERIFY 순서로 확인하세요."
     return
   }
 

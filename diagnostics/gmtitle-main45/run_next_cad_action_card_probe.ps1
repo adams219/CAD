@@ -137,6 +137,22 @@ function Write-FakeLog {
   $lines | Set-Content -LiteralPath $Path -Encoding ASCII
 }
 
+function Write-FakeNativeUpgradeLog {
+  param(
+    [string]$Path,
+    [string]$DwgPath
+  )
+
+  $lines = @(
+    "SWTITLECONVERT native upgrade probe log",
+    "DWG 파일: $DwgPath",
+    "Remaining A2/A3/A4 native 교체 후보: 0",
+    "결과: UPGRADED_CLONE_TO_NATIVE_GMTITLE - 복제 GMTITLE을 실제 native GMTITLE로 교체했습니다.",
+    "모든 A2/A3/A4 교체 후보가 정리됐습니다. SWTITLEVERIFY를 실행하세요."
+  )
+  $lines | Set-Content -LiteralPath $Path -Encoding UTF8
+}
+
 function Invoke-CardCase {
   param(
     [string]$Name,
@@ -194,6 +210,23 @@ function Invoke-SandboxCorrectionCase {
   Assert-Contains -Text $output -Needle "host_repo" -Label "sandbox_correction expected"
   Assert-Contains -Text $output -Needle "host_repo\swcad_load.lsp" -Label "sandbox_correction expected"
   Assert-NotContains -Text $output -Needle "CodexSandboxOffline\.codex\.sandbox\cwd\fake\swcad_load.lsp" -Label "sandbox_correction sandbox APPLOAD path"
+}
+
+function Invoke-NativeUpgradeMissingDirectProbeCase {
+  $hostRepo = New-FakeRepoWorkCopy -RepoName "native_upgrade_repo" -DwgName "native_upgrade_workcopy"
+  $missingDirectLog = Join-Path $caseRoot "native_upgrade_missing_direct_probe.txt"
+  $upgradeLog = Join-Path (Split-Path -Parent $hostRepo.WorkCopyPath) "swcad_title_native_upgrade_last.txt"
+
+  Write-FakeNativeUpgradeLog -Path $upgradeLog -DwgPath $hostRepo.WorkCopyPath
+  (Get-Item -LiteralPath $hostRepo.WorkCopyPath).LastWriteTime = Get-Date
+  (Get-Item -LiteralPath $upgradeLog).LastWriteTime = (Get-Date).AddSeconds(1)
+
+  Write-Output "===== card case: native_upgrade_missing_direct_probe ====="
+  $output = (& powershell -NoProfile -ExecutionPolicy Bypass -File $cardPath -SourceWorkCopyPath $hostRepo.WorkCopyPath -DirectProbeLogPath $missingDirectLog) -join "`n"
+  Assert-Contains -Text $output -Needle "Result: RUN_VERIFY_AFTER_NATIVE_UPGRADE" -Label "native_upgrade_missing_direct_probe expected"
+  Assert-Contains -Text $output -Needle "남은 A2/A3/A4 native 교체 후보: 0" -Label "native_upgrade_missing_direct_probe expected"
+  Assert-Contains -Text $output -Needle "SWTITLEVERIFY" -Label "native_upgrade_missing_direct_probe expected"
+  Assert-NotContains -Text $output -Needle "Result: RUN_NATIVE_REPLACEMENT" -Label "native_upgrade_missing_direct_probe should not reopen conversion"
 }
 
 Invoke-CardCase `
@@ -268,6 +301,8 @@ Invoke-CardCase `
   -Status "NEXT_UPGRADE_NATIVE_GMTITLE" `
   -MissingLog `
   -Expected @("Result: RELOAD_LSP_AND_CONFIRM_STATUS", "final gate", "-AutoRefreshDirectProbe")
+
+Invoke-NativeUpgradeMissingDirectProbeCase
 
 Invoke-SandboxCorrectionCase
 
