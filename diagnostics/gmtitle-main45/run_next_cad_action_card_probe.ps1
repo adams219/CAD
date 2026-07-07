@@ -142,6 +142,8 @@ function Invoke-CardCase {
     [string]$Name,
     [string]$Status,
     [string]$VerifyStatus = "SWTITLEVERIFY_FINAL_FAIL",
+    [string]$Frame = "DR_A2_Outline",
+    [string]$Title = "DR_titlea_3rd",
     [string[]]$Expected,
     [switch]$MakeStale,
     [switch]$MakeVersionStale,
@@ -156,9 +158,9 @@ function Invoke-CardCase {
 
   if (-not $MissingLog) {
     if ($MakeVersionStale) {
-      Write-FakeLog -Path $log -DwgPath $dwg -Status $Status -VerifyStatus $VerifyStatus -LoadedVersion "260705-old-test-version" -ExpectedVersion "260705-old-test-version" -NextMissingFrame $NextMissingFrame -NextMissingTitle $NextMissingTitle -NextMissingRole $NextMissingRole
+      Write-FakeLog -Path $log -DwgPath $dwg -Status $Status -VerifyStatus $VerifyStatus -Frame $Frame -Title $Title -LoadedVersion "260705-old-test-version" -ExpectedVersion "260705-old-test-version" -NextMissingFrame $NextMissingFrame -NextMissingTitle $NextMissingTitle -NextMissingRole $NextMissingRole
     } else {
-      Write-FakeLog -Path $log -DwgPath $dwg -Status $Status -VerifyStatus $VerifyStatus -NextMissingFrame $NextMissingFrame -NextMissingTitle $NextMissingTitle -NextMissingRole $NextMissingRole
+      Write-FakeLog -Path $log -DwgPath $dwg -Status $Status -VerifyStatus $VerifyStatus -Frame $Frame -Title $Title -NextMissingFrame $NextMissingFrame -NextMissingTitle $NextMissingTitle -NextMissingRole $NextMissingRole
     }
     if ($MakeStale) {
       (Get-Item -LiteralPath $log).LastWriteTime = (Get-Date).AddMinutes(-10)
@@ -230,7 +232,8 @@ Invoke-CardCase `
 Invoke-CardCase `
   -Name "native_upgrade" `
   -Status "NEXT_UPGRADE_NATIVE_GMTITLE" `
-  -Expected @("Result: RUN_NATIVE_REPLACEMENT", "SWTITLECONVERTNEXT", "SWTITLECONVERT", "OPEN", "BATCH", "MANUAL", "A2/A3/A4", "12")
+  -Frame "DR_A3_Outline" `
+  -Expected @("Result: RUN_NATIVE_REPLACEMENT", "SWTITLECONVERTNEXT", "SWTITLECONVERT", "OPEN", "BATCH", "MANUAL", "DR_A3_Outline", "DR_titlea_3rd", "12")
 
 Invoke-CardCase `
   -Name "structure_review" `

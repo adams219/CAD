@@ -474,6 +474,9 @@ function Write-ManualSelectionForecast {
       if ($a3a4NativeUpgradeCandidateCount) {
         Write-Output ("  - 현재 A2/A3/A4 native 교체 후보: {0}개" -f $a3a4NativeUpgradeCandidateCount)
       }
+      if ($FrameName) {
+        Write-Output ("  - 이번 후보 GMTITLE 선택: {0} / {1}" -f $FrameName, ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" })))
+      }
       if ($targetPairCount -or $nativeLikeTargetPairCount -or $nonNativeLikeTargetPairCount) {
         Write-Output ("  - 현재 GMTITLE 쌍: 전체 {0}개, native-like {1}개, 교체 필요 {2}개" -f ($(if ($targetPairCount) { $targetPairCount } else { "?" })), ($(if ($nativeLikeTargetPairCount) { $nativeLikeTargetPairCount } else { "?" })), ($(if ($nonNativeLikeTargetPairCount) { $nonNativeLikeTargetPairCount } else { "?" })))
       }
@@ -650,7 +653,7 @@ function Write-StatusBasedAction {
       Write-ConvertCommandStep
       Write-Output "의미: A2/A3/A4 복제 또는 shared-link 쌍을 실제 native GMTITLE 쌍으로 한 장씩 교체해야 합니다."
       Write-AutomationBoundarySummary -Mode "NativeReplacement"
-      Write-GmtitleDialogGuidance -FrameName "SWTITLESTATUS가 출력한 DR_A2/A3/A4_Outline" -TitleName "DR_titlea_3rd"
+      Write-GmtitleDialogGuidance -FrameName ($(if ($FrameName) { $FrameName } else { "SWTITLESTATUS가 출력한 DR_A2/A3/A4_Outline" })) -TitleName ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" }))
       Write-ConvertPromptGuidance -Mode "NativeReplacement"
       Write-GmtitleAbortGuards
       Write-AfterStatusRefresh

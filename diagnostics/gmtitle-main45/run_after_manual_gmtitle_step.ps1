@@ -176,6 +176,23 @@ function Get-LastRegexValue {
   return $null
 }
 
+function Get-TextAfterLastMarker {
+  param(
+    [string]$Text,
+    [string]$Marker
+  )
+
+  if ([string]::IsNullOrEmpty($Text) -or [string]::IsNullOrEmpty($Marker)) {
+    return $Text
+  }
+
+  $index = $Text.LastIndexOf($Marker, [System.StringComparison]::Ordinal)
+  if ($index -lt 0) {
+    return $Text
+  }
+  return $Text.Substring($index)
+}
+
 function Write-AfterManualCardShortSummary {
   param([string]$CardText)
 
@@ -184,12 +201,16 @@ function Write-AfterManualCardShortSummary {
   $verify = Get-LastRegexValue -Text $CardText -Pattern "^(?:\s*SWTITLEVERIFY:|검증 상태:)\s*(\S+)"
   $frame = $null
   $title = $null
+  $selectionText = Get-TextAfterLastMarker -Text $CardText -Marker "GMTITLE 창에서 반드시 아래 값으로 선택:"
+  if ($selectionText -eq $CardText) {
+    $selectionText = Get-TextAfterLastMarker -Text $CardText -Marker "짧은 GMTITLE 선택 카드:"
+  }
 
-  $frame = Get-LastRegexValue -Text $CardText -Pattern "^\s*(?:용지/도면틀|다음 GMTITLE 용지/도면틀):\s*(DR_A[1-4]_Outline)\b"
-  $title = Get-LastRegexValue -Text $CardText -Pattern "^\s*(?:제목블록|다음 GMTITLE 제목블록):\s*(DR_titlea_3rd)\b"
+  $frame = Get-LastRegexValue -Text $selectionText -Pattern "^\s*(?:용지/도면틀|다음 GMTITLE 용지/도면틀):\s*(DR_A[1-4]_Outline)\b"
+  $title = Get-LastRegexValue -Text $selectionText -Pattern "^\s*(?:제목블록|다음 GMTITLE 제목블록):\s*(DR_titlea_3rd)\b"
 
   if ((-not $frame) -or (-not $title)) {
-    $pairMatches = [regex]::Matches($CardText, "\b(DR_A[1-4]_Outline)\s*/\s*(DR_titlea_3rd)\b", [System.Text.RegularExpressions.RegexOptions]::Multiline)
+    $pairMatches = [regex]::Matches($selectionText, "\b(DR_A[1-4]_Outline)\s*/\s*(DR_titlea_3rd)\b", [System.Text.RegularExpressions.RegexOptions]::Multiline)
     for ($i = $pairMatches.Count - 1; $i -ge 0; $i--) {
       $pairMatch = $pairMatches[$i]
       if ($pairMatch.Success) {
@@ -199,11 +220,8 @@ function Write-AfterManualCardShortSummary {
       }
     }
   }
-  if (-not $frame) {
-    $frame = Get-LastRegexValue -Text $CardText -Pattern "\b(DR_A[1-4]_Outline)\b"
-  }
   if (-not $title) {
-    $title = Get-LastRegexValue -Text $CardText -Pattern "\b(DR_titlea_3rd)\b"
+    $title = Get-LastRegexValue -Text $selectionText -Pattern "\b(DR_titlea_3rd)\b"
   }
 
   Write-Log ""
@@ -212,6 +230,7 @@ function Write-AfterManualCardShortSummary {
   if ($status) { Write-Log ("  저장된 DWG 상태: {0}" -f $status) }
   if ($verify) { Write-Log ("  검증 상태: {0}" -f $verify) }
   if ($frame) { Write-Log ("  다음 GMTITLE 용지/도면틀: {0}" -f $frame) }
+  else { Write-Log "  다음 GMTITLE 용지/도면틀: SWTITLESTATUS의 짧은 GMTITLE 선택 카드를 다시 확인하세요." }
   if ($title) { Write-Log ("  다음 GMTITLE 제목블록: {0}" -f $title) }
 
   if ($result -match "READY_FOR_FIRST_NATIVE_GMTITLE|CREATE_MISSING_NATIVE_GMTITLE_SIZE|RUN_NATIVE_REPLACEMENT|RUN_REMAINING_CONVERSION") {
