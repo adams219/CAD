@@ -22,6 +22,8 @@ $a4OutlineConvertProbePath = Join-Path $PSScriptRoot "a4_outline_convert_probe.l
 $a4OutlineConvertRunnerPath = Join-Path $PSScriptRoot "run_a4_outline_convert_probe.ps1"
 $actualDirectStatusProbePath = Join-Path $PSScriptRoot "actual_workcopy_status_probe.lsp"
 $actualDirectStatusRunnerPath = Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"
+$singleCloneProbePath = Join-Path $PSScriptRoot "single_clone_probe.lsp"
+$singleCloneProbeRunnerPath = Join-Path $PSScriptRoot "run_single_clone_probe.ps1"
 $postFirstNativeProbePath = Join-Path $PSScriptRoot "post_first_native_transition_probe.lsp"
 $postFirstNativeRunnerPath = Join-Path $PSScriptRoot "run_post_first_native_transition_probe.ps1"
 $openWorkcopyRunnerPath = Join-Path $PSScriptRoot "run_open_workcopy_for_manual_convert.ps1"
@@ -238,6 +240,8 @@ $a4OutlineConvertProbeText = Read-Text $a4OutlineConvertProbePath
 $a4OutlineConvertRunnerText = Read-Text $a4OutlineConvertRunnerPath
 $actualDirectStatusProbeText = Read-Text $actualDirectStatusProbePath
 $actualDirectStatusRunnerText = Read-Text $actualDirectStatusRunnerPath
+$singleCloneProbeText = Read-Text $singleCloneProbePath
+$singleCloneProbeRunnerText = Read-Text $singleCloneProbeRunnerPath
 $postFirstNativeProbeText = Read-Text $postFirstNativeProbePath
 $postFirstNativeRunnerText = Read-Text $postFirstNativeRunnerPath
 $openWorkcopyRunnerText = Read-Text $openWorkcopyRunnerPath
@@ -266,6 +270,7 @@ Test-LispBalance -Text $loaderText -Label "swcad_load.lsp"
 Test-LispBalance -Text $a4NormProbeText -Label "a4_outline_normalization_probe.lsp"
 Test-LispBalance -Text $a4OutlineConvertProbeText -Label "a4_outline_convert_probe.lsp"
 Test-LispBalance -Text $actualDirectStatusProbeText -Label "actual_workcopy_status_probe.lsp"
+Test-LispBalance -Text $singleCloneProbeText -Label "single_clone_probe.lsp"
 Test-LispBalance -Text $postFirstNativeProbeText -Label "post_first_native_transition_probe.lsp"
 
 $gmtitleVersion = Get-VersionValue -Text $mainText -VariableName "*swcad-title-scale-version*"
@@ -723,6 +728,12 @@ Assert-Contains -Text $actualDirectStatusRunnerText -Needle "run_readonly_probe.
 Assert-Contains -Text $actualDirectStatusRunnerText -Needle "TimeoutSeconds = 180" -Label "Actual direct work-copy longer timeout"
 Assert-Contains -Text $actualDirectStatusRunnerText -Needle "SWCAD_ACTUAL_WORKCOPY_LOG_SUFFIX" -Label "Actual direct work-copy suffix override"
 Assert-Contains -Text $actualDirectStatusRunnerText -Needle "swtitle_actual_workcopy_direct_status_260705.txt" -Label "Actual direct work-copy log path"
+Assert-Contains -Text $singleCloneProbeRunnerText -Needle "single_clone_probe.lsp" -Label "Single clone probe runner fixture"
+Assert-Contains -Text $singleCloneProbeRunnerText -Needle "Copy-Item" -Label "Single clone probe uses copied DWG"
+Assert-Contains -Text $singleCloneProbeRunnerText -Needle "run_readonly_probe.ps1" -Label "Single clone probe hidden runner"
+Assert-Contains -Text $singleCloneProbeText -Needle "swcad-title-transfer-clone-apply" -Label "Single clone probe exercises internal clone"
+Assert-Contains -Text $singleCloneProbeText -Needle "Single clone scriptable without GMTITLE dialog evidence" -Label "Single clone probe scriptability evidence"
+Assert-Contains -Text $singleCloneProbeText -Needle "Probe save behavior: no SAVE command is issued" -Label "Single clone probe no-save marker"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "READY_FOR_FIRST_NATIVE_GMTITLE" -Label "Next CAD action first-native readiness"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "0xEF" -Label "Next CAD action UTF-8 BOM log guard"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "TrimStart([char]0xFEFF)" -Label "Next CAD action BOM character trim"
