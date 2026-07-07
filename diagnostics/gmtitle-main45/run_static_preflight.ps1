@@ -1101,6 +1101,8 @@ Assert-Contains -Text $goalStatusText -Needle "ignored for goal next-action sele
 Assert-Contains -Text $goalStatusText -Needle "Write-LatestNativeUpgradeSummary" -Label "Goal status latest native-upgrade summary helper"
 Assert-Contains -Text $goalStatusText -Needle "Latest native-upgrade log:" -Label "Goal status latest native-upgrade output"
 Assert-Contains -Text $goalStatusText -Needle "LatestNativeUpgradeReadyForVerify" -Label "Goal status latest native-upgrade verify gate"
+Assert-Contains -Text $goalStatusText -Needle "this proves the latest native-upgrade step only" -Label "Goal status native-upgrade summary is phase-scoped"
+Assert-NotContains -Text $goalStatusText -Needle "Next evidence-based command: SWTITLEVERIFY" -Label "Goal status native-upgrade summary must not override direct probe"
 Assert-Contains -Text $goalStatusText -Needle "지금은 GMTITLE 창을 새로 열거나 SWTITLECONVERTNEXT를 반복하지 않습니다" -Label "Goal status native-upgrade verify no-repeat guidance"
 Assert-Contains -Text $goalStatusText -Needle "전체 hidden suite 전에 focused source-title-missing definition probe를 먼저 확인하세요" -Label "Goal status focused source-title-missing probe before suite guidance"
 Assert-Contains -Text $goalStatusText -Needle "If direct GMTITLE only asks for an insertion point, cancel it" -Label "Goal status direct-GMTITLE insertion prompt warning"

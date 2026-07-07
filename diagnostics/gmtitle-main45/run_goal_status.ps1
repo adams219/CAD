@@ -642,8 +642,8 @@ function Write-LatestNativeUpgradeSummary {
   if ($remaining) { Write-Output ("  Remaining A2/A3/A4 native-upgrade candidates: {0}" -f $remaining) }
   Write-Output ("  Goal-log trust: {0} ({1})" -f ($(if ($script:LatestNativeUpgradeTrustedForGoal) { "yes" } else { "no" }), $(if ($sameSource) { $trustInfo.Reason } else { "DWG does not match the default work-copy" })))
   if ($readyForVerify) {
-    Write-Output "  Next evidence-based command: SWTITLEVERIFY"
-    Write-Output "  Meaning: do not repeat SWTITLECONVERTNEXT just because older status/direct logs still mention conversion."
+    Write-Output "  Native-upgrade phase evidence: the last upgraded pair is ready for SWTITLEVERIFY."
+    Write-Output "  Meaning: this proves the latest native-upgrade step only. Use the trusted direct work-copy probe below to decide whether more source sheets still require SWTITLECONVERTNEXT."
   }
 }
 
