@@ -513,6 +513,65 @@ function Write-ManualSelectionForecast {
   }
 }
 
+function Write-CadTestTimingSummary {
+  param(
+    [string]$StatusCode,
+    [string]$VerifyCode,
+    [string]$FrameName,
+    [string]$TitleName
+  )
+
+  Write-Output ""
+  Write-Output "CAD 테스트 타이밍:"
+  switch -Regex ($StatusCode) {
+    "^NEXT_CREATE_FIRST_NATIVE_GMTITLE$" {
+      Write-Output "  - 지금 테스트할 때입니다: 첫 native GMTITLE 기준 객체 1장을 visible CAD에서 만듭니다."
+      Write-Output ("  - 이번 대표 확인: {0} / {1}" -f ($(if ($FrameName) { $FrameName } else { "DR_A2_Outline" })), ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" })))
+      Write-Output "  - 한 장 처리 후 저장/닫기 -> run_after_manual_gmtitle_step.ps1 -Compact로 후보 수 변화를 확인합니다."
+      return
+    }
+    "^NEXT_CREATE_MISSING_NATIVE_EXEMPLAR$" {
+      Write-Output "  - 지금 테스트할 때입니다: 누락된 용지 크기의 native 기준 객체 1장을 visible CAD에서 만듭니다."
+      Write-Output ("  - 이번 대표 확인: {0} / {1}" -f ($(if ($FrameName) { $FrameName } else { "SWTITLESTATUS가 요구한 DR_A*_Outline" })), ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" })))
+      Write-Output "  - 한 장 처리 후 저장/닫기 -> direct probe로 같은 크기 후보 처리가 가능해졌는지 확인합니다."
+      return
+    }
+    "^NEXT_UPGRADE_NATIVE_GMTITLE$" {
+      Write-Output "  - 지금 테스트할 때입니다: 복제/shared-link GMTITLE 후보 1장을 fresh native GMTITLE로 교체합니다."
+      Write-Output ("  - 이번 대표 확인: {0} / {1}" -f ($(if ($FrameName) { $FrameName } else { "SWTITLESTATUS가 출력한 DR_A2/A3/A4_Outline" })), ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" })))
+      Write-Output "  - OPEN 1회 성공 뒤 바로 저장/닫기 -> 후보 수가 줄었는지 확인합니다. 줄기 전에는 BATCH로 넘어가지 않습니다."
+      return
+    }
+    "^READY_FOR_TITLE_MISSING_OUTLINE$" {
+      Write-Output "  - 지금 테스트할 때입니다: 원본 표제란 부재가 검증된 시트의 도면틀-only 변환을 1장 확인합니다."
+      Write-Output "  - 성공 기준은 새 DR_titlea_3rd를 만드는 것이 아니라, 같은 크기 DR_A*_Outline 도면틀만 남는 것입니다."
+      return
+    }
+    "^NEXT_PREPARE_" {
+      Write-Output "  - 아직 GMTITLE 창 테스트 시점이 아닙니다: 먼저 SWTITLEPREPARE로 정리/정규화 조건을 해결합니다."
+      Write-Output "  - 같은 변환 명령을 반복하지 말고, prepare 후 SWTITLESTATUS가 변환을 안내할 때만 테스트합니다."
+      return
+    }
+    "^NEXT_REVIEW_|^ABORT_|^WARN_" {
+      Write-Output "  - 지금은 테스트를 멈출 때입니다: 경고/검토 상태이므로 같은 변환을 반복하지 않습니다."
+      Write-Output "  - SWTITLESTATUS/SWTITLEVERIFY 로그로 원인을 먼저 분류합니다."
+      return
+    }
+    "^SWTITLEVERIFY_FINAL_OK$" {
+      Write-Output "  - 변환 테스트는 끝났습니다: 이제 대표 DR_titlea_3rd 제목블록 더블클릭 확인만 남았습니다."
+      Write-Output "  - title-missing 예외 시트는 제목블록이 없어야 하므로 도면틀 수량/형상으로 확인합니다."
+      return
+    }
+    default {
+      if ($VerifyCode -eq "SWTITLEVERIFY_FINAL_OK") {
+        Write-Output "  - 변환 테스트는 끝났습니다: 대표 더블클릭 확인 단계입니다."
+      } else {
+        Write-Output "  - 먼저 SWTITLESTATUS가 요구하는 다음 한 단계가 무엇인지 확인합니다."
+      }
+    }
+  }
+}
+
 function Write-GmtitleAbortGuards {
   Write-Output ""
   Write-Output "즉시 중단해야 하는 경우:"
@@ -1012,5 +1071,7 @@ if ($statusAfterStatus -eq "NEXT_CREATE_MISSING_NATIVE_EXEMPLAR") {
 
 Write-Output ""
 Write-ManualSelectionForecast -StatusCode $statusAfterStatus -FrameName $nextFrame -TitleName $nextTitle -ProbeText $probeText
+Write-Output ""
+Write-CadTestTimingSummary -StatusCode $statusAfterStatus -VerifyCode $statusAfterVerify -FrameName $nextFrame -TitleName $nextTitle
 Write-Output ""
 Write-StatusBasedAction -StatusCode $statusAfterStatus -VerifyCode $statusAfterVerify -FrameName $nextFrame -TitleName $nextTitle

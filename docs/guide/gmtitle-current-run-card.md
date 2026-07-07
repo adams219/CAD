@@ -44,6 +44,35 @@ title-missing 예외 시트가 제목블록 없이 도면틀만 남음
 probe 로그를 실제 작업 DWG 로그로 착각함
 ```
 
+## 테스트 타이밍
+
+CAD 실테스트는 매번 하지 않습니다. `SWTITLESTATUS` 또는 `run_next_cad_action.ps1`가 아래 상태를 보여줄 때만 대표 1장을 처리합니다.
+
+```text
+NEXT_CREATE_FIRST_NATIVE_GMTITLE:
+  지금 테스트할 때입니다. 첫 native GMTITLE 기준 객체 1장을 만듭니다.
+
+NEXT_CREATE_MISSING_NATIVE_EXEMPLAR:
+  지금 테스트할 때입니다. 누락된 용지 크기의 native 기준 객체 1장을 만듭니다.
+
+NEXT_UPGRADE_NATIVE_GMTITLE:
+  지금 테스트할 때입니다. 복제/shared-link 후보 1장을 fresh native GMTITLE로 교체합니다.
+  OPEN 1회 성공 뒤 후보 수가 줄었는지 확인하기 전에는 BATCH로 넘어가지 않습니다.
+
+READY_FOR_TITLE_MISSING_OUTLINE:
+  지금 테스트할 때입니다. 원본 표제란 부재가 검증된 시트의 도면틀-only 변환을 1장 확인합니다.
+  성공 기준은 새 DR_titlea_3rd가 아니라 같은 크기 DR_A*_Outline 도면틀입니다.
+
+NEXT_PREPARE_*:
+  아직 GMTITLE 창 테스트 시점이 아닙니다. SWTITLEPREPARE 후 다시 상태를 봅니다.
+
+NEXT_REVIEW_* / ABORT_* / WARN_*:
+  지금은 테스트를 멈출 때입니다. 같은 변환을 반복하지 않고 원인 로그를 봅니다.
+
+SWTITLEVERIFY_FINAL_OK:
+  변환 테스트는 끝났습니다. 대표 DR_titlea_3rd 제목블록 더블클릭 확인만 남았습니다.
+```
+
 ## 자동화 경계
 
 현재 흐름은 완전 자동 변환이 아니라, 위험한 선택만 사람이 확인하고 나머지를 LSP가 처리하는 방식입니다.
