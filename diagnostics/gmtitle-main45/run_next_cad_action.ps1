@@ -365,6 +365,7 @@ function Write-FinalCompletionGateSummary {
   $dbmodAfter = Get-FirstRegexValue -Text $text -Pattern "^\s*dbmod-after-commands:\s*(\d+)"
   $runtimeDone = Get-FirstRegexValue -Text $text -Pattern "^Runtime check completed:\s*(\S+)"
   $gateResult = if ($statusAfterVerify -eq "SWTITLEVERIFY_FINAL_OK") { "PASS" } elseif ($statusAfterVerify) { "FAIL" } else { "UNKNOWN" }
+  $expectedVersion = Get-ExpectedGmtitleVersion
   $script:FinalCompletionGateStatusAfterStatus = $statusAfterStatus
   $script:FinalCompletionGateStatusAfterVerify = $statusAfterVerify
   $script:FinalCompletionGateNextFrame = $nextFrame
@@ -373,7 +374,12 @@ function Write-FinalCompletionGateSummary {
 
   Write-Output ("  로그: {0}" -f $gateLog)
   Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
-  if ($loadedVersion) { Write-Output ("  LSP 버전: {0}" -f $loadedVersion) }
+  if ($loadedVersion) {
+    Write-Output ("  LSP 버전: {0}" -f $loadedVersion)
+    if ($expectedVersion -and ($loadedVersion -ne $expectedVersion)) {
+      Write-Output "  참고: 이 final gate 로그는 현재 LSP 버전과 달라 다음 선택값으로 쓰지 않습니다."
+    }
+  }
   Write-Output ("  결과: {0}" -f $gateResult)
   if ($statusAfterStatus) { Write-Output ("  SWTITLESTATUS: {0}" -f $statusAfterStatus) }
   if ($statusAfterVerify) { Write-Output ("  SWTITLEVERIFY: {0}" -f $statusAfterVerify) }
@@ -384,7 +390,8 @@ function Write-FinalCompletionGateSummary {
     Write-Output ("  대상 GMTITLE: 제목블록 {0}, 도면틀 {1}" -f ($(if ($targetTitleCount) { $targetTitleCount } else { "?" })), ($(if ($targetFrameCount) { $targetFrameCount } else { "?" })))
   }
   if ($nextFrame -or $nextTitle) {
-    Write-Output ("  다음 native GMTITLE: {0} / {1}" -f ($(if ($nextFrame) { $nextFrame } else { "?" })), ($(if ($nextTitle) { $nextTitle } else { "?" })))
+    $nextLabel = if ($gateResult -eq "PASS") { "final gate 기준 native GMTITLE" } else { "과거 final gate 기준 native GMTITLE(참고만)" }
+    Write-Output ("  {0}: {1} / {2}" -f $nextLabel, ($(if ($nextFrame) { $nextFrame } else { "?" })), ($(if ($nextTitle) { $nextTitle } else { "?" })))
   }
   if ($dbmodAfter) { Write-Output ("  DBMOD after probe: {0}" -f $dbmodAfter) }
   if ($runtimeDone) { Write-Output ("  Runtime check completed: {0}" -f $runtimeDone) }
