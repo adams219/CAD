@@ -654,6 +654,9 @@ if (($a3a4NextStart -ge 0) -and ($a3a4AutoOpen -gt $a3a4NextStart) -and ($a3a4Pr
   Add-Failure "SWTITLECONVERTNEXT A2/A3/A4 OPEN auto response must be checked before getstring prompt"
 }
 Assert-Contains -Text $mainText -Needle "DR_titlea_3rd/Frame positioning ON/Object move OFF" -Label "SWTITLECONVERTNEXT visual GMTITLE confirmation guard"
+Assert-Contains -Text $suiteText -Needle '"Result: OK SWTITLESTATUS status=NEXT_RUN_FAST_BATCH"' -Label "Suite current work-copy probes expect fast-batch status"
+Assert-Contains -Text $suiteText -Needle '"a2a3a4-native-upgrade-candidate-count: 0"' -Label "Suite current work-copy probes expect zero native-upgrade candidates"
+Assert-NotContains -Text $suiteText -Needle '"Result: OK SWTITLESTATUS status=NEXT_UPGRADE_NATIVE_GMTITLE"' -Label "Suite current work-copy probes must not expect stale native-upgrade status"
 Assert-Contains -Text $suiteText -Needle "A4 outline native outside marker prepare probe" -Label "Suite source-title-missing sample outside marker prepare step"
 Assert-Contains -Text $suiteText -Needle "After definition status: ready-native-outside-markers" -Label "Suite source-title-missing sample outside marker prepare expectation"
 Assert-Contains -Text $suiteText -Needle "Title-missing outline convert probe (A4-sized source-title-missing sample)" -Label "Suite title-missing outline convert sample step"
