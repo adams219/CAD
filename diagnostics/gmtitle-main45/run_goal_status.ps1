@@ -35,6 +35,7 @@ $script:LatestNativeUpgradeTrustedForGoal = $false
 $script:LatestNativeUpgradeReadyForVerify = $false
 $script:LatestNativeUpgradeRemaining = $null
 $script:LatestNativeUpgradeResult = $null
+$script:LatestNativeUpgradeLastWriteTime = $null
 $script:ExpectedGmtitleVersion = "260707-convert-next-clone-upgrade-19"
 $script:A4PrepareProbeUnsafe = $false
 $script:A4NestedProbeMissing = $false
@@ -56,6 +57,7 @@ $script:DirectWorkcopyNextMissingTitle = $null
 $script:DirectWorkcopyNextMissingRole = $null
 $script:DirectWorkcopyTargetTitleCount = $null
 $script:DirectWorkcopyTargetFrameCount = $null
+$script:DirectWorkcopyProbeLastWriteTime = $null
 $script:WorkingTreeDirty = $false
 
 if (-not $SourceWorkCopyPath) {
@@ -630,6 +632,7 @@ function Write-LatestNativeUpgradeSummary {
   $script:LatestNativeUpgradeReadyForVerify = $readyForVerify
   $script:LatestNativeUpgradeRemaining = $remaining
   $script:LatestNativeUpgradeResult = $result
+  $script:LatestNativeUpgradeLastWriteTime = $item.LastWriteTime
 
   Write-Output "Latest native-upgrade log:"
   Write-Output ("  Path: {0}" -f $logPath)
@@ -650,10 +653,19 @@ function Write-DirectActualWorkcopyProbeSummary {
     [string]$SourceWorkCopyPath
   )
 
+  $directStatusLogs = @()
+  if (Test-Path -LiteralPath $WorkDir) {
+    $directStatusLogs = @(
+      Get-ChildItem -LiteralPath $WorkDir -Filter "swtitle_actual_workcopy_direct_status*.txt" -File -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending |
+        ForEach-Object { $_.FullName }
+    )
+  }
   $candidateLogs = @(
-    (Join-Path $WorkDir "swtitle_actual_workcopy_direct_status_260705.txt"),
+    $directStatusLogs
+    (Join-Path $WorkDir "swtitle_actual_workcopy_direct_status_260705.txt")
     (Join-Path $WorkDir "swtitle_actual_workcopy_status_main56_diagnostics.txt")
-  )
+  ) | Where-Object { $_ } | Select-Object -Unique
   $logPath = $candidateLogs | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
   if (-not $logPath) {
     Write-Output "Direct actual work-copy probe: <missing>"
@@ -735,6 +747,7 @@ function Write-DirectActualWorkcopyProbeSummary {
     $script:DirectWorkcopyProbeTrusted = $true
     $script:DirectWorkcopyStatusCode = $statusAfterStatus
     $script:DirectWorkcopyVerifyStatus = $statusAfterVerify
+    $script:DirectWorkcopyProbeLastWriteTime = $item.LastWriteTime
     $script:DirectWorkcopyNextFrame = $nextFrame
     $script:DirectWorkcopyNextTitle = $nextTitle
     $script:DirectWorkcopyNextMissingFrame = $nextMissingFrame
@@ -1177,6 +1190,18 @@ $directWorkcopyNeedsOrphanCleanup = (
   $script:DirectWorkcopyProbeTrusted -and
   ($script:DirectWorkcopyStatusCode -eq "NEXT_CLEAN_ORPHAN_TARGET_FRAMES")
 )
+$directWorkcopyNeedsRemainingConversion = (
+  $script:DirectWorkcopyProbeTrusted -and
+  ($script:DirectWorkcopyStatusCode -eq "NEXT_RUN_FAST_BATCH")
+)
+$directProbeIsNewerThanNativeUpgrade = (
+  $script:DirectWorkcopyProbeTrusted -and
+  $script:DirectWorkcopyProbeLastWriteTime -and
+  (
+    (-not $script:LatestNativeUpgradeLastWriteTime) -or
+    ($script:DirectWorkcopyProbeLastWriteTime -ge $script:LatestNativeUpgradeLastWriteTime)
+  )
+)
 $latestCadNeedsNativeExemplar = (
   $script:LatestCadDwgTrustedForGoal -and
   $script:LatestCadLogVersionCurrent -and
@@ -1204,7 +1229,23 @@ $scratchNativeA4Path = Join-Path $repoRoot "work\scratch_native_a4_clean_260705.
 $scratchNativeA4Log = Join-Path $repoRoot "work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt"
 $scratchNativeA4Exists = Test-Path -LiteralPath $scratchNativeA4Path
 if ($existingGstarCAD.Count -gt 0) {
-  if ($script:LatestNativeUpgradeReadyForVerify) {
+  if ($directWorkcopyNeedsRemainingConversion -and $directProbeIsNewerThanNativeUpgrade) {
+    Write-Output "  실제 작업복사본 우선 단계:"
+    Write-Output ("    1. 저장 후 direct probe 상태: {0}" -f $script:DirectWorkcopyStatusCode)
+    Write-Output "       native 교체 후보는 정리됐지만, 전체 시트 변환은 아직 남아 있습니다."
+    Write-Output "    2. 열린 CAD에서 SWTITLESTATUS로 현재 활성 DWG가 같은 작업복사본인지 확인하세요."
+    Write-Output "    3. 상태가 그대로면 SWTITLECONVERTNEXT를 실행해 남은 준비된 시트를 계속 변환하세요."
+    if ($script:DirectWorkcopyNextFrame) {
+      Write-Output ("       다음 GMTITLE 용지/도면틀: {0}" -f $script:DirectWorkcopyNextFrame)
+    }
+    if ($script:DirectWorkcopyNextTitle) {
+      Write-Output ("       다음 GMTITLE 제목블록: {0}" -f $script:DirectWorkcopyNextTitle)
+    }
+    Write-Output "       필수 옵션: Frame positioning ON, Object move OFF"
+    Write-Output "    4. 변환 후 저장하고 GstarCAD를 닫은 뒤 run_after_manual_gmtitle_step.ps1 -Compact로 다음 상태를 갱신하세요."
+    Write-Output ""
+    Write-Output "  Hidden suite verification path only after saving/closing CAD or changing code:"
+  } elseif ($script:LatestNativeUpgradeReadyForVerify) {
     Write-Output "  실제 작업복사본 우선 단계:"
     Write-Output "    1. 최신 native 교체 로그에서 A2/A3/A4 교체 후보가 0개로 확인됐습니다."
     Write-Output "    2. 열린 CAD에서 APPLOAD/SWTITLEVERSION으로 최신 LSP인지 확인하세요."
@@ -1363,7 +1404,23 @@ if ($existingGstarCAD.Count -gt 0) {
   Write-Output "  Or start the suite in waiting mode first:"
   Write-Output ("     powershell -NoProfile -ExecutionPolicy Bypass -File ""{0}"" -WaitForGstarCADClose" -f $suite)
 } else {
-  if ($script:LatestNativeUpgradeReadyForVerify) {
+  if ($directWorkcopyNeedsRemainingConversion -and $directProbeIsNewerThanNativeUpgrade) {
+    Write-Output "  실제 작업복사본 우선 단계:"
+    Write-Output ("    1. 저장 후 direct probe 상태: {0}" -f $script:DirectWorkcopyStatusCode)
+    Write-Output "       native 교체 후보는 정리됐지만, 전체 시트 변환은 아직 남아 있습니다."
+    Write-Output "    2. GstarCAD에서 실제 작업복사본 DWG를 열거나 활성화하세요."
+    Write-Output "    3. 필요하면 최신 swcad_title_scale.lsp를 APPLOAD 하세요."
+    Write-Output "    4. SWTITLESTATUS로 현재 활성 DWG가 같은 작업복사본인지 확인하세요."
+    Write-Output "    5. 상태가 그대로면 SWTITLECONVERTNEXT를 실행해 남은 준비된 시트를 계속 변환하세요."
+    if ($script:DirectWorkcopyNextFrame) {
+      Write-Output ("       다음 GMTITLE 용지/도면틀: {0}" -f $script:DirectWorkcopyNextFrame)
+    }
+    if ($script:DirectWorkcopyNextTitle) {
+      Write-Output ("       다음 GMTITLE 제목블록: {0}" -f $script:DirectWorkcopyNextTitle)
+    }
+    Write-Output "       필수 옵션: Frame positioning ON, Object move OFF"
+    Write-Output "    6. 변환 후 저장하고 GstarCAD를 닫은 뒤 run_after_manual_gmtitle_step.ps1 -Compact로 다음 상태를 갱신하세요."
+  } elseif ($script:LatestNativeUpgradeReadyForVerify) {
     Write-Output "  실제 작업복사본 우선 단계:"
     Write-Output "    1. 최신 native 교체 로그에서 A2/A3/A4 교체 후보가 0개로 확인됐습니다."
     Write-Output "    2. GstarCAD에서 실제 작업복사본 DWG를 열거나 활성화하세요."
