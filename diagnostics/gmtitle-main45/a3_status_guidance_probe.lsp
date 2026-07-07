@@ -185,13 +185,13 @@
           (setq frame-note-found
             (swtitle-a3guide-file-contains-p
               structure-log
-              "A3 도면틀 참고: DR_A3_Outline은 native GMTITLE에서도 INSERT/block 참조"
+              "DR 도면틀 참고: native GMTITLE에서도 도면틀은 INSERT/block 참조로 선택될 수 있습니다."
             )
           )
           (setq supplement-found
             (swtitle-a3guide-file-contains-p
               structure-log
-              "A3 판단 보충: 도면틀이 block처럼 보이는 현상 자체보다 복제/shared-native-link 후보"
+              "native 판단 보충: 도면틀이 block처럼 보이는 현상 자체보다 복제/shared-native-link 후보가 남았는지가 실제 문제입니다."
             )
           )
           (swtitle-a3guide-write-line handle (strcat "A3 frame guidance note found: " (if frame-note-found "yes" "no")))

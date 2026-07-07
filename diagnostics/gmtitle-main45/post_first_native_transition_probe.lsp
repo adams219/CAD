@@ -1,7 +1,7 @@
 ;;; Synthetic probe for the first-native transition gate.
 ;;; It proves that a marker-only A2 target pair is not accepted as a real native
-;;; GMTITLE exemplar; the first native sheet still needs real GMTITLE internal
-;;; link evidence.
+;;; GMTITLE exemplar. The current workflow treats it as a native-upgrade
+;;; candidate instead of counting it as completed native evidence.
 ;;; The PowerShell wrapper sets:
 ;;;   SWCAD_TOOL_ROOT
 ;;;   SWCAD_COMPARE_LSP
@@ -238,10 +238,10 @@
               (equal (cadr selection) "DR_A3_Outline")
               (equal (caddr selection) "DR_titlea_3rd")
               (equal (cadddr selection) "title-sheet")
-              (equal status-value "NEXT_CREATE_FIRST_NATIVE_GMTITLE")
+              (equal status-value "NEXT_UPGRADE_NATIVE_GMTITLE")
             )
           )
-          (swtitle-postfirst-write-line handle "Expected gate: marker-only A2 target is not accepted as the first native GMTITLE.")
+          (swtitle-postfirst-write-line handle "Expected gate: marker-only A2 target is not accepted as native-like GMTITLE and must be upgraded.")
           (swtitle-postfirst-write-line handle (strcat "Post-first-native marker gate probe passed: " (if pass "yes" "no")))
         )
       )
