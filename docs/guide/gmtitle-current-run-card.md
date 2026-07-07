@@ -270,7 +270,8 @@ A2/A3/A4 native 교체 후보:
   A4: 필요 2, 현재 0
 
 최신 final completion gate:
-  2026-07-08 05:40 기준 FAIL
+  최신성은 run_goal_status.ps1의 "Final gate log older than current commit" 값으로 판단
+  현재 저장본 기준 예상 상태: FAIL
   SWTITLESTATUS: NEXT_RUN_FAST_BATCH
   SWTITLEVERIFY: SWTITLEVERIFY_FINAL_FAIL
   source-title/source-frame/frame-only: 9 / 11 / 2
