@@ -39,7 +39,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260707-unified-title-missing-18")
+(setq *swcad-title-scale-version* "260707-convert-next-clone-upgrade-19")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -18464,11 +18464,25 @@
               )
               (setq a3a4-count (length (swcad-title-a3a4-native-upgrade-candidate-records)))
               (if (> a3a4-count 0)
-                (swcad-title-princ-text
-                  (strcat
-                    "\n다음: SWTITLESTATUS를 실행한 뒤 A2/A3/A4 native 교체 후보 "
-                    (itoa a3a4-count)
-                    "개 중 다음 1장을 SWTITLECONVERTNEXT로 처리하세요."
+                (progn
+                  (swcad-title-princ-text
+                    (strcat
+                      "\nclone 변환 후 A2/A3/A4 native 교체 후보가 "
+                      (itoa a3a4-count)
+                      "개 생겼습니다."
+                    )
+                  )
+                  (if (vl-catch-all-error-p apply-result)
+                    (swcad-title-princ-text "\nclone 변환 오류가 있어 native 교체 단계는 실행하지 않습니다.")
+                    (progn
+                      (swcad-title-princ-text "\nSWTITLECONVERTNEXT가 이어서 다음 native 교체 후보 1장을 처리합니다.")
+                      (if (swcad-title-script-active-p)
+                        (swcad-title-abort-interactive-gmtitle-script-active
+                          "clone 변환 뒤 생긴 A2/A3/A4 native 교체 후보는 GMTITLE 창 확인이 필요합니다."
+                        )
+                        (swcad-title-upgrade-native-a3a4-next)
+                      )
+                    )
                   )
                 )
               )

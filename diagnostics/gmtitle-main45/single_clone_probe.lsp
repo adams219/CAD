@@ -1,4 +1,4 @@
-;;; Diagnostic probe: run one internal remaining-sheet clone on a copied DWG.
+﻿;;; Diagnostic probe: run one internal remaining-sheet clone on a copied DWG.
 ;;; The PowerShell wrapper copies the real workcopy before launching this probe.
 ;;; This script does not save the drawing; it only records in-memory results.
 
@@ -122,7 +122,7 @@
         (swtitle-singleclone-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))
       )
       (swtitle-singleclone-write-line handle (strcat "Loaded version: " version-value))
-      (swtitle-singleclone-write-line handle "Expected version: 260707-unified-title-missing-18")
+      (swtitle-singleclone-write-line handle "Expected version: 260707-convert-next-clone-upgrade-19")
       (swtitle-singleclone-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-singleclone-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-singleclone-write-line handle (strcat "Script active: " (if (and load-ok (swcad-title-script-active-p)) "yes" "no")))

@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260707-unified-title-missing-18",
+  [string]$ExpectedGmtitleVersion = "260707-convert-next-clone-upgrade-19",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -633,6 +633,7 @@ Assert-Contains -Text $mainText -Needle "다음 누락 크기 native GMTITLE 선
 Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록" -Label "SWTITLECONVERTNEXT exact dialog selection guidance"
 Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT는 남은 표제란 시트 중 다음 1장만 clone 변환합니다." -Label "SWTITLECONVERTNEXT source-title one-sheet clone limit"
 Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT single clone error" -Label "SWTITLECONVERTNEXT single-clone error status path"
+Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT가 이어서 다음 native 교체 후보 1장을 처리합니다." -Label "SWTITLECONVERTNEXT chains clone to native upgrade"
 Assert-Contains -Text $mainText -Needle '"A2/A3/A4 native 교체 후보 1장 처리"' -Label "SWTITLECONVERTNEXT native one-sheet default"
 Assert-Contains -Text $mainText -Needle "swcad-title-print-native-batch-safety-guidance" -Label "Native batch safety guidance helper"
 Assert-Contains -Text $mainText -Needle "BATCH 안전 조건: 먼저 OPEN으로 1장을 성공시킨 뒤 SWTITLESTATUS/direct probe에서 후보 수가 줄었는지 확인하세요." -Label "Native batch OPEN-first guidance"
@@ -1048,6 +1049,10 @@ if ($goalStatusUtf8Index -ge 0 -and $goalStatusCp949Index -ge 0 -and $goalStatus
   Add-Failure "Goal status log fallback order must try strict UTF-8 before CP949 to avoid mojibake in UTF-8 CAD logs."
 }
 Assert-Contains -Text $goalStatusText -Needle "Stale direct-probe version" -Label "Goal status stale direct-probe version warning"
+Assert-Contains -Text $goalStatusText -Needle 'swcad_title_next_step_last*.txt' -Label "Goal status scans suffixed next-step logs"
+Assert-Contains -Text $goalStatusText -Needle '$candidateVersion -eq $script:ExpectedGmtitleVersion' -Label "Goal status prefers current-version next-step log"
+Assert-Contains -Text $goalStatusText -Needle 'Get-GoalCadDwgTrustInfo -DwgPath $candidateDwg -WorkDir $WorkDir' -Label "Goal status evaluates next-step log trust with work-folder scope"
+Assert-Contains -Text $goalStatusText -Needle '$candidateTrust.Trusted' -Label "Goal status prefers trusted work-copy next-step log"
 Assert-Contains -Text $goalStatusText -Needle "LSP version in log" -Label "Goal status latest CAD log version output"
 Assert-Contains -Text $goalStatusText -Needle "LSP version current" -Label "Goal status latest CAD log current-version output"
 Assert-Contains -Text $goalStatusText -Needle "latest CAD log was produced by an older LSP" -Label "Goal status stale latest CAD log warning"

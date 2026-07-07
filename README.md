@@ -1,4 +1,4 @@
-# CAD Tool
+﻿# CAD Tool
 
 GstarCAD / GstarCAD Mechanical / SolidWorks DWG 변환 도구를 관리하는 저장소입니다.
 
@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 GMTITLE 기준 버전:
 
 ```text
-260707-unified-title-missing-18
+260707-convert-next-clone-upgrade-19
 ```
 
 다른 버전이 보이면 `SWTITLESTATUS` 결과를 믿기 전에 최신 LSP를 다시 APPLOAD 합니다.

@@ -30,7 +30,7 @@ $script:LatestCadDwgTrustedForGoal = $false
 $script:LatestCadDwgTrustReason = "not evaluated"
 $script:LatestCadLogVersion = $null
 $script:LatestCadLogVersionCurrent = $false
-$script:ExpectedGmtitleVersion = "260707-unified-title-missing-18"
+$script:ExpectedGmtitleVersion = "260707-convert-next-clone-upgrade-19"
 $script:A4PrepareProbeUnsafe = $false
 $script:A4NestedProbeMissing = $false
 $script:A4NestedProbeUnsafe = $false
@@ -417,14 +417,45 @@ function Get-GoalCadDwgTrustInfo {
 function Write-LatestCadLogSummary {
   param([string]$WorkDir)
 
-  $nextStepLog = Join-Path $WorkDir "swcad_title_next_step_last.txt"
-  if (-not (Test-Path -LiteralPath $nextStepLog)) {
+  $candidateLogs = @(Get-ChildItem -LiteralPath $WorkDir -Filter "swcad_title_next_step_last*.txt" -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending)
+  if ($candidateLogs.Count -eq 0) {
     Write-Output "Latest CAD next-step log: <missing>"
     return
   }
 
-  $item = Get-Item -LiteralPath $nextStepLog
-  $text = Read-TextWithFallback -Path $nextStepLog
+  $selectedCandidate = $null
+  $selectedText = $null
+  foreach ($candidate in $candidateLogs) {
+    $candidateText = Read-TextWithFallback -Path $candidate.FullName
+    $candidateVersion = Get-FirstRegexValue -Text $candidateText -Pattern "^SWTITLE LSP 버전:\s*(\S+)"
+    $candidateDwg = Get-FirstRegexValue -Text $candidateText -Pattern "^DWG 파일:\s*(.+)$"
+    $candidateTrust = Get-GoalCadDwgTrustInfo -DwgPath $candidateDwg -WorkDir $WorkDir
+    if (($candidateVersion -eq $script:ExpectedGmtitleVersion) -and $candidateTrust.Trusted) {
+      $selectedCandidate = $candidate
+      $selectedText = $candidateText
+      break
+    }
+  }
+  if (-not $selectedCandidate) {
+    foreach ($candidate in $candidateLogs) {
+      $candidateText = Read-TextWithFallback -Path $candidate.FullName
+      $candidateDwg = Get-FirstRegexValue -Text $candidateText -Pattern "^DWG 파일:\s*(.+)$"
+      $candidateTrust = Get-GoalCadDwgTrustInfo -DwgPath $candidateDwg -WorkDir $WorkDir
+      if ($candidateTrust.Trusted) {
+        $selectedCandidate = $candidate
+        $selectedText = $candidateText
+        break
+      }
+    }
+  }
+  if (-not $selectedCandidate) {
+    $selectedCandidate = $candidateLogs[0]
+    $selectedText = Read-TextWithFallback -Path $selectedCandidate.FullName
+  }
+
+  $nextStepLog = $selectedCandidate.FullName
+  $item = $selectedCandidate
+  $text = $selectedText
   $lines = $text -split "\r?\n"
   $logVersion = Get-FirstRegexValue -Text $text -Pattern "^SWTITLE LSP 버전:\s*(\S+)"
   $logVersionCurrent = $logVersion -and ($logVersion -eq $script:ExpectedGmtitleVersion)

@@ -33,7 +33,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260707-unified-title-missing-18
+260707-convert-next-clone-upgrade-19
 ```
 
 다른 버전이 보이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -55,7 +55,7 @@ SWTITLEVERIFY
 SWTITLECONVERT
 ```
 
-`SWTITLECONVERTNEXT`는 현재 상태에서 안전한 다음 한 단계만 실행합니다. 첫 native 생성/누락 크기 생성은 `YES`, 남은 표제란 시트는 다음 1장 clone, A2/A3/A4 native 교체는 다음 후보 1장 `OPEN`으로 처리합니다. 빠른 일괄 변환은 수동 `SWTITLECONVERT`에서 의도적으로 선택할 때만 사용합니다. 단, GMTITLE 창에서 `DR_A*_Outline`, `DR_titlea_3rd`, `Frame positioning: ON`, `Object move: OFF`를 눈으로 확인하는 단계는 그대로 필요합니다.
+`SWTITLECONVERTNEXT`는 현재 상태에서 안전한 다음 흐름만 실행합니다. 첫 native 생성/누락 크기 생성은 `YES`, 남은 표제란 시트는 다음 1장 clone 후 생긴 A2/A3/A4 native 교체 후보 1장을 이어서 `OPEN`으로 처리합니다. 빠른 일괄 변환은 수동 `SWTITLECONVERT`에서 의도적으로 선택할 때만 사용합니다. 단, GMTITLE 창에서 `DR_A*_Outline`, `DR_titlea_3rd`, `Frame positioning: ON`, `Object move: OFF`를 눈으로 확인하는 단계는 그대로 필요합니다.
 
 자동화 경계:
 

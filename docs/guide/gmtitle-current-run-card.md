@@ -65,7 +65,7 @@ LSP가 자동 처리:
 
 아직 GMTITLE 창 선택까지 완전 자동으로 켜지 않는 이유는, GstarCAD가 일반/ISO 기본값으로 열릴 수 있고 리본/스크린 좌표 자동화는 안정 증거가 없기 때문입니다. 그래서 `SWTITLECONVERTNEXT`는 `YES`/`OPEN` 같은 반복 응답만 자동으로 고르고, GMTITLE 창의 DR 선택은 사람이 눈으로 확인합니다.
 
-2026-07-07 single-clone probe 확인: 실제 작업복사본을 복사한 `swtitle_single_clone_probe.dwg`에서 내부 clone 1장을 실행하면 원본 표제란은 11 -> 10으로 줄고 target pair는 2 -> 3으로 늘지만, A2/A3/A4 native 교체 후보도 0 -> 2로 늘었습니다. 결론은 hidden/script로 clone만 밀어붙이는 방식은 최종 GMTITLE native 동작을 보장하지 못한다는 것입니다. 따라서 남은 A3도 `SWTITLECONVERTNEXT`가 clone 이후 필요한 native 교체를 보이는 CAD에서 이어서 처리해야 합니다.
+2026-07-07 single-clone probe 확인: 실제 작업복사본을 복사한 `swtitle_single_clone_probe.dwg`에서 내부 clone 1장을 실행하면 원본 표제란은 11 -> 10으로 줄고 target pair는 2 -> 3으로 늘지만, A2/A3/A4 native 교체 후보도 0 -> 2로 늘었습니다. 결론은 hidden/script로 clone만 밀어붙이는 방식은 최종 GMTITLE native 동작을 보장하지 못한다는 것입니다. 따라서 현재 LSP는 남은 A3도 `SWTITLECONVERTNEXT`가 clone 이후 필요한 native 교체 1장을 보이는 CAD에서 이어서 처리하도록 합니다.
 
 ## 시작 조건
 
@@ -88,7 +88,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260707-unified-title-missing-18
+260707-convert-next-clone-upgrade-19
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
