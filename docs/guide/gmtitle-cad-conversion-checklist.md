@@ -13,7 +13,7 @@ SWTITLECONVERTNEXT
 SWTITLEVERIFY
 ```
 
-수동 응답을 직접 고르고 싶을 때만 `SWTITLECONVERT`를 사용합니다. `SWTITLECONVERTNEXT`는 현재 상태의 다음 응답만 자동 선택하며, GMTITLE 창의 DR 용지/제목블록/옵션 확인은 직접 해야 합니다.
+수동 fallback이 필요할 때만 `SWTITLECONVERT`를 사용합니다. `SWTITLECONVERTNEXT`는 work 복사본에서 GMTITLE 창의 DR 용지/제목블록/옵션을 고정 컨트롤로 선택하고 readback을 검증한 뒤 남은 시트를 연속 처리합니다.
 
 아래 옛 명령은 직접 입력하지 않습니다.
 
@@ -61,7 +61,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260707-convert-next-clone-upgrade-19
+260710-fixed-control-autoselect-1
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 로드합니다.
@@ -154,7 +154,7 @@ SWTITLESTATUS
 SWTITLECONVERTNEXT
 ```
 
-이 명령은 현재 상태에 맞춰 필요한 단계만 진행하고, `YES`/`OPEN` 같은 반복 응답만 자동 선택합니다. 수동 응답을 직접 고르고 싶을 때만 `SWTITLECONVERT`를 대신 사용합니다.
+이 명령은 현재 상태에 맞춰 필요한 단계만 진행합니다. 고정 컨트롤 자동 선택이 가능하면 `YES`/`OPEN` 응답과 GMTITLE 용지/제목블록/옵션 선택을 자동 처리합니다. 자동 선택이 불가능하거나 readback이 다르면 원본을 유지하고 중단하며, 그때만 `SWTITLECONVERT`를 수동 fallback으로 사용합니다.
 
 ```text
 첫 native GMTITLE 기준 객체 생성
@@ -167,7 +167,7 @@ title-missing/frame-only 예외 도면틀만 교체
 기존 SolidWorks 도면틀/표제란/잔여물 제거
 ```
 
-GMTITLE 창이 열리면 로그가 요구한 값만 선택합니다.
+자동 경로에서는 GMTITLE 창이 열리면 아래 값을 고정 컨트롤로 선택하고 readback합니다. 수동 fallback에서만 사용자가 같은 값을 직접 선택합니다.
 
 ```text
 용지/도면틀: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline 중 로그가 요구한 것

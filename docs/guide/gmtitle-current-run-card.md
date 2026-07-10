@@ -56,8 +56,8 @@ NEXT_CREATE_MISSING_NATIVE_EXEMPLAR:
   지금 테스트할 때입니다. 누락된 용지 크기의 native 기준 객체 1장을 만듭니다.
 
 NEXT_UPGRADE_NATIVE_GMTITLE:
-  지금 테스트할 때입니다. 복제/shared-link 후보 1장을 fresh native GMTITLE로 교체합니다.
-  OPEN 1회 성공 뒤 후보 수가 줄었는지 확인하기 전에는 BATCH로 넘어가지 않습니다.
+  지금 테스트할 때입니다. 고정 컨트롤 자동 선택으로 복제/shared-link 후보를 fresh native GMTITLE로 교체합니다.
+  자동 선택을 사용할 수 없을 때만 OPEN/BATCH 수동 fallback을 검토합니다.
 
 READY_FOR_TITLE_MISSING_OUTLINE:
   지금 테스트할 때입니다. 원본 표제란 부재가 검증된 시트의 도면틀-only 변환을 1장 확인합니다.
@@ -75,24 +75,25 @@ SWTITLEVERIFY_FINAL_OK:
 
 ## 자동화 경계
 
-현재 흐름은 완전 자동 변환이 아니라, 위험한 선택만 사람이 확인하고 나머지를 LSP가 처리하는 방식입니다.
+현재 흐름은 화면 좌표를 쓰지 않는 고정 컨트롤 자동 선택과 LSP 변환을 결합한 방식입니다.
 
 ```text
-LSP가 자동 처리:
+LSP와 고정 컨트롤 보조 프로그램이 자동 처리:
   현재 후보 판별
+  DR_A*_Outline / DR_titlea_3rd 선택
+  Frame positioning ON / Object move OFF 설정과 readback
   기존 도면틀 왼쪽 아래 배치점 계산/전송
   표제란 값 추출과 DR_titlea_3rd 속성값 입력
   이전 SolidWorks 도면틀/표제란/허용된 잔여물 정리
   새 결과 검사와 실패 시 보존/rollback
 
 사람이 확인:
-  GMTITLE 창의 DR_A*_Outline 용지
-  DR_titlea_3rd 제목블록
-  Frame positioning ON
-  Object move OFF
+  현재 열린 파일이 work 복사본인지 확인
+  SWTITLESTATUS/SWTITLEVERIFY 최종 결과
+  대표 DR_titlea_3rd 제목블록의 더블클릭 편집창
 ```
 
-아직 GMTITLE 창 선택까지 완전 자동으로 켜지 않는 이유는, GstarCAD가 일반/ISO 기본값으로 열릴 수 있고 리본/스크린 좌표 자동화는 안정 증거가 없기 때문입니다. 그래서 `SWTITLECONVERTNEXT`는 `YES`/`OPEN` 같은 반복 응답만 자동으로 고르고, GMTITLE 창의 DR 선택은 사람이 눈으로 확인합니다.
+자동 선택은 리본 접근성이나 스크린샷 좌표를 사용하지 않습니다. GMTITLE 대화상자의 고정 컨트롤 ID와 선택값 readback을 사용하며, 대상 DWG와 GstarCAD HWND까지 맞아야 확인 버튼을 누릅니다. 조건이 다르면 원본을 유지하고 중단합니다.
 
 2026-07-07 single-clone probe 확인: 실제 작업복사본을 복사한 `swtitle_single_clone_probe.dwg`에서 내부 clone 1장을 실행하면 원본 표제란은 11 -> 10으로 줄고 target pair는 2 -> 3으로 늘지만, A2/A3/A4 native 교체 후보도 0 -> 2로 늘었습니다. 결론은 hidden/script로 clone만 밀어붙이는 방식은 최종 GMTITLE native 동작을 보장하지 못한다는 것입니다. 따라서 현재 LSP는 남은 A3도 `SWTITLECONVERTNEXT`가 clone 이후 필요한 native 교체 1장을 보이는 CAD에서 이어서 처리하도록 합니다.
 
@@ -117,7 +118,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260707-convert-next-clone-upgrade-19
+260710-fixed-control-autoselect-1
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -236,7 +237,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 ### 현재 저장본 direct probe 상태
 
 2026-07-08 저장 후 direct probe 기준, 현재 기본 작업복사본은 첫 native 전 상태가 아닙니다.
-A2와 일부 A3 native-like 쌍은 만들어졌고, 남은 A3/A4 처리가 필요합니다.
+A2와 일부 A3 native-like 쌍은 만들어졌고, 다음 단계는 남은 A3 원본 표제란 시트 변환입니다. A4는 target 수량은 부족하지만 missing-native GMTITLE 대상은 아니며, 원본 표제란 부재가 검증된 title-missing/frame-only 예외로 뒤에서 처리합니다.
 
 ```text
 direct probe 로그:
@@ -252,30 +253,38 @@ NEXT_RUN_FAST_BATCH
 SWTITLEVERIFY_FINAL_FAIL
 
 target title/frame:
-4 / 4
+5 / 5
 
 GMTITLE pair/native-like:
-4 / 4
+5 / 5
 
 A2/A3/A4 native 교체 후보:
 0
 
+missing native GMTITLE:
+<none>
+
 남은 원본:
-  표제란 시트 9
-  원본 도면틀 11
+  표제란 시트 8
+  원본 도면틀 10
   title-missing/frame-only 시트 2
 
 현재 부족한 target 수량:
-  A3: 필요 12, 현재 3
+  A3: 필요 12, 현재 4
   A4: 필요 2, 현재 0
+
+주의:
+  A4 target 부족은 새 DR_titlea_3rd를 만들라는 뜻이 아님
+  남은 원본 표제란 시트 8장을 먼저 처리
+  title-missing/frame-only 2장은 원본 표제란 부재 예외로 나중에 outline-only 처리
 
 최신 final completion gate:
   최신성은 run_goal_status.ps1의 "Final gate log older than current commit" 값으로 판단
   현재 저장본 기준 예상 상태: FAIL
   SWTITLESTATUS: NEXT_RUN_FAST_BATCH
   SWTITLEVERIFY: SWTITLEVERIFY_FINAL_FAIL
-  source-title/source-frame/frame-only: 9 / 11 / 2
-  target-title/target-frame: 4 / 4
+  source-title/source-frame/frame-only: 8 / 10 / 2
+  target-title/target-frame: 5 / 5
   direct probe와 다음 상태/검증/다음 GMTITLE 선택값 일치
 
 다음 CAD 단계:
@@ -287,9 +296,12 @@ Frame positioning: ON
 Object move: OFF
 ```
 
-이 상태에서 `SWTITLECONVERTNEXT`는 남은 A3 전체를 한 번에 끝내는 뜻이 아닙니다.
-다음 표제란 시트 1장을 clone 변환한 뒤, 바로 생긴 native 교체 후보 1장을 visible CAD에서 확인하는 안전 흐름입니다.
-한 장 처리 후에는 저장하고 GstarCAD를 닫은 뒤 `run_after_manual_gmtitle_step.ps1 -Compact`로 상태를 다시 잠급니다.
+현재 고정 컨트롤 자동 선택을 사용할 수 있으면 `SWTITLECONVERTNEXT`는 남은 A3를 포함한 표제란 시트를 각각 새 native GMTITLE로 연속 처리합니다. preserve-copy clone을 먼저 만들지 않으며 매 시트 readback 실패 시 중단합니다.
+
+`run_after_manual_gmtitle_step.ps1 -Compact`는 자동 선택을 사용할 수 없어 수동 fallback으로 한 장만 처리한 경우의 보조 점검입니다.
+
+같은 A3 조건이 반복된다는 증거가 이미 있으면 카드가 `A3 반복 BATCH 검토 가능`을 표시할 수 있습니다. 이 안내는 고정 컨트롤 자동 선택을 사용할 수 없을 때만 쓰는 수동 fallback입니다.
+ISO/일반 기본값, 다른 용지, 후보 수 미감소, 도면 내용 과삭제가 보이면 즉시 중단하고 `SWTITLESTATUS`로 돌아갑니다.
 
 ### 새 작업복사본 초기 상태 참고
 
@@ -327,7 +339,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 
 작업복사본 DWG의 저장 시간이 direct probe 로그보다 최신이거나, direct probe 로그의 `Loaded version`이 현재 LSP 기대 버전과 다르면 짧은 카드는 다음 명령을 안내하지 않고 먼저 direct probe 갱신을 요구합니다. CAD에서 변환하고 저장한 뒤 예전 로그를 보거나, LSP 업데이트 전 로그를 보고 같은 명령을 반복하는 실수를 막기 위한 장치입니다.
 
-GstarCAD를 저장 후 닫은 상태라면 짧은 카드에 `-AutoRefreshDirectProbe`를 붙여 direct probe 갱신과 다음 행동 판단을 한 번에 할 수 있습니다. GstarCAD가 열려 있으면 hidden probe가 중단될 수 있으므로, 이 옵션은 닫힌 상태에서만 사용합니다.
+GstarCAD를 저장 후 닫은 상태라면 짧은 카드에 `-AutoRefreshDirectProbe`를 붙여 direct probe 갱신과 다음 행동 판단을 한 번에 할 수 있습니다. GstarCAD가 열려 있으면 hidden probe가 중단될 수 있으므로, 이 옵션은 닫힌 상태에서만 사용합니다. 수동 GMTITLE 한 장을 처리한 직후에는 이전 로그가 최신처럼 보여도 실제 저장 DWG를 다시 읽어야 하므로 `run_after_manual_gmtitle_step.ps1 -Compact`를 사용합니다. 이 래퍼는 내부적으로 `-ForceRefreshDirectProbe`를 붙입니다.
 
 짧은 CAD 실행 카드:
 
@@ -341,12 +353,18 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_next_cad_action.ps1 -AutoRefreshDirectProbe
 ```
 
+강제 재검사까지 함께 실행:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_next_cad_action.ps1 -AutoRefreshDirectProbe -ForceRefreshDirectProbe
+```
+
 CAD 화면 옆에서 다음 명령, GMTITLE 선택값, 즉시 중단 조건, 바로 확인할 명령만 보고 싶을 때 이 카드를 사용합니다.
-이 카드는 `work\main56_verification_suite_last_run.txt`도 같이 읽어서 최근 hidden suite가 `PASS`였는지, 아니면 `FAILED_BEFORE_PASS`로 멈췄는지 먼저 보여줍니다. 단, suite `PASS`는 자동화/guard 검증이 통과했다는 뜻이고 실제 work DWG 변환 완료 증거는 아닙니다.
+이 카드는 `work\main56_verification_suite_last_run.txt`도 같이 읽어서 최근 hidden suite가 `PASS`였는지, 아니면 `FAILED_BEFORE_PASS`로 멈췄는지 먼저 보여줍니다. 현재 작업트리가 dirty이면 suite 로그의 `Worktree evidence hash`와 현재 git 상태/diff 지문을 비교해 `suite 작업트리 지문 현재와 일치` 여부도 표시합니다. 단, 지문이 일치하는 suite `PASS`도 자동화/guard 검증이 통과했다는 뜻이고 실제 work DWG 변환 완료 증거는 아닙니다.
 
 이 카드는 `work\swtitle_final_completion_gate_status.txt`도 같이 읽습니다. final completion gate가 direct probe보다 최신이면 두 로그의 `SWTITLESTATUS`, `SWTITLEVERIFY`, 다음 native GMTITLE 값이 서로 일치하는지 확인합니다. 서로 다르면 `REVIEW_FINAL_GATE_DIRECT_PROBE_CONFLICT`로 멈추고, direct probe 갱신 또는 final completion gate 재실행을 요구합니다.
 
-수동으로 `SWTITLECONVERTNEXT`와 GMTITLE 창 선택을 한 번 끝낸 뒤에는 아래 래퍼를 쓰는 편이 더 안전합니다.
+자동 선택을 사용할 수 없어 수동 fallback으로 GMTITLE 한 장을 처리한 뒤에는 아래 래퍼로 상태를 다시 확인할 수 있습니다.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_after_manual_gmtitle_step.ps1
@@ -372,7 +390,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_manual_gmtitle_session.ps1
 ```
 
-이 세션 래퍼도 `SWTITLECONVERTNEXT`를 대신 실행하거나 GMTITLE 창을 클릭하지 않습니다. 먼저 `run_next_cad_action.ps1`를 자동 direct probe 갱신 없이 실행해서 저장된 작업복사본의 다음 작업 카드를 확인하고, 카드가 실제 변환 1장을 요구할 때만 작업복사본을 엽니다. hidden direct probe 갱신까지 먼저 하고 싶을 때만 `-AutoRefreshDirectProbe`를 붙입니다. 작업복사본을 열고, 사람이 CAD에서 한 장을 처리해 저장/닫기 할 때까지 기다린 뒤 `run_after_manual_gmtitle_step.ps1`를 이어서 실행합니다.
+이 세션 래퍼는 수동 fallback 보조 도구이며 `SWTITLECONVERTNEXT`를 대신 실행하지 않습니다. 먼저 `run_next_cad_action.ps1`로 작업복사본의 다음 작업 카드를 확인하고, 사용자가 수동 한 장을 처리해 저장/닫기 한 경우에만 `run_after_manual_gmtitle_step.ps1`를 이어서 실행합니다.
 
 이미 CAD를 직접 열어 둔 상태에서만 `-SkipOpenWorkcopy`를 붙입니다. CAD가 열려 있지 않으면 세션 래퍼는 `SKIP_OPEN_NO_GSTARCAD`로 멈추고, 오래된 상태 점검을 실행하지 않습니다.
 
@@ -408,7 +426,7 @@ SWTITLECONVERTNEXT
 
 `GSTARCAD_VISIBLE_WINDOW_NOT_STABLE_AFTER_CHECK`도 같은 의미로 봅니다. 시작 직후 임시 창 핸들은 생겼지만 실제 CAD 창이 유지되지 않은 상태라서, helper가 변환 없이 프로세스를 정리합니다.
 
-현재 PC에서는 Codex Computer Use가 GstarCAD 화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다. 특히 긴 명령어를 붙여넣기 방식으로 넣으면 CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있습니다. 또한 Codex가 `SWTITLECONVERTNEXT`를 직접 타이핑하면 CAD 동적 입력이 도면 문자 삽입으로 해석될 수 있습니다. 따라서 실제 `SWTITLECONVERTNEXT`/`SWTITLECONVERT` 명령 입력과 GMTITLE 창 선택은 사용자가 직접 하고, Codex는 로그/문서/검증 기준을 정리하는 쪽으로 사용합니다.
+Codex Computer Use의 화면 클릭은 활성화와 동적 입력 해석이 안정적이지 않으므로 GMTITLE 자동화에 사용하지 않습니다. 실제 대화상자 선택은 생산용 고정 컨트롤 보조 프로그램이 대상 GstarCAD HWND와 컨트롤 ID를 검증해 수행합니다. 사용자는 CAD 명령줄에서 `SWTITLECONVERTNEXT`를 실행하고 최종 상태와 대표 더블클릭 결과를 확인합니다.
 
 ## Hidden Suite 검증 상태
 
@@ -418,7 +436,7 @@ SWTITLECONVERTNEXT
 powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\run_goal_status.ps1
 ```
 
-또는 `work\main56_verification_suite_last_run.txt`의 `Generated:`와 `Result:`를 직접 봅니다.
+또는 `work\main56_verification_suite_last_run.txt`의 `Generated:`, `Result:`, `Worktree evidence hash:`를 직접 봅니다. 작업트리가 dirty이면 직접 파일만 보지 말고 `run_next_cad_action.ps1`가 출력하는 `suite 작업트리 지문 현재와 일치`가 `예`인지 확인합니다.
 이 문서는 특정 과거 실행 시각을 현재 기준으로 고정하지 않습니다.
 
 ```text
@@ -480,7 +498,7 @@ SWTITLESTATUS
 SWTITLECONVERT
 ```
 
-`SWTITLECONVERTNEXT`는 아래의 `YES`/`OPEN` 선택만 자동으로 고르고, GMTITLE 창에서 DR 용지/제목블록/옵션을 확인하는 일은 그대로 남깁니다.
+`SWTITLECONVERTNEXT`는 work 복사본에서 `YES`/`OPEN` 응답뿐 아니라 GMTITLE 창의 DR 용지/제목블록/옵션도 고정 컨트롤로 선택하고 readback합니다.
 
 따라서 `SWTITLECONVERTNEXT`를 쓴 경우에는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않습니다. 아래 응답표는 수동 `SWTITLECONVERT`로 직접 고를 때만 봅니다.
 
@@ -496,6 +514,7 @@ OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복됨: MANUAL
 ```
 
 처음부터 `BATCH`를 쓰지 않습니다. 먼저 `OPEN`으로 후보 수가 줄어드는지 확인한 뒤, 같은 선택값이 반복되는 구간에서만 사용합니다.
+현재 카드가 반복 BATCH 검토 가능을 출력하면 이 조건을 충족한 것으로 보고, 한 장씩 `SWTITLECONVERTNEXT`를 반복하는 대신 수동 `SWTITLECONVERT`의 `BATCH`로 같은 조건 구간을 줄일 수 있습니다.
 
 최종 검증:
 
@@ -503,9 +522,9 @@ OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복됨: MANUAL
 SWTITLEVERIFY
 ```
 
-## GMTITLE 창에서 선택할 값
+## GMTITLE 자동 선택값과 수동 fallback
 
-`SWTITLECONVERTNEXT` 또는 수동 `SWTITLECONVERT` 중 GMTITLE 창이 열리면 로그가 요구한 값만 고릅니다.
+`SWTITLECONVERTNEXT`는 아래 값을 자동 선택합니다. 자동 선택이 불가능해 수동 `SWTITLECONVERT`로 전환했을 때만 같은 값을 직접 고릅니다.
 
 ```text
 용지/도면틀: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline 중 로그가 요구한 것

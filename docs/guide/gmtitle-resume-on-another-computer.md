@@ -29,7 +29,7 @@ codex/gm-title
 주의:
 
 ```text
-2026-07-05 현재 로컬 작업 기준은 `260707-convert-next-clone-upgrade-19`입니다.
+2026-07-05 현재 로컬 작업 기준은 `260710-fixed-control-autoselect-1`입니다.
 현재 로컬 브랜치는 GitHub보다 앞선 커밋이 있을 수 있으므로, 다른 PC에서 이어가기 전에 이 브랜치가 GitHub에 push됐는지 확인합니다.
 다른 PC에서는 `codex/gm-title` 브랜치를 받은 뒤, CAD에서 `SWTITLEVERSION`으로 실제 로드 버전을 확인합니다.
 ```
@@ -79,7 +79,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260707-convert-next-clone-upgrade-19
+260710-fixed-control-autoselect-1
 ```
 
 다른 버전이면 변환하지 말고 다시 APPLOAD 합니다. 그래도 다른 버전이면 다른 브랜치를 받았거나, 열린 CAD 세션이 예전 LSP를 유지하고 있을 수 있습니다.
@@ -115,7 +115,7 @@ SWTITLESTATUS
 SWTITLECONVERTNEXT
 ```
 
-`SWTITLECONVERTNEXT`는 `YES`/`OPEN` 같은 반복 응답만 현재 상태에 맞게 자동 선택합니다. GMTITLE 창의 DR 용지/제목블록/옵션 확인은 직접 해야 합니다.
+`SWTITLECONVERTNEXT`는 work 복사본에서 `YES`/`OPEN` 응답과 GMTITLE 창의 DR 용지/제목블록/옵션을 고정 컨트롤로 자동 선택하고 readback합니다. 컨트롤이나 값이 예상과 다르면 기존 원본을 유지하고 중단합니다.
 
 수동 응답을 직접 고르고 싶으면 아래 명령을 대신 사용할 수 있습니다.
 
@@ -141,9 +141,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 
 이 명령은 DWG를 직접 편집하지 않고 direct probe를 갱신한 뒤 다음 한 단계 요약을 보여줍니다. 긴 next-action card 전체는 로그 파일에 남습니다. 최종 검증 단계라면 final completion gate도 이어서 확인합니다.
 
-## GMTITLE 창에서 선택
+## GMTITLE 자동 선택과 수동 fallback
 
-`SWTITLECONVERT` 중 GMTITLE 창이 열리면 로그가 요구한 값만 선택합니다.
+일반적으로 `SWTITLECONVERTNEXT`가 아래 값을 자동 선택합니다. 자동 선택을 사용할 수 없어 수동 `SWTITLECONVERT`로 전환한 경우에만 로그가 요구한 값을 직접 선택합니다.
 
 ```text
 용지/도면틀: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline 중 로그가 요구한 것

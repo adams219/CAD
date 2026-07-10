@@ -356,7 +356,7 @@
     (progn
       (setq *swcad-title-debug-log-handle* handle)
       (setq *swcad-title-debug-log-path* log-path)
-      (swtitle-a4native-write-line handle "SWTITLE A4 native exemplar probe")
+      (swtitle-a4native-write-line handle "SWTITLE source-title-missing native exemplar probe (A4-sized sample)")
       (if load-ok
         (swtitle-a4native-write-line handle "Load result: OK")
         (swtitle-a4native-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))

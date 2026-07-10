@@ -41,8 +41,19 @@ $env:SWCAD_TOOL_ROOT = $repoRoot
 $env:SWCAD_ACTUAL_WORKCOPY_STATUS_LOG = $LogPath
 $env:SWCAD_ACTUAL_WORKCOPY_LOG_SUFFIX = $DetailSuffix
 
-& (Join-Path $PSScriptRoot "run_readonly_probe.ps1") `
+$probeOutput = & (Join-Path $PSScriptRoot "run_readonly_probe.ps1") `
   -DwgPath $SourceWorkCopyPath `
   -ScriptPath $scriptPath `
   -LogPath $LogPath `
   -TimeoutSeconds $TimeoutSeconds
+
+$probeOutput | Write-Output
+
+if (-not (Test-Path -LiteralPath $LogPath)) {
+  throw "Direct work-copy probe failed: expected log was not created: $LogPath"
+}
+
+$probeText = Get-Content -LiteralPath $LogPath -Raw -ErrorAction Stop
+if ($probeText -notmatch "Runtime check completed:\s*yes") {
+  throw "Direct work-copy probe failed: expected 'Runtime check completed: yes' in $LogPath"
+}

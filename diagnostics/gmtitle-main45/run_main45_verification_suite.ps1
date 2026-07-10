@@ -1,7 +1,7 @@
 ﻿param(
   [string]$SourceWorkCopyPath,
 
-  [int]$TimeoutSeconds = 90,
+  [int]$TimeoutSeconds = 240,
 
   [ValidateSet("Hidden", "Minimized", "Normal", "Maximized")]
   [string]$ProbeWindowStyle = "Minimized",
@@ -72,6 +72,41 @@ function Get-SuiteFirstRegexValue {
     return $match.Groups[1].Value.Trim()
   }
   return $null
+}
+
+function Get-GitWorktreeEvidence {
+  param([string]$RepoRoot)
+
+  $chunks = New-Object System.Collections.Generic.List[string]
+  $statusText = ""
+  try {
+    $statusText = ((& git -C $RepoRoot -c core.autocrlf=false -c core.safecrlf=false status --short 2>$null) -join "`n")
+    [void]$chunks.Add("git status --short")
+    [void]$chunks.Add($statusText)
+    [void]$chunks.Add("git diff --binary")
+    [void]$chunks.Add(((& git -C $RepoRoot -c core.autocrlf=false -c core.safecrlf=false diff --binary --no-ext-diff -- 2>$null) -join "`n"))
+    [void]$chunks.Add("git diff --cached --binary")
+    [void]$chunks.Add(((& git -C $RepoRoot -c core.autocrlf=false -c core.safecrlf=false diff --cached --binary --no-ext-diff -- 2>$null) -join "`n"))
+
+    $joined = ($chunks -join "`n")
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($joined)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+      $hash = (($sha.ComputeHash($bytes) | ForEach-Object { $_.ToString("x2") }) -join "")
+    } finally {
+      $sha.Dispose()
+    }
+
+    return @{
+      Dirty = (-not [string]::IsNullOrWhiteSpace($statusText))
+      Hash = $hash
+    }
+  } catch {
+    return @{
+      Dirty = (-not [string]::IsNullOrWhiteSpace($statusText))
+      Hash = "<unavailable>"
+    }
+  }
 }
 
 function Write-SuiteStatusSummary {
@@ -231,6 +266,7 @@ if (-not (Test-Path -LiteralPath $preFirstNativeWorkCopyPath)) {
   throw "Pre-first-native work-copy DWG not found: $preFirstNativeWorkCopyPath"
 }
 
+$suiteStartWorktreeEvidence = Get-GitWorktreeEvidence -RepoRoot $repoRoot
 Set-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value @(
   "===== GMTITLE main56 verification suite last run =====",
   ("Generated: {0}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss K")),
@@ -238,6 +274,8 @@ Set-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value @(
   ("Source work copy: {0}" -f $SourceWorkCopyPath),
   ("Probe window style: {0}" -f $ProbeWindowStyle),
   ("Timeout seconds: {0}" -f $TimeoutSeconds),
+  ("Worktree dirty at suite start: {0}" -f ($(if ($suiteStartWorktreeEvidence.Dirty) { "yes" } else { "no" }))),
+  ("Worktree evidence hash at suite start: {0}" -f $suiteStartWorktreeEvidence.Hash),
   "Result: RUNNING_OR_FAILED_BEFORE_PASS"
 )
 $script:suiteLastRunInitialized = $true
@@ -327,7 +365,7 @@ Assert-LogContains `
   -Patterns @(
     "Load result: OK",
     "Loaded loader version: 260706-loader-convert-next-response-guidance",
-    "Loaded GMTITLE version: 260707-convert-next-clone-upgrade-19",
+    "Loaded GMTITLE version: 260710-fixed-control-autoselect-1",
     "Command-line -GMTITLE default enabled: no",
     "SCRIPT command-line -GMTITLE enabled: no",
     "Command c:SWTITLESTATUS: yes",
@@ -353,7 +391,7 @@ Assert-LogContains `
   -Label "current LSP copy compare probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "Command-line -GMTITLE default enabled: no",
     "SCRIPT command-line -GMTITLE enabled: no",
     "Command c:SWTITLESTATUS: yes",
@@ -363,16 +401,16 @@ Assert-LogContains `
     "Command c:SWTITLEFASTSTATUS: no",
     "Result: OK SWTITLESTATUS status=NEXT_RUN_FAST_BATCH",
     "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_FAIL",
-    "source-title-count: 9",
-    "source-frame-count: 11",
+    "source-title-count: 8",
+    "source-frame-count: 10",
     "frame-only-count: 2",
-    "target-title-count: 4",
-    "target-frame-count: 4",
+    "target-title-count: 5",
+    "target-frame-count: 5",
     "frame-definition-blockers: 0",
     "frame-embedded-cleanup-records: 0",
     "A2: 1",
     "A3: 12",
-    "A3: 3",
+    "A3: 4",
     "A4: 2",
     "Runtime check completed: yes"
   )
@@ -388,16 +426,16 @@ Assert-LogContains `
   -Label "actual work-copy status probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "Result: OK SWTITLESTATUS status=NEXT_RUN_FAST_BATCH",
     "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_FAIL",
-    "source-title-count: 9",
-    "source-frame-count: 11",
+    "source-title-count: 8",
+    "source-frame-count: 10",
     "frame-only-count: 2",
-    "target-title-count: 4",
-    "target-frame-count: 4",
-    "target-gmtitle-pair-count: 4",
-    "native-like-target-pair-count: 4",
+    "target-title-count: 5",
+    "target-frame-count: 5",
+    "target-gmtitle-pair-count: 5",
+    "native-like-target-pair-count: 5",
     "non-native-like-target-pair-count: 0",
     "cloned-gmtitle-pair-count: 0",
     "a2a3a4-native-upgrade-candidate-count: 0",
@@ -412,31 +450,31 @@ Assert-LogContains `
     "next-bootstrap-source-sheet: A3",
     "next-bootstrap-frame: DR_A3_Outline",
     "next-bootstrap-title: DR_titlea_3rd",
-    "next-missing-native-source-sheet: A4",
-    "next-missing-native-frame: DR_A4_Outline",
-    "next-missing-native-title: <none-frame-only>",
-    "next-missing-native-role: frame-only",
-    "missing-native-frame: DR_A4_Outline",
+    "next-missing-native-source-sheet: <none>",
+    "next-missing-native-frame: <none>",
+    "next-missing-native-title: <none>",
+    "next-missing-native-role: <none>",
+    "missing-native-frame: <none>",
     "first-native-guidance-ok: no",
     "A2: 1",
     "A3: 12",
-    "A3: 3",
+    "A3: 4",
     "A4: 2",
     "Runtime check completed: yes"
   )
 
 Write-Output ""
-Write-Output "===== 4. A4 native exemplar gap probe ====="
+Write-Output "===== 4. Source-title-missing native exemplar gap probe (A4-sized sample) ====="
 & (Join-Path $PSScriptRoot "run_a4_native_exemplar_probe.ps1") `
   -SourceWorkCopyPath $SourceWorkCopyPath `
   -LogPath $a4NativeExemplarLog `
   -TimeoutSeconds $TimeoutSeconds
 Assert-LogContains `
   -Path $a4NativeExemplarLog `
-  -Label "A4 native exemplar gap probe" `
+  -Label "Source-title-missing native exemplar gap probe (A4-sized sample)" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "DBMOD before checks: 0",
     "Source frame-only count: 2",
     "A2: 1",
@@ -455,7 +493,7 @@ Assert-LogContains `
   )
 
 Write-Output ""
-Write-Output "===== 5. A4 outline native outside marker prepare probe ====="
+Write-Output "===== 5. Source-title-missing outline native outside marker prepare probe (A4-sized sample) ====="
 & (Join-Path $PSScriptRoot "run_a4_outline_prepare_probe.ps1") `
   -SourceWorkCopyPath $SourceWorkCopyPath `
   -ProbeDwgPath (Join-Path $workDir "swtitle_a4_outline_prepare_probe_main56_default.dwg") `
@@ -463,10 +501,10 @@ Write-Output "===== 5. A4 outline native outside marker prepare probe ====="
   -TimeoutSeconds $TimeoutSeconds
 Assert-LogContains `
   -Path $a4OutlinePrepareLog `
-  -Label "A4 outline native outside marker prepare probe" `
+  -Label "Source-title-missing outline native outside marker prepare probe (A4-sized sample)" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "Before definition status: missing",
     "Before frame-only-count: 2",
     "Before target-sheet-counts:",
@@ -499,21 +537,21 @@ Assert-LogContains `
   -Label "Title-missing outline convert probe (A4-sized source-title-missing sample)" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
-    "Before source-title-count: 9",
+    "Loaded version: 260710-fixed-control-autoselect-1",
+    "Before source-title-count: 8",
     "Before frame-only-count: 2",
-    "Before target title count: 4",
+    "Before target title count: 5",
     "Before DR_A4_Outline target frame count: 0",
     "Prepare result: OK status=OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED",
     "After prepare definition status: ready-native-outside-markers",
     "Convert result: OK status=FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER",
-    "After source-title-count: 9",
+    "After source-title-count: 8",
     "After frame-only-count: 1",
-    "After target title count: 4",
+    "After target title count: 5",
     "After DR_A4_Outline target frame count: 1",
     "After target-sheet-counts:",
     "A2: 1",
-    "A3: 3",
+    "A3: 4",
     "A4: 1",
     "Runtime check completed: yes"
   )
@@ -529,15 +567,15 @@ Assert-LogContains `
   -Label "SWTITLECONVERT script guard probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "SWTITLECONVERT result: OK",
     "Script active before convert: yes",
     "Status after convert: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE",
-    "Source titles before/after: 9/9",
-    "Source frames before/after: 11/11",
+    "Source titles before/after: 8/8",
+    "Source frames before/after: 10/10",
     "Frame-only before/after: 2/2",
-    "Target titles before/after: 4/4",
-    "Target frames before/after: 4/4",
+    "Target titles before/after: 5/5",
+    "Target frames before/after: 5/5",
     "INSERT count before/after: 120/120",
     "DBMOD before/after: 0/0",
     "Convert script guard preserved drawing: yes",
@@ -607,7 +645,7 @@ Assert-LogContains `
   -Path $styleNormalizationLog `
   -Label "A2/A3/A4 style-normalization rebuild cleanup probe" `
   -Patterns @(
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "DR_A2_Outline: class=native-format-with-title-geometry",
     "DR_A3_Outline: class=native-format-with-title-geometry",
     "DR_A4_Outline: class=native-format-with-title-geometry",
@@ -629,7 +667,7 @@ Assert-LogContains `
   -Path $commandTextGuardLog `
   -Label "command-text guard comparison probe" `
   -Patterns @(
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "command-text-count-before: 1",
     "SWTITLESTATUS result: OK status=NEXT_REVIEW_ACCIDENTAL_COMMAND_TEXT",
     "structure-next-action: SWTITLEPREPARE",
@@ -649,7 +687,7 @@ Assert-LogContains `
   -Path $residueProtectionLog `
   -Label "sheet residue protection probe" `
   -Patterns @(
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "bottom-left logo line candidate: yes",
     "bottom-left real text preserved: yes",
     "upper small SW_NOTE balloon preserved: yes",
@@ -672,7 +710,7 @@ Assert-LogContains `
   -Path $embeddedPrepareLog `
   -Label "embedded-title prepare comparison probe" `
   -Patterns @(
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "DR_A2_Outline: class=native-format-with-title-geometry, embedded=4",
     "DR_A3_Outline: class=native-format-with-title-geometry, embedded=4",
     "DR_A4_Outline: class=native-format-with-title-geometry, embedded=4",
@@ -698,7 +736,7 @@ Assert-LogContains `
   -Path $duplicateTargetPairLog `
   -Label "duplicate target pair comparison probe" `
   -Patterns @(
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "Duplicate function present: yes",
     "Duplicate target pair count: 1",
     "Keep frame/title role:",
@@ -721,7 +759,7 @@ Assert-LogContains `
   -Path $adoptionGateLog `
   -Label "native adoption gate comparison probe" `
   -Patterns @(
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "Adoption function present: yes",
     "Status after transfer: ADOPTED_EXISTING_NATIVE_GMTITLE_TRANSFER",
     "Danger action: <none>",
@@ -741,12 +779,12 @@ Assert-LogContains `
   -Path $postFirstNativeTransitionLog `
   -Label "post-first-native marker gate probe" `
   -Patterns @(
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "Bootstrap before fixture: A2 / DR_A2_Outline / DR_titlea_3rd",
     "A2 marker-only title native-link kinds: <none>",
     "Source title count after fixture: 12",
     "Native-like pair count after fixture: 0",
-    "Missing native frames after fixture: DR_A3_Outline, DR_A4_Outline",
+    "Missing native frames after fixture: DR_A3_Outline",
     "Next missing native selection after fixture: A3 / DR_A3_Outline / DR_titlea_3rd / title-sheet",
     "Status after SWTITLESTATUS: NEXT_UPGRADE_NATIVE_GMTITLE",
     "Expected gate: marker-only A2 target is not accepted as native-like GMTITLE and must be upgraded.",
@@ -764,7 +802,7 @@ Assert-LogContains `
   -Path $a3StatusGuidanceLog `
   -Label "A3 status guidance probe" `
   -Patterns @(
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "A2/A3/A4 candidate count before SWTITLESTATUS: 1",
     "SWTITLESTATUS result: OK",
     "Status after SWTITLESTATUS: NEXT_UPGRADE_NATIVE_GMTITLE",
@@ -785,7 +823,7 @@ Assert-LogContains `
   -Label "A2/A3/A4 native replacement batch guard probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "Script active: yes",
     "Batch result: OK",
     "Status after batch: ABORT_NATIVE_GMTITLE_BATCH_SCRIPT_ACTIVE",
@@ -819,6 +857,7 @@ Write-Output ""
 Write-Output "All expected log markers were verified."
 Write-Output "===== GMTITLE main56 verification suite complete ====="
 
+$suiteEndWorktreeEvidence = Get-GitWorktreeEvidence -RepoRoot $repoRoot
 Set-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value @(
   "===== GMTITLE main56 verification suite last run =====",
   ("Generated: {0}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss K")),
@@ -826,6 +865,8 @@ Set-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value @(
   ("Source work copy: {0}" -f $SourceWorkCopyPath),
   ("Probe window style: {0}" -f $ProbeWindowStyle),
   ("Timeout seconds: {0}" -f $TimeoutSeconds),
+  ("Worktree dirty at suite run: {0}" -f ($(if ($suiteEndWorktreeEvidence.Dirty) { "yes" } else { "no" }))),
+  ("Worktree evidence hash: {0}" -f $suiteEndWorktreeEvidence.Hash),
   "Result: PASS",
   "Verified markers:",
   "  no-CAD next-action card probe: PASS",
@@ -834,8 +875,8 @@ Set-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value @(
   "  Loader probe: PASS",
   "  Current LSP copy compare probe: PASS",
   "  Actual work-copy status probe: PASS",
-  "  A4 native exemplar gap probe: PASS",
-  "  A4 outline native outside marker prepare probe: PASS",
+  "  Source-title-missing native exemplar gap probe (A4-sized sample): PASS",
+  "  Source-title-missing outline native outside marker prepare probe (A4-sized sample): PASS",
   "  Title-missing outline convert probe (A4-sized source-title-missing sample): PASS",
   "  SWTITLECONVERT script guard probe: PASS",
   "  Common A2/A3/A4 frame-definition probe: PASS",

@@ -33,7 +33,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260707-convert-next-clone-upgrade-19
+260710-fixed-control-autoselect-1
 ```
 
 다른 버전이 보이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -55,32 +55,35 @@ SWTITLEVERIFY
 SWTITLECONVERT
 ```
 
-`SWTITLECONVERTNEXT`는 현재 상태에서 안전한 다음 흐름만 실행합니다. 첫 native 생성/누락 크기 생성은 `YES`, 남은 표제란 시트는 다음 1장 clone 후 생긴 A2/A3/A4 native 교체 후보 1장을 이어서 `OPEN`으로 처리합니다. 빠른 일괄 변환은 수동 `SWTITLECONVERT`에서 의도적으로 선택할 때만 사용합니다. 단, GMTITLE 창에서 `DR_A*_Outline`, `DR_titlea_3rd`, `Frame positioning: ON`, `Object move: OFF`를 눈으로 확인하는 단계는 그대로 필요합니다.
+`SWTITLECONVERTNEXT`는 `work` 복사본과 GstarCAD 창을 확인한 뒤 고정 컨트롤 ID로 현재 시트의 `DR_A*_Outline`, `DR_titlea_3rd`, `Frame positioning: ON`, `Object move: OFF`를 선택하고 readback을 통과한 경우에만 확인 버튼을 누릅니다. 남은 표제란 시트는 preserve-copy 공유 핸들을 재사용하지 않고 각각 새 native GMTITLE로 연속 변환합니다. 고정 컨트롤을 찾지 못하거나 readback 값이 다르면 기존 원본을 유지하고 중단하며, 그때만 수동 `SWTITLECONVERT` fallback을 사용합니다.
+
+`run_next_cad_action.ps1` 카드가 `반복 BATCH 검토 가능`을 표시하면, 이미 같은 DR 용지/제목블록/옵션으로 후보 수가 줄어드는 흐름을 확인했다는 뜻입니다. 이때는 한 장씩 `SWTITLECONVERTNEXT`를 반복하는 대신 수동 `SWTITLECONVERT`를 실행하고 내부 질문에서 `BATCH`를 선택해 같은 조건 구간을 빠르게 처리할 수 있습니다. ISO/일반 기본값, 다른 용지, 후보 수 미감소, 원본 도면 내용 과삭제가 보이면 즉시 중단하고 `SWTITLESTATUS`로 돌아갑니다.
 
 자동화 경계:
 
 ```text
-LSP가 자동 처리:
+LSP와 고정 컨트롤 보조 프로그램이 자동 처리:
   현재 후보 판별
+  DR_A*_Outline과 DR_titlea_3rd 선택
+  Frame positioning ON / Object move OFF 설정과 readback
   왼쪽 아래 배치점 전송
   표제란 값 복사
   이전 SolidWorks 원본 정리
   새 결과 검사/rollback
 
 사람이 확인:
-  GMTITLE 창의 DR_A*_Outline 용지
-  DR_titlea_3rd 제목블록
-  Frame positioning ON
-  Object move OFF
+  현재 열린 파일이 work 복사본인지 확인
+  자동 변환 후 SWTITLESTATUS/SWTITLEVERIFY 결과
+  대표 DR_titlea_3rd 제목블록의 더블클릭 편집창
 ```
 
-GMTITLE 창 선택까지 완전 자동으로 켜지 않는 이유는 GstarCAD가 일반/ISO 기본값으로 열릴 수 있고, 리본/스크린 좌표 자동화는 안정 증거가 없기 때문입니다. 이 경계가 현재 가장 안전한 자동화 범위입니다.
+자동 선택은 리본이나 스크린 좌표를 사용하지 않습니다. GMTITLE 창의 고정 컨트롤 ID `3010`, `3011`, `3022`, `3024`, `1`을 사용하며 대상 DWG, GstarCAD HWND, 선택값 readback이 모두 맞을 때만 진행합니다.
 
 | 명령 | 용도 | 도면 변경 |
 | --- | --- | --- |
 | `SWTITLESTATUS` | 현재 DWG 상태를 읽기 전용으로 진단하고 다음에 실행할 명령을 안내합니다. work 복사본 여부, 원본 시트 수, A2/A3/A4 예상 수량, GMTITLE target 수량, 도면틀 정의 상태, title-missing/frame-only 예외 상태를 확인합니다. | 없음 |
 | `SWTITLEPREPARE` | 변환 전에 필요한 정리만 수행합니다. 실수로 들어간 명령어 텍스트, 겹친 GMTITLE target, 오염 의심 도면틀 정의, 위험한 raw bbox 등을 후보로 보여주고 `YES` 확인 뒤 처리합니다. | 있음 |
-| `SWTITLECONVERTNEXT` | 상태에 맞는 변환 단계를 실행하면서 `YES`/`OPEN` 같은 반복 응답만 자동 선택합니다. 사용자는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않고, GMTITLE 창의 DR 용지/제목블록/옵션만 확인합니다. | 있음 |
+| `SWTITLECONVERTNEXT` | 상태에 맞는 변환 단계를 실행하고, work 복사본에서는 고정 컨트롤로 DR 용지/제목블록/옵션을 검증하여 남은 시트를 실제 native GMTITLE로 연속 처리합니다. 자동 선택이 불가능하면 원본을 유지하고 중단합니다. | 있음 |
 | `SWTITLECONVERT` | `SWTITLECONVERTNEXT`와 같은 변환 흐름을 사용하되, `YES`/`OPEN`/`BATCH`/`MANUAL` 응답을 사용자가 직접 고릅니다. | 있음 |
 | `SWTITLEVERIFY` | 변환 결과를 읽기 전용으로 검증합니다. 남은 원본, 누락/중복, A2/A3/A4 수량, native-like 상태, 최종 OK/WARN/FAIL을 확인합니다. | 없음 |
 
@@ -117,6 +120,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 ```
 
 이 래퍼는 DWG를 편집하지 않고 direct probe 갱신, 다음 한 단계 요약 출력, 필요 시 final completion gate 실행을 한 번에 묶습니다. 그래서 예전 로그를 보고 같은 `SWTITLECONVERTNEXT`를 반복하는 실수를 줄입니다.
+수동 GMTITLE 한 장을 처리한 뒤에는 이 래퍼가 기존 direct probe 로그를 재사용하지 않고, 저장된 DWG를 hidden GstarCAD로 다시 읽습니다. 파일 저장 시간이 그대로라면 다른 DWG를 저장했거나 실제 저장이 반영되지 않았을 수 있으므로 이 점검 결과를 먼저 봅니다.
 
 작업복사본 열기부터 한 장 처리 후 점검까지 한 번에 묶으려면 아래 세션 래퍼를 사용할 수 있습니다.
 
@@ -157,9 +161,9 @@ OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복됨: MANUAL
 판단이 애매하거나 현재 DWG가 다름: Enter로 중단
 ```
 
-## GMTITLE 창에서 확인할 값
+## GMTITLE 자동 선택값과 수동 fallback
 
-`SWTITLECONVERTNEXT` 또는 수동 `SWTITLECONVERT` 중 GMTITLE 창이 열리면 로그가 요구한 값만 선택합니다.
+`SWTITLECONVERTNEXT`는 아래 값을 자동 선택하고 다시 읽어 검증합니다. 자동 선택을 사용할 수 없어 수동 `SWTITLECONVERT`로 전환한 경우에만 같은 값을 직접 선택합니다.
 
 ```text
 용지/도면틀: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline 중 로그가 요구한 것
@@ -184,7 +188,7 @@ ISO 제목블록
 
 ## A2/A3/A4 native 교체
 
-A2/A3/A4 복제 GMTITLE은 화면상 비슷해도 일부가 고급 속성 편집기로 열릴 수 있습니다. 그래서 `SWTITLECONVERTNEXT`는 필요한 경우 복제/shared-link 쌍을 fresh native GMTITLE로 한 장씩 교체합니다.
+A2/A3/A4 복제 GMTITLE은 화면상 비슷해도 일부가 고급 속성 편집기로 열릴 수 있습니다. 그래서 `SWTITLECONVERTNEXT`는 고정 컨트롤 자동 선택이 가능하면 복제/shared-link 쌍을 각각 fresh native GMTITLE로 연속 교체합니다.
 
 `SWTITLESTATUS`가 native 교체 후보를 표시하면 title-missing/frame-only 예외보다 그 후보를 먼저 처리합니다.
 
@@ -195,7 +199,7 @@ SWTITLESTATUS
 
 후보 수가 줄어들면 정상 진행입니다. 후보 수가 줄지 않고 같은 경고가 반복되면 변환을 계속 누르기보다 `SWTITLEVERIFY` 로그와 해당 제목블록 더블클릭 동작을 확인합니다.
 
-`BATCH`는 처음부터 쓰는 빠른 길이 아닙니다. 먼저 `OPEN`으로 A2/A3/A4 후보 1장이 실제로 줄어드는지 확인한 뒤, 다음 후보들이 같은 DR 용지/제목블록/옵션으로 반복된다는 걸 눈으로 확인할 수 있을 때만 사용합니다.
+`OPEN`/`BATCH`는 고정 컨트롤 자동 선택을 사용할 수 없을 때의 수동 fallback입니다. 자동 경로에서는 `SWTITLECONVERTNEXT`가 readback을 매 시트 확인하므로 이 응답을 직접 입력하지 않습니다.
 
 ## title-missing/frame-only 예외
 

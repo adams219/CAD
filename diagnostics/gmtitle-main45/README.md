@@ -85,6 +85,64 @@ The script starts GstarCAD with `WindowStyle=Minimized` by default, waits for `R
 
 The runner now fails fast if another `gcad.exe` process is already open. In that state GstarCAD can route `/b` automation through the existing instance or wait behind an active command prompt, so the probe may never load its `.scr` file. Do not kill the user's visible CAD session automatically; save/close it intentionally, then rerun the probe. Use `-AllowExistingGstarCAD` only for deliberate debugging of that failure mode.
 
+## Preserve-Copy 1/2/3 Matrix Probe
+
+Use `run_preserve_copy_matrix_probe.ps1` to create three dedicated DWG copies under `work/`. The cases copy the same captured A3 native GMTITLE pair exactly 1, 2, and 3 times. They do not finalize a source transfer, do not delete source title/frame content, and do not add a new custom `clone` marker. Each pair inherits the source xdata as a pure preserve-copy control.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_preserve_copy_matrix_probe.ps1"
+```
+
+Each case records:
+
+```text
+GENIUS_GENOREF_13 internal handles and target kinds
+shared-link status for both the exemplar and copied pairs
+title/frame xdata
+persistent reactor values
+extension dictionary values
+owner/object identifiers and raw entget
+exact title double-click points for the recognition check
+```
+
+Expected structural result before the visible recognition check:
+
+```text
+Result: PRESERVE_COPY_STRUCTURAL_MATRIX_READY_FOR_CAD_RECOGNITION_CHECK
+```
+
+This result does not prove the GMTITLE table editor works. The saved `swtitle_preserve_copy_matrix_1.dwg`, `_2.dwg`, and `_3.dwg` copies still need the controlled title double-click comparison recorded in `docs/history/gmtitle-preserve-copy-dialog-automation-plan-2026-07-10.md`.
+
+## GMTITLE Fixed-Control Dialog Probe
+
+`run_gmtitle_dialog_control_session.ps1` tests the known GMTITLE dialog control IDs without screenshot coordinates:
+
+```text
+3010 paper/frame combo
+3011 title block combo
+3022 Frame positioning checkbox
+3024 Object move checkbox
+1    OK button
+```
+
+The runner creates `work\swtitle_dialog_control_session_probe.dwg`, starts an isolated GstarCAD session, and requires exact readback of `DR_A3_Outline`, `DR_titlea_3rd`, Frame positioning ON, and Object move OFF before it permits the OK control action. It refuses production paths, refuses non-`work` DWGs, and refuses to run while another GstarCAD process exists.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_gmtitle_dialog_control_session.ps1"
+```
+
+Inspect the dialog without changing its values or clicking OK:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_gmtitle_dialog_control_session.ps1" `
+  -InspectOnly
+```
+
+This is an experimental diagnostics path, not yet part of the four public LSP commands. Do not integrate it into `SWTITLESTATUS`, `SWTITLEPREPARE`, `SWTITLECONVERTNEXT`, or `SWTITLEVERIFY` until the isolated CAD result and post-insert validation both pass.
+
 ## Main45 Verification Suite
 
 Use `run_main45_verification_suite.ps1` to run the standard read-only checks in one command:
@@ -97,8 +155,8 @@ Before the hidden GstarCAD probes, the suite now runs two no-CAD preflights:
 1. loader probe
 2. current LSP compare-copy probe
 3. actual work-copy status/verify probe
-4. A4-sized source-title-missing native exemplar gap probe
-5. A4-sized source-title-missing native outside marker prepare probe
+4. source-title-missing native exemplar gap probe (A4-sized sample)
+5. source-title-missing outline native outside marker prepare probe (A4-sized sample)
 6. title-missing outline convert probe (A4-sized source-title-missing sample)
 7. SWTITLECONVERT script guard probe
 8. common A2/A3/A4 frame-definition classification probe
@@ -153,7 +211,7 @@ The suite also refreshes a concise latest-run summary:
 work\main56_verification_suite_last_run.txt
 ```
 
-At suite start this file is reset to `Result: RUNNING_OR_FAILED_BEFORE_PASS`. If the suite stops before the final pass gate, it appends `Result: FAILED_BEFORE_PASS` plus the failure message/command. Only a fully successful run rewrites it to `Result: PASS` and records the actual work-copy state, title-missing/frame-only evidence, and native batch guard evidence. Treat this file as the quick current suite summary, but keep using the individual probe logs for detailed diagnosis.
+At suite start this file is reset to `Result: RUNNING_OR_FAILED_BEFORE_PASS`. If the suite stops before the final pass gate, it appends `Result: FAILED_BEFORE_PASS` plus the failure message/command. Only a fully successful run rewrites it to `Result: PASS` and records the actual work-copy state, title-missing/frame-only evidence, native batch guard evidence, and a `Worktree evidence hash`. Treat this file as the quick current suite summary, but keep using `run_next_cad_action.ps1` to confirm that the saved hash still matches the current worktree before treating a dirty-worktree PASS as current evidence.
 
 The suite also fails before the first probe if `gcad.exe` is already running and `-WaitForGstarCADClose` is not used. Save the work-copy DWG and close GstarCAD first, otherwise hidden `/b` probes can attach to the visible session and never create their log.
 
@@ -326,6 +384,16 @@ click on the recovery panel close button failed with: failed to activate capture
 No work-copy DWG was opened and no drawing data was changed.
 ```
 
+2026-07-08 visible-CAD Computer Use recheck:
+
+```text
+GstarCAD launched as Drawing1.dwg and get_window_state captured the window.
+Typing a long command/path through Computer Use was interpreted by GstarCAD as _pasteclip.
+The intended work-copy DWG was not opened.
+No SWTITLECONVERTNEXT step was run against the real work-copy.
+Stop visible-CAD automation when _pasteclip appears; use screenshots for inspection and direct probe/helper scripts for evidence.
+```
+
 So this card intentionally says `수동 GstarCAD 단계`. Use Computer Use screenshots for inspection only unless a later session proves activation and input work reliably.
 
 The card now interprets common saved status codes directly:
@@ -340,7 +408,7 @@ SWTITLEVERIFY_FINAL_OK -> manual representative title-block double-click check
 
 It also refuses stale direct-probe logs. If the work-copy DWG was saved after the direct-probe log, the card returns `REFRESH_DIRECT_PROBE_FIRST` before showing another CAD command.
 
-Use `-AutoRefreshDirectProbe` only after saving and closing visible GstarCAD. The card runs `run_actual_workcopy_direct_status_probe.ps1` when the direct-probe log is missing, points to a different DWG, is older than the work-copy DWG save time, or was generated with a different GMTITLE LSP version. If the existing log already matches the same work-copy, save time, and current LSP version, the card reuses it and prints that reuse decision instead of launching GstarCAD again.
+Use `-AutoRefreshDirectProbe` only after saving and closing visible GstarCAD. The card runs `run_actual_workcopy_direct_status_probe.ps1` when the direct-probe log is missing, points to a different DWG, is older than the work-copy DWG save time, or was generated with a different GMTITLE LSP version. If the existing log already matches the same work-copy, save time, and current LSP version, the card reuses it and prints that reuse decision instead of launching GstarCAD again. Add `-ForceRefreshDirectProbe` when you specifically need fresh proof from the saved DWG even if the previous log appears current.
 
 The card also compares the latest final completion gate log with the direct-probe log. If `swtitle_final_completion_gate_status.txt` is newer and disagrees with the direct-probe status, verify result, or next native GMTITLE frame/title, the card returns `REVIEW_FINAL_GATE_DIRECT_PROBE_CONFLICT` instead of recommending another CAD command. Refresh the direct probe or rerun the final completion gate before continuing.
 
@@ -354,7 +422,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
   -Compact
 ```
 
-This wrapper does not edit the DWG. It checks that visible GstarCAD is closed, runs `run_next_cad_action.ps1 -AutoRefreshDirectProbe`, writes `work\swtitle_after_manual_gmtitle_step_last.txt`, and prints a short next-step summary from fresh direct-probe evidence. The full next-action card is kept in the log. If the refreshed card indicates final verification is ready, it also runs `run_final_completion_gate.ps1` and reports whether automated completion evidence passed.
+This wrapper does not edit the DWG. It checks that visible GstarCAD is closed, runs `run_next_cad_action.ps1 -AutoRefreshDirectProbe -ForceRefreshDirectProbe`, writes `work\swtitle_after_manual_gmtitle_step_last.txt`, and prints a short next-step summary from fresh direct-probe evidence. The forced refresh is intentional: after a manual CAD step, the wrapper must read the saved DWG again instead of trusting a previously current direct-probe log. The full next-action card is kept in the log. If the refreshed card indicates final verification is ready, it also runs `run_final_completion_gate.ps1` and reports whether automated completion evidence passed.
 
 Use `-WaitForGstarCADClose` if the command should wait while you save and close GstarCAD:
 
@@ -410,7 +478,7 @@ work\swtitle_a4_outline_prepare_probe_260705.txt
 Expected result for the current installed `DR_A4_Outline` state:
 
 ```text
-Loaded version: 260707-convert-next-clone-upgrade-19
+Loaded version: 260710-fixed-control-autoselect-1
 Before definition status: missing
 Prepare result: OK status=OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED
 After definition status: ready-native-outside-markers
@@ -676,7 +744,7 @@ Expected result:
 
 ```text
 Loaded loader version: 260706-loader-convert-next-response-guidance
-Loaded GMTITLE version: 260707-convert-next-clone-upgrade-19
+Loaded GMTITLE version: 260710-fixed-control-autoselect-1
 Command-line -GMTITLE default enabled: no
 SCRIPT command-line -GMTITLE enabled: no
 Command c:SWTITLESTATUS: yes
@@ -698,7 +766,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260707-convert-next-clone-upgrade-19
+Loaded version: 260710-fixed-control-autoselect-1
 A2/A3/A4 candidate count before SWTITLESTATUS: 1
 SWTITLESTATUS result: OK
 Status after SWTITLESTATUS: NEXT_UPGRADE_NATIVE_GMTITLE
@@ -720,7 +788,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260707-convert-next-clone-upgrade-19
+Loaded version: 260710-fixed-control-autoselect-1
 Script active: yes
 Status after batch: ABORT_NATIVE_GMTITLE_BATCH_SCRIPT_ACTIVE
 Candidates before/after: 2/2
@@ -741,7 +809,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260707-convert-next-clone-upgrade-19
+Loaded version: 260710-fixed-control-autoselect-1
 Script active before convert: yes
 Status after convert: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE
 Source titles before/after: 12/12

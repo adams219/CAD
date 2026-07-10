@@ -82,7 +82,7 @@
   )
 )
 
-(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count pair-records pair-count native-like-pair-count non-native-like-pair-count cloned-pair-count a3a4-native-upgrade-count orphan-target-frame-count duplicate-target-pair-count record bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames missing-selection-record missing-selection-sheet missing-selection-frame missing-selection-title missing-selection-role first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note first-native-selection-log-note manual-forecast-log-note structure-log title-missing-deferred-note verify-summary-log verify-source-priority verify-title-missing-first)
+(defun swtitle-diag45-main (/ log-path env-log-path handle load-result load-ok version-value old-log-suffix requested-log-suffix ok-version ok-status status-after-status ok-verify status-after-verify summary source-count source-frame-count frame-only-count expected-counts target-counts blockers embedded-records title-count frame-count pair-records pair-count native-like-pair-count non-native-like-pair-count cloned-pair-count a3a4-native-upgrade-count orphan-target-frame-count duplicate-target-pair-count record bootstrap-record bootstrap-sheet bootstrap-frame bootstrap-title missing-native-frames missing-selection-record missing-selection-sheet missing-selection-frame missing-selection-title missing-selection-role first-native-guidance-ok next-step-log log-evidence-note automation-split-note human-check-note first-native-selection-log-note manual-forecast-log-note source-before-title-missing-forecast-note structure-log title-missing-deferred-note verify-summary-log verify-source-priority verify-title-missing-first)
   (setq load-result
     (vl-catch-all-apply
       'load
@@ -125,7 +125,7 @@
         (swtitle-diag45-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))
       )
       (swtitle-diag45-write-line handle (strcat "Loaded version: " version-value))
-      (swtitle-diag45-write-line handle "Expected version: 260707-convert-next-clone-upgrade-19")
+      (swtitle-diag45-write-line handle "Expected version: 260710-fixed-control-autoselect-1")
       (swtitle-diag45-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-diag45-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-diag45-write-line handle (strcat "DBMOD before commands: " (itoa (getvar "DBMOD"))))
@@ -218,6 +218,18 @@
               (swtitle-diag45-file-contains-p next-step-log "장은 원본 표제란 부재가 검증된 경우에만 제목블록 생성 대상에서 제외합니다.")
             )
           )
+          (setq source-before-title-missing-forecast-note
+            (or
+              (swtitle-diag45-file-contains-p
+                next-step-log
+                "우선순위: 남은 원본 표제란 시트 변환이 title-missing/frame-only 예외보다 먼저입니다."
+              )
+              (swtitle-diag45-file-contains-p
+                next-step-log
+                "우선순위: 남은 원본 표제란 시트 변환이 title-없음/표제란 없는 도면틀 예외보다 먼저입니다."
+              )
+            )
+          )
           (setq structure-log (swcad-title-work-log-path "swcad_title_structure_diagnosis_last.txt"))
           (setq title-missing-deferred-note
             (swtitle-diag45-file-contains-p
@@ -257,6 +269,7 @@
           (swtitle-diag45-write-line handle (strcat "  human-check-note-found: " (if human-check-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  first-native-selection-log-note-found: " (if first-native-selection-log-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  manual-forecast-log-note-found: " (if manual-forecast-log-note "yes" "no")))
+          (swtitle-diag45-write-line handle (strcat "  source-before-title-missing-forecast-note-found: " (if source-before-title-missing-forecast-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  structure-log: " structure-log))
           (swtitle-diag45-write-line handle (strcat "  title-missing-deferred-note-found: " (if title-missing-deferred-note "yes" "no")))
           (swtitle-diag45-write-line handle (strcat "  verify-summary-log: " verify-summary-log))

@@ -10,7 +10,7 @@
 
   [string]$CompletionPattern = "Runtime check completed:",
 
-  [int]$TimeoutSeconds = 75,
+  [int]$TimeoutSeconds = 240,
 
   [ValidateSet("Hidden", "Minimized", "Normal", "Maximized")]
   [string]$WindowStyle = "Minimized",

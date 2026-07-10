@@ -16,18 +16,19 @@
 
 ```text
 브랜치: codex/gm-title
-작업트리: clean
+작업트리: 미커밋 변경분 있음. suite의 Worktree evidence hash가 현재와 일치하는지 run_next_cad_action.ps1로 확인
 정적 preflight: PASS
-hidden verification suite: PASS 여부는 `run_goal_status.ps1`가 최신 `work\main56_verification_suite_last_run.txt`의 Generated/Result를 읽어 판단
-GstarCAD /b script smoke probe: 현재 PC에서는 최근 suite가 FAILED_BEFORE_PASS일 수 있으므로 run_goal_status 결과를 우선
-GMTITLE LSP 버전: 260707-convert-next-clone-upgrade-19
+hidden verification suite: PASS 여부는 `run_goal_status.ps1`와 `run_next_cad_action.ps1`가 최신 `work\main56_verification_suite_last_run.txt`의 Generated/Result/Worktree evidence hash를 읽어 판단
+GstarCAD /b script smoke probe: 최근 main56 suite 안에서 PASS. 그래도 현재 PC/현재 작업트리 기준 여부는 suite 지문 일치로 확인
+GMTITLE LSP 버전: 260710-fixed-control-autoselect-1
 loader 버전: 260706-loader-convert-next-response-guidance
 공개 사용자 명령: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLECONVERT, SWTITLEVERIFY, SWTITLEVERSION, SWSCALESCAN
 A4 raw bbox guard: 있음
 SCRIPT/숨김 CAD interactive GMTITLE guard: 있음
 저장된 실제 작업복사본 direct probe: NEXT_RUN_FAST_BATCH
 A2/A3/A4 native 교체 후보: 0
-target title/frame: 4 / 4
+missing native GMTITLE: <none>
+target title/frame: 5 / 5
 다음 visible CAD 대상: DR_A3_Outline / DR_titlea_3rd
 ```
 
@@ -45,7 +46,7 @@ A4 도면틀에 원본에 없던 외부 선/글자 없음
 
 hidden suite 통과 근거는 `docs/history/gmtitle-main56-hidden-suite-pass-2026-07-05.md`에 남긴다. 다만 이 suite는 복사본/probe 기반 검증이므로 실제 work DWG의 최종 변환 완료를 대신하지 않는다.
 
-`diagnostics\gmtitle-main45\run_goal_status.ps1`는 `work\main56_verification_suite_last_run.txt`의 최근 suite 결과도 함께 보여준다. 이 줄은 "자동화/guard 검증은 통과했는가"와 "실제 작업복사본 변환이 끝났는가"를 분리해서 보기 위한 것이며, suite `PASS`만으로 목표 완료를 선언하지 않는다.
+`diagnostics\gmtitle-main45\run_goal_status.ps1`와 `run_next_cad_action.ps1`는 `work\main56_verification_suite_last_run.txt`의 최근 suite 결과도 함께 보여준다. 특히 작업트리가 dirty이면 `run_next_cad_action.ps1`의 `suite 작업트리 지문 현재와 일치`가 `예`인지 확인한다. 이 줄은 "자동화/guard 검증은 통과했는가"와 "실제 작업복사본 변환이 끝났는가"를 분리해서 보기 위한 것이며, suite `PASS`만으로 목표 완료를 선언하지 않는다.
 
 현재 로컬에서 GstarCAD가 열려 있으면 hidden verification suite는 일부러 실행하지 않는다. `/b` 스크립트가 기존 열린 CAD 세션으로 흘러가거나 명령 대기 상태 뒤에 멈출 수 있기 때문이다.
 
@@ -172,7 +173,7 @@ Object move가 OFF인지 확인
 ```text
 1. CAD가 열려 있으면 현재 열린 work 복사본에서 SWTITLESTATUS를 실행한다.
 2. work\swcad_title_next_step_last.txt 안의 DWG 경로가 현재 열린 도면과 같은지 확인한다.
-3. 수동 GMTITLE 한 장을 처리했다면 작업복사본을 저장하고 GstarCAD를 닫은 뒤 run_after_manual_gmtitle_step.ps1로 direct probe와 다음 카드를 갱신한다.
+3. 수동 GMTITLE 한 장을 처리했다면 작업복사본을 저장하고 GstarCAD를 닫은 뒤 run_after_manual_gmtitle_step.ps1로 direct probe와 다음 카드를 갱신한다. 이 래퍼는 기존 direct probe 로그를 재사용하지 않고 ForceRefreshDirectProbe로 실제 저장 DWG를 다시 읽는다.
 4. 단순히 카드만 다시 보고 싶을 때만 run_next_cad_action.ps1 또는 -AutoRefreshDirectProbe를 사용한다.
 5. 로그가 probe/diagnostics/예전 복사본을 가리키면 현재 작업 기준으로 쓰지 않는다.
 ```
@@ -180,7 +181,7 @@ Object move가 OFF인지 확인
 따라서 과거에 어떤 도면이 `NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION`이었더라도, 그 상태를 현재 열린 도면에 그대로 적용하지 않는다. 현재 도면의 `SWTITLESTATUS` 또는 direct probe 카드가 요구하는 한 단계만 실행한다.
 
 현재 기본 workcopy direct probe 기준은 첫 native GMTITLE 전 상태가 아니다.
-2026-07-08 저장본은 A2와 일부 A3가 만들어졌고, 남은 A3/A4를 계속 처리해야 한다.
+2026-07-08 저장본은 A2와 일부 A3가 만들어졌고, 남은 A3 원본 표제란 시트를 먼저 계속 처리해야 한다. A4는 target 수량은 부족하지만 missing-native GMTITLE 대상이 아니며, 원본 표제란 부재가 검증된 title-missing/frame-only 예외로 뒤에서 outline-only 처리한다.
 
 ```text
 상태 코드:
@@ -195,23 +196,30 @@ Object move: OFF
 SWTITLEVERIFY_FINAL_FAIL
 
 target title/frame:
-4 / 4
+5 / 5
 
 GMTITLE pair/native-like:
-4 / 4
+5 / 5
 
 A2/A3/A4 native 교체 후보:
 0
 
+missing native GMTITLE:
+<none>
+
 남은 원본:
-  표제란 시트 9
-  원본 도면틀 11
+  표제란 시트 8
+  원본 도면틀 10
   title-missing/frame-only 시트 2
 
 현재 부족한 target 수량:
-  A3: 필요 12, 현재 3
+  A3: 필요 12, 현재 4
   A4: 필요 2, 현재 0
 ```
+
+위 A4 target 부족은 새 `DR_titlea_3rd`를 만들라는 뜻이 아니다.
+남은 원본 표제란 시트가 8장이므로 `SWTITLECONVERTNEXT`는 A3 표제란 시트 변환을 먼저 안내해야 한다.
+title-missing/frame-only 2장은 원본 표제란 부재가 검증된 경우에만 같은 크기 DR 도면틀-only 경로로 처리한다.
 
 `SWTITLECONVERTNEXT`는 이 상태에서 남은 A3 전체를 한 번에 끝내지 않는다.
 다음 표제란 시트 1장을 clone 변환하고, 바로 생긴 native 교체 후보 1장을 이어서 visible CAD에서 확인한다.
@@ -346,7 +354,7 @@ nested-direct-outside probe:
 ```text
 LSP 기준:
 loader: 260706-loader-convert-next-response-guidance
-gmtitle: 260707-convert-next-clone-upgrade-19
+gmtitle: 260710-fixed-control-autoselect-1
 
 초기 기준 작업 도면:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
@@ -364,10 +372,11 @@ SWTITLEVERIFY_FINAL_FAIL
   대상 GMTITLE 제목블록: 0
   대상 GMTITLE 도면틀: 0
   예상 시트 수: A2 1, A3 12, A4 2
-  필요한 native 기준 객체: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline
+  필요한 native 기준 객체: DR_A2_Outline, DR_A3_Outline
 ```
 
-이 상태는 변환 전 기준이다. 새 복사본에서 이 상태가 나오면 A2/A3/A4 후보를 바로 복제 처리하는 단계가 아니라, 먼저 실제 GstarCAD `GMTITLE`로 각 용지 크기의 native 기준 객체를 만들어야 한다.
+이 상태는 변환 전 기준이다. 새 복사본에서 이 상태가 나오면 A2/A3/A4 후보를 바로 복제 처리하는 단계가 아니라, 먼저 실제 GstarCAD `GMTITLE`로 원본 표제란이 있는 용지 크기의 native 기준 객체를 만들어야 한다.
+위 예시에서 A4는 `표제란 없는 도면틀 시트`로만 감지되므로, 원본에 없던 `DR_titlea_3rd` 기준 객체를 만들지 않는다. A4는 남은 표제란 시트 변환이 끝난 뒤 같은 크기 DR 도면틀-only 예외로 처리한다.
 현재 저장본은 이 초기 상태를 지나 `NEXT_RUN_FAST_BATCH`에 있으므로, 다음 1장 A3 흐름을 진행한다.
 
 ### 로그 신뢰 기준
@@ -388,7 +397,7 @@ work\swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
 ```text
 신뢰 가능:
   DWG 파일이 현재 열린 work 복사본과 같음
-  SWTITLE LSP 버전이 260707-convert-next-clone-upgrade-19
+  SWTITLE LSP 버전이 260710-fixed-control-autoselect-1
   방금 실행한 명령 결과임
 
 신뢰 보류:
@@ -406,7 +415,7 @@ work\swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
 ```text
 첫 native GMTITLE 기준 객체 부재:
   현재 저장본에서는 이미 지나간 단계
-  근거: target-title-count=4, target-frame-count=4, status=NEXT_RUN_FAST_BATCH
+  근거: target-title-count=5, target-frame-count=5, status=NEXT_RUN_FAST_BATCH
 
 A2/A3/A4 native 인식 문제:
   현재 저장본에서는 직전 native 교체 후보가 0으로 정리됨
@@ -414,7 +423,7 @@ A2/A3/A4 native 인식 문제:
 
 남은 표제란 시트 변환:
   현재 주원인
-  근거: 남은 원본 표제란 시트=9, A3 target 부족=필요 12 / 현재 3, status=NEXT_RUN_FAST_BATCH
+  근거: 남은 원본 표제란 시트=8, A3 target 부족=필요 12 / 현재 4, status=NEXT_RUN_FAST_BATCH
 
 title-missing/frame-only 미처리:
   원본 표제란 부재가 검증된 경우에만 별도 주의 대상
@@ -447,7 +456,7 @@ BATCH 자동화:
 
 | 작업 단위 | 해결하려는 질문 | 통과 증거 | 통과 전 금지 |
 | --- | --- | --- | --- |
-| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260707-convert-next-clone-upgrade-19`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
+| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260710-fixed-control-autoselect-1`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
 | 첫 native 기준 객체 | 이 DWG 안에 실제 GMTITLE 쌍이 최소 1개 있는가 | `target-title-count > 0`, 같은 크기 `DR_A*_Outline` 기준 객체 존재 | clone/fast batch 완료 판단 |
 | A2/A3/A4 native 교체 | 겉보기 복제본이 아니라 fresh native 쌍인가 | `A2/A3/A4 native 교체 후보: 0`, clone/shared-link 경고 0 | 도면틀 더블클릭만 보고 성공 판정 |
 | title-missing/frame-only | 원본에 없는 제목블록 없이 도면틀만 교체됐는가 | title-missing 도면틀-only 대상 수와 예상 수량 일치, 불필요한 `DR_titlea_3rd` 없음 | 원본에 없던 제목블록 생성 |
@@ -655,7 +664,7 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260707-convert-next-clone-upgrade-19
+260710-fixed-control-autoselect-1
 
 DWG 파일:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\...
@@ -1015,7 +1024,7 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 
 ```text
 1. APPLOAD로 C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp 로드
-2. SWTITLEVERSION으로 gmtitle 버전이 260707-convert-next-clone-upgrade-19인지 확인
+2. SWTITLEVERSION으로 gmtitle 버전이 260710-fixed-control-autoselect-1인지 확인
 3. SWTITLESTATUS로 현재 상태 확인
 4. 현재 저장본이라면 NEXT_RUN_FAST_BATCH인지 확인
 5. SWTITLECONVERTNEXT 실행

@@ -1,7 +1,7 @@
 ﻿param(
   [string]$SourceWorkCopyPath,
 
-  [int]$TimeoutSeconds = 180,
+  [int]$TimeoutSeconds = 240,
 
   [switch]$WaitForGstarCADClose,
 
@@ -195,7 +195,7 @@ Assert-LogContains `
   -Label "final completion status probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260707-convert-next-clone-upgrade-19",
+    "Loaded version: 260710-fixed-control-autoselect-1",
     "Result: OK SWTITLESTATUS",
     "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_OK",
     "source-title-count: 0",

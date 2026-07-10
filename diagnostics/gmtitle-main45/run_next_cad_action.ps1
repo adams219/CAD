@@ -5,6 +5,8 @@
 
   [switch]$AutoRefreshDirectProbe,
 
+  [switch]$ForceRefreshDirectProbe,
+
   [int]$AutoRefreshTimeoutSeconds = 180
 )
 
@@ -122,6 +124,41 @@ function Test-GitWorkingTreeDirty {
     return (-not [string]::IsNullOrWhiteSpace(($status | Out-String)))
   } catch {
     return $false
+  }
+}
+
+function Get-GitWorktreeEvidence {
+  param([string]$RepoRoot)
+
+  $chunks = New-Object System.Collections.Generic.List[string]
+  $statusText = ""
+  try {
+    $statusText = ((& git -C $RepoRoot -c core.autocrlf=false -c core.safecrlf=false status --short 2>$null) -join "`n")
+    [void]$chunks.Add("git status --short")
+    [void]$chunks.Add($statusText)
+    [void]$chunks.Add("git diff --binary")
+    [void]$chunks.Add(((& git -C $RepoRoot -c core.autocrlf=false -c core.safecrlf=false diff --binary --no-ext-diff -- 2>$null) -join "`n"))
+    [void]$chunks.Add("git diff --cached --binary")
+    [void]$chunks.Add(((& git -C $RepoRoot -c core.autocrlf=false -c core.safecrlf=false diff --cached --binary --no-ext-diff -- 2>$null) -join "`n"))
+
+    $joined = ($chunks -join "`n")
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($joined)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+      $hash = (($sha.ComputeHash($bytes) | ForEach-Object { $_.ToString("x2") }) -join "")
+    } finally {
+      $sha.Dispose()
+    }
+
+    return @{
+      Dirty = (-not [string]::IsNullOrWhiteSpace($statusText))
+      Hash = $hash
+    }
+  } catch {
+    return @{
+      Dirty = Test-GitWorkingTreeDirty -RepoRoot $RepoRoot
+      Hash = "<unavailable>"
+    }
   }
 }
 
@@ -310,9 +347,17 @@ function Write-SuiteLastRunSummary {
   $result = if ($resultValues.Count -gt 0) { $resultValues[$resultValues.Count - 1] } else { "<unknown>" }
   $failure = Get-FirstRegexValue -Text $suiteText -Pattern "^Failure:\s*(.+)$"
   $failureCommand = Get-FirstRegexValue -Text $suiteText -Pattern "^Failure command:\s*(.+)$"
+  $suiteDirty = Get-FirstRegexValue -Text $suiteText -Pattern "^Worktree dirty at suite run:\s*(.+)$"
+  $suiteHash = Get-FirstRegexValue -Text $suiteText -Pattern "^Worktree evidence hash:\s*(.+)$"
   $item = Get-Item -LiteralPath $suiteLog
   $headCommitTimeUtc = Get-GitHeadCommitTimeUtc -RepoRoot $displayRepoRoot
-  $workingTreeDirty = Test-GitWorkingTreeDirty -RepoRoot $displayRepoRoot
+  $currentWorktreeEvidence = Get-GitWorktreeEvidence -RepoRoot $displayRepoRoot
+  $workingTreeDirty = [bool]$currentWorktreeEvidence.Dirty
+  $suiteHashMatchesCurrent = (
+    -not [string]::IsNullOrWhiteSpace($suiteHash) -and
+    $suiteHash -ne "<unavailable>" -and
+    $suiteHash -eq $currentWorktreeEvidence.Hash
+  )
 
   Write-Output ("  로그: {0}" -f $suiteLog)
   if ($generated) { Write-Output ("  생성: {0}" -f $generated) }
@@ -322,11 +367,15 @@ function Write-SuiteLastRunSummary {
     Write-Output ("  suite 로그가 현재 커밋보다 오래됨: {0}" -f ($(if ($suiteOlderThanHead) { "예" } else { "아니오" })))
   }
   Write-Output ("  현재 작업트리 변경 있음: {0}" -f ($(if ($workingTreeDirty) { "예" } else { "아니오" })))
+  if ($suiteDirty) { Write-Output ("  suite 실행 당시 작업트리 변경 있음: {0}" -f ($(if ($suiteDirty -eq "yes") { "예" } else { "아니오" }))) }
+  if ($suiteHash) { Write-Output ("  suite 작업트리 지문 현재와 일치: {0}" -f ($(if ($suiteHashMatchesCurrent) { "예" } else { "아니오" }))) }
   Write-Output ("  결과: {0}" -f $result)
   if ($failure) { Write-Output ("  실패 원인: {0}" -f $failure) }
   if ($failureCommand) { Write-Output ("  실패 명령: {0}" -f $failureCommand) }
   if ($result -eq "PASS") {
-    if ($workingTreeDirty) {
+    if ($workingTreeDirty -and $suiteHashMatchesCurrent) {
+      Write-Output "  의미: 현재 미커밋 변경분까지 포함한 동일 작업트리에서 suite PASS가 확인됐습니다. 실제 work DWG 변환 완료 증거는 별도로 필요합니다."
+    } elseif ($workingTreeDirty) {
       Write-Output "  의미: 이 PASS는 현재 커밋 뒤의 미커밋 변경분까지 검증한 증거가 아닙니다. 현재 worktree 기준 suite를 다시 돌리기 전까지는 과거 guard 증거로만 봅니다."
     } elseif ($headCommitTimeUtc -and ($item.LastWriteTimeUtc -lt $headCommitTimeUtc.AddSeconds(-2))) {
       Write-Output "  의미: 이 PASS는 현재 커밋보다 오래된 기록입니다. /b smoke가 통과하고 suite를 다시 돌리기 전까지는 과거 guard 증거로만 봅니다."
@@ -337,6 +386,92 @@ function Write-SuiteLastRunSummary {
     Write-Output "  의미: suite가 최종 PASS 전에 멈췄습니다. 위 실패 원인을 먼저 확인하세요."
   } else {
     Write-Output "  의미: suite가 완료되지 않았거나 최신 PASS 증거가 아닙니다."
+  }
+}
+
+function Get-SuiteActualWorkcopyStatusEvidence {
+  param(
+    [string]$WorkDirPath,
+    [string]$SourceWorkCopyPath,
+    [System.IO.FileInfo]$SourceItem
+  )
+
+  $suiteLog = Join-Path $WorkDirPath "main56_verification_suite_last_run.txt"
+  if (-not (Test-Path -LiteralPath $suiteLog)) {
+    return $null
+  }
+
+  $suiteItem = Get-Item -LiteralPath $suiteLog
+  if ($SourceItem -and ($SourceItem.LastWriteTimeUtc -gt $suiteItem.LastWriteTimeUtc.AddSeconds(2))) {
+    return $null
+  }
+
+  $suiteText = Read-TextWithFallback -Path $suiteLog
+  $resultValues = @(Get-AllRegexValues -Text $suiteText -Pattern "^Result:\s*(.+)$")
+  $result = if ($resultValues.Count -gt 0) { $resultValues[$resultValues.Count - 1] } else { "<unknown>" }
+  if ($result -ne "PASS") {
+    return $null
+  }
+
+  $suiteHash = Get-FirstRegexValue -Text $suiteText -Pattern "^Worktree evidence hash:\s*(.+)$"
+  $currentWorktreeEvidence = Get-GitWorktreeEvidence -RepoRoot $displayRepoRoot
+  if (
+    [string]::IsNullOrWhiteSpace($suiteHash) -or
+    $suiteHash -eq "<unavailable>" -or
+    $suiteHash -ne $currentWorktreeEvidence.Hash
+  ) {
+    return $null
+  }
+
+  $suiteSourceWorkCopy = Get-FirstRegexValue -Text $suiteText -Pattern "^Source work copy:\s*(.+)$"
+  if ($suiteSourceWorkCopy -and (-not (Test-SamePath -Left $suiteSourceWorkCopy -Right $SourceWorkCopyPath))) {
+    return $null
+  }
+
+  $statusAfterStatus = Convert-LegacyTitleMissingStatusCode (Get-FirstRegexValue -Text $suiteText -Pattern "^\s*status-after-status:\s*(\S+)")
+  if ([string]::IsNullOrWhiteSpace($statusAfterStatus)) {
+    return $null
+  }
+
+  $statusAfterVerify = Convert-LegacyTitleMissingStatusCode (Get-FirstRegexValue -Text $suiteText -Pattern "^\s*status-after-verify:\s*(\S+)")
+  $sourceTitleCount = Get-FirstRegexValue -Text $suiteText -Pattern "^\s*source-title-count:\s*(\d+)"
+  $sourceFrameCount = Get-FirstRegexValue -Text $suiteText -Pattern "^\s*source-frame-count:\s*(\d+)"
+  $frameOnlyCount = Get-FirstRegexValue -Text $suiteText -Pattern "^\s*frame-only-count:\s*(\d+)"
+  $targetTitleCount = Get-FirstRegexValue -Text $suiteText -Pattern "^\s*target-title-count:\s*(\d+)"
+  $targetFrameCount = Get-FirstRegexValue -Text $suiteText -Pattern "^\s*target-frame-count:\s*(\d+)"
+  $nextFrame = Get-FirstRegexValue -Text $suiteText -Pattern "^\s*next-bootstrap-frame:\s*(\S+)"
+  $nextTitle = Get-FirstRegexValue -Text $suiteText -Pattern "^\s*next-bootstrap-title:\s*(\S+)"
+  $missingNativeFrame = Get-FirstRegexValue -Text $suiteText -Pattern "^\s*missing-native-frame:\s*(\S+)"
+
+  $probeLines = @(
+    "status-after-status: $statusAfterStatus",
+    "status-after-verify: $statusAfterVerify",
+    "source-title-count: $sourceTitleCount",
+    "source-frame-count: $sourceFrameCount",
+    "frame-only-count: $frameOnlyCount",
+    "target-title-count: $targetTitleCount",
+    "target-frame-count: $targetFrameCount",
+    "next-bootstrap-frame: $nextFrame",
+    "next-bootstrap-title: $nextTitle"
+  )
+  if ($missingNativeFrame) {
+    $probeLines += "missing-native-frame: $missingNativeFrame"
+  }
+
+  return @{
+    Path = $suiteLog
+    LastWriteTime = $suiteItem.LastWriteTime
+    Status = $statusAfterStatus
+    Verify = $statusAfterVerify
+    SourceTitleCount = $sourceTitleCount
+    SourceFrameCount = $sourceFrameCount
+    FrameOnlyCount = $frameOnlyCount
+    TargetTitleCount = $targetTitleCount
+    TargetFrameCount = $targetFrameCount
+    NextFrame = $nextFrame
+    NextTitle = $nextTitle
+    MissingNativeFrame = $missingNativeFrame
+    ProbeText = ($probeLines -join "`n")
   }
 }
 
@@ -419,7 +554,7 @@ function Write-ManualLoadStep {
 }
 
 function Write-ConvertCommandStep {
-  Write-Output "  SWTITLECONVERTNEXT  (권장: YES/OPEN 반복 응답 자동 선택)"
+  Write-Output "  SWTITLECONVERTNEXT  (권장: 고정 컨트롤로 GMTITLE 선택값 검증 후 native 연속 변환)"
   Write-Output "  또는 수동 응답을 직접 고르려면: SWTITLECONVERT"
 }
 
@@ -430,7 +565,7 @@ function Write-GmtitleDialogGuidance {
   )
 
   Write-Output ""
-  Write-Output "GMTITLE 창에서 반드시 아래 값으로 선택:"
+  Write-Output "GMTITLE 자동 선택의 예상값:"
   Write-Output ("  용지/도면틀: {0}" -f ($(if ($FrameName) { $FrameName } else { "SWTITLESTATUS가 출력한 DR_A*_Outline" })))
   Write-Output ("  제목블록: {0}" -f ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" })))
   Write-Output "  Frame positioning: ON"
@@ -438,7 +573,7 @@ function Write-GmtitleDialogGuidance {
   Write-Output ""
   Write-Output "명령 경로 주의:"
   Write-Output "  - CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요. SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 GMTITLE 호출, 배치점 자동 전송, 값 복사/정리를 묶어서 처리합니다."
-  Write-Output "  - SWTITLECONVERTNEXT는 같은 흐름에서 YES/OPEN 같은 반복 응답만 자동 선택합니다. GMTITLE 창의 DR 용지/제목블록/옵션 확인은 여전히 직접 해야 합니다."
+  Write-Output "  - SWTITLECONVERTNEXT는 work 복사본에서 고정 컨트롤로 DR 용지/제목블록/옵션을 선택하고 readback합니다. 조건이 다르면 원본을 유지하고 중단합니다."
   Write-Output "  - SWTITLECONVERT 안에서 물어보는 YES/OPEN/BATCH/MANUAL 응답과 CAD 일반 OPEN 명령은 다릅니다."
   Write-Output ""
   Write-Output "배치점 안내:"
@@ -453,22 +588,23 @@ function Write-AutomationBoundarySummary {
   Write-Output ""
   Write-Output "자동화 경계:"
   Write-Output "  - LSP가 자동 처리: 현재 후보 판별, 왼쪽 아래 배치점 전송, 표제란 값 복사, 이전 SolidWorks 원본 정리, 새 결과 검사/rollback."
-  Write-Output "  - 사람이 확인: GMTITLE 창의 DR_A*_Outline 용지, DR_titlea_3rd 제목블록, Frame positioning ON, Object move OFF."
-  Write-Output "  - 아직 자동화하지 않는 이유: GstarCAD GMTITLE 창이 일반/ISO 기본값으로 열릴 수 있고, 리본/스크린 좌표 자동화는 안정 증거가 없습니다."
+  Write-Output "  - 고정 컨트롤 자동 처리: DR_A*_Outline, DR_titlea_3rd, Frame positioning ON, Object move OFF 선택과 readback."
+  Write-Output "  - 사람이 확인: 현재 work 복사본 경로, SWTITLEVERIFY 결과, 대표 DR_titlea_3rd 더블클릭 편집창."
+  Write-Output "  - 화면 좌표는 사용하지 않으며 컨트롤 ID, 대상 DWG, GstarCAD HWND가 모두 맞아야 진행합니다."
   switch ($Mode) {
     "FirstNative" {
-      Write-Output "  - 이번 단계: 첫 native GMTITLE 기준 객체 1장만 사람이 확인하고, 이후 정렬/값 복사/원본 정리는 LSP가 처리합니다."
+      Write-Output "  - 이번 단계: 첫 native GMTITLE부터 고정 컨트롤 자동 선택으로 생성하고 결과를 검사합니다."
     }
     "MissingNative" {
-      Write-Output "  - 이번 단계: 누락된 용지 크기 1장만 사람이 확인하면, 같은 크기 나머지는 빠른 변환 후보가 됩니다."
+      Write-Output "  - 이번 단계: 누락된 용지 크기도 감지한 DR 용지값으로 자동 생성합니다."
     }
     "NativeReplacement" {
-      Write-Output "  - 이번 단계: OPEN 1장 성공으로 후보 수 감소를 확인한 뒤에만 BATCH 반복 처리를 검토합니다."
+      Write-Output "  - 이번 단계: 각 후보를 fresh native GMTITLE로 연속 교체합니다. OPEN/BATCH는 자동 선택 불가 시 수동 fallback입니다."
     }
     "RemainingConversion" {
       Write-Output "  - 이번 단계: 이미 검증된 native 기준 객체로 남은 시트를 처리하되, title-missing/frame-only 예외에는 원본에 없던 새 제목블록을 만들지 않습니다."
-      Write-Output "  - SWTITLECONVERTNEXT는 안전을 위해 다음 표제란 시트 1장을 clone 변환한 뒤, 바로 생긴 native 교체 후보 1장을 이어서 확인합니다."
-      Write-Output "  - 그래서 이 상태에서도 GMTITLE 창의 DR 용지/제목블록/옵션 확인은 필요합니다. 여러 장 연속 처리는 수동 SWTITLECONVERT에서 BATCH를 명시적으로 선택할 때만 검토합니다."
+      Write-Output "  - SWTITLECONVERTNEXT는 preserve-copy 공유 핸들을 만들지 않고 남은 표제란 시트를 각각 fresh native GMTITLE로 연속 변환합니다."
+      Write-Output "  - 매 시트에서 고정 컨트롤 readback이 통과해야 다음 시트로 진행합니다."
     }
   }
 }
@@ -486,6 +622,9 @@ function Write-ManualSelectionForecast {
   $expectedA2 = Get-CountFromProbeSection -Text $ProbeText -SectionLabel "expected-sheet-counts:" -Key "A2"
   $expectedA3 = Get-CountFromProbeSection -Text $ProbeText -SectionLabel "expected-sheet-counts:" -Key "A3"
   $expectedA4 = Get-CountFromProbeSection -Text $ProbeText -SectionLabel "expected-sheet-counts:" -Key "A4"
+  $targetA2 = Get-CountFromProbeSection -Text $ProbeText -SectionLabel "target-sheet-counts:" -Key "A2"
+  $targetA3 = Get-CountFromProbeSection -Text $ProbeText -SectionLabel "target-sheet-counts:" -Key "A3"
+  $targetA4 = Get-CountFromProbeSection -Text $ProbeText -SectionLabel "target-sheet-counts:" -Key "A4"
   $missingFrames = @(Get-AllRegexValues -Text $ProbeText -Pattern "^\s*missing-native-frame:\s*(DR_A[0-4]_Outline)")
   $nextMissingFrame = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*next-missing-native-frame:\s*(\S+)"
   $nextMissingTitle = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*next-missing-native-title:\s*(\S+)"
@@ -499,6 +638,8 @@ function Write-ManualSelectionForecast {
   if (-not $a3a4NativeUpgradeCandidateCount) {
     $a3a4NativeUpgradeCandidateCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*a3a4-native-upgrade-candidate-count:\s*(\d+)"
   }
+  $orphanTargetFrameCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*orphan-target-frame-count:\s*(\d+)"
+  $duplicateTargetPairCount = Get-FirstRegexValue -Text $ProbeText -Pattern "^\s*duplicate-target-pair-count:\s*(\d+)"
 
   Write-Output ""
   Write-Output "예상 수동 GMTITLE 확인량:"
@@ -544,6 +685,73 @@ function Write-ManualSelectionForecast {
       }
       Write-Output "  - BATCH는 OPEN 1회 성공 뒤 같은 DR 용지/제목블록/옵션이 반복된다는 걸 확인했을 때만 사용합니다."
       Write-Output "  - 도면틀이 INSERT처럼 보이는 것 자체는 실패 기준이 아니며, 대표 DR_titlea_3rd 제목블록을 확인합니다."
+      return
+    }
+    "^NEXT_(RUN_FAST_BATCH|TRANSFER_REMAINING_SOURCE_SHEETS|CREATE_MISSING_TARGET_SHEET)$" {
+      if (($sourceTitleCount -as [int]) -gt 0) {
+        Write-Output ("  - 지금 필요한 확인: {0} / {1} 1회" -f ($(if ($FrameName) { $FrameName } else { "SWTITLESTATUS가 요구한 DR_A*_Outline" })), ($(if ($TitleName) { $TitleName } else { "DR_titlea_3rd" })))
+        Write-Output "  - 우선순위: 남은 원본 표제란 시트 변환이 title-missing/frame-only 예외보다 먼저입니다."
+        if ($nextMissingFrame -and $nextMissingFrame -ne "<none>") {
+          Write-Output ("  - {0}은 남은 원본 표제란 변환 뒤 필요한 경우 처리합니다." -f $nextMissingFrame)
+        }
+        $sourceTitleInt = $sourceTitleCount -as [int]
+        $targetPairInt = $targetPairCount -as [int]
+        $nativeLikeInt = $nativeLikeTargetPairCount -as [int]
+        $nonNativeLikeInt = $nonNativeLikeTargetPairCount -as [int]
+        $clonedPairInt = $clonedPairCount -as [int]
+        $nativeUpgradeInt = $a3a4NativeUpgradeCandidateCount -as [int]
+        $orphanInt = $orphanTargetFrameCount -as [int]
+        $duplicateInt = $duplicateTargetPairCount -as [int]
+        $sheetLabel = $null
+        $expectedForFrame = $null
+        $targetForFrame = $null
+        switch ($FrameName) {
+          "DR_A2_Outline" {
+            $sheetLabel = "A2"
+            $expectedForFrame = $expectedA2
+            $targetForFrame = $targetA2
+          }
+          "DR_A3_Outline" {
+            $sheetLabel = "A3"
+            $expectedForFrame = $expectedA3
+            $targetForFrame = $targetA3
+          }
+          "DR_A4_Outline" {
+            $sheetLabel = "A4"
+            $expectedForFrame = $expectedA4
+            $targetForFrame = $targetA4
+          }
+        }
+        $expectedForFrameInt = $expectedForFrame -as [int]
+        $targetForFrameInt = $targetForFrame -as [int]
+        $batchEligible = (
+          $sheetLabel -and
+          $FrameName -and
+          ($TitleName -eq "DR_titlea_3rd") -and
+          ($sourceTitleInt -gt 1) -and
+          ($targetForFrameInt -gt 1) -and
+          ($expectedForFrameInt -gt $targetForFrameInt) -and
+          ($targetPairInt -eq $nativeLikeInt) -and
+          ($nonNativeLikeInt -eq 0) -and
+          ($clonedPairInt -eq 0) -and
+          ($nativeUpgradeInt -eq 0) -and
+          ($orphanInt -eq 0) -and
+          ($duplicateInt -eq 0)
+        )
+        if ($batchEligible) {
+          Write-Output ("  - {0} 반복 BATCH 검토 가능: 현재 {1}/{2}장까지 native-like로 진행했고 남은 원본 표제란 {3}장, 교체/복제/고아/중복 경고 0개입니다." -f $sheetLabel, $targetForFrameInt, $expectedForFrameInt, $sourceTitleInt)
+          Write-Output "  - 빠르게 줄이고 싶으면 수동 SWTITLECONVERT를 실행한 뒤 질문에서 BATCH를 선택할 수 있습니다."
+          Write-Output ("  - 단, GMTITLE 창이 매번 {0} / DR_titlea_3rd / Frame positioning ON / Object move OFF로 반복될 때만 계속하세요." -f $FrameName)
+          Write-Output "  - ISO/일반 기본값, 다른 용지, 후보 수 미감소, 원본 도면 내용 과삭제가 보이면 즉시 중단하고 SWTITLESTATUS를 확인하세요."
+        }
+      } elseif (($frameOnlyCount -as [int]) -gt 0) {
+        Write-Output "  - 지금 필요한 확인: title-missing/frame-only 도면틀-only 예외 1장"
+        Write-Output "  - 원본에 없던 DR_titlea_3rd 제목블록을 새로 만들지 않는 것이 성공 기준입니다."
+      }
+      if (($frameOnlyCount -as [int]) -gt 0) {
+        Write-Output ("  - title-missing/frame-only {0}장은 원본 표제란 부재가 검증된 경우에만 제목블록 생성 대상에서 제외됩니다." -f $frameOnlyCount)
+      }
+      Write-Output "  - 좌표 입력, 값 복사, 기존 원본 정리는 SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 자동 처리합니다."
       return
     }
     "^NEXT_CLEAN_ORPHAN_TARGET_FRAMES$" {
@@ -641,14 +849,14 @@ function Write-ConvertPromptGuidance {
 
   Write-Output ""
   Write-Output "SWTITLECONVERT/SWTITLECONVERTNEXT에서 나올 수 있는 입력:"
-  Write-Output "  SWTITLECONVERTNEXT는 아래 반복 응답 중 현재 상태의 안전한 다음 값만 자동 선택합니다."
+  Write-Output "  SWTITLECONVERTNEXT는 현재 상태의 응답과 GMTITLE 고정 컨트롤 선택값을 자동 검증합니다."
   Write-Output "  SWTITLECONVERTNEXT를 쓰는 경우 사용자가 YES/OPEN/BATCH/MANUAL을 다시 입력하지 않습니다."
   Write-Output "  아래 항목은 수동 SWTITLECONVERT를 쓸 때의 응답 의미를 이해하기 위한 설명입니다."
   switch ($Mode) {
     "FirstNative" {
       Write-Output "  YES: 첫 native GMTITLE 1장을 만들고 마무리합니다."
       Write-Output "  Enter: 아무 것도 만들지 않고 중단합니다."
-      Write-Output "  첫 GMTITLE 창은 위 DR 용지/DR_titlea_3rd/옵션을 확인한 뒤 한 번만 완료하세요."
+      Write-Output "  자동 경로는 첫 GMTITLE 창도 위 DR 용지/DR_titlea_3rd/옵션으로 설정하고 readback합니다."
     }
     "MissingNative" {
       Write-Output "  YES: 누락된 용지 크기의 첫 native GMTITLE 1장을 만듭니다."
@@ -662,9 +870,10 @@ function Write-ConvertPromptGuidance {
       Write-Output "  Enter: 기존 쌍을 보존하고 중단합니다."
     }
     "RemainingConversion" {
-      Write-Output "  YES: 준비된 native 기준 객체로 남은 원본 시트를 처리합니다. SWTITLECONVERTNEXT에서는 다음 1장만 처리합니다."
+      Write-Output "  YES: 준비된 native 기준 객체로 남은 원본 시트를 처리합니다. 자동 경로는 남은 표제란 시트를 연속 처리합니다."
       Write-Output "  Enter: 변환 없이 중단합니다."
       Write-Output "  수동 SWTITLECONVERT의 BATCH: 같은 DR 용지/제목블록/옵션 반복이 검증된 뒤에만 여러 장 연속 처리를 검토합니다."
+      Write-Output "  카드가 반복 BATCH 검토 가능을 표시하면, 한 장씩 반복하는 대신 SWTITLECONVERT에서 BATCH를 선택해 같은 조건 구간을 줄일 수 있습니다."
       Write-Output "  title-missing/frame-only 예외 단계에서 원본에 없던 제목블록이 생기면 즉시 멈추고 SWTITLESTATUS를 확인하세요."
     }
   }
@@ -911,12 +1120,42 @@ $sourceItem = Get-Item -LiteralPath $SourceWorkCopyPath
 
 $refreshAttempted = $false
 while ($true) {
+  $sourceItem = Get-Item -LiteralPath $SourceWorkCopyPath
+  if ($AutoRefreshDirectProbe -and $ForceRefreshDirectProbe -and (-not $refreshAttempted)) {
+    Write-Output "Direct probe 강제 갱신: 기존 로그가 최신이어도 저장된 DWG를 hidden GstarCAD로 다시 읽습니다."
+    $refreshAttempted = $true
+    [void](Invoke-DirectProbeRefresh)
+    continue
+  }
+
   if (-not (Test-Path -LiteralPath $DirectProbeLogPath)) {
     Write-Output "실제 작업복사본 direct probe: 없음"
     if ($AutoRefreshDirectProbe -and (-not $refreshAttempted)) {
       $refreshAttempted = $true
       [void](Invoke-DirectProbeRefresh)
       continue
+    }
+    $suiteActualEvidence = Get-SuiteActualWorkcopyStatusEvidence `
+      -WorkDirPath $workDir `
+      -SourceWorkCopyPath $sourceItem.FullName `
+      -SourceItem $sourceItem
+    if ($suiteActualEvidence) {
+      Write-Output "최근 hidden suite actual work-copy 상태 summary:"
+      Write-Output ("  로그: {0}" -f $suiteActualEvidence.Path)
+      Write-Output ("  LastWriteTime: {0}" -f $suiteActualEvidence.LastWriteTime)
+      Write-Output ("  상태: {0}" -f $suiteActualEvidence.Status)
+      Write-Output ("  검증: {0}" -f $suiteActualEvidence.Verify)
+      Write-Output ("  source-title/source-frame/frame-only: {0} / {1} / {2}" -f $suiteActualEvidence.SourceTitleCount, $suiteActualEvidence.SourceFrameCount, $suiteActualEvidence.FrameOnlyCount)
+      Write-Output ("  target-title/target-frame: {0} / {1}" -f $suiteActualEvidence.TargetTitleCount, $suiteActualEvidence.TargetFrameCount)
+      Write-Output ("  다음 GMTITLE 선택: {0} / {1}" -f $suiteActualEvidence.NextFrame, ($(if ($suiteActualEvidence.NextTitle) { $suiteActualEvidence.NextTitle } else { "DR_titlea_3rd" })))
+      Write-Output "  suite 작업트리 지문이 현재와 일치하므로 native-upgrade 과거 로그보다 이 상태를 우선합니다."
+      Write-Output ""
+      Write-ManualSelectionForecast -StatusCode $suiteActualEvidence.Status -FrameName $suiteActualEvidence.NextFrame -TitleName $suiteActualEvidence.NextTitle -ProbeText $suiteActualEvidence.ProbeText
+      Write-Output ""
+      Write-CadTestTimingSummary -StatusCode $suiteActualEvidence.Status -VerifyCode $suiteActualEvidence.Verify -FrameName $suiteActualEvidence.NextFrame -TitleName $suiteActualEvidence.NextTitle
+      Write-Output ""
+      Write-StatusBasedAction -StatusCode $suiteActualEvidence.Status -VerifyCode $suiteActualEvidence.Verify -FrameName $suiteActualEvidence.NextFrame -TitleName $suiteActualEvidence.NextTitle
+      exit 0
     }
     $nativeUpgradeEvidence = Get-NativeUpgradeVerifyEvidence `
       -WorkDirPath $workDir `

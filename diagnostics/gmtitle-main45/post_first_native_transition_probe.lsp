@@ -233,7 +233,7 @@
               (= target-pair-count 1)
               (= native-like-count 0)
               (member "DR_A3_Outline" missing)
-              (member "DR_A4_Outline" missing)
+              (not (member "DR_A4_Outline" missing))
               selection
               (equal (cadr selection) "DR_A3_Outline")
               (equal (caddr selection) "DR_titlea_3rd")

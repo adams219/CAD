@@ -32,6 +32,21 @@ IMTITLE은 리본/메뉴 매크로에 보이는 상위 이름이지만, 현재 C
 GMSBLOCKE는 PAPERSET super attribute block edit 계열로 보이며, DR 용지/제목블록 사전 선택 명령으로 보지 않는다.
 ```
 
+## 2026-07-10 PAPERSET.GRX export 재확인
+
+설치된 `Professional\GRX8X64\PaperSet.grx`의 PE export table을 읽기 전용으로 확인했다.
+
+```text
+?Entry_superBlockEdit@@YAXXZ
+I_SuperBlockEdit
+gcrxEntryPoint
+gcrxGetApiVersion
+```
+
+확인된 export는 super attribute block 편집 진입점과 GRX 로드 진입점뿐이다. `DR_A*_Outline`, `DR_titlea_3rd`, Frame positioning, Object move 값을 인수로 받는 공개 export는 확인되지 않았다.
+
+이 결과는 내부 구현 전체를 역공학한 증거는 아니지만, `PaperSet.grx`가 공개 함수 호출만으로 GMTITLE 선택값을 지정할 수 있다는 가설을 지지하지 않는다. 따라서 화면 좌표가 아닌 고정 대화상자 컨트롤 ID 실험을 다음 후보로 유지한다.
+
 `Common\ImLanguage.xml`에서 확인한 관련 라벨은 다음과 같다.
 
 ```text

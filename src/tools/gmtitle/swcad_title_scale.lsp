@@ -11,7 +11,8 @@
 ;;;   uses the same conversion decision tree, but asks the operator to choose
 ;;;   YES, OPEN, BATCH, or MANUAL. Use it only when you intentionally need to
 ;;;   override the SWTITLECONVERTNEXT default. GMTITLE dialog paper/title/options
-;;;   still require visual confirmation.
+;;;   are selected by fixed Win32 control IDs when the bundled helper is available.
+;;;   Manual visual selection remains the safe fallback when that helper cannot run.
 ;;;
 ;;; Older transfer, batch, frame-only, and native recovery routines remain
 ;;; as internal implementation helpers. They are intentionally not the user
@@ -39,7 +40,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260707-convert-next-clone-upgrade-19")
+(setq *swcad-title-scale-version* "260710-fixed-control-autoselect-1")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -64,6 +65,8 @@
 (setq *swcad-title-native-upgrade-batch-mode* nil)
 (setq *swcad-title-native-upgrade-selected-pair* nil)
 (setq *swcad-title-allow-batch-interactive-native-gmtitle* nil)
+(setq *swcad-title-gmtitle-dialog-autoselect-enabled* T)
+(setq *swcad-title-last-gmtitle-autoselect-started* nil)
 (setq *swcad-title-skip-native-upgrade-confirmation* nil)
 (setq *swcad-title-a3a4-batch-default-all* nil)
 (setq *swcad-title-pending-manual-native-upgrade* nil)
@@ -246,6 +249,8 @@
         ("ERROR_FRAME_ONLY_NATIVE_APPLY" . "frame-only native GMTITLE 적용 중 오류가 발생했습니다.")
         ("ERROR_FRAME_ONLY_NATIVE_FINALIZE" . "frame-only native GMTITLE 마무리 중 오류가 발생했습니다.")
         ("APPLIED_TITLE_TRANSFER" . "표제란 값 입력과 기존 잔여물 정리를 적용했습니다.")
+        ("OK_NATIVE_AUTOSELECT_BATCH_COMPLETE" . "남은 표제란 시트를 실제 native GMTITLE로 연속 변환했습니다.")
+        ("OK_TITLE_MISSING_OUTLINE_BATCH_COMPLETE" . "원본 표제란 부재가 검증된 남은 시트의 도면틀을 모두 교체했습니다.")
         ("FINALIZED_CLONED_FRAME_ONLY_GMTITLE_TRANSFER" . "frame-only 시트를 복제 방식으로 변환했습니다. 필요하면 native 검증을 이어가세요.")
         ("FINISHED_MANUAL_NATIVE_GMTITLE_UPGRADE" . "수동으로 만든 native GMTITLE 교체를 마무리했습니다.")
         ("READY_MANUAL_NATIVE_GMTITLE_CREATE" . "수동 native GMTITLE 생성 준비가 끝났습니다. 안내된 용지/제목블록으로 GMTITLE을 만드세요.")
@@ -549,7 +554,7 @@
           ("Remaining A3/A4 native upgrade candidates:" . "남은 A2/A3/A4 native 교체 후보:")
           ("Remaining candidates after the stopped sheet:" . "중단된 시트 이후 남은 후보:")
           ("Native GMTITLE exemplars by sheet frame:" . "도면틀 크기별 native GMTITLE 기준 객체:")
-          ("Exact-size native GMTITLE exemplars needed by remaining source sheets:" . "남은 원본 시트에 필요한 동일 크기 native GMTITLE:")
+          ("Exact-size native GMTITLE exemplars needed by remaining source title sheets:" . "남은 원본 표제란 시트에 필요한 동일 크기 native GMTITLE:")
           ("Missing exact-size native exemplar(s):" . "없는 동일 크기 native 기준 객체:")
           ("Create the first sheet of each missing size with native GMTITLE once, then rerun the fast clone batch." . "없는 용지 크기마다 실제 native GMTITLE 1장을 먼저 만들고 빠른 복제 일괄 변환을 다시 실행하세요.")
           ("Next exact-size native GMTITLE action(s):" . "다음 동일 크기 native GMTITLE 작업:")
@@ -945,6 +950,227 @@
     )
     ""
   )
+)
+
+(defun swcad-title-repo-root-path (/ home)
+  (setq home (getenv "USERPROFILE"))
+  (if home
+    (strcat
+      (vl-string-translate "\\" "/" home)
+      "/Documents/CAD tool/"
+    )
+    ""
+  )
+)
+
+(defun swcad-title-gmtitle-autoselect-helper-path ()
+  (strcat
+    (swcad-title-repo-root-path)
+    "src/tools/gmtitle/swtitle_gmtitle_dialog_autoselect.ps1"
+  )
+)
+
+(defun swcad-title-gmtitle-autoselect-request-path ()
+  (swcad-title-work-log-path "swcad_title_gmtitle_autoselect_request.txt")
+)
+
+(defun swcad-title-gmtitle-autoselect-log-path ()
+  (swcad-title-work-log-path "swcad_title_gmtitle_autoselect_last.txt")
+)
+
+(defun swcad-title-write-native-autoselect-batch-summary (initial-count remaining-count status / path handle titles title shared-count)
+  (setq titles (swcad-title-inserts-by-effective-name (swcad-title-target-title-block-name)))
+  (setq shared-count 0)
+  (foreach title titles
+    (if (swcad-title-target-title-native-link-shared-p title)
+      (setq shared-count (+ shared-count 1))
+    )
+  )
+  (setq path (swcad-title-work-log-path "swcad_title_native_autoselect_batch_last.txt"))
+  (setq handle (open path "w"))
+  (if handle
+    (progn
+      (write-line "SWTITLE native fixed-control batch summary" handle)
+      (write-line (strcat "SWTITLE LSP version: " *swcad-title-scale-version*) handle)
+      (write-line
+        (strcat
+          "DWG: "
+          (swcad-title-windows-path (swcad-title-current-dwg-full-path))
+        )
+        handle
+      )
+      (write-line (strcat "Initial source title sheets: " (itoa initial-count)) handle)
+      (write-line (strcat "Remaining source title sheets: " (itoa remaining-count)) handle)
+      (write-line (strcat "Target title inserts: " (itoa (length titles))) handle)
+      (write-line (strcat "Target GMTITLE pairs: " (itoa (length (swcad-title-target-gmtitle-pair-records)))) handle)
+      (write-line (strcat "Shared native-link target titles: " (itoa shared-count)) handle)
+      (write-line (strcat "Native upgrade candidates: " (itoa (length (swcad-title-a3a4-native-upgrade-candidate-records)))) handle)
+      (write-line (strcat "Result: " (swcad-title-string status)) handle)
+      (write-line "Runtime check completed: yes" handle)
+      (close handle)
+    )
+  )
+  path
+)
+
+(defun swcad-title-write-title-missing-batch-summary (initial-count remaining-count status / path handle)
+  (setq path (swcad-title-work-log-path "swcad_title_title_missing_batch_last.txt"))
+  (setq handle (open path "w"))
+  (if handle
+    (progn
+      (write-line "SWTITLE verified title-missing outline batch summary" handle)
+      (write-line (strcat "SWTITLE LSP version: " *swcad-title-scale-version*) handle)
+      (write-line
+        (strcat
+          "DWG: "
+          (swcad-title-windows-path (swcad-title-current-dwg-full-path))
+        )
+        handle
+      )
+      (write-line (strcat "Initial title-missing sheets: " (itoa initial-count)) handle)
+      (write-line (strcat "Remaining title-missing sheets: " (itoa remaining-count)) handle)
+      (write-line (strcat "Target frame inserts: " (itoa (length (swcad-title-frame-records)))) handle)
+      (write-line
+        (strcat
+          "Target title inserts: "
+          (itoa (length (swcad-title-inserts-by-effective-name (swcad-title-target-title-block-name))))
+        )
+        handle
+      )
+      (write-line (strcat "Result: " (swcad-title-string status)) handle)
+      (write-line "Runtime check completed: yes" handle)
+      (close handle)
+    )
+  )
+  path
+)
+
+(defun swcad-title-windows-path (value)
+  (vl-string-translate "/" "\\" (swcad-title-string value))
+)
+
+(defun swcad-title-command-line-quote (value)
+  (strcat "\"" (swcad-title-windows-path value) "\"")
+)
+
+(defun swcad-title-application-hwnd (/ application result)
+  (setq application (vlax-get-acad-object))
+  (setq result (swcad-title-safe-vla-get application 'HWND))
+  (if (numberp result) result nil)
+)
+
+(defun swcad-title-gmtitle-autoselect-available-p (/ helper hwnd)
+  (setq helper (swcad-title-gmtitle-autoselect-helper-path))
+  (setq hwnd (swcad-title-application-hwnd))
+  (and
+    *swcad-title-gmtitle-dialog-autoselect-enabled*
+    (/= (swcad-title-string (getenv "SWCAD_GMTITLE_EXTERNAL_CONTROL")) "1")
+    (swcad-title-current-dwg-in-work-p)
+    (findfile helper)
+    hwnd
+  )
+)
+
+(defun swcad-title-write-gmtitle-autoselect-request (path frame-block hwnd / handle)
+  (setq handle (open path "w"))
+  (if handle
+    (progn
+      (write-line "SWTITLE GMTITLE fixed-control request" handle)
+      (write-line
+        (strcat
+          "DWG before load: "
+          (swcad-title-windows-path (swcad-title-current-dwg-full-path))
+        )
+        handle
+      )
+      (write-line (strcat "Application HWND: " (swcad-title-string hwnd)) handle)
+      (write-line (strcat "Expected frame: " (swcad-title-string frame-block)) handle)
+      (write-line (strcat "Expected title: " (swcad-title-target-title-block-name)) handle)
+      (write-line "Frame positioning: ON" handle)
+      (write-line "Object move: OFF" handle)
+      (close handle)
+      T
+    )
+    nil
+  )
+)
+
+(defun swcad-title-start-gmtitle-dialog-autoselect (frame-block / helper request-path log-path hwnd shell command-line launch-result)
+  (setq *swcad-title-last-gmtitle-autoselect-started* nil)
+  (if (swcad-title-gmtitle-autoselect-available-p)
+    (progn
+      (setq helper (swcad-title-gmtitle-autoselect-helper-path))
+      (setq request-path (swcad-title-gmtitle-autoselect-request-path))
+      (setq log-path (swcad-title-gmtitle-autoselect-log-path))
+      (setq hwnd (swcad-title-application-hwnd))
+      (if (findfile log-path)
+        (vl-file-delete log-path)
+      )
+      (if (swcad-title-write-gmtitle-autoselect-request request-path frame-block hwnd)
+        (progn
+          (setq command-line
+            (strcat
+              "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "
+              (swcad-title-command-line-quote helper)
+              " -ApplicationWindowHandle "
+              (swcad-title-string hwnd)
+              " -ExpectedDwgPath "
+              (swcad-title-command-line-quote (swcad-title-current-dwg-full-path))
+              " -SessionLogPath "
+              (swcad-title-command-line-quote request-path)
+              " -ExpectedFrame "
+              (swcad-title-command-line-quote frame-block)
+              " -ExpectedTitle "
+              (swcad-title-command-line-quote (swcad-title-target-title-block-name))
+              " -WaitSeconds 90 -LogPath "
+              (swcad-title-command-line-quote log-path)
+              " -ApplySelections -ClickOk"
+            )
+          )
+          (setq shell (vl-catch-all-apply 'vlax-create-object (list "WScript.Shell")))
+          (if (vl-catch-all-error-p shell)
+            (swcad-title-princ-line
+              (strcat
+                "GMTITLE 고정 컨트롤 자동 선택기를 시작하지 못했습니다: "
+                (vl-catch-all-error-message shell)
+              )
+            )
+            (progn
+              (setq launch-result
+                (vl-catch-all-apply
+                  'vlax-invoke-method
+                  (list shell 'Run command-line 0 :vlax-false)
+                )
+              )
+              (vlax-release-object shell)
+              (if (vl-catch-all-error-p launch-result)
+                (swcad-title-princ-line
+                  (strcat
+                    "GMTITLE 고정 컨트롤 자동 선택기 실행 오류: "
+                    (vl-catch-all-error-message launch-result)
+                  )
+                )
+                (progn
+                  (setq *swcad-title-last-gmtitle-autoselect-started* T)
+                  (swcad-title-princ-line
+                    (strcat
+                      "GMTITLE 고정 컨트롤 자동 선택기 시작: 용지="
+                      frame-block
+                      ", 제목블록="
+                      (swcad-title-target-title-block-name)
+                      ", Frame positioning=ON, Object move=OFF."
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+        (swcad-title-princ-line "GMTITLE 자동 선택 요청 파일을 만들 수 없어 수동 선택으로 전환합니다.")
+      )
+    )
+  )
+  *swcad-title-last-gmtitle-autoselect-started*
 )
 
 (defun swcad-title-current-dwg-full-path ()
@@ -3994,14 +4220,13 @@
   result
 )
 
-(defun swcad-title-required-native-frame-blocks (summary / result title-counts frame-counts frame-block)
+(defun swcad-title-required-native-frame-blocks (summary / result title-counts frame-block)
   (setq result nil)
   (setq title-counts (swcad-title-fast-summary-value summary "title-sheet-counts"))
-  (setq frame-counts (swcad-title-fast-summary-value summary "frame-sheet-counts"))
+  ;; Native GMTITLE exemplars are required only for sheets that actually have a
+  ;; source title block. Title-missing/frame-only sheets use the outline-only
+  ;; exception path and must not force creation of a new DR_titlea_3rd.
   (foreach frame-block (swcad-title-required-frame-blocks-from-counts title-counts)
-    (setq result (swcad-title-list-add-unique frame-block result))
-  )
-  (foreach frame-block (swcad-title-required-frame-blocks-from-counts frame-counts)
     (setq result (swcad-title-list-add-unique frame-block result))
   )
   result
@@ -4065,7 +4290,7 @@
               (strcat
                 "  "
                 frame-block
-                ": 이 크기의 실제 표제란 없는 도면틀 시트 1장을 생성/마무리하려면 SWTITLECONVERTNEXT를 실행한 뒤 SWTITLESTATUS를 다시 실행하세요."
+                ": 이 크기는 원본 표제란 부재가 검증된 도면틀-only 예외입니다. 새 DR_titlea_3rd를 만들지 말고 같은 크기 DR 도면틀 정의 검증 후 SWTITLECONVERTNEXT로 outline-only 변환하세요."
               )
             )
             (setq risk-message
@@ -4077,8 +4302,8 @@
             (if risk-message
               (progn
                 (swcad-title-princ-line (strcat "    경고: " risk-message))
-                (swcad-title-princ-line "    생성된 같은 크기 DR_A*_Outline 도면틀이 bbox 검사를 통과하기 전에는 이 용지 크기의 복제/빠른 일괄 변환을 계속하지 마세요.")
-                (swcad-title-princ-line "    SWTITLECONVERTNEXT/SWTITLECONVERT가 도면틀 형상 오류로 중단되면 다시 시도하기 전에 GMTITLE 용지 선택값을 확인하거나 도면틀 정의를 복구/점검하세요.")
+                (swcad-title-princ-line "    같은 크기 DR_A*_Outline 도면틀 정의가 bbox 검사를 통과하기 전에는 기존 원본 도면틀을 지우지 마세요.")
+                (swcad-title-princ-line "    SWTITLEPREPARE가 도면틀 정의를 준비/검증한 뒤 SWTITLECONVERTNEXT가 outline-only 변환을 처리합니다.")
               )
             )
           )
@@ -4264,7 +4489,7 @@
       (setq bootstrap-record (swcad-title-next-bootstrap-selection-record))
       (if bootstrap-record (cadr bootstrap-record) nil)
     )
-    (swcad-title-next-frame-only-target-frame-block)
+    nil
   )
 )
 
@@ -4301,7 +4526,7 @@
 (defun swcad-title-print-required-native-exemplars (summary / required missing frame-block)
   (setq required (swcad-title-required-native-frame-blocks summary))
   (setq missing nil)
-  (swcad-title-princ-line "Exact-size native GMTITLE exemplars needed by remaining source sheets:")
+  (swcad-title-princ-line "Exact-size native GMTITLE exemplars needed by remaining source title sheets:")
   (if required
     (foreach frame-block required
       (if (swcad-title-native-example-pair-for-frame-block frame-block)
@@ -4322,7 +4547,7 @@
           (swcad-title-list-string missing)
         )
       )
-      (swcad-title-princ-line "없는 용지 크기마다 실제 native GMTITLE 1장을 먼저 만들고 빠른 복제 일괄 변환을 다시 실행하세요.")
+      (swcad-title-princ-line "표제란이 있는 누락 용지 크기마다 실제 native GMTITLE 1장을 먼저 만들고 빠른 복제 일괄 변환을 다시 실행하세요.")
     )
   )
   (swcad-title-print-missing-native-exemplar-actions summary missing)
@@ -4499,7 +4724,8 @@
   )
 )
 
-(defun swcad-title-print-manual-gmtitle-forecast (summary expected-sheet-counts frame-only-count example-title a3a4-count missing-required-native / a2-count a3-count a4-count record frame-block title-block)
+(defun swcad-title-print-manual-gmtitle-forecast (summary expected-sheet-counts frame-only-count example-title a3a4-count missing-required-native / source-count a2-count a3-count a4-count record frame-block title-block)
+  (setq source-count (swcad-title-fast-summary-value summary "source-title-count"))
   (setq a2-count (swcad-title-count-value "A2" expected-sheet-counts))
   (setq a3-count (swcad-title-count-value "A3" expected-sheet-counts))
   (setq a4-count (swcad-title-count-value "A4" expected-sheet-counts))
@@ -4516,7 +4742,7 @@
     )
   )
   (cond
-    ((and (not example-title) (> (swcad-title-fast-summary-value summary "source-title-count") 0))
+    ((and (not example-title) (> source-count 0))
       (setq record (swcad-title-next-bootstrap-selection-record))
       (setq frame-block (if record (cadr record) "<unknown>"))
       (setq title-block (if record (caddr record) "<unknown>"))
@@ -4539,6 +4765,30 @@
           "  - 지금 필요한 확인: A2/A3/A4 native 교체 후보 "
           (itoa a3a4-count)
           "개 중 다음 1개"
+        )
+      )
+    )
+    ((> source-count 0)
+      (setq record (swcad-title-next-bootstrap-selection-record))
+      (setq frame-block (if record (cadr record) "<unknown>"))
+      (setq title-block (if record (caddr record) (swcad-title-target-title-block-name)))
+      (swcad-title-princ-line
+        (strcat
+          "  - 지금 필요한 확인: "
+          frame-block
+          " / "
+          title-block
+          " 1회"
+        )
+      )
+      (swcad-title-princ-line "  - 우선순위: 남은 원본 표제란 시트 변환이 title-missing/frame-only 예외보다 먼저입니다.")
+      (if missing-required-native
+        (swcad-title-princ-line
+          (strcat
+            "  - 아직 없는 native 기준 객체 "
+            (swcad-title-list-string missing-required-native)
+            "은 남은 원본 표제란 변환 뒤 필요한 경우 처리합니다."
+          )
         )
       )
     )
@@ -11360,7 +11610,21 @@
     '(
       "COMMANDLINE_POST_INSERT_PROMPT_CANCELLED"
       "OBJECT_MOVE_PROMPT_CANCELLED_AFTER_GMTITLE_CREATED"
+      "POST_INSERT_EMPTY_PROMPT_CANCELLED_AFTER_GMTITLE_CREATED"
       "POST_INSERT_PROMPT_CANCELLED_AFTER_GMTITLE_CREATED"
+    )
+  )
+)
+
+(defun swcad-title-native-gmtitle-post-prompt-acceptable-p (reason)
+  (and
+    *swcad-title-last-native-gmtitle-placement-used*
+    (member
+      reason
+      '(
+        "OBJECT_MOVE_PROMPT_CANCELLED_AFTER_GMTITLE_CREATED"
+        "POST_INSERT_EMPTY_PROMPT_CANCELLED_AFTER_GMTITLE_CREATED"
+      )
     )
   )
 )
@@ -11385,7 +11649,10 @@
     (swcad-title-native-target-title-name-p actual-title)
     (swcad-title-frame-name-matches-p actual-frame frame-block)
     (not geometry-warning)
-    (not (swcad-title-native-gmtitle-post-prompt-abort-p *swcad-title-last-native-gmtitle-abort-reason*))
+    (or
+      (not (swcad-title-native-gmtitle-post-prompt-abort-p *swcad-title-last-native-gmtitle-abort-reason*))
+      (swcad-title-native-gmtitle-post-prompt-acceptable-p *swcad-title-last-native-gmtitle-abort-reason*)
+    )
   )
 )
 
@@ -11784,7 +12051,7 @@
   (swcad-title-princ-line "  취소 조건: ISO 용지, ISO 제목블록, Object move ON, 예상과 다른 DR 용지가 보이면 확인하지 말고 취소하세요.")
 )
 
-(defun swcad-title-run-native-gmtitle (frame-block placement-point / before-handles new-enames title-ename frame-ename guard prompt placement-used old-osmode old-dynmode current-new-enames)
+(defun swcad-title-run-native-gmtitle (frame-block placement-point / before-handles new-enames title-ename frame-ename guard prompt placement-used old-osmode old-dynmode current-new-enames autoselect-started)
   (setq before-handles (swcad-title-insert-handle-list))
   (setq *swcad-title-last-native-gmtitle-abort-reason* nil)
   (setq *swcad-title-last-native-gmtitle-placement-used* nil)
@@ -11798,7 +12065,11 @@
     )
   )
   (swcad-title-print-gmtitle-dialog-selection-card frame-block placement-point)
-  (swcad-title-princ-line "  참고: 현재 테스트 기준으로 첫 native GMTITLE의 명령줄 자동 선택은 안정적으로 사용할 수 없습니다.")
+  (setq autoselect-started (swcad-title-start-gmtitle-dialog-autoselect frame-block))
+  (if autoselect-started
+    (swcad-title-princ-line "  화면 좌표를 사용하지 않고 GMTITLE 고정 컨트롤 ID로 선택값을 자동 적용합니다.")
+    (swcad-title-princ-line "  자동 선택기를 사용할 수 없어 GMTITLE 창의 선택값을 사람이 확인해야 합니다.")
+  )
   (swcad-title-princ-line "이 명령은 FILEDIA와 CMDDIA를 변경하지 않습니다.")
   (setq old-osmode (swcad-title-safe-getvar "OSMODE"))
   (setq old-dynmode (swcad-title-safe-getvar "DYNMODE"))
@@ -11869,6 +12140,20 @@
       )
       ((and
          current-new-enames
+         placement-used
+         (= (strlen (vl-string-trim " \t\r\n" (swcad-title-string prompt))) 0)
+       )
+        (setq *swcad-title-last-native-gmtitle-abort-reason*
+          "POST_INSERT_EMPTY_PROMPT_CANCELLED_AFTER_GMTITLE_CREATED"
+        )
+        (swcad-title-princ-line
+          "도면틀/제목블록 생성 후 후속 프롬프트가 비어 있어 도면 내용 이동을 막기 위해 자동 취소합니다."
+        )
+        (swcad-title-cancel-active-command)
+        (setq guard 200)
+      )
+      ((and
+         current-new-enames
          (not (swcad-title-gmtitle-placement-prompt-p prompt))
          (> (strlen (vl-string-trim " \t\r\n" (swcad-title-string prompt))) 0)
        )
@@ -11900,6 +12185,7 @@
     (and
       new-enames
       (swcad-title-native-gmtitle-post-prompt-abort-p *swcad-title-last-native-gmtitle-abort-reason*)
+      (not (swcad-title-native-gmtitle-post-prompt-acceptable-p *swcad-title-last-native-gmtitle-abort-reason*))
     )
     (progn
       (swcad-title-princ-line
@@ -14451,6 +14737,76 @@
   (princ)
 )
 
+(defun swcad-title-transfer-title-missing-outline-all (/ count index old-batch-mode before-count after-count apply-result remaining)
+  (setq count (length (swcad-title-frame-only-source-candidates)))
+  (setq old-batch-mode *swcad-title-batch-mode*)
+  (setq *swcad-title-batch-mode* T)
+  (setq index 1)
+  (while (<= index count)
+    (setq before-count (length (swcad-title-frame-only-source-candidates)))
+    (if (= before-count 0)
+      (setq index (+ count 1))
+      (progn
+        (swcad-title-princ-line
+          (strcat
+            "--- SWTITLECONVERTNEXT title-missing 도면틀 "
+            (itoa index)
+            " / "
+            (itoa count)
+            " ---"
+          )
+        )
+        (setq apply-result
+          (vl-catch-all-apply 'swcad-title-transfer-title-missing-outline-apply nil)
+        )
+        (setq after-count (length (swcad-title-frame-only-source-candidates)))
+        (if
+          (or
+            (vl-catch-all-error-p apply-result)
+            (not (equal *swcad-title-last-apply-status* "FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER"))
+            (>= after-count before-count)
+          )
+          (progn
+            (if (vl-catch-all-error-p apply-result)
+              (swcad-title-princ-line
+                (strcat
+                  "title-missing 연속 변환 오류: "
+                  (vl-catch-all-error-message apply-result)
+                )
+              )
+            )
+            (swcad-title-princ-line
+              (strcat
+                "title-missing 연속 변환 중단 상태: "
+                (swcad-title-string *swcad-title-last-apply-status*)
+              )
+            )
+            (setq index (+ count 1))
+          )
+        )
+      )
+    )
+    (setq index (+ index 1))
+  )
+  (setq *swcad-title-batch-mode* old-batch-mode)
+  (setq remaining (length (swcad-title-frame-only-source-candidates)))
+  (if (= remaining 0)
+    (swcad-title-apply-result "OK_TITLE_MISSING_OUTLINE_BATCH_COMPLETE")
+    (swcad-title-princ-line
+      (strcat
+        "title-missing 연속 변환 후 남은 도면틀 시트: "
+        (itoa remaining)
+      )
+    )
+  )
+  (swcad-title-write-title-missing-batch-summary
+    count
+    remaining
+    *swcad-title-last-apply-status*
+  )
+  (princ)
+)
+
 (defun swcad-title-transfer-frame-only-apply (/ *error* source-frame source-frame-bbox source-sheet frame-block risk-message answer placement-point gmtitle-result gmtitle-title-ename gmtitle-frame-ename finalize-result)
   (defun *error* (msg)
     (swcad-title-open-apply-log)
@@ -14630,6 +14986,73 @@
     )
     (setq index (+ index 1))
   )
+)
+
+(defun swcad-title-transfer-native-autoselect-all (/ count old-batch-mode old-allow-interactive batch-result remaining)
+  (setq count (length (swcad-title-source-title-candidates)))
+  (cond
+    ((= count 0)
+      (swcad-title-apply-result "STOP_NO_MORE_SOLIDWORKS_TITLE_SOURCE")
+    )
+    ((not (swcad-title-gmtitle-autoselect-available-p))
+      (swcad-title-apply-result "ABORT_GMTITLE_AUTOSELECT_UNAVAILABLE")
+      (swcad-title-princ-line "GMTITLE 고정 컨트롤 자동 선택기를 사용할 수 없어 연속 native 변환을 시작하지 않습니다.")
+    )
+    (T
+      (swcad-title-princ-line
+        (strcat
+          "SWTITLECONVERTNEXT native 자동 일괄 변환 시작: 남은 표제란 시트="
+          (itoa count)
+        )
+      )
+      (swcad-title-princ-line "각 시트마다 GstarCAD가 새 native link를 발급하며, 화면 좌표나 preserve-copy 공유 핸들을 사용하지 않습니다.")
+      (setq old-batch-mode *swcad-title-batch-mode*)
+      (setq old-allow-interactive *swcad-title-allow-batch-interactive-native-gmtitle*)
+      (setq *swcad-title-batch-mode* T)
+      (setq *swcad-title-allow-batch-interactive-native-gmtitle* T)
+      (setq batch-result
+        (vl-catch-all-apply 'swcad-title-transfer-batch-run (list count))
+      )
+      (setq *swcad-title-batch-mode* old-batch-mode)
+      (setq *swcad-title-allow-batch-interactive-native-gmtitle* old-allow-interactive)
+      (if (vl-catch-all-error-p batch-result)
+        (progn
+          (swcad-title-apply-result "ERROR_NATIVE_AUTOSELECT_BATCH")
+          (swcad-title-princ-line
+            (strcat
+              "native 자동 일괄 변환 오류: "
+              (vl-catch-all-error-message batch-result)
+            )
+          )
+        )
+        (progn
+          (setq remaining (length (swcad-title-source-title-candidates)))
+          (swcad-title-princ-line
+            (strcat
+              "native 자동 일괄 변환 후 남은 원본 표제란 시트: "
+              (itoa remaining)
+            )
+          )
+          (if (= remaining 0)
+            (swcad-title-apply-result "OK_NATIVE_AUTOSELECT_BATCH_COMPLETE")
+            (swcad-title-princ-line
+              (strcat
+                "변환이 중간 상태에서 멈췄습니다. 마지막 상태="
+                (swcad-title-string *swcad-title-last-apply-status*)
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  (setq remaining (length (swcad-title-source-title-candidates)))
+  (swcad-title-write-native-autoselect-batch-summary
+    count
+    remaining
+    *swcad-title-last-apply-status*
+  )
+  (princ)
 )
 
 (defun swcad-title-transfer-batch (/ count answer old-batch-mode batch-result)
@@ -14992,7 +15415,7 @@
                 (swcad-title-princ-text "\n도면틀 형상 오류로 중단되면 clone/fast batch를 계속하지 말고 SWTITLESTATUS로 상태를 다시 확인하세요.")
               )
             )
-            (swcad-title-princ-text "\nSWTITLESTATUS로 frame-only 대상을 확인한 뒤 SWTITLECONVERTNEXT로 첫 native GMTITLE 단계를 진행하세요.")
+            (swcad-title-princ-text "\nSWTITLESTATUS로 title-missing/frame-only 대상을 확인한 뒤 SWTITLECONVERTNEXT로 같은 크기 DR 도면틀-only 변환 단계를 진행하세요.")
             (setq index count)
           )
           (progn
@@ -15109,7 +15532,7 @@
   )
 )
 
-(defun swcad-title-run-fast-batch-phases (/ source-count frame-only-count final-source-count final-frame-only-count contaminated old-batch-mode source-result frame-result frame-only-target-frame-block source-frame risk-message)
+(defun swcad-title-run-fast-batch-phases (/ source-count frame-only-count final-source-count final-frame-only-count contaminated old-batch-mode source-result frame-result)
   (setq source-count (swcad-title-source-title-count))
   (setq old-batch-mode *swcad-title-batch-mode*)
   (setq *swcad-title-batch-mode* T)
@@ -15150,29 +15573,7 @@
       (setq frame-only-count (swcad-title-frame-only-source-count))
       (if (> frame-only-count 0)
         (progn
-          (setq frame-only-target-frame-block (swcad-title-next-frame-only-target-missing-native-p))
           (cond
-            (frame-only-target-frame-block
-              (setq *swcad-title-last-apply-status* "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
-              (swcad-title-princ-text
-                (strcat
-                  "\nFast batch paused before title-missing/frame-only phase: "
-                  frame-only-target-frame-block
-                  " needs one real native GMTITLE exemplar first."
-                )
-              )
-              (if
-                (and
-                  (setq source-frame (car (swcad-title-frame-only-source-candidates)))
-                  (setq risk-message (swcad-title-title-missing-outline-risk-message source-frame frame-only-target-frame-block))
-                )
-                (progn
-                  (swcad-title-princ-text (strcat "\ntitle-missing/frame-only native template caution: " risk-message))
-                  (swcad-title-princ-text "\nTitle-missing/frame-only sheets were not changed. Create/check one real matching DR_A*_Outline first with SWTITLECONVERTNEXT.")
-                )
-              )
-              (swcad-title-princ-text "\nSWTITLESTATUS로 frame-only 대상을 확인한 뒤 SWTITLECONVERTNEXT로 첫 native GMTITLE 단계를 진행하세요.")
-            )
             ((swcad-title-title-missing-outline-definition-needed-p)
               (setq *swcad-title-last-apply-status* "WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION")
               (swcad-title-princ-text
@@ -15249,7 +15650,7 @@
   *swcad-title-last-apply-status*
 )
 
-(defun swcad-title-transfer-fast-batch (/ summary source-count frame-only-count contaminated example-title missing-required frame-records geometry-risk-count overlap-risk-count answer frame-only-target-frame-block)
+(defun swcad-title-transfer-fast-batch (/ summary source-count frame-only-count contaminated example-title missing-required frame-records geometry-risk-count overlap-risk-count answer)
   (setq summary (swcad-title-fast-sheet-summary))
   (setq source-count (swcad-title-fast-summary-value summary "source-title-count"))
   (setq frame-only-count (swcad-title-fast-summary-value summary "frame-only-count"))
@@ -15325,34 +15726,17 @@
     ((and missing-required (not (swcad-title-next-fast-target-ready-p)))
       (setq *swcad-title-last-apply-status* "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
       (swcad-title-princ-text "\nResult: WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
-      (swcad-title-princ-text "\nCreate/finalize one real native GMTITLE for each missing sheet size first.")
-      (swcad-title-princ-text "\n표제란 있는 시트와 frame-only 시트 모두 SWTITLESTATUS로 상태를 확인하고 SWTITLECONVERTNEXT로 진행하세요.")
+      (swcad-title-princ-text "\nCreate/finalize one real native GMTITLE for each missing title-sheet size first.")
+      (swcad-title-princ-text "\n이 native 기준 객체 요구는 표제란이 있는 원본 시트에만 해당합니다. title-missing/frame-only 시트는 같은 크기 DR 도면틀 정의 검증 후 outline-only 경로로 진행합니다.")
     )
     (T
-      (setq frame-only-target-frame-block
-        (if (> frame-only-count 0)
-          (swcad-title-next-frame-only-target-missing-native-p)
-          nil
-        )
-      )
       (if (> frame-only-count 0)
         (progn
-          (if frame-only-target-frame-block
-            (swcad-title-princ-text
-              (strcat
-                "\n주의: frame-only 시트 "
-                (itoa frame-only-count)
-                "장은 "
-                frame-only-target-frame-block
-                " 실제 native 기준 객체가 아직 없어 이번 빠른 변환에서 건너뜁니다."
-              )
-            )
-            (swcad-title-princ-text
-              (strcat
-                "\n주의: frame-only 시트 "
-                (itoa frame-only-count)
-                "장은 빠른 clone 변환에서 제외하고 title-missing 도면틀-only 경로로 넘깁니다."
-              )
+          (swcad-title-princ-text
+            (strcat
+              "\n주의: frame-only 시트 "
+              (itoa frame-only-count)
+              "장은 빠른 clone 변환에서 제외하고 title-missing 도면틀-only 경로로 넘깁니다."
             )
           )
           (swcad-title-princ-text "\n이 단계에서는 표제란 있는 시트만 처리하고, frame-only 시트는 SWTITLESTATUS 후 SWTITLECONVERTNEXT에서 원본 표제란 부재 예외로 진행합니다.")
@@ -15458,7 +15842,7 @@
     ((and example-title missing-required (not (swcad-title-next-fast-target-ready-p)))
       (setq *swcad-title-last-apply-status* "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
       (swcad-title-princ-text "\nResult: WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
-      (swcad-title-princ-text "\nA native GMTITLE exemplar exists, but one or more remaining sheet sizes still need their own first real GMTITLE.")
+      (swcad-title-princ-text "\nA native GMTITLE exemplar exists, but one or more remaining title-sheet sizes still need their own first real GMTITLE.")
       (swcad-title-princ-text "\nSWTITLESTATUS로 누락 크기를 확인하고 SWTITLECONVERTNEXT로 필요한 첫 native GMTITLE 단계를 진행하세요.")
     )
     (example-title
@@ -18339,13 +18723,23 @@
             )
           )
           (swcad-title-print-compact-next-gmtitle-card summary missing-required-native example-title a3a4-count)
-          (if (swcad-title-script-active-p)
+          (if
+            (and
+              *swcad-title-convert-next-mode*
+              (swcad-title-gmtitle-autoselect-available-p)
+            )
+            (progn
+              (swcad-title-princ-text "\n고정 컨트롤 자동 선택이 준비되어 현재 native 교체 후보를 모두 연속 처리합니다.")
+              (swcad-title-upgrade-native-a3a4-all)
+            )
+            (if (swcad-title-script-active-p)
             (swcad-title-abort-interactive-gmtitle-script-active
               "A2/A3/A4 native 교체는 GMTITLE 창의 용지/제목블록 선택을 사람이 확인해야 합니다."
             )
             (progn
               (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 A2/A3/A4 native 교체 단계를 안내합니다. OPEN은 1장, BATCH는 여러 장 연속 처리입니다.")
               (swcad-title-upgrade-native-a3a4-next)
+            )
             )
           )
         )
@@ -18362,7 +18756,7 @@
           )
           (if (swcad-title-script-active-p)
             (swcad-title-abort-interactive-gmtitle-script-active
-              "frame-only 시트의 첫 native GMTITLE은 GMTITLE 창에서 DR 용지 선택과 배치 옵션 확인이 필요합니다."
+              "title-missing/frame-only 도면틀-only 변환은 도면을 변경하므로, 보이는 CAD에서 SWTITLESTATUS 안내를 확인한 뒤 SWTITLECONVERTNEXT로 진행해야 합니다."
             )
             (if (swcad-title-title-missing-outline-policy-blocked-p)
               (if (swcad-title-title-missing-outline-definition-needed-p)
@@ -18375,7 +18769,13 @@
                 )
                 (progn
                   (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 title-missing 도면틀-only 변환 단계를 실행합니다.")
-                  (swcad-title-transfer-title-missing-outline-apply)
+                  (if *swcad-title-convert-next-mode*
+                    (progn
+                      (swcad-title-princ-text "\nSWTITLECONVERTNEXT는 검증된 남은 title-missing 도면틀 시트를 모두 연속 처리합니다.")
+                      (swcad-title-transfer-title-missing-outline-all)
+                    )
+                    (swcad-title-transfer-title-missing-outline-apply)
+                  )
                 )
               )
               (progn
@@ -18391,12 +18791,24 @@
           (swcad-title-princ-text "\n첫 native GMTITLE 기준 객체가 없습니다. SWTITLECONVERT 내부에서 첫 native 생성 단계를 진행합니다.")
           (swcad-title-print-compact-next-gmtitle-card summary missing-required-native example-title a3a4-count)
           (swcad-title-print-next-bootstrap-selection)
-          (swcad-title-princ-text "\nSWTITLECONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록을 고르고, Frame positioning은 ON, Object move는 OFF로 두세요.")
-          (if (swcad-title-script-active-p)
-            (swcad-title-abort-interactive-gmtitle-script-active
-              "첫 native GMTITLE 기준 객체 생성은 GMTITLE 창 선택을 사람이 확인해야 합니다."
+          (if
+            (and
+              *swcad-title-convert-next-mode*
+              (swcad-title-gmtitle-autoselect-available-p)
             )
-            (swcad-title-transfer-bootstrap-fast)
+            (progn
+              (swcad-title-princ-text "\n고정 컨트롤 자동 선택으로 남은 표제란 시트를 복제 없이 실제 native GMTITLE로 연속 변환합니다.")
+              (swcad-title-transfer-native-autoselect-all)
+            )
+            (progn
+              (swcad-title-princ-text "\nSWTITLECONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록을 고르고, Frame positioning은 ON, Object move는 OFF로 두세요.")
+              (if (swcad-title-script-active-p)
+                (swcad-title-abort-interactive-gmtitle-script-active
+                  "첫 native GMTITLE 기준 객체 생성은 GMTITLE 창 선택을 사람이 확인해야 합니다."
+                )
+                (swcad-title-transfer-bootstrap-fast)
+              )
+            )
           )
         )
         ((and (> source-count 0) (not (swcad-title-next-fast-target-ready-p)))
@@ -18404,8 +18816,18 @@
           (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 이 크기의 실제 native GMTITLE 한 장을 먼저 생성합니다.")
           (swcad-title-print-compact-next-gmtitle-card summary missing-required-native example-title a3a4-count)
           (swcad-title-print-next-missing-native-selection summary missing-required-native)
-          (swcad-title-princ-text "\nSWTITLECONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록을 고르고, Frame positioning은 ON, Object move는 OFF로 두세요.")
-          (if (swcad-title-script-active-p)
+          (if
+            (and
+              *swcad-title-convert-next-mode*
+              (swcad-title-gmtitle-autoselect-available-p)
+            )
+            (progn
+              (swcad-title-princ-text "\n누락 크기도 고정 컨트롤 자동 선택이 감지한 용지값으로 직접 native 생성합니다.")
+              (swcad-title-transfer-native-autoselect-all)
+            )
+            (progn
+              (swcad-title-princ-text "\nSWTITLECONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록을 고르고, Frame positioning은 ON, Object move는 OFF로 두세요.")
+              (if (swcad-title-script-active-p)
             (swcad-title-abort-interactive-gmtitle-script-active
               "누락 크기의 첫 native GMTITLE 기준 객체 생성은 GMTITLE 창 선택을 사람이 확인해야 합니다."
             )
@@ -18441,10 +18863,21 @@
                 )
               )
             )
+              )
+            )
           )
         )
         (T
-          (if *swcad-title-convert-next-mode*
+          (if
+            (and
+              *swcad-title-convert-next-mode*
+              (swcad-title-gmtitle-autoselect-available-p)
+            )
+            (progn
+              (swcad-title-princ-text "\n고정 컨트롤 자동 선택으로 남은 표제란 시트를 복제 없이 실제 native GMTITLE로 연속 변환합니다.")
+              (swcad-title-transfer-native-autoselect-all)
+            )
+            (if *swcad-title-convert-next-mode*
             (progn
               (swcad-title-princ-text "\n기준 GMTITLE이 있으므로 SWTITLECONVERTNEXT는 남은 표제란 시트 중 다음 1장만 clone 변환합니다.")
               (setq old-batch-mode *swcad-title-batch-mode*)
@@ -18510,6 +18943,7 @@
                 )
               )
             )
+          )
           )
         )
       )

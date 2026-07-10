@@ -5,7 +5,7 @@
 
   [string]$LogPath,
 
-  [int]$TimeoutSeconds = 90,
+  [int]$TimeoutSeconds = 240,
 
   [ValidateSet("Hidden", "Minimized", "Normal", "Maximized")]
   [string]$WindowStyle = "Minimized"

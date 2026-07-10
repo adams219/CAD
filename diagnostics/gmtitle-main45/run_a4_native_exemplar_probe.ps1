@@ -29,10 +29,10 @@ function Assert-NoExistingGstarCAD {
     while ((Get-Date) -lt $deadline) {
       $existing = @(Get-Process -Name gcad -ErrorAction SilentlyContinue)
       if ($existing.Count -eq 0) {
-        Write-Output "No existing GstarCAD process detected. Continuing A4 native exemplar probe."
+        Write-Output "No existing GstarCAD process detected. Continuing source-title-missing native exemplar probe (A4-sized sample)."
         return
       }
-      Write-Output ("Waiting for GstarCAD to close before A4 native exemplar probe... active PID(s): {0}" -f (($existing | ForEach-Object { $_.Id }) -join ", "))
+      Write-Output ("Waiting for GstarCAD to close before source-title-missing native exemplar probe (A4-sized sample)... active PID(s): {0}" -f (($existing | ForEach-Object { $_.Id }) -join ", "))
       Start-Sleep -Seconds 5
     }
   }
@@ -44,7 +44,7 @@ function Assert-NoExistingGstarCAD {
       Format-Table -AutoSize |
       Out-String
     throw @"
-Existing GstarCAD process detected before the A4 native exemplar probe.
+Existing GstarCAD process detected before the source-title-missing native exemplar probe (A4-sized sample).
 The probe uses hidden /b GstarCAD, which is unreliable while a visible GstarCAD session is open.
 
 Save the scratch/native A4 DWG, close GstarCAD, then rerun:

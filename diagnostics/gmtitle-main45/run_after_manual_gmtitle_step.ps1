@@ -203,6 +203,7 @@ function Write-AfterManualCardShortSummary {
   $workCopySaveTime = Get-LastRegexValue -Text $CardText -Pattern "^작업복사본 저장 시간:\s*(.+)$"
   $directProbeCurrent = Get-LastRegexValue -Text $CardText -Pattern "^Direct probe 최신 상태:\s*(예|아니오)"
   $directProbeReused = ($CardText -match "Direct probe 자동 갱신: 기존 로그가 대상 작업복사본, 저장 시간, 현재 LSP 버전과 일치해 재사용합니다")
+  $directProbeForced = ($CardText -match "Direct probe 강제 갱신: 기존 로그가 최신이어도 저장된 DWG를 hidden GstarCAD로 다시 읽습니다")
   $frame = $null
   $title = $null
   $selectionText = Get-TextAfterLastMarker -Text $CardText -Marker "GMTITLE 창에서 반드시 아래 값으로 선택:"
@@ -236,6 +237,9 @@ function Write-AfterManualCardShortSummary {
   if ($workCopySaveTime) { Write-Log ("  작업복사본 저장 시간: {0}" -f $workCopySaveTime) }
   if ($directProbeTime) { Write-Log ("  direct probe 시간: {0}" -f $directProbeTime) }
   if ($directProbeCurrent) { Write-Log ("  direct probe 최신 상태: {0}" -f $directProbeCurrent) }
+  if ($directProbeForced) {
+    Write-Log "  참고: 저장/닫기 후 점검이므로 기존 로그를 재사용하지 않고 실제 DWG를 다시 읽었습니다."
+  }
   if ($directProbeReused) {
     Write-Log "  참고: 기존 direct probe가 재사용됐습니다. 방금 저장했는데 작업복사본 저장 시간이 바뀌지 않았다면 다른 DWG를 저장했을 수 있습니다."
   }
@@ -330,7 +334,7 @@ if (-not (Test-Path -LiteralPath $SourceWorkCopyPath)) {
 if ($DryRun) {
   Write-Log "Dry run: hidden GstarCAD probe를 실행하지 않습니다."
   Write-Log "1. GstarCAD가 닫혀 있는지 확인합니다."
-  Write-Log "2. run_next_cad_action.ps1 -AutoRefreshDirectProbe를 실행합니다."
+  Write-Log "2. run_next_cad_action.ps1 -AutoRefreshDirectProbe -ForceRefreshDirectProbe를 실행합니다."
   Write-Log "3. 카드가 최종 검증 가능 상태를 가리키면 run_final_completion_gate.ps1를 실행합니다."
   Write-Log "4. -Compact를 쓰면 긴 하위 카드는 화면에서 숨기고 다음 작업 짧은 요약만 출력합니다."
   Write-Log "Result: DRY_RUN_READY"
@@ -346,6 +350,7 @@ $nextArgs = @(
   "-DirectProbeLogPath",
   $DirectProbeLogPath,
   "-AutoRefreshDirectProbe",
+  "-ForceRefreshDirectProbe",
   "-AutoRefreshTimeoutSeconds",
   [string]$AutoRefreshTimeoutSeconds
 )

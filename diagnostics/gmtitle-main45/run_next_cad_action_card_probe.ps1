@@ -65,7 +65,7 @@ function New-FakeRepoWorkCopy {
   New-Item -ItemType Directory -Path $workPath -Force | Out-Null
   New-Item -ItemType Directory -Path $gmtitlePath -Force | Out-Null
   Set-Content -LiteralPath (Join-Path $repoPath "swcad_load.lsp") -Encoding ASCII -Value "fake loader"
-  Set-Content -LiteralPath (Join-Path $gmtitlePath "swcad_title_scale.lsp") -Encoding ASCII -Value '(setq *swcad-title-scale-version* "260707-convert-next-clone-upgrade-19")'
+  Set-Content -LiteralPath (Join-Path $gmtitlePath "swcad_title_scale.lsp") -Encoding ASCII -Value '(setq *swcad-title-scale-version* "260710-fixed-control-autoselect-1")'
   $dwgPath = Join-Path $workPath "$DwgName.dwg"
   Set-Content -LiteralPath $dwgPath -Encoding ASCII -Value "fake dwg marker"
   return @{
@@ -96,11 +96,24 @@ function Write-FakeLog {
     [string]$VerifyStatus = "SWTITLEVERIFY_FINAL_FAIL",
     [string]$Frame = "DR_A2_Outline",
     [string]$Title = "DR_titlea_3rd",
-    [string]$LoadedVersion = "260707-convert-next-clone-upgrade-19",
-    [string]$ExpectedVersion = "260707-convert-next-clone-upgrade-19",
+    [string]$LoadedVersion = "260710-fixed-control-autoselect-1",
+    [string]$ExpectedVersion = "260710-fixed-control-autoselect-1",
     [string]$NextMissingFrame,
     [string]$NextMissingTitle,
-    [string]$NextMissingRole
+    [string]$NextMissingRole,
+    [int]$SourceTitleCount = 13,
+    [int]$TargetTitleCount = 1,
+    [int]$TargetFrameCount = 1,
+    [int]$TargetPairCount = 13,
+    [int]$NativeLikeTargetPairCount = 1,
+    [int]$NonNativeLikeTargetPairCount = 12,
+    [int]$ClonedPairCount = 12,
+    [int]$NativeUpgradeCandidateCount = 12,
+    [int]$OrphanTargetFrameCount = 0,
+    [int]$DuplicateTargetPairCount = 0,
+    [int]$TargetA2Count = 1,
+    [int]$TargetA3Count = 0,
+    [int]$TargetA4Count = 0
   )
 
   $lines = @(
@@ -109,26 +122,29 @@ function Write-FakeLog {
     "DWG: $DwgPath",
     "status-after-status: $Status",
     "status-after-verify: $VerifyStatus",
-    "source-title-count: 13",
+    "source-title-count: $SourceTitleCount",
     "frame-only-count: 2",
     "next-bootstrap-frame: $Frame",
     "next-bootstrap-title: $Title",
     "missing-native-frame: DR_A2_Outline",
     "missing-native-frame: DR_A3_Outline",
-    "missing-native-frame: DR_A4_Outline",
     "expected-sheet-counts:",
     "  A2: 1",
     "  A3: 12",
     "  A4: 2",
-    "target-title-count: 1",
-    "target-frame-count: 1",
-    "target-gmtitle-pair-count: 13",
-    "native-like-target-pair-count: 1",
-    "non-native-like-target-pair-count: 12",
-    "cloned-gmtitle-pair-count: 12",
-    "a2a3a4-native-upgrade-candidate-count: 12",
-    "orphan-target-frame-count: 0",
-    "duplicate-target-pair-count: 0",
+    "target-sheet-counts:",
+    "  A2: $TargetA2Count",
+    "  A3: $TargetA3Count",
+    "  A4: $TargetA4Count",
+    "target-title-count: $TargetTitleCount",
+    "target-frame-count: $TargetFrameCount",
+    "target-gmtitle-pair-count: $TargetPairCount",
+    "native-like-target-pair-count: $NativeLikeTargetPairCount",
+    "non-native-like-target-pair-count: $NonNativeLikeTargetPairCount",
+    "cloned-gmtitle-pair-count: $ClonedPairCount",
+    "a2a3a4-native-upgrade-candidate-count: $NativeUpgradeCandidateCount",
+    "orphan-target-frame-count: $OrphanTargetFrameCount",
+    "duplicate-target-pair-count: $DuplicateTargetPairCount",
     "dbmod-after-commands: 0"
   )
   if ($NextMissingFrame) { $lines += "next-missing-native-frame: $NextMissingFrame" }
@@ -166,7 +182,20 @@ function Invoke-CardCase {
     [switch]$MissingLog,
     [string]$NextMissingFrame,
     [string]$NextMissingTitle,
-    [string]$NextMissingRole
+    [string]$NextMissingRole,
+    [int]$SourceTitleCount = 13,
+    [int]$TargetTitleCount = 1,
+    [int]$TargetFrameCount = 1,
+    [int]$TargetPairCount = 13,
+    [int]$NativeLikeTargetPairCount = 1,
+    [int]$NonNativeLikeTargetPairCount = 12,
+    [int]$ClonedPairCount = 12,
+    [int]$NativeUpgradeCandidateCount = 12,
+    [int]$OrphanTargetFrameCount = 0,
+    [int]$DuplicateTargetPairCount = 0,
+    [int]$TargetA2Count = 1,
+    [int]$TargetA3Count = 0,
+    [int]$TargetA4Count = 0
   )
 
   $repo = New-FakeRepoWorkCopy -RepoName "repo_$Name" -DwgName "${Name}_workcopy"
@@ -176,9 +205,9 @@ function Invoke-CardCase {
 
   if (-not $MissingLog) {
     if ($MakeVersionStale) {
-      Write-FakeLog -Path $log -DwgPath $dwg -Status $Status -VerifyStatus $VerifyStatus -Frame $Frame -Title $Title -LoadedVersion "260705-old-test-version" -ExpectedVersion "260705-old-test-version" -NextMissingFrame $NextMissingFrame -NextMissingTitle $NextMissingTitle -NextMissingRole $NextMissingRole
+      Write-FakeLog -Path $log -DwgPath $dwg -Status $Status -VerifyStatus $VerifyStatus -Frame $Frame -Title $Title -LoadedVersion "260705-old-test-version" -ExpectedVersion "260705-old-test-version" -NextMissingFrame $NextMissingFrame -NextMissingTitle $NextMissingTitle -NextMissingRole $NextMissingRole -SourceTitleCount $SourceTitleCount -TargetTitleCount $TargetTitleCount -TargetFrameCount $TargetFrameCount -TargetPairCount $TargetPairCount -NativeLikeTargetPairCount $NativeLikeTargetPairCount -NonNativeLikeTargetPairCount $NonNativeLikeTargetPairCount -ClonedPairCount $ClonedPairCount -NativeUpgradeCandidateCount $NativeUpgradeCandidateCount -OrphanTargetFrameCount $OrphanTargetFrameCount -DuplicateTargetPairCount $DuplicateTargetPairCount -TargetA2Count $TargetA2Count -TargetA3Count $TargetA3Count -TargetA4Count $TargetA4Count
     } else {
-      Write-FakeLog -Path $log -DwgPath $dwg -Status $Status -VerifyStatus $VerifyStatus -Frame $Frame -Title $Title -NextMissingFrame $NextMissingFrame -NextMissingTitle $NextMissingTitle -NextMissingRole $NextMissingRole
+      Write-FakeLog -Path $log -DwgPath $dwg -Status $Status -VerifyStatus $VerifyStatus -Frame $Frame -Title $Title -NextMissingFrame $NextMissingFrame -NextMissingTitle $NextMissingTitle -NextMissingRole $NextMissingRole -SourceTitleCount $SourceTitleCount -TargetTitleCount $TargetTitleCount -TargetFrameCount $TargetFrameCount -TargetPairCount $TargetPairCount -NativeLikeTargetPairCount $NativeLikeTargetPairCount -NonNativeLikeTargetPairCount $NonNativeLikeTargetPairCount -ClonedPairCount $ClonedPairCount -NativeUpgradeCandidateCount $NativeUpgradeCandidateCount -OrphanTargetFrameCount $OrphanTargetFrameCount -DuplicateTargetPairCount $DuplicateTargetPairCount -TargetA2Count $TargetA2Count -TargetA3Count $TargetA3Count -TargetA4Count $TargetA4Count
     }
     if ($MakeStale) {
       (Get-Item -LiteralPath $log).LastWriteTime = (Get-Date).AddMinutes(-10)
@@ -189,7 +218,7 @@ function Invoke-CardCase {
     }
   } else {
     $gateLog = Join-Path $caseWorkDir "swtitle_final_completion_gate_status.txt"
-    Write-FakeLog -Path $gateLog -DwgPath $dwg -Status $Status -VerifyStatus $VerifyStatus -Frame $Frame -Title $Title -NextMissingFrame $NextMissingFrame -NextMissingTitle $NextMissingTitle -NextMissingRole $NextMissingRole
+    Write-FakeLog -Path $gateLog -DwgPath $dwg -Status $Status -VerifyStatus $VerifyStatus -Frame $Frame -Title $Title -NextMissingFrame $NextMissingFrame -NextMissingTitle $NextMissingTitle -NextMissingRole $NextMissingRole -SourceTitleCount $SourceTitleCount -TargetTitleCount $TargetTitleCount -TargetFrameCount $TargetFrameCount -TargetPairCount $TargetPairCount -NativeLikeTargetPairCount $NativeLikeTargetPairCount -NonNativeLikeTargetPairCount $NonNativeLikeTargetPairCount -ClonedPairCount $ClonedPairCount -NativeUpgradeCandidateCount $NativeUpgradeCandidateCount -OrphanTargetFrameCount $OrphanTargetFrameCount -DuplicateTargetPairCount $DuplicateTargetPairCount -TargetA2Count $TargetA2Count -TargetA3Count $TargetA3Count -TargetA4Count $TargetA4Count
     (Get-Item -LiteralPath $dwg).LastWriteTime = (Get-Date).AddMinutes(-10)
     (Get-Item -LiteralPath $gateLog).LastWriteTime = Get-Date
   }
@@ -274,6 +303,33 @@ Invoke-CardCase `
   -Status "NEXT_UPGRADE_NATIVE_GMTITLE" `
   -Frame "DR_A3_Outline" `
   -Expected @("Result: RUN_NATIVE_REPLACEMENT", "SWTITLECONVERTNEXT", "SWTITLECONVERT", "OPEN", "BATCH", "MANUAL", "DR_A3_Outline", "DR_titlea_3rd", "12")
+
+Invoke-CardCase `
+  -Name "remaining_source_before_title_missing" `
+  -Status "NEXT_RUN_FAST_BATCH" `
+  -Frame "DR_A3_Outline" `
+  -Title "DR_titlea_3rd" `
+  -Expected @("Result: RUN_REMAINING_CONVERSION", "DR_A3_Outline", "DR_titlea_3rd", "남은 원본 표제란 시트 변환이 title-missing/frame-only 예외보다 먼저입니다")
+
+Invoke-CardCase `
+  -Name "remaining_source_batch_eligible" `
+  -Status "NEXT_RUN_FAST_BATCH" `
+  -Frame "DR_A3_Outline" `
+  -Title "DR_titlea_3rd" `
+  -SourceTitleCount 8 `
+  -TargetTitleCount 5 `
+  -TargetFrameCount 5 `
+  -TargetPairCount 5 `
+  -NativeLikeTargetPairCount 5 `
+  -NonNativeLikeTargetPairCount 0 `
+  -ClonedPairCount 0 `
+  -NativeUpgradeCandidateCount 0 `
+  -OrphanTargetFrameCount 0 `
+  -DuplicateTargetPairCount 0 `
+  -TargetA2Count 1 `
+  -TargetA3Count 4 `
+  -TargetA4Count 0 `
+  -Expected @("Result: RUN_REMAINING_CONVERSION", "A3 반복 BATCH 검토 가능", "현재 4/12장", "남은 원본 표제란 8장", "SWTITLECONVERT", "BATCH", "매번 DR_A3_Outline / DR_titlea_3rd / Frame positioning ON / Object move OFF")
 
 Invoke-CardCase `
   -Name "structure_review" `

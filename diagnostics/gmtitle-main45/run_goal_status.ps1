@@ -36,7 +36,7 @@ $script:LatestNativeUpgradeReadyForVerify = $false
 $script:LatestNativeUpgradeRemaining = $null
 $script:LatestNativeUpgradeResult = $null
 $script:LatestNativeUpgradeLastWriteTime = $null
-$script:ExpectedGmtitleVersion = "260707-convert-next-clone-upgrade-19"
+$script:ExpectedGmtitleVersion = "260710-fixed-control-autoselect-1"
 $script:A4PrepareProbeUnsafe = $false
 $script:A4NestedProbeMissing = $false
 $script:A4NestedProbeUnsafe = $false
@@ -57,6 +57,8 @@ $script:DirectWorkcopyNextMissingTitle = $null
 $script:DirectWorkcopyNextMissingRole = $null
 $script:DirectWorkcopyTargetTitleCount = $null
 $script:DirectWorkcopyTargetFrameCount = $null
+$script:DirectWorkcopySourceTitleCount = $null
+$script:DirectWorkcopyFrameOnlyCount = $null
 $script:DirectWorkcopyProbeLastWriteTime = $null
 $script:WorkingTreeDirty = $false
 
@@ -76,6 +78,41 @@ function Invoke-GitText {
     return "<git unavailable>"
   }
   return "<git unavailable>"
+}
+
+function Get-GitWorktreeEvidence {
+  param([string]$RepoRoot)
+
+  $chunks = New-Object System.Collections.Generic.List[string]
+  $statusText = ""
+  try {
+    $statusText = ((& git -C $RepoRoot -c core.autocrlf=false -c core.safecrlf=false status --short 2>$null) -join "`n")
+    [void]$chunks.Add("git status --short")
+    [void]$chunks.Add($statusText)
+    [void]$chunks.Add("git diff --binary")
+    [void]$chunks.Add(((& git -C $RepoRoot -c core.autocrlf=false -c core.safecrlf=false diff --binary --no-ext-diff -- 2>$null) -join "`n"))
+    [void]$chunks.Add("git diff --cached --binary")
+    [void]$chunks.Add(((& git -C $RepoRoot -c core.autocrlf=false -c core.safecrlf=false diff --cached --binary --no-ext-diff -- 2>$null) -join "`n"))
+
+    $joined = ($chunks -join "`n")
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($joined)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+      $hash = (($sha.ComputeHash($bytes) | ForEach-Object { $_.ToString("x2") }) -join "")
+    } finally {
+      $sha.Dispose()
+    }
+
+    return @{
+      Dirty = (-not [string]::IsNullOrWhiteSpace($statusText))
+      Hash = $hash
+    }
+  } catch {
+    return @{
+      Dirty = $script:WorkingTreeDirty
+      Hash = "<unavailable>"
+    }
+  }
 }
 
 function Read-TextWithFallback {
@@ -278,9 +315,40 @@ function Write-HiddenSuiteLastRunSummary {
   $failureCommand = Get-FirstRegexValue -Text $text -Pattern "^Failure command:\s*(.+)$"
   $statusAfterStatus = Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-status:\s*(\S+)"
   $statusAfterVerify = Get-FirstRegexValue -Text $text -Pattern "^\s*status-after-verify:\s*(\S+)"
+  $sourceTitleCount = Get-FirstRegexValue -Text $text -Pattern "^\s*source-title-count:\s*(\d+)"
+  $sourceFrameCount = Get-FirstRegexValue -Text $text -Pattern "^\s*source-frame-count:\s*(\d+)"
+  $frameOnlyCount = Get-FirstRegexValue -Text $text -Pattern "^\s*frame-only-count:\s*(\d+)"
+  $targetTitleCount = Get-FirstRegexValue -Text $text -Pattern "^\s*target-title-count:\s*(\d+)"
+  $targetFrameCount = Get-FirstRegexValue -Text $text -Pattern "^\s*target-frame-count:\s*(\d+)"
+  $nextFrame = Get-FirstRegexValue -Text $text -Pattern "^\s*next-bootstrap-frame:\s*(\S+)"
+  $nextTitle = Get-FirstRegexValue -Text $text -Pattern "^\s*next-bootstrap-title:\s*(\S+)"
+  $missingNativeFrame = Get-FirstRegexValue -Text $text -Pattern "^\s*missing-native-frame:\s*(\S+)"
+  $suiteDirty = Get-FirstRegexValue -Text $text -Pattern "^Worktree dirty at suite run:\s*(.+)$"
+  $suiteHash = Get-FirstRegexValue -Text $text -Pattern "^Worktree evidence hash:\s*(.+)$"
+  $currentWorktreeEvidence = if ($script:CurrentWorktreeEvidence) { $script:CurrentWorktreeEvidence } else { Get-GitWorktreeEvidence -RepoRoot $repoRoot }
+  $suiteHashMatchesCurrent = (
+    -not [string]::IsNullOrWhiteSpace($suiteHash) -and
+    $suiteHash -ne "<unavailable>" -and
+    $suiteHash -eq $currentWorktreeEvidence.Hash
+  )
 
   $script:SuiteLastRunResult = $result
   $script:SuiteLastRunGenerated = $generated
+  if ($result -eq "PASS" -and $suiteHashMatchesCurrent -and $statusAfterStatus) {
+    $script:DirectWorkcopyProbeTrusted = $true
+    $script:DirectWorkcopyStatusCode = $statusAfterStatus
+    $script:DirectWorkcopyVerifyStatus = $statusAfterVerify
+    $script:DirectWorkcopyProbeLastWriteTime = $item.LastWriteTime
+    $script:DirectWorkcopyNextFrame = $nextFrame
+    $script:DirectWorkcopyNextTitle = $nextTitle
+    $script:DirectWorkcopyNextMissingFrame = $missingNativeFrame
+    $script:DirectWorkcopyNextMissingTitle = $null
+    $script:DirectWorkcopyNextMissingRole = $null
+    $script:DirectWorkcopyTargetTitleCount = $targetTitleCount
+    $script:DirectWorkcopyTargetFrameCount = $targetFrameCount
+    $script:DirectWorkcopySourceTitleCount = $sourceTitleCount
+    $script:DirectWorkcopyFrameOnlyCount = $frameOnlyCount
+  }
 
   Write-Output ("  Path: {0}" -f $suiteLog)
   Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
@@ -295,9 +363,26 @@ function Write-HiddenSuiteLastRunSummary {
   if ($failureCommand) { Write-Output ("  Failure command: {0}" -f $failureCommand) }
   if ($statusAfterStatus) { Write-Output ("  Actual work-copy status in suite: {0}" -f $statusAfterStatus) }
   if ($statusAfterVerify) { Write-Output ("  Actual work-copy verify in suite: {0}" -f $statusAfterVerify) }
+  if ($sourceTitleCount -or $sourceFrameCount -or $frameOnlyCount) {
+    Write-Output ("  Actual work-copy source-title/source-frame/frame-only in suite: {0} / {1} / {2}" -f $sourceTitleCount, $sourceFrameCount, $frameOnlyCount)
+  }
+  if ($targetTitleCount -or $targetFrameCount) {
+    Write-Output ("  Actual work-copy target-title/target-frame in suite: {0} / {1}" -f $targetTitleCount, $targetFrameCount)
+  }
+  if ($nextFrame -or $nextTitle) {
+    Write-Output ("  Actual work-copy next GMTITLE in suite: {0} / {1}" -f $nextFrame, ($(if ($nextTitle) { $nextTitle } else { "DR_titlea_3rd" })))
+  }
+  if ($missingNativeFrame) {
+    Write-Output ("  Actual work-copy missing-native-frame in suite: {0}" -f $missingNativeFrame)
+  }
+  Write-Output ("  Current worktree dirty: {0}" -f ($(if ($currentWorktreeEvidence.Dirty) { "yes" } else { "no" })))
+  if ($suiteDirty) { Write-Output ("  Worktree dirty at suite run: {0}" -f $suiteDirty) }
+  if ($suiteHash) { Write-Output ("  Suite worktree evidence hash matches current: {0}" -f ($(if ($suiteHashMatchesCurrent) { "yes" } else { "no" }))) }
 
   if ($result -eq "PASS") {
-    if ($script:WorkingTreeDirty) {
+    if ($suiteHashMatchesCurrent) {
+      Write-Output "  Meaning: automation/guard probes passed; this is not proof that the real work DWG finished conversion. The suite worktree evidence hash matches the current worktree."
+    } elseif ($script:WorkingTreeDirty) {
       Write-Output "  Meaning: this PASS was produced before the current uncommitted changes. Treat it as historical guard evidence until the suite is rerun on the current worktree."
     } elseif ($script:HeadCommitTimeUtc -and ($item.LastWriteTimeUtc -lt $script:HeadCommitTimeUtc.AddSeconds(-2))) {
       Write-Output "  Meaning: this PASS is older than the current commit. Treat it as historical guard evidence until /b smoke passes and the suite is rerun."
@@ -734,12 +819,25 @@ function Write-DirectActualWorkcopyProbeSummary {
   if (-not $versionTrusted) {
     $trusted = $false
   }
+  $supersededBySuite = (
+    $script:DirectWorkcopyProbeTrusted -and
+    $script:DirectWorkcopyProbeLastWriteTime -and
+    ($item.LastWriteTime -lt $script:DirectWorkcopyProbeLastWriteTime.AddSeconds(-2))
+  )
+  if ($supersededBySuite) {
+    $trusted = $false
+  }
 
   Write-Output "Direct actual work-copy probe:"
   Write-Output ("  Path: {0}" -f $logPath)
   Write-Output ("  LastWriteTime: {0}" -f $item.LastWriteTime)
   if ($dwg) { Write-Output ("  DWG: {0}" -f $dwg) }
   Write-Output ("  Trusted for goal: {0}" -f ($(if ($trusted) { "yes" } else { "no" })))
+  if ($supersededBySuite) {
+    Write-Output "  Superseded by suite actual work-copy summary: yes"
+    Write-Output ("  Suite actual work-copy status: {0}" -f $script:DirectWorkcopyStatusCode)
+    Write-Output ("  Suite actual work-copy next GMTITLE: {0} / {1}" -f $script:DirectWorkcopyNextFrame, ($(if ($script:DirectWorkcopyNextTitle) { $script:DirectWorkcopyNextTitle } else { "DR_titlea_3rd" })))
+  }
   if (-not $versionTrusted) {
     Write-Output ("  Stale direct-probe version: expected current {0}; rerun direct probe after saving/closing CAD before using it as authoritative." -f $script:ExpectedGmtitleVersion)
   }
@@ -773,6 +871,8 @@ function Write-DirectActualWorkcopyProbeSummary {
     $script:DirectWorkcopyNextMissingRole = $nextMissingRole
     $script:DirectWorkcopyTargetTitleCount = $targetTitleCount
     $script:DirectWorkcopyTargetFrameCount = $targetFrameCount
+    $script:DirectWorkcopySourceTitleCount = $sourceTitleCount
+    $script:DirectWorkcopyFrameOnlyCount = $frameOnlyCount
     $script:DirectWorkcopyOrphanTargetFrameCount = $orphanTargetFrameCount
   }
 }
@@ -1069,6 +1169,13 @@ function Write-NativeFrameProgressSummary {
   if ($a4Missing) {
     if (
       $script:DirectWorkcopyProbeTrusted -and
+      $script:DirectWorkcopyStatusCode -eq "NEXT_RUN_FAST_BATCH" -and
+      $script:DirectWorkcopySourceTitleCount -and
+      ([int]$script:DirectWorkcopySourceTitleCount -gt 0)
+    ) {
+      Write-Output ("  Interpretation: A4 target frames are still missing, but this is not a missing-native GMTITLE action yet. The trusted direct work-copy probe still has {0} source title sheet(s), so continue the next source-title conversion first; title-missing/frame-only exceptions come later." -f $script:DirectWorkcopySourceTitleCount)
+    } elseif (
+      $script:DirectWorkcopyProbeTrusted -and
       $script:DirectWorkcopyStatusCode -eq "NEXT_CREATE_MISSING_NATIVE_EXEMPLAR" -and
       $script:DirectWorkcopyNextMissingFrame -and
       $script:DirectWorkcopyNextMissingFrame -ne "DR_A4_Outline"
@@ -1090,6 +1197,7 @@ if ($script:HeadCommitTimeUtc) {
 }
 
 $statusText = Invoke-GitText @("status", "--short")
+$script:CurrentWorktreeEvidence = Get-GitWorktreeEvidence -RepoRoot $repoRoot
 if ([string]::IsNullOrWhiteSpace($statusText)) {
   $script:WorkingTreeDirty = $false
   Write-Output "Working tree: clean"
