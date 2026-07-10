@@ -214,6 +214,31 @@ work\swtitle_preserve_copy_matrix_2.txt
 work\swtitle_preserve_copy_matrix_3.txt
 ```
 
+실제 GstarCAD 화면에서 1/2/3 복제본의 모든 제목블록을 각각 더블클릭했다.
+
+```text
+matrix 1: copy 1 / title 16D2C / PRESERVE_COPY_MATRIX_1 -> 속성 블록 편집
+matrix 2: copy 1 / title 16D2C / PRESERVE_COPY_MATRIX_1 -> 속성 블록 편집
+matrix 2: copy 2 / title 16D3A / PRESERVE_COPY_MATRIX_2 -> 속성 블록 편집
+matrix 3: copy 1 / title 16D2C / PRESERVE_COPY_MATRIX_1 -> 속성 블록 편집
+matrix 3: copy 2 / title 16D3A / PRESERVE_COPY_MATRIX_2 -> 속성 블록 편집
+matrix 3: copy 3 / title 16D48 / PRESERVE_COPY_MATRIX_3 -> 속성 블록 편집
+결과: 6 / 6 PASS_GMTITLE_TABLE_EDITOR
+고급 속성 편집기: 0 / 6
+```
+
+따라서 같은 internal handle `16D24`를 공유한 복제본도 이번 고정 세션에서는 모두 표 편집창으로 열렸다. **공유 handle 자체가 고급 속성 편집기를 직접 발생시킨다는 가설은 기각한다.** 과거 일부 도면에서 편집창이 달라진 원인은 세션 내부 등록 상태, 복제 시점, PaperSet의 비공개 상태 등 다른 조건과 결합된 현상으로 남겨 둔다.
+
+정확한 handle에 `GMPOWEREDIT` 명령을 직접 전달하면 표 편집창이 아니라 `제목 블록과 도면 경계` 창으로 갈 수 있었다. 이 명령 경로는 사용자가 제목 값 위를 더블클릭하는 경로와 같지 않으므로 편집창 판정 자동화에는 사용하지 않는다.
+
+편집기 결과가 모두 정상이어도 preserve-copy는 현재 구조 검증에서 각 복제 쌍의 고유 native-like 관계를 입증하지 못한다. 따라서 생산 방식은 계속 고정 컨트롤 native 생성으로 유지하고, preserve-copy는 원인 조사 자료로만 남긴다.
+
+화면 검증 로그:
+
+```text
+work\swtitle_preserve_copy_matrix_editor_results.txt
+```
+
 ### 고정 컨트롤 GMTITLE 선택 결과
 
 GMTITLE 대화상자에서 다음 컨트롤 ID를 사용하는 전용 보조 프로그램을 검증했다.
@@ -331,11 +356,24 @@ work\swtitle_integrated_autoselect_fullflow_verify.txt
 
 `GMSBLOCKE`/`GMPOWEREDIT`를 사용해 제목블록 편집창 종류를 자동 판정하려던 별도 editor probe는 명령 라우팅이 일정하지 않았다. 정확한 새 A3 제목블록 대신 `제목 블록과 도면 경계` 생성 창으로 들어갈 수 있어 배포와 정적 필수 검사에서 제거했다.
 
-편집창 검증은 자동 probe 결과로 완료 처리하지 않는다. 대표 결과 DWG에서 사용자가 새 A3 `DR_titlea_3rd`를 한 번 더블클릭해 다음을 확인해야 한다.
+편집창 검증은 자동 probe 결과만으로 완료 처리하지 않고 실제 화면에서 대표 A3를 한 번 더블클릭했다. 2026-07-10 18:21 KST에 full-flow 결과의 byte-identical 전용 복사본을 열고 다음 객체를 확인했다.
 
 ```text
-성공: 속성 블록 편집 표
-실패: 고급 속성 편집기, 제목 블록과 도면 경계, REFEDIT
+테스트 DWG: work\swtitle_integrated_autoselect_editorcheck_probe.dwg
+대표 title: DR_titlea_3rd / handle 16DB5
+paired frame: DR_A3_Outline / handle 16DB0
+열린 창: 속성 블록 편집
+표에 표시된 행: Checked by, Designed by, Approved by, Date, Scale, Edition, Sheet, FILE NO, File Name, Q'ty, Material
+나오지 않은 실패 창: 고급 속성 편집기, 제목 블록과 도면 경계, REFEDIT
+결과: PASS_GMTITLE_TABLE_EDITOR
+```
+
+값은 바꾸지 않고 편집창을 취소했다. 종료 시 저장 질문도 취소하여 디스크에는 저장하지 않았다. 실제 작업복사본과 full-flow 원본 결과 DWG의 SHA-256은 기존 기준값과 일치한다.
+
+세부 실행 로그:
+
+```text
+work\swtitle_integrated_autoselect_editorcheck_result.txt
 ```
 
 ## 채택 결론

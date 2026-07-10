@@ -18,6 +18,16 @@
 기대 LSP 버전: 260710-fixed-control-autoselect-1
 ```
 
+현재 개발 PC의 대표 A3 기준 검증은 완료되었습니다.
+
+```text
+대표 title: DR_titlea_3rd / handle 16DB5
+편집창: 속성 블록 편집
+결과: PASS_GMTITLE_TABLE_EDITOR
+```
+
+다른 PC에서는 GstarCAD 빌드, 언어판, PaperSet 내부 상태의 호환성을 확인하기 위해 같은 대표 더블클릭 검사를 한 번 다시 수행합니다.
+
 다른 컴퓨터에서 내려받기 전에 `260710-fixed-control-autoselect-1` 변경이 `origin/codex/gm-title`에 push되었는지 확인합니다. 로컬에만 변경이 남아 있으면 먼저 정적 검증과 커밋·push를 끝냅니다.
 
 ## 1. 현재 컴퓨터에서 준비
