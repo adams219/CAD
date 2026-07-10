@@ -376,6 +376,44 @@ paired frame: DR_A3_Outline / handle 16DB0
 work\swtitle_integrated_autoselect_editorcheck_result.txt
 ```
 
+### 전체 클릭 전수검사에서 확인된 보정 사항
+
+대표 A3 한 장의 성공만으로 전체 편집기 동작을 완료 판정하면 안 된다는 사실이 후속 전수검사에서 확인됐다. `work\swtitle_integrated_autoselect_fullflow_probe.dwg`의 byte-identical 전용 복사본을 만들고 제목블록 13개와 도면틀 15개를 모두 직접 더블클릭했다.
+
+```text
+테스트 DWG: work\swtitle_integrated_autoselect_allclick_probe.dwg
+구조 점검: native-like 도면틀 15 / 15
+
+제목블록 13개:
+  속성 블록 편집 표 12개
+  고급 속성 편집기 1개
+  실패 title=16CF0, paired frame=DR_A3_Outline/16CEB
+
+도면틀 15개:
+  제목 블록과 도면 경계 13개
+  A2 1/1 정상
+  A3 12/12 정상
+  A4 2개 모두 REFEDIT
+  실패 frame=DR_A4_Outline/16FD5, DR_A4_Outline/16FD4
+```
+
+A4 REFEDIT 창에는 `DR_A4_Outline` 아래 `_도면 테두리 A4 From_HYUN`, `HD-Rev No table`이 표시됐다. 따라서 현재 title-missing A4 결과는 target block 이름과 marker가 있어도 실제 GMTITLE 도면틀 편집 동작까지 확보하지 못했다.
+
+이 결과로 다음 두 가정을 폐기한다.
+
+```text
+native-like/marker/xdata 구조 판정 통과 -> 실제 GMTITLE 편집 동작도 모두 정상
+대표 A3 한 장의 표 편집창 통과 -> 변환된 전체 시트의 클릭 동작 통과
+```
+
+생산 자동 선택 방향은 유지할 수 있지만, 현재 full-flow 결과를 최종 완료로 간주할 수는 없다. A3 실패 title `16CF0`과 정상 title의 비공개 등록 상태 차이, A4 target 정의에 남은 nested source block을 별도 원인으로 조사해야 한다.
+
+전수검사 로그:
+
+```text
+work\swtitle_integrated_autoselect_allclick_results.txt
+```
+
 ## 채택 결론
 
 ```text
@@ -395,4 +433,5 @@ title-missing: 용지 크기가 아니라 원본 표제란 부재가 검증된 �
 - A2/A3/A4 공통 흐름을 유지하며 A4 전용 분기를 다시 만들지 않는다.
 - 새 공개 LSP 명령이 없다.
 - 구조 로그와 실제 더블클릭 결과가 같은 결론을 지지한다.
-- 전체 테스트와 대표 CAD 검증이 통과한다.
+- 전체 제목블록과 도면틀의 실제 클릭 결과가 구조 판정과 일치한다.
+- 현재 전수검사에서는 A3 제목블록 1개와 A4 도면틀 2개가 이 기준을 통과하지 못했다.
