@@ -157,7 +157,7 @@ Before the hidden GstarCAD probes, the suite now runs two no-CAD preflights:
 3. actual work-copy status/verify probe
 4. source-title-missing native exemplar gap probe (A4-sized sample)
 5. source-title-missing outline native outside marker prepare probe (A4-sized sample)
-6. title-missing outline convert probe (A4-sized source-title-missing sample)
+6. title-missing outline hidden-script safety probe (A4-sized source-title-missing sample)
 7. SWTITLECONVERT script guard probe
 8. common A2/A3/A4 frame-definition classification probe
 9. A2/A3/A4 style-normalization rebuild cleanup probe
@@ -478,7 +478,7 @@ work\swtitle_a4_outline_prepare_probe_260705.txt
 Expected result for the current installed `DR_A4_Outline` state:
 
 ```text
-Loaded version: 260710-fixed-control-autoselect-1
+Loaded version: 260710-native-title-missing-frame-1
 Before definition status: missing
 Prepare result: OK status=OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED
 After definition status: ready-native-outside-markers
@@ -488,9 +488,9 @@ Runtime check completed: yes
 
 This is a readiness pass, not a completed conversion. It proves that the tool accepts the official native outline only after the test insert has correct effective sheet geometry and no raw-selection warning. The production conversion still must not create a `DR_titlea_3rd` for source title-missing/frame-only sheets.
 
-## A4 Outline Convert Probe
+## A4 Outline Hidden-Script Safety Probe
 
-Use `run_a4_outline_convert_probe.ps1` to copy a work DWG, prepare the official native `DR_A*_Outline` definition, and run the title-missing/frame-only conversion on the copy.
+Use `run_a4_outline_convert_probe.ps1` to copy a work DWG, prepare the official native `DR_A*_Outline` definition, and prove that the interactive native-GMTITLE conversion stops safely while GstarCAD is running a hidden SCRIPT.
 
 This probe exercises one A4-sized source-title-missing sample because that is the real sample available in the current work-copy. The rule being tested is generic: no source title means no new `DR_titlea_3rd`, regardless of sheet size.
 
@@ -510,18 +510,17 @@ Expected result:
 ```text
 Prepare result: OK status=OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED
 After prepare definition status: ready-native-outside-markers
-Convert result: OK status=FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER
+Convert result: OK status=ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE
 After source-title-count: 12
-After frame-only-count: 1
-After target title count: 1
-After DR_A4_Outline target frame count: 1
+After frame-only-count: 2
+After target title count: 5
+After DR_A4_Outline target frame count: 0
 After target-sheet-counts:
   A2: 1
-  A4: 1
 Runtime check completed: yes
 ```
 
-This proves the title-missing/frame-only path replaces one source frame with a matching native `DR_A*_Outline` frame without creating an extra `DR_titlea_3rd` title block.
+This proves the hidden test does not substitute a plain INSERT for real native GMTITLE and does not delete the source sheet when the interactive dialog cannot run. The visible full-flow test is the conversion proof: it creates a temporary real native frame/title pair through GMTITLE, deletes only the temporary title after validating the surviving native frame link, and then removes the old source frame.
 
 ## A4 Outline Normalization Probe
 
@@ -706,7 +705,7 @@ Treat that as a strict incomplete result, not as a partial success. Use the prin
 
 The final completion gate uses a default timeout of 180 seconds. On this workstation, 90 seconds can occasionally start GstarCAD but miss the SCR completion log, which produces a log-missing failure instead of useful completion evidence.
 
-When the automated evidence passes, completion is still not proven until representative `DR_titlea_3rd` title blocks open the GMTITLE table editor on double-click. Title-missing/frame-only sheets do not have a `DR_titlea_3rd` title block by design; confirm the matching `DR_A*_Outline` count and geometry through `SWTITLEVERIFY` instead.
+When the automated evidence passes, completion is still not proven until the actual editor behavior is checked. Converted `DR_titlea_3rd` title blocks must open `속성 블록 편집`, and title-missing/frame-only `DR_A*_Outline` frames must open `제목 블록과 도면 경계`, not Advanced Attribute Editor or REFEDIT. A bounding-box center is not a reliable click target; zoom to the handle and click visible title/logo or frame-border geometry.
 
 ## GstarCAD /b Script Smoke Probe
 
@@ -744,7 +743,7 @@ Expected result:
 
 ```text
 Loaded loader version: 260706-loader-convert-next-response-guidance
-Loaded GMTITLE version: 260710-fixed-control-autoselect-1
+Loaded GMTITLE version: 260710-native-title-missing-frame-1
 Command-line -GMTITLE default enabled: no
 SCRIPT command-line -GMTITLE enabled: no
 Command c:SWTITLESTATUS: yes
@@ -766,7 +765,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260710-fixed-control-autoselect-1
+Loaded version: 260710-native-title-missing-frame-1
 A2/A3/A4 candidate count before SWTITLESTATUS: 1
 SWTITLESTATUS result: OK
 Status after SWTITLESTATUS: NEXT_UPGRADE_NATIVE_GMTITLE
@@ -788,7 +787,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260710-fixed-control-autoselect-1
+Loaded version: 260710-native-title-missing-frame-1
 Script active: yes
 Status after batch: ABORT_NATIVE_GMTITLE_BATCH_SCRIPT_ACTIVE
 Candidates before/after: 2/2
@@ -809,7 +808,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260710-fixed-control-autoselect-1
+Loaded version: 260710-native-title-missing-frame-1
 Script active before convert: yes
 Status after convert: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE
 Source titles before/after: 12/12

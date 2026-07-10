@@ -15,7 +15,7 @@
 ```text
 저장소: https://github.com/adams219/CAD.git
 브랜치: codex/gm-title
-기대 LSP 버전: 260710-fixed-control-autoselect-1
+기대 LSP 버전: 260710-native-title-missing-frame-1
 ```
 
 현재 개발 PC의 대표 A3 기준 검증은 통과했지만, 후속 전체 클릭 검사에서 일부 실패가 확인되었습니다.
@@ -32,7 +32,7 @@
 
 다른 PC에서는 대표 한 장만 확인하지 말고 A2/A3/A4 각 유형과 A3 실패 시트를 함께 확인합니다. 현재 결과를 최종 배포 완료판으로 취급하지 않습니다.
 
-다른 컴퓨터에서 내려받기 전에 `260710-fixed-control-autoselect-1` 변경이 `origin/codex/gm-title`에 push되었는지 확인합니다. 로컬에만 변경이 남아 있으면 먼저 정적 검증과 커밋·push를 끝냅니다.
+다른 컴퓨터에서 내려받기 전에 `260710-native-title-missing-frame-1` 변경이 `origin/codex/gm-title`에 push되었는지 확인합니다. 로컬에만 변경이 남아 있으면 먼저 정적 검증과 커밋·push를 끝냅니다.
 
 ## 1. 현재 컴퓨터에서 준비
 
@@ -195,7 +195,7 @@ SWTITLEVERSION
 기대 결과:
 
 ```text
-260710-fixed-control-autoselect-1
+260710-native-title-missing-frame-1
 ```
 
 다른 버전이 나오면 변환을 시작하지 않습니다. 브랜치, `git pull`, APPLOAD 경로를 다시 확인합니다.
@@ -248,7 +248,7 @@ SWTITLEVERIFY
 
 ## 8. 대표 더블클릭 확인
 
-최소한 새로 변환된 A3 시트 한 장을 확인합니다.
+일상 작업 확인은 최소한 새로 변환된 A3 시트 한 장으로 할 수 있습니다. LSP 변경을 검증하거나 이 컴퓨터의 결과와 동등함을 확인할 때는 제목블록과 도면틀을 전수검사합니다.
 
 1. `DR_titlea_3rd` 제목블록 내부를 더블클릭합니다.
 2. 도면틀 선이나 모델 형상은 클릭하지 않습니다.
@@ -271,12 +271,14 @@ REFEDIT가 실행됨
 
 확인만 하고 편집 창은 취소하여 DWG에 불필요한 변경을 남기지 않습니다.
 
+전수검사에서는 bbox 중심점이 아니라 handle로 확대한 뒤 실제 DR 로고/제목블록 선과 실제 바깥 도면틀 선을 더블클릭합니다. 제목블록은 모두 `속성 블록 편집`, 도면틀은 모두 `제목 블록과 도면 경계`로 열려야 하며 고급 속성 편집기와 REFEDIT는 0이어야 합니다.
+
 ## 9. 전체 성공 기준
 
 다음 조건을 모두 만족해야 완료로 판단합니다.
 
 ```text
-SWTITLEVERSION = 260710-fixed-control-autoselect-1
+SWTITLEVERSION = 260710-native-title-missing-frame-1
 SWTITLEVERIFY_FINAL_OK
 남은 원본 SolidWorks 표제란 = 0
 남은 원본 SolidWorks 도면틀 = 0
@@ -285,9 +287,10 @@ SWTITLEVERIFY_FINAL_OK
 A2/A3/A4 수량이 변환 전 원본 수량과 일치
 도면 안 번호, 주석, BOM, 치수, 모델 형상이 유지됨
 대표 A3 DR_titlea_3rd 더블클릭 시 속성 블록 편집 표가 열림
+LSP 릴리스/동등성 검사 시 전체 제목블록과 도면틀 편집창 전수검사 통과
 ```
 
-원본에 제목블록이 없는 것으로 검증된 시트는 예외입니다. 이 경우 새 제목블록을 억지로 만들지 않고 해당 DR 도면틀의 수량과 형상을 확인합니다.
+원본에 제목블록이 없는 것으로 검증된 시트는 제목블록 검사만 예외입니다. 새 제목블록을 억지로 만들지 않되, 해당 DR 도면틀은 더블클릭 시 `제목 블록과 도면 경계` 창이 열려야 합니다.
 
 ## 10. 실패했을 때 남길 자료
 
@@ -315,7 +318,7 @@ GitHub 저장소 https://github.com/adams219/CAD.git 의 codex/gm-title 브랜�
 %USERPROFILE%\Documents\CAD tool 에 받아줘.
 원본 DWG는 수정하지 말고 work 폴더의 복사본만 사용해줘.
 GstarCAD Mechanical 2024 Korean의 DR_A2/A3/A4_Outline 및 DR_titlea_3rd 설치 여부를 확인하고,
-swcad_load.lsp 로드 후 SWTITLEVERSION이 260710-fixed-control-autoselect-1인지 확인해줘.
+swcad_load.lsp 로드 후 SWTITLEVERSION이 260710-native-title-missing-frame-1인지 확인해줘.
 테스트는 SWTITLESTATUS -> 필요한 경우 SWTITLEPREPARE -> SWTITLECONVERTNEXT ->
 SWTITLESTATUS -> SWTITLEVERIFY 순서로 진행하고,
 마지막에는 새 A3 DR_titlea_3rd를 더블클릭했을 때 속성 블록 편집 표가 열리는지 확인해줘.

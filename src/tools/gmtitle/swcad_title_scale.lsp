@@ -40,7 +40,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260710-fixed-control-autoselect-1")
+(setq *swcad-title-scale-version* "260710-native-title-missing-frame-1")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -13085,16 +13085,34 @@
   )
 )
 
-(defun swcad-title-title-missing-outline-frame-record-p (frame-record / frame-ename frame-block sheet role)
+(defun swcad-title-title-missing-outline-frame-record-p (frame-record / frame-ename frame-block frame-bbox sheet role native-link-kinds geometry-warning raw-selection-warning)
   (setq frame-ename (if frame-record (car frame-record) nil))
   (setq frame-block (if frame-record (cadr frame-record) nil))
+  (setq frame-bbox (if frame-record (cadddr frame-record) nil))
   (setq sheet (swcad-title-sheet-size-from-block-name frame-block))
   (setq role (if frame-ename (swcad-title-exemplar-role frame-ename) ""))
+  (setq native-link-kinds (if frame-ename (swcad-title-native-link-target-kinds frame-ename) nil))
+  (setq geometry-warning
+    (if frame-ename
+      (swcad-title-frame-bbox-size-warning-for-block frame-block frame-bbox)
+      "missing-frame"
+    )
+  )
+  (setq raw-selection-warning
+    (if frame-ename
+      (swcad-title-frame-reference-raw-selection-warning frame-ename frame-block frame-bbox)
+      "missing-frame"
+    )
+  )
   (and
     (swcad-title-normalized-sheet-size sheet)
     (wcmatch (swcad-title-normalized-sheet-size sheet) "A1,A2,A3,A4")
     (swcad-title-frame-name-matches-p frame-block (swcad-title-target-frame-block-name-for-sheet sheet))
-    (equal (strcase (swcad-title-string role)) "FRAME-ONLY-OUTLINE")
+    (equal (strcase (swcad-title-string role)) "NATIVE-TITLE-MISSING-OUTLINE")
+    (swcad-title-internal-native-link-kinds-p native-link-kinds)
+    (not geometry-warning)
+    (not raw-selection-warning)
+    (not (swcad-title-target-frame-block-contaminated-p frame-block))
   )
 )
 
@@ -14580,18 +14598,23 @@
   (princ)
 )
 
-(defun swcad-title-transfer-title-missing-outline-apply (/ *error* source-frame source-frame-ename source-frame-data source-frame-bbox source-frame-block source-sheet normalized-sheet frame-block placement-point answer doc new-frame-ename new-effective-bbox geometry-warning raw-selection-warning bbox-ok raw-definition-risk residue-records residue-handles deleted-residue-count marker-ok)
+(defun swcad-title-transfer-title-missing-outline-apply (/ *error* source-frame source-frame-ename source-frame-data source-frame-bbox source-frame-block source-sheet normalized-sheet frame-block placement-point answer doc gmtitle-result new-title-ename new-frame-ename new-enames new-title-active new-frame-active actual-title-name actual-frame-name new-effective-bbox geometry-warning raw-selection-warning bbox-ok raw-definition-risk residue-records residue-handles deleted-residue-count align-result align-count align-dx align-dy align-needed native-before native-after title-deleted marker-ok frame-verified deleted-new-count)
+  (setq new-title-active nil)
+  (setq new-frame-active nil)
   (defun *error* (msg)
     (if doc
       (vl-catch-all-apply 'vla-EndUndoMark (list doc))
     )
-    (if new-frame-ename
+    (if new-title-active
+      (swcad-title-delete-ename new-title-ename)
+    )
+    (if new-frame-active
       (swcad-title-delete-ename new-frame-ename)
     )
     (if msg
-      (swcad-title-princ-line (strcat "title-missing 도면틀-only 변환 오류: " (swcad-title-string msg)))
+      (swcad-title-princ-line (strcat "title-missing native 도면틀 변환 오류: " (swcad-title-string msg)))
     )
-    (swcad-title-apply-result "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE")
+    (swcad-title-apply-result "ERROR_TITLE_MISSING_NATIVE_FRAME_TRANSFER")
     (swcad-title-close-log)
     (princ)
   )
@@ -14607,7 +14630,7 @@
   (setq placement-point (swcad-title-bbox-lower-left-point source-frame-bbox))
   (setq raw-definition-risk (if frame-block (swcad-title-frame-definition-raw-bbox-risk-record frame-block) nil))
   (swcad-title-open-apply-log)
-  (swcad-title-princ-line "----- SWTITLECONVERT 내부 title-missing 도면틀-only 변환 -----")
+  (swcad-title-princ-line "----- SWTITLECONVERT 내부 title-missing native 도면틀 변환 -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-loaded-version)
@@ -14661,44 +14684,117 @@
       (swcad-title-princ-line (strcat "현재 도면 안의 " (swcad-title-string frame-block) " 블록 정의가 없거나 정규화되지 않았습니다."))
       (swcad-title-princ-line "먼저 SWTITLEPREPARE로 도면틀 정의를 정리하고 SWTITLESTATUS를 다시 확인하세요.")
     )
+    ((swcad-title-script-active-p)
+      (swcad-title-abort-interactive-gmtitle-script-active
+        "title-missing 도면틀도 실제 GMTITLE 대화상자에서 native 도면틀/임시 제목블록 쌍을 만들어야 합니다."
+      )
+      (swcad-title-princ-line "기존 원본 도면틀과 시트 내용은 삭제하지 않았습니다.")
+    )
     (T
-      (swcad-title-princ-line "정책: 원본 시트에 표제란이 없다고 검증된 경우만 DR_titlea_3rd 제목블록을 만들지 않습니다.")
+      (swcad-title-princ-line "정책: 원본 표제란 부재가 검증된 시트도 실제 GMTITLE로 도면틀을 만듭니다.")
+      (swcad-title-princ-line "GMTITLE이 임시로 만드는 DR_titlea_3rd는 native 도면틀 검증 후 삭제하여 최종 도면에는 남기지 않습니다.")
       (setq answer
         (if (or *swcad-title-batch-mode* *swcad-title-convert-next-mode*)
           "YES"
-          (getstring T "\n표제란 없는 시트의 도면틀만 같은 크기 DR_A*_Outline으로 교체하려면 YES를 입력하세요: ")
+          (getstring T "\n표제란 없는 시트를 같은 크기 native DR_A*_Outline 도면틀로 교체하려면 YES를 입력하세요: ")
         )
       )
       (if (/= (strcase answer) "YES")
         (swcad-title-apply-result "ABORT_USER_CANCEL")
         (progn
-          (setq residue-records (swcad-title-source-sheet-residue-records source-frame-bbox nil source-frame-ename))
-          (setq residue-handles (swcad-title-residue-record-handles residue-records))
-          (swcad-title-print-residue-records "삭제 예정 기존 SolidWorks 시트 잔여물:" residue-records)
-          (setq doc (swcad-title-doc))
-          (vl-catch-all-apply 'vla-StartUndoMark (list doc))
-          (setq new-frame-ename (swcad-title-insert-clean-frame-reference-at frame-block placement-point))
-          (if (not new-frame-ename)
-            (progn
-              (vl-catch-all-apply 'vla-EndUndoMark (list doc))
-              (setq doc nil)
-              (swcad-title-apply-result "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE")
-              (swcad-title-princ-line (strcat (swcad-title-string frame-block) " 도면틀 INSERT 생성에 실패했습니다."))
+          (swcad-title-print-gmtitle-dialog-selection-card frame-block placement-point)
+          (setq gmtitle-result (swcad-title-run-native-gmtitle-prefer-commandline frame-block placement-point))
+          (setq new-title-ename (car gmtitle-result))
+          (setq new-frame-ename (cadr gmtitle-result))
+          (setq new-enames (caddr gmtitle-result))
+          (setq new-title-active (if new-title-ename T nil))
+          (setq new-frame-active (if new-frame-ename T nil))
+          (setq actual-title-name (if new-title-ename (swcad-title-effective-insert-name new-title-ename) ""))
+          (setq actual-frame-name (if new-frame-ename (swcad-title-effective-insert-name new-frame-ename) ""))
+          (if
+            (not
+              (and
+                new-title-ename
+                new-frame-ename
+                (swcad-title-native-target-title-name-p actual-title-name)
+                (swcad-title-frame-name-matches-p actual-frame-name frame-block)
+              )
             )
             (progn
+              (setq deleted-new-count (swcad-title-delete-ename-list new-enames))
+              (setq new-title-active nil)
+              (setq new-frame-active nil)
+              (swcad-title-apply-result "ABORT_TITLE_MISSING_NATIVE_GMTITLE_NOT_CREATED")
+              (swcad-title-princ-line (strcat "예상 도면틀: " frame-block))
+              (swcad-title-princ-line (strcat "예상 임시 제목블록: " (swcad-title-target-title-block-name)))
+              (swcad-title-princ-line (strcat "실제 도면틀: " (if (> (strlen actual-frame-name) 0) actual-frame-name "<없음>")))
+              (swcad-title-princ-line (strcat "실제 제목블록: " (if (> (strlen actual-title-name) 0) actual-title-name "<없음>")))
+              (swcad-title-princ-line (strcat "잘못 생성된 새 INSERT 삭제: " (itoa deleted-new-count)))
+              (swcad-title-princ-line "기존 원본 도면틀은 삭제하지 않았습니다.")
+            )
+            (progn
+              (setq doc (swcad-title-doc))
+              (vl-catch-all-apply 'vla-StartUndoMark (list doc))
+              (setq align-result (swcad-title-align-gmtitle-to-frame-bbox new-title-ename new-frame-ename source-frame-bbox))
+              (setq align-count (car align-result))
+              (setq align-dx (cadr align-result))
+              (setq align-dy (caddr align-result))
+              (setq align-needed (or (> (swcad-title-abs align-dx) 0.0001) (> (swcad-title-abs align-dy) 0.0001)))
               (setq new-effective-bbox (swcad-title-frame-reference-effective-bbox new-frame-ename frame-block))
               (setq geometry-warning (swcad-title-frame-bbox-size-warning-for-block frame-block new-effective-bbox))
               (setq raw-selection-warning (swcad-title-frame-reference-raw-selection-warning new-frame-ename frame-block new-effective-bbox))
               (setq bbox-ok (swcad-title-bbox-nearly-same-p source-frame-bbox new-effective-bbox 2.0))
-              (swcad-title-insert-log-label "새 title-missing 도면틀 INSERT" new-frame-ename)
+              (setq native-before
+                (swcad-title-internal-native-link-kinds-p
+                  (swcad-title-native-link-target-kinds new-frame-ename)
+                )
+              )
+              (swcad-title-insert-log-label "새 native GMTITLE 임시 제목블록" new-title-ename)
+              (swcad-title-insert-log-label "새 native GMTITLE 도면틀" new-frame-ename)
+              (swcad-title-princ-line
+                (strcat
+                  "새 native GMTITLE 정렬: moved="
+                  (itoa align-count)
+                  ", dx="
+                  (swcad-title-number-string align-dx)
+                  ", dy="
+                  (swcad-title-number-string align-dy)
+                )
+              )
               (swcad-title-princ-line (strcat "새 도면틀 보이는 범위: " (swcad-title-bbox-string new-effective-bbox)))
               (cond
-                ((or geometry-warning raw-selection-warning (not bbox-ok))
-                  (swcad-title-delete-ename new-frame-ename)
-                  (setq new-frame-ename nil)
+                ((and align-needed (< align-count 2))
+                  (setq deleted-new-count (swcad-title-delete-ename-list new-enames))
+                  (setq new-title-active nil)
+                  (setq new-frame-active nil)
                   (vl-catch-all-apply 'vla-EndUndoMark (list doc))
                   (setq doc nil)
-                  (swcad-title-apply-result "ABORT_TITLE_MISSING_OUTLINE_INVALID_GEOMETRY")
+                  (swcad-title-apply-result "ABORT_TITLE_MISSING_NATIVE_ALIGN_FAILED")
+                  (swcad-title-princ-line (strcat "정렬 실패로 새 GMTITLE INSERT 삭제: " (itoa deleted-new-count)))
+                  (swcad-title-princ-line "기존 원본 도면틀은 삭제하지 않았습니다.")
+                )
+                ((and
+                   align-needed
+                   (not *swcad-title-last-native-gmtitle-placement-used*)
+                   (swcad-title-native-placement-substantial-move-p align-dx align-dy)
+                 )
+                  (setq deleted-new-count (swcad-title-delete-ename-list new-enames))
+                  (setq new-title-active nil)
+                  (setq new-frame-active nil)
+                  (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+                  (setq doc nil)
+                  (swcad-title-apply-result "ABORT_TITLE_MISSING_NATIVE_PLACEMENT_REQUIRED")
+                  (swcad-title-princ-line "GMTITLE이 원본 도면틀 왼쪽 아래 배치점을 사용하지 않아 큰 MOVE 정렬이 필요했습니다.")
+                  (swcad-title-princ-line (strcat "신뢰하지 않는 새 GMTITLE INSERT 삭제: " (itoa deleted-new-count)))
+                  (swcad-title-princ-line "기존 원본 도면틀은 삭제하지 않았습니다.")
+                )
+                ((or geometry-warning raw-selection-warning (not bbox-ok))
+                  (setq deleted-new-count (swcad-title-delete-ename-list new-enames))
+                  (setq new-title-active nil)
+                  (setq new-frame-active nil)
+                  (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+                  (setq doc nil)
+                  (swcad-title-apply-result "ABORT_TITLE_MISSING_NATIVE_INVALID_GEOMETRY")
                   (if geometry-warning
                     (swcad-title-princ-line (strcat "도면틀 형상 경고: " geometry-warning))
                   )
@@ -14708,20 +14804,91 @@
                   (if (not bbox-ok)
                     (swcad-title-princ-line "새 도면틀 범위가 원본 도면틀 범위와 충분히 일치하지 않습니다.")
                   )
+                  (swcad-title-princ-line (strcat "검증 실패 새 GMTITLE INSERT 삭제: " (itoa deleted-new-count)))
                   (swcad-title-princ-line "기존 원본 시트는 삭제하지 않았습니다.")
                 )
-                (T
-                  (swcad-title-delete-ename source-frame-ename)
-                  (setq deleted-residue-count (swcad-title-delete-handle-list residue-handles))
-                  (setq marker-ok (swcad-title-set-exemplar-xdata new-frame-ename frame-block "frame-only-outline"))
+                ((not native-before)
+                  (setq deleted-new-count (swcad-title-delete-ename-list new-enames))
+                  (setq new-title-active nil)
+                  (setq new-frame-active nil)
                   (vl-catch-all-apply 'vla-EndUndoMark (list doc))
                   (setq doc nil)
-                  (swcad-title-apply-result "FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER")
-                  (swcad-title-princ-line (strcat "title-missing 도면틀-only marker set: " (if marker-ok "yes" "no")))
-                  (swcad-title-princ-line (strcat "새 " (swcad-title-string frame-block) " 도면틀은 원본 위치/크기에 맞게 삽입되었습니다."))
-                  (swcad-title-princ-line "원본에 없던 DR_titlea_3rd 제목블록은 만들지 않았습니다.")
-                  (swcad-title-princ-line "기존 원본 frame INSERT 삭제: yes")
-                  (swcad-title-princ-line (strcat "기존 시트 잔여물 삭제: " (itoa deleted-residue-count)))
+                  (swcad-title-apply-result "ABORT_TITLE_MISSING_FRAME_NOT_NATIVE")
+                  (swcad-title-princ-line "새 GMTITLE 도면틀에 내부 native 인식 링크가 없어 성공으로 처리하지 않습니다.")
+                  (swcad-title-princ-line (strcat "검증 실패 새 GMTITLE INSERT 삭제: " (itoa deleted-new-count)))
+                  (swcad-title-princ-line "기존 원본 도면틀은 삭제하지 않았습니다.")
+                )
+                (T
+                  (setq title-deleted (if (swcad-title-delete-ename new-title-ename) T nil))
+                  (if title-deleted
+                    (setq new-title-active nil)
+                  )
+                  (setq native-after
+                    (and
+                      title-deleted
+                      (swcad-title-internal-native-link-kinds-p
+                        (swcad-title-native-link-target-kinds new-frame-ename)
+                      )
+                    )
+                  )
+                  (setq marker-ok
+                    (if native-after
+                      (swcad-title-set-exemplar-xdata new-frame-ename frame-block "native-title-missing-outline")
+                      nil
+                    )
+                  )
+                  (setq frame-verified
+                    (and
+                      marker-ok
+                      (swcad-title-title-missing-outline-frame-record-p
+                        (list
+                          new-frame-ename
+                          frame-block
+                          (swcad-title-ename-handle new-frame-ename)
+                          new-effective-bbox
+                        )
+                      )
+                    )
+                  )
+                  (if (not frame-verified)
+                    (progn
+                      (if new-title-active
+                        (progn
+                          (swcad-title-delete-ename new-title-ename)
+                          (setq new-title-active nil)
+                        )
+                      )
+                      (if new-frame-active
+                        (progn
+                          (swcad-title-delete-ename new-frame-ename)
+                          (setq new-frame-active nil)
+                        )
+                      )
+                      (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+                      (setq doc nil)
+                      (swcad-title-apply-result "ABORT_TITLE_MISSING_NATIVE_FRAME_NOT_PERSISTENT")
+                      (swcad-title-princ-line "임시 제목블록 삭제 후 도면틀의 native 링크/형상 검증이 유지되지 않아 중단했습니다.")
+                      (swcad-title-princ-line "기존 원본 도면틀은 삭제하지 않았습니다.")
+                    )
+                    (progn
+                      (setq residue-records (swcad-title-source-sheet-residue-records source-frame-bbox nil source-frame-ename))
+                      (setq residue-handles (swcad-title-residue-record-handles residue-records))
+                      (swcad-title-print-residue-records "삭제 예정 기존 SolidWorks 시트 잔여물:" residue-records)
+                      (setq new-frame-active nil)
+                      (swcad-title-delete-ename source-frame-ename)
+                      (setq deleted-residue-count (swcad-title-delete-handle-list residue-handles))
+                      (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+                      (setq doc nil)
+                      (swcad-title-apply-result "FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER")
+                      (swcad-title-princ-line "임시 DR_titlea_3rd 제목블록 삭제: yes")
+                      (swcad-title-princ-line "제목블록 삭제 후 native 도면틀 링크 유지: yes")
+                      (swcad-title-princ-line (strcat "native title-missing 도면틀 marker set: " (if marker-ok "yes" "no")))
+                      (swcad-title-princ-line (strcat "새 " (swcad-title-string frame-block) " 도면틀은 원본 위치/크기에 맞게 생성되었습니다."))
+                      (swcad-title-princ-line "최종 도면에는 원본에 없던 DR_titlea_3rd 제목블록을 남기지 않았습니다.")
+                      (swcad-title-princ-line "기존 원본 frame INSERT 삭제: yes")
+                      (swcad-title-princ-line (strcat "기존 시트 잔여물 삭제: " (itoa deleted-residue-count)))
+                    )
+                  )
                 )
               )
             )
@@ -14737,65 +14904,82 @@
   (princ)
 )
 
-(defun swcad-title-transfer-title-missing-outline-all (/ count index old-batch-mode before-count after-count apply-result remaining)
+(defun swcad-title-transfer-title-missing-outline-all (/ count index old-batch-mode old-allow-interactive before-count after-count apply-result remaining)
   (setq count (length (swcad-title-frame-only-source-candidates)))
   (setq old-batch-mode *swcad-title-batch-mode*)
-  (setq *swcad-title-batch-mode* T)
-  (setq index 1)
-  (while (<= index count)
-    (setq before-count (length (swcad-title-frame-only-source-candidates)))
-    (if (= before-count 0)
-      (setq index (+ count 1))
-      (progn
-        (swcad-title-princ-line
-          (strcat
-            "--- SWTITLECONVERTNEXT title-missing 도면틀 "
-            (itoa index)
-            " / "
-            (itoa count)
-            " ---"
-          )
-        )
-        (setq apply-result
-          (vl-catch-all-apply 'swcad-title-transfer-title-missing-outline-apply nil)
-        )
-        (setq after-count (length (swcad-title-frame-only-source-candidates)))
-        (if
-          (or
-            (vl-catch-all-error-p apply-result)
-            (not (equal *swcad-title-last-apply-status* "FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER"))
-            (>= after-count before-count)
-          )
+  (setq old-allow-interactive *swcad-title-allow-batch-interactive-native-gmtitle*)
+  (cond
+    ((= count 0)
+      (swcad-title-apply-result "STOP_NO_MORE_FRAME_ONLY_SOURCE")
+    )
+    ((not (swcad-title-gmtitle-autoselect-available-p))
+      (swcad-title-apply-result "ABORT_GMTITLE_AUTOSELECT_UNAVAILABLE")
+      (swcad-title-princ-line "GMTITLE 고정 컨트롤 자동 선택기를 사용할 수 없어 title-missing 연속 native 변환을 시작하지 않습니다.")
+      (swcad-title-princ-line "기존 원본 도면틀과 시트 내용은 삭제하지 않았습니다.")
+    )
+    (T
+      (setq *swcad-title-batch-mode* T)
+      (setq *swcad-title-allow-batch-interactive-native-gmtitle* T)
+      (setq index 1)
+      (while (<= index count)
+        (setq before-count (length (swcad-title-frame-only-source-candidates)))
+        (if (= before-count 0)
+          (setq index (+ count 1))
           (progn
-            (if (vl-catch-all-error-p apply-result)
-              (swcad-title-princ-line
-                (strcat
-                  "title-missing 연속 변환 오류: "
-                  (vl-catch-all-error-message apply-result)
-                )
-              )
-            )
             (swcad-title-princ-line
               (strcat
-                "title-missing 연속 변환 중단 상태: "
-                (swcad-title-string *swcad-title-last-apply-status*)
+                "--- SWTITLECONVERTNEXT title-missing 도면틀 "
+                (itoa index)
+                " / "
+                (itoa count)
+                " ---"
               )
             )
-            (setq index (+ count 1))
+            (setq apply-result
+              (vl-catch-all-apply 'swcad-title-transfer-title-missing-outline-apply nil)
+            )
+            (setq after-count (length (swcad-title-frame-only-source-candidates)))
+            (if
+              (or
+                (vl-catch-all-error-p apply-result)
+                (not (equal *swcad-title-last-apply-status* "FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER"))
+                (>= after-count before-count)
+              )
+              (progn
+                (if (vl-catch-all-error-p apply-result)
+                  (swcad-title-princ-line
+                    (strcat
+                      "title-missing 연속 변환 오류: "
+                      (vl-catch-all-error-message apply-result)
+                    )
+                  )
+                )
+                (swcad-title-princ-line
+                  (strcat
+                    "title-missing 연속 변환 중단 상태: "
+                    (swcad-title-string *swcad-title-last-apply-status*)
+                  )
+                )
+                (setq index (+ count 1))
+              )
+            )
           )
         )
+        (setq index (+ index 1))
       )
     )
-    (setq index (+ index 1))
   )
   (setq *swcad-title-batch-mode* old-batch-mode)
+  (setq *swcad-title-allow-batch-interactive-native-gmtitle* old-allow-interactive)
   (setq remaining (length (swcad-title-frame-only-source-candidates)))
-  (if (= remaining 0)
+  (if (and (> count 0) (= remaining 0))
     (swcad-title-apply-result "OK_TITLE_MISSING_OUTLINE_BATCH_COMPLETE")
-    (swcad-title-princ-line
+    (if (> remaining 0)
+      (swcad-title-princ-line
       (strcat
         "title-missing 연속 변환 후 남은 도면틀 시트: "
         (itoa remaining)
+      )
       )
     )
   )

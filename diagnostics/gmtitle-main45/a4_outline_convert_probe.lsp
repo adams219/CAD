@@ -1,7 +1,8 @@
 ;;; A4-sized source-title-missing DR_A4_Outline conversion sample probe.
 ;;; The PowerShell wrapper sets SWCAD_TOOL_ROOT and SWCAD_A4_OUTLINE_CONVERT_LOG.
 ;;; This probe runs on a copied DWG and does not save the drawing.
-;;; Expected final status: FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER.
+;;; Expected hidden-script status: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE.
+;;; Native creation success is verified separately in visible CAD by double-click.
 
 (defun swtitle-a4convert-root (/ root)
   (setq root (getenv "SWCAD_TOOL_ROOT"))

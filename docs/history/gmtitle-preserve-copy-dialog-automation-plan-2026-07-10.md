@@ -434,4 +434,86 @@ title-missing: 용지 크기가 아니라 원본 표제란 부재가 검증된 �
 - 새 공개 LSP 명령이 없다.
 - 구조 로그와 실제 더블클릭 결과가 같은 결론을 지지한다.
 - 전체 제목블록과 도면틀의 실제 클릭 결과가 구조 판정과 일치한다.
-- 현재 전수검사에서는 A3 제목블록 1개와 A4 도면틀 2개가 이 기준을 통과하지 못했다.
+- 이 시점의 실패 전수검사에서는 A3 제목블록 1개와 A4 도면틀 2개가 기준을 통과하지 못했다. 아래 후속 수정과 새 full-flow 전수검사에서 모두 통과했다.
+
+## 2026-07-10 native title-missing 수정과 최종 전수검사
+
+앞의 실패 전수검사 이후 구조 판정과 실제 클릭 경로를 다시 분리해 조사했다. 결론은 두 실패가 같은 원인이 아니었다.
+
+### A3 16CF0 재판정
+
+`16CF0`의 bounding box 중심은 실제 DR 제목블록 글자나 로고가 없는 빈 영역 또는 다른 객체와 겹치는 영역이었다. 그 좌표를 더블클릭해 열린 고급 속성 편집기는 제목블록 자체의 편집 동작을 대표하지 않았다. 각 handle로 확대한 뒤 실제 DR 로고/제목블록 선을 더블클릭하는 방식으로 다시 검사하자 `16CF0`을 포함한 13개 모두 `속성 블록 편집` 표가 열렸다.
+
+따라서 편집창 전수검사는 다음 규칙을 사용한다.
+
+```text
+제목블록: handle로 확대 -> 보이는 DR 로고 또는 실제 제목블록 선을 더블클릭
+도면틀: handle로 확대 -> 실제 바깥 경계선을 더블클릭
+bbox 중심점만으로 편집기 종류를 판정하지 않음
+```
+
+### title-missing native 도면틀 수정
+
+깨끗한 새 도면에서 실제 GMTITLE로 A4 frame/title 쌍을 만든 뒤 제목블록 INSERT만 삭제하는 대조 실험을 수행했다. 제목블록을 삭제한 뒤에도 도면틀의 native internal link가 유지됐고, 저장 후 다시 열어도 도면틀 더블클릭은 `제목 블록과 도면 경계` 창으로 연결됐다. 이 결과를 바탕으로 title-missing 공통 예외를 다음과 같이 변경했다.
+
+```text
+1. 원본 표제란 부재가 검증된 시트의 크기를 읽음
+2. 같은 크기의 실제 DR_A*_Outline + DR_titlea_3rd를 GMTITLE로 생성
+3. 원본 왼쪽 아래 위치에 맞춤
+4. frame geometry와 internal native link를 검증
+5. 임시 DR_titlea_3rd만 삭제
+6. 제목블록 삭제 후 frame native link가 살아 있는지 재검증
+7. 위 조건이 모두 맞을 때만 기존 원본 frame과 잔여물을 삭제
+```
+
+숨김 SCRIPT에서는 대화상자 기반 native GMTITLE을 안전하게 만들 수 없으므로 `ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE`로 중단한다. 이 경우 원본 title-missing 시트, 기존 target title 수, target frame 수를 모두 보존한다. 실제 변환 성공 증거는 고정 컨트롤 자동 선택을 사용한 visible full-flow에서 만든다.
+
+깨끗한 native A4의 `_도면 테두리 A4 From_HYUN`은 GstarCAD가 직접 만든 정상 하위 블록이었다. 이전 실패 정의의 `HD-Rev No table`이 원본에서 섞여 들어간 오염 객체였으며, 정상 native 하위 블록까지 모두 제거하는 것은 올바른 기준이 아니다.
+
+### 새 full-flow 결과
+
+```text
+생성 도면: work\swtitle_native_click_fullflow_260710.dwg
+검증 로그: work\swtitle_native_click_fullflow_verify_260710.txt
+클릭 로그: work\swtitle_native_click_fullflow_allclick_results_260710.txt
+LSP 버전: 260710-native-title-missing-frame-1
+
+원본 표제란 시트: 0
+원본 도면틀: 0
+title-missing/frame-only: 0
+target title: 13
+target frame: 15
+target pair: 13
+native-like / non-native / clone: 13 / 0 / 0
+orphan / duplicate: 0 / 0
+A2 / A3 / A4: 1 / 12 / 2
+SWTITLESTATUS: NEXT_FINAL_VERIFY_AND_DOUBLE_CLICK
+SWTITLEVERIFY: SWTITLEVERIFY_FINAL_OK
+```
+
+실제 화면 전수검사:
+
+```text
+제목블록 13 / 13: 속성 블록 편집
+고급 속성 편집기: 0
+도면틀 15 / 15: 제목 블록과 도면 경계
+REFEDIT: 0
+```
+
+편집창은 모두 값을 바꾸지 않고 취소했다. GstarCAD 편집창을 전수로 열고 닫은 세션은 `DBMOD=2121`이 됐으므로 저장하지 않고 `아니요`로 닫았다. 디스크의 full-flow SHA-256은 `9B0F94C84E2222D185FD4551502DAFBCCAE89BC50E37C55DA0F6305414CFD68C`로 유지됐고, 입력 work-copy SHA-256도 `8E881D90B69D2A3196718531DC33EF540DC137A21DE5411A1F1E66492D32D580`으로 유지됐다.
+
+최종 결론은 구조 로그와 실제 클릭 결과가 일치한다. A2/A3/A4 공통 생성 흐름을 유지하고, title-missing은 용지 크기가 아니라 원본 표제란 부재가 검증된 경우에만 적용한다.
+
+### 숨김 suite 재실행 경계
+
+최종 코드로 정적 사전검사는 통과했다. 같은 날 21:08 KST의 18단계 숨김 suite도 한 차례 PASS했지만, 문서 정리 후 21:33 KST 재실행에서는 첫 `/b` smoke가 최소화/최대화 두 방식 모두 SCR 완료 로그를 만들지 못해 본 단계 진입 전에 중단됐다. 실행기는 시작한 GstarCAD 프로세스를 종료했고 원본과 work-copy를 수정하지 않았다.
+
+```text
+중단 위치: GstarCAD /b one-line smoke
+결과: no log created
+해석: 현재 Windows/GstarCAD 세션의 비대화식 시작 실패
+해석하지 않는 것: GMTITLE LSP 로직 회귀 실패
+대체 최신 증거: visible full-flow + SWTITLEVERIFY_FINAL_OK + 제목 13/13/도면틀 15/15 실제 클릭
+```
+
+따라서 현재 `work\main56_verification_suite_last_run.txt`의 `FAILED_BEFORE_PASS`는 기능 실패 증거가 아니라 smoke 환경 실패 기록이다. 숨김 suite를 다시 신뢰하려면 먼저 한 줄짜리 `HIDDEN_SCRIPT_SMOKE_OK`가 생성되는 세션을 확보해야 한다.

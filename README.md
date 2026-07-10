@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 GMTITLE 기준 버전:
 
 ```text
-260710-fixed-control-autoselect-1
+260710-native-title-missing-frame-1
 ```
 
 다른 버전이 보이면 `SWTITLESTATUS` 결과를 믿기 전에 최신 LSP를 다시 APPLOAD 합니다.

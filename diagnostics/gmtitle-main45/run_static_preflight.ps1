@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260710-fixed-control-autoselect-1",
+  [string]$ExpectedGmtitleVersion = "260710-native-title-missing-frame-1",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -496,17 +496,67 @@ if (($titleMissingApplyStart -lt 0) -or ($titleMissingApplyEnd -le $titleMissing
   if ($titleMissingApplyText -notmatch '\(strcat "DR_" normalized-sheet "_Outline"\)') {
     Add-Failure "title-missing outline apply must derive the expected DR outline from the normalized source sheet."
   }
-  if ($titleMissingApplyText -notmatch "swcad-title-insert-clean-frame-reference-at frame-block placement-point") {
-    Add-Failure "title-missing outline apply must insert only the same-size clean frame reference."
+  if ($titleMissingApplyText -notmatch "swcad-title-run-native-gmtitle-prefer-commandline frame-block placement-point") {
+    Add-Failure "title-missing outline apply must create the same-size frame through real native GMTITLE."
   }
-  if ($titleMissingApplyText -notmatch "원본에 없던 DR_titlea_3rd 제목블록은 만들지 않았습니다.") {
-    Add-Failure "title-missing outline apply must explicitly preserve the no-new-title invariant."
+  if ($titleMissingApplyText -notmatch "swcad-title-delete-ename new-title-ename") {
+    Add-Failure "title-missing outline apply must delete the temporary GMTITLE title insert."
+  }
+  if ($titleMissingApplyText -notmatch 'native-title-missing-outline') {
+    Add-Failure "title-missing outline apply must mark only a verified native title-missing frame."
+  }
+  if ($titleMissingApplyText -notmatch "swcad-title-title-missing-outline-frame-record-p") {
+    Add-Failure "title-missing outline apply must recheck the native frame after deleting the temporary title."
+  }
+  if ($titleMissingApplyText -notmatch "swcad-title-script-active-p") {
+    Add-Failure "title-missing outline apply must stop safely when an interactive GMTITLE cannot run under SCRIPT."
+  }
+  if ($titleMissingApplyText -notmatch "swcad-title-abort-interactive-gmtitle-script-active") {
+    Add-Failure "title-missing outline apply must report the shared interactive-GMTITLE SCRIPT guard status."
+  }
+  if ($titleMissingApplyText -notmatch "최종 도면에는 원본에 없던 DR_titlea_3rd 제목블록을 남기지 않았습니다.") {
+    Add-Failure "title-missing outline apply must explicitly preserve the final no-new-title invariant."
   }
   if ($titleMissingApplyText -match "DR_A4_Outline|A4 frame-only|A4 제목블록|A4 도면틀") {
     Add-Failure "title-missing outline apply must not contain A4-specific wording or DR_A4-specific branching."
   }
-  if ($titleMissingApplyText -match "swcad-title-run-native-gmtitle|swcad-title-target-title-block-name") {
-    Add-Failure "title-missing outline apply must not create a GMTITLE title block."
+  if ($titleMissingApplyText -match "swcad-title-insert-clean-frame-reference-at frame-block placement-point") {
+    Add-Failure "title-missing outline apply must not substitute a plain INSERT for native GMTITLE."
+  }
+}
+$titleMissingFramePredicateStart = $mainText.IndexOf("(defun swcad-title-title-missing-outline-frame-record-p")
+$titleMissingFramePredicateEnd = if ($titleMissingFramePredicateStart -ge 0) { $mainText.IndexOf("(defun swcad-title-title-missing-outline-frame-count", $titleMissingFramePredicateStart) } else { -1 }
+if (($titleMissingFramePredicateStart -lt 0) -or ($titleMissingFramePredicateEnd -le $titleMissingFramePredicateStart)) {
+  Add-Failure "swcad-title-title-missing-outline-frame-record-p function block not found."
+} else {
+  $titleMissingFramePredicateText = $mainText.Substring($titleMissingFramePredicateStart, $titleMissingFramePredicateEnd - $titleMissingFramePredicateStart)
+  if ($titleMissingFramePredicateText -notmatch 'NATIVE-TITLE-MISSING-OUTLINE') {
+    Add-Failure "title-missing frame acceptance must require the native-title-missing-outline role."
+  }
+  if ($titleMissingFramePredicateText -notmatch 'swcad-title-internal-native-link-kinds-p') {
+    Add-Failure "title-missing frame acceptance must require an internal native GMTITLE link."
+  }
+  if ($titleMissingFramePredicateText -match 'FRAME-ONLY-OUTLINE') {
+    Add-Failure "legacy frame-only-outline markers must not be accepted as native GMTITLE proof."
+  }
+  if ($titleMissingFramePredicateText -notmatch 'swcad-title-target-frame-block-contaminated-p') {
+    Add-Failure "title-missing frame acceptance must reject contaminated frame definitions."
+  }
+}
+$titleMissingAllStart = $mainText.IndexOf("(defun swcad-title-transfer-title-missing-outline-all")
+$titleMissingAllEnd = if ($titleMissingAllStart -ge 0) { $mainText.IndexOf("(defun swcad-title-transfer-frame-only-apply", $titleMissingAllStart) } else { -1 }
+if (($titleMissingAllStart -lt 0) -or ($titleMissingAllEnd -le $titleMissingAllStart)) {
+  Add-Failure "swcad-title-transfer-title-missing-outline-all function block not found."
+} else {
+  $titleMissingAllText = $mainText.Substring($titleMissingAllStart, $titleMissingAllEnd - $titleMissingAllStart)
+  if ($titleMissingAllText -notmatch "swcad-title-gmtitle-autoselect-available-p") {
+    Add-Failure "title-missing native batch must require the fixed-control GMTITLE auto-selector."
+  }
+  if ($titleMissingAllText -notmatch '\*swcad-title-allow-batch-interactive-native-gmtitle\* T') {
+    Add-Failure "title-missing native batch must enable verified interactive GMTITLE creation for each sheet."
+  }
+  if ($titleMissingAllText -notmatch "old-allow-interactive") {
+    Add-Failure "title-missing native batch must restore the prior interactive batch setting."
   }
 }
 $integratedConvertStart = $mainText.IndexOf("(defun swcad-title-integrated-convert")
@@ -732,9 +782,9 @@ Assert-Contains -Text $suiteText -Needle '"a2a3a4-native-upgrade-candidate-count
 Assert-NotContains -Text $suiteText -Needle '"Result: OK SWTITLESTATUS status=NEXT_UPGRADE_NATIVE_GMTITLE"' -Label "Suite current work-copy probes must not expect stale native-upgrade status"
 Assert-Contains -Text $suiteText -Needle "Source-title-missing outline native outside marker prepare probe (A4-sized sample)" -Label "Suite source-title-missing sample outside marker prepare step"
 Assert-Contains -Text $suiteText -Needle "After definition status: ready-native-outside-markers" -Label "Suite source-title-missing sample outside marker prepare expectation"
-Assert-Contains -Text $suiteText -Needle "Title-missing outline convert probe (A4-sized source-title-missing sample)" -Label "Suite title-missing outline convert sample step"
+Assert-Contains -Text $suiteText -Needle "Title-missing outline hidden-script safety probe (A4-sized source-title-missing sample)" -Label "Suite title-missing outline hidden-script safety step"
 Assert-NotContains -Text $suiteText -Needle "260706-unified-title-missing-3" -Label "Suite stale GMTITLE version expectation"
-Assert-Contains -Text $suiteText -Needle "FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER" -Label "Suite title-missing outline convert expectation"
+Assert-Contains -Text $suiteText -Needle "ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE" -Label "Suite title-missing outline hidden-script safety expectation"
 Assert-Contains -Text $suiteText -Needle "Before target title count: 5" -Label "Suite title-missing preserves existing title count before convert"
 Assert-Contains -Text $suiteText -Needle "After target title count: 5" -Label "Suite title-missing does not add title after convert"
 Assert-Contains -Text $suiteText -Needle "Native GMTITLE A4 pair evidence: no" -Label "Suite source-title-missing sample native-pair gap expectation"
@@ -811,7 +861,8 @@ Assert-Contains -Text $a4NativeProbeFixtureText -Needle "Definition minor native
 Assert-Contains -Text $a4NativeProbeRunnerText -Needle "A4_NATIVE_EXEMPLAR_REQUIRES_SOURCEWORKCOPYPATH" -Label "Source-title-missing sample native exemplar explicit source guard"
 Assert-Contains -Text $a4NativeProbeRunnerText -Needle "WaitForGstarCADClose" -Label "Source-title-missing sample native exemplar wait option"
 Assert-Contains -Text $a4OutlineConvertProbeText -Needle "After target title count" -Label "Title-missing outline convert no-title log"
-Assert-Contains -Text $a4OutlineConvertProbeText -Needle "FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER" -Label "Title-missing outline convert finalized status"
+Assert-Contains -Text $a4OutlineConvertProbeText -Needle "ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE" -Label "Title-missing outline hidden-script safety status"
+Assert-Contains -Text $a4OutlineConvertProbeText -Needle "visible CAD by double-click" -Label "Title-missing outline visible-CAD success boundary"
 Assert-Contains -Text $a4OutlineConvertRunnerText -Needle "run_readonly_probe.ps1" -Label "Title-missing outline convert hidden runner"
 Assert-Contains -Text $actualDirectStatusRunnerText -Needle "run_readonly_probe.ps1" -Label "Actual direct work-copy hidden runner"
 Assert-Contains -Text $actualDirectStatusRunnerText -Needle "TimeoutSeconds = 180" -Label "Actual direct work-copy longer timeout"
@@ -1163,8 +1214,8 @@ Assert-Contains -Text $finalCompletionGateText -Needle "run_next_cad_action.ps1"
 Assert-Contains -Text $finalCompletionGateText -Needle "representative DR_titlea_3rd title-block double-click checks" -Label "Final completion gate representative title double-click reminder"
 Assert-Contains -Text $finalCompletionGateText -Needle "Title-missing/frame-only sheets have no DR_titlea_3rd title block by design" -Label "Final completion gate title-missing reminder"
 Assert-Contains -Text $finalCompletionGateText -Needle "Final automated completion evidence passed." -Label "Final completion gate automated-pass wording"
-Assert-Contains -Text $readmeText -Needle 'representative `DR_titlea_3rd` title blocks' -Label "README final completion representative title guidance"
-Assert-Contains -Text $readmeText -Needle "Title-missing/frame-only sheets do not have a" -Label "README final completion title-missing guidance"
+Assert-Contains -Text $readmeText -Needle 'Converted `DR_titlea_3rd` title blocks must open `속성 블록 편집`' -Label "README final completion title editor guidance"
+Assert-Contains -Text $readmeText -Needle 'title-missing/frame-only `DR_A*_Outline` frames must open `제목 블록과 도면 경계`' -Label "README final completion title-missing frame editor guidance"
 Assert-Contains -Text $readmeText -Needle "final completion gate uses a default timeout of 180 seconds" -Label "README final completion gate timeout guidance"
 Assert-Contains -Text $readmeText -Needle "Save and close GstarCAD first, or use ``-WaitForGstarCADClose``" -Label "README final completion wait option"
 Assert-Contains -Text $readmeText -Needle "Current source counts:" -Label "README final completion source-count failure summary"
@@ -1499,7 +1550,7 @@ Assert-Contains -Text $cadChecklistText -Needle "BATCH는 OPEN으로 최소 1장
 Assert-Contains -Text $cadChecklistText -Needle "SWTITLECONVERTNEXT" -Label "CAD checklist convert-next shortcut guidance"
 Assert-Contains -Text $cadChecklistText -Needle '고정 컨트롤 자동 선택이 가능하면 `YES`/`OPEN` 응답과 GMTITLE 용지/제목블록/옵션 선택을 자동 처리합니다.' -Label "CAD checklist fixed-control convert-next scope"
 Assert-Contains -Text $otherComputerTestGuideText -Needle "git checkout codex/gm-title" -Label "Other-computer guide branch checkout"
-Assert-Contains -Text $otherComputerTestGuideText -Needle "260710-fixed-control-autoselect-1" -Label "Other-computer guide expected version"
+Assert-Contains -Text $otherComputerTestGuideText -Needle "260710-native-title-missing-frame-1" -Label "Other-computer guide expected version"
 Assert-Contains -Text $otherComputerTestGuideText -Needle "SWTITLESTATUS" -Label "Other-computer guide status-first flow"
 Assert-Contains -Text $otherComputerTestGuideText -Needle "속성 블록 편집 표가 열림" -Label "Other-computer guide representative editor check"
 Assert-Contains -Text $cadChecklistText -Needle '`SWTITLECONVERTNEXT`를 사용하는 경우에는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않습니다' -Label "CAD checklist no extra convert-next response guidance"

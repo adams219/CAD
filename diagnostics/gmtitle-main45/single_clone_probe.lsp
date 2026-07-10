@@ -122,7 +122,7 @@
         (swtitle-singleclone-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))
       )
       (swtitle-singleclone-write-line handle (strcat "Loaded version: " version-value))
-      (swtitle-singleclone-write-line handle "Expected version: 260710-fixed-control-autoselect-1")
+      (swtitle-singleclone-write-line handle "Expected version: 260710-native-title-missing-frame-1")
       (swtitle-singleclone-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-singleclone-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-singleclone-write-line handle (strcat "Script active: " (if (and load-ok (swcad-title-script-active-p)) "yes" "no")))

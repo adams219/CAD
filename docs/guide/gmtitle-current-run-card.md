@@ -70,7 +70,8 @@ NEXT_REVIEW_* / ABORT_* / WARN_*:
   지금은 테스트를 멈출 때입니다. 같은 변환을 반복하지 않고 원인 로그를 봅니다.
 
 SWTITLEVERIFY_FINAL_OK:
-  변환 테스트는 끝났습니다. 대표 DR_titlea_3rd 제목블록 더블클릭 확인만 남았습니다.
+  구조 검증은 끝났습니다. 일상 작업은 대표 제목블록을 확인하고,
+  LSP 릴리스/회귀 완료는 전체 제목블록과 도면틀 편집창 전수검사를 통과해야 합니다.
 ```
 
 ## 자동화 경계
@@ -91,6 +92,7 @@ LSP와 고정 컨트롤 보조 프로그램이 자동 처리:
   현재 열린 파일이 work 복사본인지 확인
   SWTITLESTATUS/SWTITLEVERIFY 최종 결과
   대표 DR_titlea_3rd 제목블록의 더블클릭 편집창
+  LSP 릴리스/회귀검사에서는 전체 DR_titlea_3rd와 DR_A*_Outline 편집창
 ```
 
 자동 선택은 리본 접근성이나 스크린샷 좌표를 사용하지 않습니다. GMTITLE 대화상자의 고정 컨트롤 ID와 선택값 readback을 사용하며, 대상 DWG와 GstarCAD HWND까지 맞아야 확인 버튼을 누릅니다. 조건이 다르면 원본을 유지하고 중단합니다.
@@ -118,7 +120,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260710-fixed-control-autoselect-1
+260710-native-title-missing-frame-1
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -160,7 +162,7 @@ A2/A3/A4 참고:
 
 ```text
 DR_A3_Outline 도면틀 자체는 native GMTITLE에서도 INSERT/block 참조로 보일 수 있습니다.
-A3 성공 여부는 도면틀 더블클릭이 아니라 짝 DR_titlea_3rd 제목블록 더블클릭 표 편집창으로 확인합니다.
+A3 성공 여부는 INSERT 여부만으로 판단하지 않습니다. 짝 DR_titlea_3rd는 `속성 블록 편집`, DR_A3_Outline은 `제목 블록과 도면 경계` 창으로 열려야 합니다.
 
 원본 표제란 부재가 검증된 title-missing 시트는 원본에 없던 DR_titlea_3rd를 새로 만들면 안 됩니다.
 ```
@@ -561,7 +563,7 @@ Object move ON
 | `NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX` | 도면틀 정의 선택 범위가 위험함 | 변환 반복 금지, 로그 확인 |
 | `ABORT_FRAME_DEFINITION_RAW_BBOX_RISK` | 기존 도면 보호를 위해 중단됨 | 변환 반복 금지, 원인 분석 |
 | `SWTITLEVERIFY_FINAL_FAIL` | 완료 조건 미달 | `SWTITLESTATUS`로 다음 조치 확인 |
-| `SWTITLEVERIFY_FINAL_OK` | 검증 기준 통과 | 대표 제목블록 더블클릭 확인 |
+| `SWTITLEVERIFY_FINAL_OK` | 구조 검증 기준 통과 | 일상 작업은 대표 확인, LSP 릴리스는 제목/도면틀 전수 클릭 확인 |
 
 ## A3 판단
 
@@ -571,6 +573,7 @@ A3 도면틀이 CAD에서 block/INSERT처럼 보이는 것만으로 실패는 �
 
 ```text
 DR_titlea_3rd 제목블록 더블클릭 -> GMTITLE 표 편집창 열림
+짝 DR_A3_Outline 도면틀 더블클릭 -> 제목 블록과 도면 경계 창 열림
 A2/A3/A4 native 교체 후보: 0
 clone/shared-link 경고: 0
 겹친 target pair: 0
@@ -642,6 +645,7 @@ clone/shared-link 경고: 0
 ```text
 DR_titlea_3rd가 있는 대표 A2/A3/A4 제목블록 더블클릭 -> GMTITLE 표 편집창 열림
 title-missing 예외 시트 -> 제목블록 없이 해당 DR_A*_Outline 도면틀만 있음
+LSP 릴리스 회귀검사 -> 모든 제목블록은 속성 블록 편집, 모든 도면틀은 제목 블록과 도면 경계, Advanced/REFEDIT 0
 도면 내부 번호, 주석, BOM, 치수, 모델 형상 유지
 ```
 
