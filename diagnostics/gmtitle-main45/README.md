@@ -1,4 +1,4 @@
-﻿# GMTITLE main45 diagnostics
+# GMTITLE main45 diagnostics
 
 This folder contains tracked diagnostic helpers for the `main45` four-command GMTITLE workflow.
 
@@ -478,7 +478,7 @@ work\swtitle_a4_outline_prepare_probe_260705.txt
 Expected result for the current installed `DR_A4_Outline` state:
 
 ```text
-Loaded version: 260710-native-title-missing-frame-1
+Loaded version: 260711-title-residue-geometry-1
 Before definition status: missing
 Prepare result: OK status=OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED
 After definition status: ready-native-outside-markers
@@ -571,7 +571,7 @@ nested-direct-outside: unsafe, effective A4 remains but raw selection bbox remai
 Normalization safe for A4-sized title-missing conversion: no
 ```
 
-This is a negative probe. It proves that deletion-style normalization, including the nested child-block variants, should not be promoted into `SWTITLEPREPARE` or `SWTITLECONVERT`.
+This is a negative probe for deleting objects merely because they extend outside the A4 raw bbox. It does not prohibit the separate actual-title-bbox residue cleanup used by `SWTITLEPREPARE`.
 
 Durable conclusion:
 
@@ -743,7 +743,7 @@ Expected result:
 
 ```text
 Loaded loader version: 260706-loader-convert-next-response-guidance
-Loaded GMTITLE version: 260710-native-title-missing-frame-1
+Loaded GMTITLE version: 260711-title-residue-geometry-1
 Command-line -GMTITLE default enabled: no
 SCRIPT command-line -GMTITLE enabled: no
 Command c:SWTITLESTATUS: yes
@@ -765,7 +765,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260710-native-title-missing-frame-1
+Loaded version: 260711-title-residue-geometry-1
 A2/A3/A4 candidate count before SWTITLESTATUS: 1
 SWTITLESTATUS result: OK
 Status after SWTITLESTATUS: NEXT_UPGRADE_NATIVE_GMTITLE
@@ -787,7 +787,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260710-native-title-missing-frame-1
+Loaded version: 260711-title-residue-geometry-1
 Script active: yes
 Status after batch: ABORT_NATIVE_GMTITLE_BATCH_SCRIPT_ACTIVE
 Candidates before/after: 2/2
@@ -808,7 +808,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 Expected result:
 
 ```text
-Loaded version: 260710-native-title-missing-frame-1
+Loaded version: 260711-title-residue-geometry-1
 Script active before convert: yes
 Status after convert: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE
 Source titles before/after: 12/12
@@ -854,7 +854,7 @@ Use `run_style_normalization_compare_probe.ps1` with `-Sheets "A2,A3,A4" -RunCle
 powershell -NoProfile -ExecutionPolicy Bypass -File `
   "diagnostics\gmtitle-main45\run_style_normalization_compare_probe.ps1" `
   -LspPath "src\tools\gmtitle\swcad_title_scale.lsp" `
-  -Label "current_main50_stylecmp_all_sizes_clean" `
+  -Label "title_residue_geometry_all_sizes_clean" `
   -Sheets "A2,A3,A4" `
   -RunClean
 ```
@@ -866,10 +866,48 @@ DR_A2_Outline: class=native-format-with-title-geometry
 DR_A3_Outline: class=native-format-with-title-geometry
 DR_A4_Outline: class=native-format-with-title-geometry
 Style-normalization record count: 3
-Style-normalization deleted count: 12
+Style-normalization clean entity count: 42
+Style-normalization deleted count: 42
 Style-normalization record count after clean: 0
+Independent residue count before clean: 42
+Protected frame entity count before clean: 15
+Independent residue count after clean: 0
+Second clean entity count: 0
+Second clean deleted count: 0
+Preserved revision text: yes
+Preserved coordinate text: yes
 Runtime check completed: yes
 ```
+
+This fixture derives each cleanup region from the actual paired `DR_titlea_3rd` bbox, traverses nested frame-block transforms, and includes a partial-overlap text whose bbox intersects the title region while its center lies outside the old filter. The second-clean zero result is the idempotence check.
+
+## Actual Copied-DWG Residue Cleanup Probe
+
+Use `run_actual_residue_cleanup_probe.ps1` only on a disposable work-folder copy. The runner hashes and preserves the source, creates another dedicated DWG, invokes the public `SWTITLEPREPARE` path through the exact GstarCAD COM document, saves the dedicated result, and checks idempotence plus native title/frame signatures.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  "diagnostics\gmtitle-main45\run_actual_residue_cleanup_probe.ps1" `
+  -ProbeDwgPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\swtitle_actual_residue_cleanup_probe.dwg" `
+  -LogPath "C:\Users\DR-DESIGN\Documents\CAD tool\work\swtitle_actual_residue_cleanup_probe.txt"
+```
+
+For an already completed full-flow copy that contains old title-missing A4 frames, use `-CoreCleanupOnly`. This isolates the title-residue cleanup from unrelated legacy orphan-marker handling while still requiring target frame/title/orphan counts to remain unchanged.
+
+Expected markers:
+
+```text
+First cleanup status: OK_FRAME_STYLE_NORMALIZATION_CLEANED
+After independent residue: 0
+Pair signature unchanged after first cleanup: yes
+Second cleanup status: OK_NO_FRAME_STYLE_NORMALIZATION
+Final independent residue: 0
+Pair signature unchanged after second cleanup: yes
+Result: ACTUAL_RESIDUE_CLEANUP_COPY_PASS
+Source work-copy SHA256 unchanged: PASS
+```
+
+The durable 2026-07-11 actual-DWG evidence is recorded in `docs/history/gmtitle-title-residue-geometry-2026-07-11.md`.
 
 ## Command-Text Guard Comparison Probe
 

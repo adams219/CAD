@@ -66,6 +66,16 @@
   name
 )
 
+(defun swtitle-a3guide-reset-block-definition (name / backup-name)
+  (if (tblsearch "BLOCK" name)
+    (progn
+      (setq backup-name (swcad-title-unique-block-name (strcat name "$A3GUIDE")))
+      (swcad-title-rename-block-definition name backup-name)
+    )
+    T
+  )
+)
+
 (defun swtitle-a3guide-insert-block (name point /)
   (entmake
     (list
@@ -85,6 +95,9 @@
   (setq frame-name "DR_A3_Outline")
   (setq title-name "DR_titlea_3rd")
   (swtitle-a3guide-delete-all-inserts)
+  ;; The copied source DWG may already contain a real, residue-bearing
+  ;; DR_A3_Outline definition. Isolate this guidance probe from that state.
+  (swtitle-a3guide-reset-block-definition frame-name)
   (swtitle-a3guide-ensure-rect-block frame-name 420.0 297.0)
   (swtitle-a3guide-ensure-rect-block title-name 180.0 42.0)
   (setq frame (swtitle-a3guide-insert-block frame-name '(0.0 0.0 0.0)))

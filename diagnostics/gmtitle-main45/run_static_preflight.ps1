@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260710-native-title-missing-frame-1",
+  [string]$ExpectedGmtitleVersion = "260711-title-residue-geometry-1",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -26,6 +26,9 @@ $singleCloneProbePath = Join-Path $PSScriptRoot "single_clone_probe.lsp"
 $singleCloneProbeRunnerPath = Join-Path $PSScriptRoot "run_single_clone_probe.ps1"
 $preserveCopyMatrixProbePath = Join-Path $PSScriptRoot "preserve_copy_matrix_probe.lsp"
 $preserveCopyMatrixRunnerPath = Join-Path $PSScriptRoot "run_preserve_copy_matrix_probe.ps1"
+$styleNormalizationProbePath = Join-Path $PSScriptRoot "style_normalization_compare_probe.lsp"
+$actualResidueCleanupProbePath = Join-Path $PSScriptRoot "actual_residue_cleanup_probe.lsp"
+$actualResidueCleanupRunnerPath = Join-Path $PSScriptRoot "run_actual_residue_cleanup_probe.ps1"
 $dialogControlProbePath = Join-Path $PSScriptRoot "gmtitle_dialog_control_probe.ps1"
 $dialogAutoselectHelperPath = Join-Path $repoRoot "src\tools\gmtitle\swtitle_gmtitle_dialog_autoselect.ps1"
 $dialogControlSessionProbePath = Join-Path $PSScriptRoot "dialog_control_session_probe.lsp"
@@ -50,6 +53,7 @@ $finalCompletionGateHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-fina
 $commandSurfaceHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-command-surface-probe-2026-07-05.md"
 $automationBoundaryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-automation-boundary-audit-2026-07-05.md"
 $selectionConfigDeepRegistryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-selection-config-deep-registry-2026-07-06.md"
+$titleResidueGeometryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-title-residue-geometry-2026-07-11.md"
 $guidePaths = @(
   "docs\guide\commands.md",
   "docs\guide\gmtitle-unified-flow-reset.md",
@@ -272,6 +276,9 @@ $singleCloneProbeText = Read-Text $singleCloneProbePath
 $singleCloneProbeRunnerText = Read-Text $singleCloneProbeRunnerPath
 $preserveCopyMatrixProbeText = Read-Text $preserveCopyMatrixProbePath
 $preserveCopyMatrixRunnerText = Read-Text $preserveCopyMatrixRunnerPath
+$styleNormalizationProbeText = Read-Text $styleNormalizationProbePath
+$actualResidueCleanupProbeText = Read-Text $actualResidueCleanupProbePath
+$actualResidueCleanupRunnerText = Read-Text $actualResidueCleanupRunnerPath
 $dialogControlProbeText = Read-Text $dialogControlProbePath
 $dialogAutoselectHelperText = Read-Text $dialogAutoselectHelperPath
 $dialogControlSessionProbeText = Read-Text $dialogControlSessionProbePath
@@ -296,6 +303,7 @@ $commandSurfaceHistoryText = Read-Text $commandSurfaceHistoryPath
 $automationBoundaryHistoryText = Read-Text $automationBoundaryHistoryPath
 $selectionConfigDeepRegistryHistoryText = Read-Text $selectionConfigDeepRegistryHistoryPath
 $finalCompletionGateHistoryText = Read-Text $finalCompletionGateHistoryPath
+$titleResidueGeometryHistoryText = Read-Text $titleResidueGeometryHistoryPath
 
 Write-Output "===== GMTITLE static preflight ====="
 Write-Output ("Repo root: {0}" -f $repoRoot)
@@ -307,6 +315,8 @@ Test-LispBalance -Text $a4OutlineConvertProbeText -Label "a4_outline_convert_pro
 Test-LispBalance -Text $actualDirectStatusProbeText -Label "actual_workcopy_status_probe.lsp"
 Test-LispBalance -Text $singleCloneProbeText -Label "single_clone_probe.lsp"
 Test-LispBalance -Text $preserveCopyMatrixProbeText -Label "preserve_copy_matrix_probe.lsp"
+Test-LispBalance -Text $styleNormalizationProbeText -Label "style_normalization_compare_probe.lsp"
+Test-LispBalance -Text $actualResidueCleanupProbeText -Label "actual_residue_cleanup_probe.lsp"
 Test-LispBalance -Text $dialogControlSessionProbeText -Label "dialog_control_session_probe.lsp"
 Test-LispBalance -Text $postFirstNativeProbeText -Label "post_first_native_transition_probe.lsp"
 Test-PowerShellSyntax -Path $preserveCopyMatrixRunnerPath -Label "run_preserve_copy_matrix_probe.ps1"
@@ -314,6 +324,7 @@ Test-PowerShellSyntax -Path $dialogControlProbePath -Label "gmtitle_dialog_contr
 Test-PowerShellSyntax -Path $dialogAutoselectHelperPath -Label "swtitle_gmtitle_dialog_autoselect.ps1"
 Test-PowerShellSyntax -Path $dialogControlSessionRunnerPath -Label "run_gmtitle_dialog_control_session.ps1"
 Test-PowerShellSyntax -Path $integratedAutoselectBatchRunnerPath -Label "run_integrated_autoselect_batch_probe.ps1"
+Test-PowerShellSyntax -Path $actualResidueCleanupRunnerPath -Label "run_actual_residue_cleanup_probe.ps1"
 
 $gmtitleVersion = Get-VersionValue -Text $mainText -VariableName "*swcad-title-scale-version*"
 if ($gmtitleVersion -eq $ExpectedGmtitleVersion) {
@@ -524,6 +535,25 @@ if (($titleMissingApplyStart -lt 0) -or ($titleMissingApplyEnd -le $titleMissing
     Add-Failure "title-missing outline apply must not substitute a plain INSERT for native GMTITLE."
   }
 }
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-affine-inverse" -Label "Frame residue nested transform inverse"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-frame-style-pair-context" -Label "Frame residue actual title pair context"
+Assert-Contains -Text $mainText -Needle "swcad-title-title-residue-region-from-bbox" -Label "Frame residue actual title-derived region"
+Assert-Contains -Text $mainText -Needle "swcad-title-frame-path-entity-records-recurse" -Label "Frame residue nested block traversal"
+Assert-Contains -Text $mainText -Needle "swcad-title-frame-style-independent-residue-records" -Label "Frame residue independent verifier"
+Assert-Contains -Text $mainText -Needle "WARN_RESIDUE_REMAINS" -Label "Frame residue post-clean warning"
+Assert-Contains -Text $mainText -Needle "swcad-title-rebuild-frame-definition-tree-skipping-records" -Label "Frame residue nested tree rebuild"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "PARTIAL TITLE RESIDUE" -Label "Style fixture partial-overlap text"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "SWSTYLE_*_FRAME_CONTENT" -Label "Style fixture nested frame content"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Preserved revision text:" -Label "Style fixture revision preservation"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Independent residue count after clean:" -Label "Style fixture independent post-clean verification"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Second clean deleted count:" -Label "Style fixture idempotent second clean"
+Assert-Contains -Text $suiteText -Needle "Independent residue count after clean: 0" -Label "Suite requires zero independent residue"
+Assert-Contains -Text $suiteText -Needle "Second clean deleted count: 0" -Label "Suite requires idempotent style cleanup"
+Assert-Contains -Text $actualResidueCleanupProbeText -Needle "c:SWTITLEPREPARE" -Label "Actual residue probe exercises public prepare command"
+Assert-Contains -Text $actualResidueCleanupProbeText -Needle "swcad-title-frame-style-independent-residue-records" -Label "Actual residue probe independent verification"
+Assert-Contains -Text $actualResidueCleanupProbeText -Needle "Pair signature unchanged after second cleanup:" -Label "Actual residue probe native-pair signature check"
+Assert-Contains -Text $actualResidueCleanupRunnerText -Needle "Source work-copy SHA256 unchanged: PASS" -Label "Actual residue runner source preservation gate"
+Assert-Contains -Text $actualResidueCleanupRunnerText -Needle "ACTUAL_RESIDUE_CLEANUP_COPY_PASS" -Label "Actual residue runner pass marker"
 $titleMissingFramePredicateStart = $mainText.IndexOf("(defun swcad-title-title-missing-outline-frame-record-p")
 $titleMissingFramePredicateEnd = if ($titleMissingFramePredicateStart -ge 0) { $mainText.IndexOf("(defun swcad-title-title-missing-outline-frame-count", $titleMissingFramePredicateStart) } else { -1 }
 if (($titleMissingFramePredicateStart -lt 0) -or ($titleMissingFramePredicateEnd -le $titleMissingFramePredicateStart)) {
@@ -777,7 +807,7 @@ if (($a3a4NextStart -ge 0) -and ($a3a4AutoOpen -gt $a3a4NextStart) -and ($a3a4Pr
   Add-Failure "SWTITLECONVERTNEXT A2/A3/A4 OPEN auto response must be checked before getstring prompt"
 }
 Assert-Contains -Text $mainText -Needle "DR_titlea_3rd/Frame positioning ON/Object move OFF" -Label "SWTITLECONVERTNEXT visual GMTITLE confirmation guard"
-Assert-Contains -Text $suiteText -Needle '"Result: OK SWTITLESTATUS status=NEXT_RUN_FAST_BATCH"' -Label "Suite current work-copy probes expect fast-batch status"
+Assert-Contains -Text $suiteText -Needle '"Result: OK SWTITLESTATUS status=NEXT_PREPARE_FRAME_STYLE_NORMALIZATION"' -Label "Suite current work-copy probes expect residue preparation status"
 Assert-Contains -Text $suiteText -Needle '"a2a3a4-native-upgrade-candidate-count: 0"' -Label "Suite current work-copy probes expect zero native-upgrade candidates"
 Assert-NotContains -Text $suiteText -Needle '"Result: OK SWTITLESTATUS status=NEXT_UPGRADE_NATIVE_GMTITLE"' -Label "Suite current work-copy probes must not expect stale native-upgrade status"
 Assert-Contains -Text $suiteText -Needle "Source-title-missing outline native outside marker prepare probe (A4-sized sample)" -Label "Suite source-title-missing sample outside marker prepare step"
@@ -1086,6 +1116,10 @@ Assert-Contains -Text $computerUseA3DialogHistoryText -Needle "not exposed as a 
 Assert-Contains -Text $computerUseA3DialogHistoryText -Needle "did **not** click screen coordinates" -Label "Computer Use A3 no screen-coordinate fallback"
 Assert-Contains -Text $computerUseDynamicInputHistoryText -Needle 'Do not use Computer Use to type `SWTITLECONVERTNEXT` into visible GstarCAD' -Label "Computer Use dynamic-input no-type guidance"
 Assert-Contains -Text $computerUseDynamicInputHistoryText -Needle "dynamic input interpreted command text as drawing text" -Label "Computer Use dynamic-input failure evidence"
+Assert-Contains -Text $titleResidueGeometryHistoryText -Needle "정리 후보: 42" -Label "Title residue history synthetic candidate evidence"
+Assert-Contains -Text $titleResidueGeometryHistoryText -Needle "독립 잔여물 정리 후: 0" -Label "Title residue history independent zero evidence"
+Assert-Contains -Text $titleResidueGeometryHistoryText -Needle "두 번째 실행 후보/삭제: 0 / 0" -Label "Title residue history idempotence evidence"
+Assert-Contains -Text $titleResidueGeometryHistoryText -Needle "SWTITLESTATUS: NEXT_PREPARE_FRAME_STYLE_NORMALIZATION" -Label "Title residue history actual workcopy status"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "용지/도면틀:" -Label "Next CAD action Korean dialog paper guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERTNEXT  (권장: 고정 컨트롤로 GMTITLE 선택값 검증 후 native 연속 변환)" -Label "Next CAD action fixed-control shortcut guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "또는 수동 응답을 직접 고르려면: SWTITLECONVERT" -Label "Next CAD action manual convert fallback guidance"
@@ -1230,6 +1264,7 @@ Assert-NoKnownMojibake -Text $commandSurfaceHistoryText -Label "Command surface 
 Assert-NoKnownMojibake -Text $automationBoundaryHistoryText -Label "Automation boundary history"
 Assert-NoKnownMojibake -Text $selectionConfigDeepRegistryHistoryText -Label "Selection config deep registry history"
 Assert-NoKnownMojibake -Text $finalCompletionGateHistoryText -Label "Final completion gate history"
+Assert-NoKnownMojibake -Text $titleResidueGeometryHistoryText -Label "Title residue geometry history"
 Assert-NoKnownMojibake -Text $readmeText -Label "Diagnostics README"
 Assert-NoKnownMojibake -Text $unifiedFlowResetGuideText -Label "Unified flow reset guide"
 Assert-Contains -Text $commandSurfaceHistoryText -Needle "GMTITLE 명령/설정 표면 재확인" -Label "Command surface history readable Korean title"
@@ -1461,10 +1496,10 @@ Assert-Contains -Text $goalPlanText -Needle "run_after_manual_gmtitle_step.ps1" 
 Assert-Contains -Text $goalPlanText -Needle 'Generated/Result/Worktree evidence hash' -Label "Goal plan latest hidden-suite evidence guidance"
 Assert-Contains -Text $goalPlanText -Needle 'suite 작업트리 지문 현재와 일치' -Label "Goal plan dirty-worktree suite hash guidance"
 Assert-Contains -Text $goalPlanText -Needle "상태 코드:" -Label "Goal plan current direct-probe status block"
-Assert-Contains -Text $goalPlanText -Needle "NEXT_RUN_FAST_BATCH" -Label "Goal plan current direct-probe fast-batch status"
-Assert-Contains -Text $goalPlanText -Needle "다음 visible CAD 확인값:" -Label "Goal plan current visible CAD selection heading"
+Assert-Contains -Text $goalPlanText -Needle "저장된 실제 작업복사본 direct probe: NEXT_PREPARE_FRAME_STYLE_NORMALIZATION" -Label "Goal plan current direct-probe residue-preparation status"
+Assert-Contains -Text $goalPlanText -Needle "다음 visible CAD 명령:" -Label "Goal plan current visible CAD command heading"
 Assert-Contains -Text $runCardText -Needle "현재 저장 상태:" -Label "Run card current direct-probe status block"
-Assert-Contains -Text $runCardText -Needle "NEXT_RUN_FAST_BATCH" -Label "Run card current direct-probe fast-batch status"
+Assert-Contains -Text $runCardText -Needle "NEXT_PREPARE_FRAME_STYLE_NORMALIZATION" -Label "Run card current direct-probe residue-preparation status"
 Assert-Contains -Text $runCardText -Needle "최신 final completion gate:" -Label "Run card current final completion gate block"
 Assert-Contains -Text $runCardText -Needle '최신성은 run_goal_status.ps1의 "Final gate log older than current commit" 값으로 판단' -Label "Run card current final completion gate freshness source"
 Assert-Contains -Text $runCardText -Needle "현재 저장본 기준 예상 상태: FAIL" -Label "Run card current final completion gate expected status"
@@ -1550,7 +1585,7 @@ Assert-Contains -Text $cadChecklistText -Needle "BATCH는 OPEN으로 최소 1장
 Assert-Contains -Text $cadChecklistText -Needle "SWTITLECONVERTNEXT" -Label "CAD checklist convert-next shortcut guidance"
 Assert-Contains -Text $cadChecklistText -Needle '고정 컨트롤 자동 선택이 가능하면 `YES`/`OPEN` 응답과 GMTITLE 용지/제목블록/옵션 선택을 자동 처리합니다.' -Label "CAD checklist fixed-control convert-next scope"
 Assert-Contains -Text $otherComputerTestGuideText -Needle "git checkout codex/gm-title" -Label "Other-computer guide branch checkout"
-Assert-Contains -Text $otherComputerTestGuideText -Needle "260710-native-title-missing-frame-1" -Label "Other-computer guide expected version"
+Assert-Contains -Text $otherComputerTestGuideText -Needle "260711-title-residue-geometry-1" -Label "Other-computer guide expected version"
 Assert-Contains -Text $otherComputerTestGuideText -Needle "SWTITLESTATUS" -Label "Other-computer guide status-first flow"
 Assert-Contains -Text $otherComputerTestGuideText -Needle "속성 블록 편집 표가 열림" -Label "Other-computer guide representative editor check"
 Assert-Contains -Text $cadChecklistText -Needle '`SWTITLECONVERTNEXT`를 사용하는 경우에는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않습니다' -Label "CAD checklist no extra convert-next response guidance"

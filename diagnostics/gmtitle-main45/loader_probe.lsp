@@ -1,4 +1,4 @@
-﻿;;; Tracked read-only loader probe for the main56 GMTITLE workflow.
+;;; Tracked read-only loader probe for the main56 GMTITLE workflow.
 ;;; The PowerShell wrapper sets SWCAD_TOOL_ROOT and SWCAD_LOADER_PROBE_LOG.
 ;;; This script does not save the drawing.
 
@@ -100,7 +100,7 @@
         (strcat "Loaded GMTITLE version: " (if (boundp '*swcad-title-scale-version*) *swcad-title-scale-version* "<gmtitle version missing>"))
       )
       (swtitle-loader-probe-write-line handle "Expected loader version: 260706-loader-convert-next-response-guidance")
-      (swtitle-loader-probe-write-line handle "Expected GMTITLE version: 260710-native-title-missing-frame-1")
+      (swtitle-loader-probe-write-line handle "Expected GMTITLE version: 260711-title-residue-geometry-1")
       (swtitle-loader-probe-write-line
         handle
         (strcat

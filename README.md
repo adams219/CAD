@@ -1,4 +1,4 @@
-﻿# CAD Tool
+# CAD Tool
 
 GstarCAD / GstarCAD Mechanical / SolidWorks DWG 변환 도구를 관리하는 저장소입니다.
 
@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 GMTITLE 기준 버전:
 
 ```text
-260710-native-title-missing-frame-1
+260711-title-residue-geometry-1
 ```
 
 다른 버전이 보이면 `SWTITLESTATUS` 결과를 믿기 전에 최신 LSP를 다시 APPLOAD 합니다.
@@ -100,6 +100,12 @@ GitHub/로컬 이력 기반 반복 실수 방지 계획:
 
 ```text
 docs\history\gmtitle-history-github-local-prevention-plan-2026-07-04.md
+```
+
+실제 제목블록 범위와 중첩 블록 변환을 사용한 잔여물 판정 이력:
+
+```text
+docs\history\gmtitle-title-residue-geometry-2026-07-11.md
 ```
 
 main49 반영 이력:

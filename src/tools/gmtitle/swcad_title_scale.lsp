@@ -40,7 +40,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260710-native-title-missing-frame-1")
+(setq *swcad-title-scale-version* "260711-title-residue-geometry-1")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -206,6 +206,8 @@
         ("ERROR_FRAME_EMBEDDED_TITLE_CLEAN" . "DR 도면틀 내부 표제란 정리 중 오류가 발생했습니다.")
         ("OK_FRAME_STYLE_NORMALIZATION_CLEANED" . "도면틀 스타일 정규화 후보를 정리했습니다.")
         ("OK_NO_FRAME_STYLE_NORMALIZATION" . "정규화가 필요한 도면틀 스타일 후보가 없습니다.")
+        ("WARN_RESIDUE_REMAINS" . "정리 후 독립 검증에서 기존 표제란 잔여 형상이 남아 있습니다.")
+        ("WARN_FRAME_STYLE_RESIDUE_UNCLASSIFIED" . "기존 표제란 잔여 형상은 확인됐지만 안전한 자동 삭제 대상으로 분류되지 않았습니다.")
         ("ABORT_FRAME_STYLE_NORMALIZATION_USER" . "사용자가 도면틀 스타일 정규화를 취소했습니다.")
         ("ERROR_FRAME_STYLE_NORMALIZATION_CLEAN" . "도면틀 스타일 정규화 중 오류가 발생했습니다.")
         ("NEXT_OPEN_WRITABLE_WORK_COPY" . "변경 전에 work 폴더의 쓰기 가능한 작업복사본을 열어야 합니다.")
@@ -2572,6 +2574,121 @@
       (setq y1 (+ iy (* (cadr bbox) sy)))
       (setq y2 (+ iy (* (cadddr bbox) sy)))
       (list (min x1 x2) (min y1 y2) (max x1 x2) (max y1 y2))
+    )
+    nil
+  )
+)
+
+;;; 2D affine helpers use (a b c d tx ty):
+;;;   x' = a*x + c*y + tx
+;;;   y' = b*x + d*y + ty
+(defun swcad-title-affine-identity ()
+  '(1.0 0.0 0.0 1.0 0.0 0.0)
+)
+
+(defun swcad-title-affine-multiply (parent local / pa pb pc pd ptx pty la lb lc ld ltx lty)
+  (setq pa (nth 0 parent))
+  (setq pb (nth 1 parent))
+  (setq pc (nth 2 parent))
+  (setq pd (nth 3 parent))
+  (setq ptx (nth 4 parent))
+  (setq pty (nth 5 parent))
+  (setq la (nth 0 local))
+  (setq lb (nth 1 local))
+  (setq lc (nth 2 local))
+  (setq ld (nth 3 local))
+  (setq ltx (nth 4 local))
+  (setq lty (nth 5 local))
+  (list
+    (+ (* pa la) (* pc lb))
+    (+ (* pb la) (* pd lb))
+    (+ (* pa lc) (* pc ld))
+    (+ (* pb lc) (* pd ld))
+    (+ (* pa ltx) (* pc lty) ptx)
+    (+ (* pb ltx) (* pd lty) pty)
+  )
+)
+
+(defun swcad-title-affine-inverse (matrix / a b c d tx ty det)
+  (setq a (nth 0 matrix))
+  (setq b (nth 1 matrix))
+  (setq c (nth 2 matrix))
+  (setq d (nth 3 matrix))
+  (setq tx (nth 4 matrix))
+  (setq ty (nth 5 matrix))
+  (setq det (- (* a d) (* b c)))
+  (if (> (swcad-title-abs det) 0.000000001)
+    (list
+      (/ d det)
+      (/ (- 0.0 b) det)
+      (/ (- 0.0 c) det)
+      (/ a det)
+      (/ (- (* c ty) (* d tx)) det)
+      (/ (- (* b tx) (* a ty)) det)
+    )
+    nil
+  )
+)
+
+(defun swcad-title-affine-transform-point (matrix point / x y)
+  (if (and matrix point)
+    (progn
+      (setq x (float (car point)))
+      (setq y (float (cadr point)))
+      (list
+        (+ (* (nth 0 matrix) x) (* (nth 2 matrix) y) (nth 4 matrix))
+        (+ (* (nth 1 matrix) x) (* (nth 3 matrix) y) (nth 5 matrix))
+        (if (caddr point) (caddr point) 0.0)
+      )
+    )
+    nil
+  )
+)
+
+(defun swcad-title-affine-transform-bbox (matrix bbox / p1 p2 p3 p4 xs ys)
+  (if (and matrix bbox)
+    (progn
+      (setq p1 (swcad-title-affine-transform-point matrix (list (car bbox) (cadr bbox) 0.0)))
+      (setq p2 (swcad-title-affine-transform-point matrix (list (caddr bbox) (cadr bbox) 0.0)))
+      (setq p3 (swcad-title-affine-transform-point matrix (list (caddr bbox) (cadddr bbox) 0.0)))
+      (setq p4 (swcad-title-affine-transform-point matrix (list (car bbox) (cadddr bbox) 0.0)))
+      (setq xs (list (car p1) (car p2) (car p3) (car p4)))
+      (setq ys (list (cadr p1) (cadr p2) (cadr p3) (cadr p4)))
+      (list (apply 'min xs) (apply 'min ys) (apply 'max xs) (apply 'max ys))
+    )
+    nil
+  )
+)
+
+(defun swcad-title-block-definition-base-point (block-name / data point)
+  (setq data (swcad-title-block-definition-header-data block-name))
+  (setq point (swcad-title-dxf-value data 10))
+  (if point point '(0.0 0.0 0.0))
+)
+
+(defun swcad-title-insert-affine-matrix (insert-ename / data name base ins sx sy rot cosine sine a b c d bx by)
+  (setq data (if insert-ename (entget insert-ename '("*")) nil))
+  (setq name (if insert-ename (swcad-title-effective-insert-name insert-ename) ""))
+  (setq base (swcad-title-block-definition-base-point name))
+  (setq ins (swcad-title-dxf-value data 10))
+  (setq sx (float (if (swcad-title-dxf-value data 41) (swcad-title-dxf-value data 41) 1.0)))
+  (setq sy (float (if (swcad-title-dxf-value data 42) (swcad-title-dxf-value data 42) 1.0)))
+  (setq rot (float (if (swcad-title-dxf-value data 50) (swcad-title-dxf-value data 50) 0.0)))
+  (if (and data ins)
+    (progn
+      (setq cosine (cos rot))
+      (setq sine (sin rot))
+      (setq a (* cosine sx))
+      (setq b (* sine sx))
+      (setq c (* (- 0.0 sine) sy))
+      (setq d (* cosine sy))
+      (setq bx (float (car base)))
+      (setq by (float (cadr base)))
+      (list
+        a b c d
+        (- (float (car ins)) (* a bx) (* c by))
+        (- (float (cadr ins)) (* b bx) (* d by))
+      )
     )
     nil
   )
@@ -5413,6 +5530,36 @@
   result
 )
 
+(defun swcad-title-all-insert-references-by-effective-name (block-name / target result ss index total ename blocks block item item-ename)
+  (setq target (strcase (swcad-title-string block-name)))
+  (setq result nil)
+  (setq ss (ssget "_X" '((0 . "INSERT"))))
+  (setq total (if ss (sslength ss) 0))
+  (setq index 0)
+  (while (< index total)
+    (setq ename (ssname ss index))
+    (if (equal (strcase (swcad-title-effective-insert-name ename)) target)
+      (setq result (swcad-title-list-add-unique ename result))
+    )
+    (setq index (+ index 1))
+  )
+  (setq blocks (vla-get-Blocks (swcad-title-doc)))
+  (vlax-for block blocks
+    (vlax-for item block
+      (setq item-ename (swcad-title-vla-object->ename item))
+      (if
+        (and
+          item-ename
+          (equal (swcad-title-entity-type-name item-ename) "INSERT")
+          (equal (strcase (swcad-title-effective-insert-name item-ename)) target)
+        )
+        (setq result (swcad-title-list-add-unique item-ename result))
+      )
+    )
+  )
+  result
+)
+
 (defun swcad-title-attribute-value (attribute / value)
   (setq value (vl-catch-all-apply 'vla-get-TextString (list attribute)))
   (if (vl-catch-all-error-p value) "" value)
@@ -6291,7 +6438,7 @@
       (if changed
         (progn
           (setq result (vl-catch-all-apply 'entmod (list new-data)))
-          (if (vl-catch-all-error-p result)
+          (if (or (vl-catch-all-error-p result) (not result))
             nil
             (progn
               (entupd ename)
@@ -7378,30 +7525,467 @@
   result
 )
 
-(defun swcad-title-frame-style-normalization-records-for-frame (frame-name / class-record class reason embedded-count region title-enames frames result frame frame-data frame-handle world-region title title-bbox overlap)
-  (setq class-record (swcad-title-frame-definition-class-record frame-name))
-  (setq class (cadr class-record))
-  (setq reason (caddr class-record))
-  (setq embedded-count (nth 3 class-record))
-  (setq region (swcad-title-frame-embedded-title-region-for-block frame-name))
-  (setq title-enames (swcad-title-inserts-by-effective-name (swcad-title-target-title-block-name)))
-  (setq frames (swcad-title-inserts-by-effective-name frame-name))
-  (setq result nil)
-  (if
-    (and
-      (equal class "native-format-with-title-geometry")
-      region
-      title-enames
-      frames
+(defun swcad-title-frame-style-graphic-entity-type-p (etype)
+  (member
+    (strcase (swcad-title-string etype))
+    '("LINE" "LWPOLYLINE" "POLYLINE" "2DPOLYLINE" "HATCH" "SOLID" "TRACE" "WIPEOUT" "CIRCLE" "ARC" "ELLIPSE" "SPLINE")
+  )
+)
+
+(defun swcad-title-frame-style-outer-edge-p (bbox frame-bbox / tolerance frame-width frame-height width height near-left near-right near-bottom near-top)
+  (if (and bbox frame-bbox)
+    (progn
+      (setq tolerance 2.5)
+      (setq frame-width (swcad-title-bbox-width frame-bbox))
+      (setq frame-height (swcad-title-bbox-height frame-bbox))
+      (setq width (swcad-title-bbox-width bbox))
+      (setq height (swcad-title-bbox-height bbox))
+      (setq near-left (and (swcad-title-near-p (car bbox) (car frame-bbox) tolerance) (swcad-title-near-p (caddr bbox) (car frame-bbox) tolerance)))
+      (setq near-right (and (swcad-title-near-p (car bbox) (caddr frame-bbox) tolerance) (swcad-title-near-p (caddr bbox) (caddr frame-bbox) tolerance)))
+      (setq near-bottom (and (swcad-title-near-p (cadr bbox) (cadr frame-bbox) tolerance) (swcad-title-near-p (cadddr bbox) (cadr frame-bbox) tolerance)))
+      (setq near-top (and (swcad-title-near-p (cadr bbox) (cadddr frame-bbox) tolerance) (swcad-title-near-p (cadddr bbox) (cadddr frame-bbox) tolerance)))
+      (or
+        (and (>= width (* frame-width 0.80)) (or near-bottom near-top))
+        (and (>= height (* frame-height 0.80)) (or near-left near-right))
+      )
     )
-    (foreach frame frames
-      (setq frame-data (entget frame '("*")))
-      (setq frame-handle (swcad-title-string (swcad-title-dxf-value frame-data 5)))
-      (setq world-region (swcad-title-transform-bbox-with-insert region frame))
-      (foreach title title-enames
-        (setq title-bbox (swcad-title-safe-bbox title))
+    nil
+  )
+)
+
+(defun swcad-title-frame-style-coordinate-tick-p (etype bbox frame-bbox / upper width height near-bottom near-top near-left near-right)
+  (setq upper (strcase (swcad-title-string etype)))
+  (setq width (swcad-title-bbox-width bbox))
+  (setq height (swcad-title-bbox-height bbox))
+  (setq near-bottom (and bbox frame-bbox (<= (cadddr bbox) (+ (cadr frame-bbox) 16.0))))
+  (setq near-top (and bbox frame-bbox (>= (cadr bbox) (- (cadddr frame-bbox) 16.0))))
+  (setq near-left (and bbox frame-bbox (<= (caddr bbox) (+ (car frame-bbox) 16.0))))
+  (setq near-right (and bbox frame-bbox (>= (car bbox) (- (caddr frame-bbox) 16.0))))
+  (and
+    (member upper '("LINE" "LWPOLYLINE" "POLYLINE" "2DPOLYLINE"))
+    (or
+      (and (or near-bottom near-top) (<= width 16.0) (<= height 4.0))
+      (and (or near-bottom near-top) (<= width 4.0) (<= height 16.0))
+      (and (or near-left near-right) (<= width 4.0) (<= height 16.0))
+      (and (or near-left near-right) (<= height 4.0) (<= width 16.0))
+    )
+  )
+)
+
+(defun swcad-title-frame-style-coordinate-text-p (raw-text bbox frame-bbox / text upper len center edge-distance)
+  (setq text (vl-string-trim " \t\r\n" (swcad-title-string raw-text)))
+  (setq upper (strcase text))
+  (setq len (strlen text))
+  (setq center (swcad-title-bbox-center bbox))
+  (setq edge-distance
+    (if (and center frame-bbox)
+      (min
+        (swcad-title-abs (- (car center) (car frame-bbox)))
+        (swcad-title-abs (- (car center) (caddr frame-bbox)))
+        (swcad-title-abs (- (cadr center) (cadr frame-bbox)))
+        (swcad-title-abs (- (cadr center) (cadddr frame-bbox)))
+      )
+      999999.0
+    )
+  )
+  (and
+    (<= len 2)
+    (<= edge-distance 8.0)
+    (or
+      (wcmatch upper "#")
+      (wcmatch upper "##")
+      (wcmatch upper "[A-Z]")
+      (wcmatch upper "[A-Z]#")
+      (wcmatch upper "#[A-Z]")
+    )
+  )
+)
+
+(defun swcad-title-frame-style-path-prefix-p (prefix path / ok)
+  (setq ok T)
+  (while (and ok prefix)
+    (if (or (not path) (not (equal (strcase (swcad-title-string (car prefix))) (strcase (swcad-title-string (car path))))))
+      (setq ok nil)
+    )
+    (setq prefix (cdr prefix))
+    (setq path (cdr path))
+  )
+  ok
+)
+
+(defun swcad-title-frame-style-path-under-prefixes-p (path prefixes / found prefix)
+  (setq found nil)
+  (foreach prefix prefixes
+    (if (swcad-title-frame-style-path-prefix-p prefix path)
+      (setq found T)
+    )
+  )
+  found
+)
+
+(defun swcad-title-frame-path-entity-records-recurse (frame-name block-name matrix block-path insert-path visited depth / block result item ename data etype item-name raw-text local-bbox root-bbox handle child-exists child-matrix child-records child-visited)
+  (setq block (swcad-title-block-definition-object block-name))
+  (setq result nil)
+  (if (and block (< depth 16))
+    (vlax-for item block
+      (setq ename (swcad-title-vla-object->ename item))
+      (if ename
+        (progn
+          (setq data (entget ename '("*")))
+          (setq etype (strcase (swcad-title-string (swcad-title-dxf-value data 0))))
+          (setq item-name "")
+          (setq raw-text "")
+          (if (equal etype "INSERT")
+            (setq item-name (swcad-title-effective-insert-name ename))
+          )
+          (if (member etype '("TEXT" "MTEXT" "ATTDEF"))
+            (setq raw-text (swcad-title-text-entity-value data))
+          )
+          (setq local-bbox (swcad-title-safe-bbox ename))
+          (setq root-bbox (swcad-title-affine-transform-bbox matrix local-bbox))
+          (setq handle (swcad-title-ename-handle ename))
+          (setq child-exists
+            (and
+              (equal etype "INSERT")
+              (> (strlen item-name) 0)
+              (swcad-title-block-exists-p item-name)
+            )
+          )
+          (setq result
+            (append
+              result
+              (list
+                (list
+                  frame-name block-name ename handle etype item-name
+                  local-bbox root-bbox raw-text block-path insert-path matrix depth
+                  (if child-exists T nil)
+                )
+              )
+            )
+          )
+          (if
+            (and
+              child-exists
+              (not (swcad-title-native-target-title-name-p item-name))
+              (not (swcad-title-native-target-frame-name-p item-name))
+              (not (swcad-title-string-member-ci-p item-name visited))
+            )
+            (progn
+              (setq child-matrix (swcad-title-insert-affine-matrix ename))
+              (if child-matrix
+                (progn
+                  (setq child-matrix (swcad-title-affine-multiply matrix child-matrix))
+                  (setq child-visited (append visited (list item-name)))
+                  (setq child-records
+                    (swcad-title-frame-path-entity-records-recurse
+                      frame-name
+                      item-name
+                      child-matrix
+                      (append block-path (list item-name))
+                      (append insert-path (list handle))
+                      child-visited
+                      (+ depth 1)
+                    )
+                  )
+                  (setq result (append result child-records))
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-frame-path-entity-records (frame-name)
+  (swcad-title-frame-path-entity-records-recurse
+    frame-name
+    frame-name
+    (swcad-title-affine-identity)
+    (list frame-name)
+    nil
+    (list frame-name)
+    0
+  )
+)
+
+(defun swcad-title-title-residue-region-from-bbox (title-bbox frame-bbox / width height x-margin bottom-margin top-margin region)
+  (if title-bbox
+    (progn
+      (setq width (max 1.0 (swcad-title-bbox-width title-bbox)))
+      (setq height (max 1.0 (swcad-title-bbox-height title-bbox)))
+      (setq x-margin (max 1.0 (* width 0.06)))
+      (setq bottom-margin (max 1.0 (* height 0.25)))
+      (setq top-margin (max 1.0 (* height 0.55)))
+      (setq region
+        (list
+          (- (car title-bbox) x-margin)
+          (- (cadr title-bbox) bottom-margin)
+          (+ (caddr title-bbox) x-margin)
+          (+ (cadddr title-bbox) top-margin)
+        )
+      )
+      (if frame-bbox
+        (list
+          (max (car frame-bbox) (car region))
+          (max (cadr frame-bbox) (cadr region))
+          (min (caddr frame-bbox) (caddr region))
+          (min (cadddr frame-bbox) (cadddr region))
+        )
+        region
+      )
+    )
+    nil
+  )
+)
+
+(defun swcad-title-frame-style-pair-context (frame-name frame-ename title-ename / sheet dims frame-root-bbox frame-matrix inverse title-world-bbox title-root-bbox root-region world-region path-records)
+  (setq sheet (swcad-title-sheet-size-from-block-name frame-name))
+  (setq dims (swcad-title-sheet-dimensions sheet))
+  (setq frame-root-bbox (if dims (list 0.0 0.0 (car dims) (cadr dims)) nil))
+  (setq frame-matrix (swcad-title-insert-affine-matrix frame-ename))
+  (setq inverse (if frame-matrix (swcad-title-affine-inverse frame-matrix) nil))
+  (setq title-world-bbox (swcad-title-safe-bbox title-ename))
+  (setq title-root-bbox (if inverse (swcad-title-affine-transform-bbox inverse title-world-bbox) nil))
+  (setq root-region (swcad-title-title-residue-region-from-bbox title-root-bbox frame-root-bbox))
+  (setq world-region (if frame-matrix (swcad-title-affine-transform-bbox frame-matrix root-region) nil))
+  (setq path-records (if root-region (swcad-title-frame-path-entity-records frame-name) nil))
+  (list frame-matrix inverse title-world-bbox title-root-bbox root-region world-region frame-root-bbox path-records)
+)
+
+(defun swcad-title-frame-style-insert-contained-p (bbox region / overlap bbox-area overlap-area)
+  (setq overlap (swcad-title-bbox-overlap-box bbox region))
+  (setq bbox-area (swcad-title-bbox-area bbox))
+  (setq overlap-area (swcad-title-bbox-area overlap))
+  (and
+    bbox
+    region
+    (> bbox-area 0.01)
+    (or
+      (swcad-title-bbox-contains-bbox-p region bbox 1.0)
+      (and
+        (> (/ overlap-area bbox-area) 0.70)
+        (< bbox-area (* (swcad-title-bbox-area region) 1.50))
+      )
+    )
+  )
+)
+
+(defun swcad-title-frame-style-base-protection-reason (record frame-bbox / etype item-name bbox raw-text)
+  (setq etype (nth 4 record))
+  (setq item-name (nth 5 record))
+  (setq bbox (nth 7 record))
+  (setq raw-text (nth 8 record))
+  (cond
+    ((swcad-title-native-target-title-name-p item-name) "native-title-block")
+    ((swcad-title-native-target-frame-name-p item-name) "native-frame-block")
+    ((swcad-title-gentitle-marker-text-p raw-text) "gentitle-marker")
+    ((and
+       (member etype '("TEXT" "MTEXT" "ATTDEF"))
+       (swcad-title-frame-style-coordinate-text-p raw-text bbox frame-bbox)
+     )
+      "frame-coordinate-text"
+    )
+    ((and
+       (swcad-title-frame-style-graphic-entity-type-p etype)
+       (swcad-title-frame-style-outer-edge-p bbox frame-bbox)
+     )
+      "outer-frame-edge"
+    )
+    ((and
+       (swcad-title-frame-style-graphic-entity-type-p etype)
+       (swcad-title-frame-style-coordinate-tick-p etype bbox frame-bbox)
+     )
+      "frame-coordinate-tick"
+    )
+    (T nil)
+  )
+)
+
+(defun swcad-title-frame-style-delete-decision (record region frame-bbox / etype bbox protection child-exists)
+  (setq etype (nth 4 record))
+  (setq bbox (nth 7 record))
+  (setq child-exists (nth 13 record))
+  (cond
+    ((or (not bbox) (not (swcad-title-bbox-intersects-p bbox region)))
+      nil
+    )
+    ((setq protection (swcad-title-frame-style-base-protection-reason record frame-bbox))
+      (list "protect" protection)
+    )
+    ((equal etype "INSERT")
+      (if (swcad-title-frame-style-insert-contained-p bbox region)
+        (list "delete" "title-region-contained-insert")
+        (if child-exists
+          (list "protect" "nested-frame-container")
+          (list "protect" "partially-overlapping-insert")
+        )
+      )
+    )
+    ((member etype '("TEXT" "MTEXT" "ATTDEF"))
+      (list "delete" "title-region-text-overlap")
+    )
+    ((swcad-title-frame-style-graphic-entity-type-p etype)
+      (list "delete" "title-region-geometry-overlap")
+    )
+    (T
+      (list "protect" "unsupported-entity-type")
+    )
+  )
+)
+
+(defun swcad-title-frame-style-independent-residue-reason (record region frame-bbox / etype item-name bbox raw-text)
+  (setq etype (nth 4 record))
+  (setq item-name (nth 5 record))
+  (setq bbox (nth 7 record))
+  (setq raw-text (vl-string-trim " \t\r\n" (swcad-title-string (nth 8 record))))
+  (cond
+    ((or (not bbox) (not (swcad-title-bbox-intersects-p bbox region))) nil)
+    ((or
+       (swcad-title-native-target-title-name-p item-name)
+       (swcad-title-native-target-frame-name-p item-name)
+       (swcad-title-gentitle-marker-text-p raw-text)
+     )
+      nil
+    )
+    ((member etype '("TEXT" "MTEXT" "ATTDEF"))
+      (if (or (= (strlen raw-text) 0) (swcad-title-frame-style-coordinate-text-p raw-text bbox frame-bbox))
+        nil
+        "visible-text-overlap"
+      )
+    )
+    ((equal etype "INSERT")
+      (if (swcad-title-frame-style-insert-contained-p bbox region)
+        "visible-insert-overlap"
+        nil
+      )
+    )
+    ((swcad-title-frame-style-graphic-entity-type-p etype)
+      (if
+        (or
+          (swcad-title-frame-style-outer-edge-p bbox frame-bbox)
+          (swcad-title-frame-style-coordinate-tick-p etype bbox frame-bbox)
+        )
+        nil
+        "visible-geometry-overlap"
+      )
+    )
+    (T nil)
+  )
+)
+
+(defun swcad-title-frame-style-output-record (record region reason)
+  (list
+    (nth 0 record)
+    (nth 1 record)
+    (nth 2 record)
+    (nth 3 record)
+    (nth 4 record)
+    (nth 5 record)
+    (nth 7 record)
+    region
+    (nth 8 record)
+    (nth 6 record)
+    (nth 9 record)
+    (nth 10 record)
+    reason
+    (nth 11 record)
+    (nth 12 record)
+  )
+)
+
+(defun swcad-title-frame-style-delete-records-from-paths (path-records region frame-bbox / result deleted-prefixes record insert-path decision action reason child-prefix)
+  (setq result nil)
+  (setq deleted-prefixes nil)
+  (foreach record path-records
+    (setq insert-path (nth 10 record))
+    (if (not (swcad-title-frame-style-path-under-prefixes-p insert-path deleted-prefixes))
+      (progn
+        (setq decision (swcad-title-frame-style-delete-decision record region frame-bbox))
+        (setq action (if decision (car decision) ""))
+        (setq reason (if decision (cadr decision) ""))
+        (if (equal action "delete")
+          (progn
+            (setq result (append result (list (swcad-title-frame-style-output-record record region reason))))
+            (if (equal (nth 4 record) "INSERT")
+              (progn
+                (setq child-prefix (append insert-path (list (nth 3 record))))
+                (setq deleted-prefixes (append deleted-prefixes (list child-prefix)))
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-frame-style-protected-records-from-paths (path-records region frame-bbox / result record decision)
+  (setq result nil)
+  (foreach record path-records
+    (setq decision (swcad-title-frame-style-delete-decision record region frame-bbox))
+    (if (and decision (equal (car decision) "protect"))
+      (setq result
+        (append result (list (swcad-title-frame-style-output-record record region (cadr decision))))
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-frame-style-independent-records-from-paths (path-records region frame-bbox / result residue-prefixes record insert-path reason child-prefix)
+  (setq result nil)
+  (setq residue-prefixes nil)
+  (foreach record path-records
+    (setq insert-path (nth 10 record))
+    (if (not (swcad-title-frame-style-path-under-prefixes-p insert-path residue-prefixes))
+      (progn
+        (setq reason (swcad-title-frame-style-independent-residue-reason record region frame-bbox))
+        (if reason
+          (progn
+            (setq result (append result (list (swcad-title-frame-style-output-record record region reason))))
+            (if (equal (nth 4 record) "INSERT")
+              (progn
+                (setq child-prefix (append insert-path (list (nth 3 record))))
+                (setq residue-prefixes (append residue-prefixes (list child-prefix)))
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-frame-style-normalization-records-for-frame (frame-name / pairs result pair title frame pair-frame-name context frame-matrix title-bbox root-region world-region frame-root-bbox path-records delete-records verify-records protected-records overlap)
+  (setq pairs (swcad-title-target-gmtitle-pair-records))
+  (setq result nil)
+  (foreach pair pairs
+    (setq title (car pair))
+    (setq frame (cadr pair))
+    (setq pair-frame-name (caddr pair))
+    (if
+      (and
+        (equal (strcase (swcad-title-string pair-frame-name)) (strcase (swcad-title-string frame-name)))
+        (not (swcad-title-target-frame-block-source-like-children frame-name))
+      )
+      (progn
+        (setq context (swcad-title-frame-style-pair-context frame-name frame title))
+        (setq frame-matrix (nth 0 context))
+        (setq title-bbox (nth 2 context))
+        (setq root-region (nth 4 context))
+        (setq world-region (nth 5 context))
+        (setq frame-root-bbox (nth 6 context))
+        (setq path-records (nth 7 context))
+        (setq delete-records (swcad-title-frame-style-delete-records-from-paths path-records root-region frame-root-bbox))
+        (setq verify-records (swcad-title-frame-style-independent-records-from-paths path-records root-region frame-root-bbox))
+        (setq protected-records (swcad-title-frame-style-protected-records-from-paths path-records root-region frame-root-bbox))
         (setq overlap (swcad-title-bbox-overlap-box world-region title-bbox))
-        (if overlap
+        (if verify-records
           (setq result
             (append
               result
@@ -7409,15 +7993,20 @@
                 (list
                   frame-name
                   frame
-                  frame-handle
+                  (swcad-title-ename-handle frame)
                   title
                   (swcad-title-ename-handle title)
-                  embedded-count
+                  (length verify-records)
                   world-region
                   title-bbox
                   overlap
-                  class
-                  reason
+                  "actual-title-overlap"
+                  "실제 DR_titlea_3rd 범위와 겹치는 기존 도면틀 내부 표제란 형상이 독립 검증에서 확인됐습니다."
+                  root-region
+                  delete-records
+                  verify-records
+                  protected-records
+                  frame-matrix
                 )
               )
             )
@@ -7442,12 +8031,15 @@
   result
 )
 
-(defun swcad-title-print-frame-style-normalization-records (records / index record)
+(defun swcad-title-print-frame-style-normalization-records (records / index record delete-count verify-count protected-count)
   (swcad-title-princ-line "DR 도면틀 스타일 정규화 필요 후보:")
   (if records
     (progn
       (setq index 1)
       (foreach record records
+        (setq delete-count (length (nth 12 record)))
+        (setq verify-count (length (nth 13 record)))
+        (setq protected-count (length (nth 14 record)))
         (swcad-title-princ-line
           (strcat
             "  #"
@@ -7460,13 +8052,18 @@
             (swcad-title-target-title-block-name)
             "/"
             (nth 4 record)
-            ", 내장 표제란 후보="
-            (itoa (nth 5 record))
+            ", 독립 잔여물="
+            (itoa verify-count)
+            ", 삭제 후보="
+            (itoa delete-count)
+            ", 보호 객체="
+            (itoa protected-count)
             ", 겹침="
             (swcad-title-bbox-string (nth 8 record))
           )
         )
-        (swcad-title-princ-line "     판단: source 오염은 아니지만 별도 제목블록과 겹쳐 표제란이 두 개처럼 보일 수 있습니다.")
+        (swcad-title-princ-line (strcat "     실제 제목블록 기준 도면틀 로컬 영역=" (swcad-title-bbox-string (nth 11 record))))
+        (swcad-title-princ-line "     판단: 별도 DR_titlea_3rd의 실제 범위와 겹치는 기존 도면틀 내부 형상이 있습니다.")
         (swcad-title-princ-line "     다음: SWTITLEPREPARE에서 작업복사본 안의 도면틀 스타일 정규화를 검토하세요.")
         (setq index (+ index 1))
       )
@@ -7475,13 +8072,48 @@
   )
 )
 
-(defun swcad-title-frame-style-normalization-entity-records (/ pairs result seen pair frame-name record handle)
+(defun swcad-title-frame-style-normalization-entity-records (/ pairs result seen pair record handle)
   (setq pairs (swcad-title-frame-style-normalization-records))
   (setq result nil)
   (setq seen nil)
   (foreach pair pairs
-    (setq frame-name (car pair))
-    (foreach record (swcad-title-frame-definition-embedded-records-for-frame frame-name)
+    (foreach record (nth 12 pair)
+      (setq handle (nth 3 record))
+      (if (not (member handle seen))
+        (progn
+          (setq seen (append seen (list handle)))
+          (setq result (append result (list record)))
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-frame-style-independent-residue-records (/ pairs result seen pair record handle)
+  (setq pairs (swcad-title-frame-style-normalization-records))
+  (setq result nil)
+  (setq seen nil)
+  (foreach pair pairs
+    (foreach record (nth 13 pair)
+      (setq handle (nth 3 record))
+      (if (not (member handle seen))
+        (progn
+          (setq seen (append seen (list handle)))
+          (setq result (append result (list record)))
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-frame-style-protected-records (/ pairs result seen pair record handle)
+  (setq pairs (swcad-title-frame-style-normalization-records))
+  (setq result nil)
+  (setq seen nil)
+  (foreach pair pairs
+    (foreach record (nth 14 pair)
       (setq handle (nth 3 record))
       (if (not (member handle seen))
         (progn
@@ -7523,14 +8155,16 @@
   )
 )
 
-(defun swcad-title-print-frame-embedded-title-records (records / index record name text)
+(defun swcad-title-print-frame-style-entity-records (label records / index record name text reason path)
+  (swcad-title-princ-line label)
   (if records
     (progn
-      (swcad-title-princ-line "DR 도면틀 정의 안에 합쳐진 표제란 형상 후보:")
       (setq index 1)
       (foreach record records
         (setq name (nth 5 record))
         (setq text (vl-string-trim " \t\r\n" (swcad-title-string (nth 8 record))))
+        (setq reason (swcad-title-string (nth 12 record)))
+        (setq path (nth 10 record))
         (swcad-title-princ-line
           (strcat
             "  #"
@@ -7549,13 +8183,19 @@
             (swcad-title-bbox-string (nth 6 record))
             ", clean-region="
             (swcad-title-bbox-string (nth 7 record))
+            (if (> (strlen reason) 0) (strcat ", reason=" reason) "")
+            (if path (strcat ", path=" (swcad-title-list-string path)) "")
           )
         )
         (setq index (+ index 1))
       )
     )
-    (swcad-title-princ-line "DR 도면틀 정의 안에 합쳐진 표제란 형상 후보: <없음>")
+    (swcad-title-princ-line "  <없음>")
   )
+)
+
+(defun swcad-title-print-frame-embedded-title-records (records)
+  (swcad-title-print-frame-style-entity-records "DR 도면틀 정의 안에 합쳐진 표제란 형상 후보:" records)
 )
 
 (defun swcad-title-block-descendant-insert-names (block-name / result visited queue current child)
@@ -8103,6 +8743,186 @@
   )
 )
 
+(defun swcad-title-dxf-replace-code (data code value / result pair replaced)
+  (setq result nil)
+  (setq replaced nil)
+  (foreach pair data
+    (if (and (listp pair) (= (car pair) code))
+      (progn
+        (setq result (append result (list (cons code value))))
+        (setq replaced T)
+      )
+      (setq result (append result (list pair)))
+    )
+  )
+  (if replaced result (append result (list (cons code value))))
+)
+
+(defun swcad-title-records-for-frame-name (records frame-name / result record)
+  (setq result nil)
+  (foreach record records
+    (if (equal (strcase (swcad-title-string (car record))) (strcase (swcad-title-string frame-name)))
+      (setq result (append result (list record)))
+    )
+  )
+  result
+)
+
+(defun swcad-title-frame-names-from-records (records / result record)
+  (setq result nil)
+  (foreach record records
+    (setq result (swcad-title-list-add-unique (car record) result))
+  )
+  result
+)
+
+(defun swcad-title-records-under-insert-prefix (records prefix / result record path)
+  (setq result nil)
+  (foreach record records
+    (setq path (nth 11 record))
+    (if (swcad-title-frame-style-path-prefix-p prefix path)
+      (setq result (append result (list record)))
+    )
+  )
+  result
+)
+
+(defun swcad-title-record-delete-at-owner-path-p (records owner-name insert-path handle / found record)
+  (setq found nil)
+  (foreach record records
+    (if
+      (and
+        (equal (strcase (swcad-title-string (cadr record))) (strcase (swcad-title-string owner-name)))
+        (equal (nth 11 record) insert-path)
+        (equal (strcase (swcad-title-string (nth 3 record))) (strcase (swcad-title-string handle)))
+      )
+      (setq found T)
+    )
+  )
+  found
+)
+
+(defun swcad-title-copy-clean-block-tree (source-name new-name records insert-path / source-data child-mappings child-copied child-skipped child-failed data handle etype child-name child-prefix child-records child-clean-name child-result mapping begin-ok end-ok copied skipped failed clean-data make-result)
+  (setq source-data (swcad-title-block-definition-entity-data-list source-name))
+  (setq child-mappings nil)
+  (setq child-copied 0)
+  (setq child-skipped 0)
+  (setq child-failed 0)
+  ;; Build affected descendants first; AutoLISP cannot start a child BLOCK while
+  ;; the parent BLOCK definition is still being entmade.
+  (foreach data source-data
+    (setq handle (swcad-title-string (swcad-title-dxf-value data 5)))
+    (setq etype (strcase (swcad-title-string (swcad-title-dxf-value data 0))))
+    (if
+      (and
+        (equal etype "INSERT")
+        (not (swcad-title-record-delete-at-owner-path-p records source-name insert-path handle))
+      )
+      (progn
+        (setq child-name (swcad-title-string (swcad-title-dxf-value data 2)))
+        (setq child-prefix (append insert-path (list handle)))
+        (setq child-records (swcad-title-records-under-insert-prefix records child-prefix))
+        (if child-records
+          (progn
+            (setq child-clean-name (swcad-title-unique-block-name (strcat child-name "$SWTITLE_CLEAN")))
+            (setq child-result
+              (swcad-title-copy-clean-block-tree child-name child-clean-name child-records child-prefix)
+            )
+            (if (car child-result)
+              (progn
+                (setq child-mappings (append child-mappings (list (cons handle child-clean-name))))
+                (setq child-copied (+ child-copied (nth 2 child-result)))
+                (setq child-skipped (+ child-skipped (nth 3 child-result)))
+              )
+              (setq child-failed (+ child-failed (max 1 (nth 4 child-result))))
+            )
+          )
+        )
+      )
+    )
+  )
+  (setq copied child-copied)
+  (setq skipped child-skipped)
+  (setq failed child-failed)
+  (if (> failed 0)
+    (list nil new-name copied skipped failed)
+    (progn
+      (setq begin-ok (swcad-title-entmake-block-definition-begin new-name source-name))
+      (if (not begin-ok)
+        (setq failed (+ failed 1))
+      )
+      (if begin-ok
+        (foreach data source-data
+          (setq handle (swcad-title-string (swcad-title-dxf-value data 5)))
+          (if (swcad-title-record-delete-at-owner-path-p records source-name insert-path handle)
+            (setq skipped (+ skipped 1))
+            (progn
+              (setq clean-data (swcad-title-sanitize-entmake-entity-data data))
+              (setq mapping (assoc handle child-mappings))
+              (if (and clean-data mapping)
+                (setq clean-data (swcad-title-dxf-replace-code clean-data 2 (cdr mapping)))
+              )
+              (setq make-result (if clean-data (vl-catch-all-apply 'entmake (list clean-data)) nil))
+              (if (or (not make-result) (vl-catch-all-error-p make-result))
+                (setq failed (+ failed 1))
+                (setq copied (+ copied 1))
+              )
+            )
+          )
+        )
+      )
+      (setq end-ok (if begin-ok (swcad-title-entmake-block-definition-end) nil))
+      (if (not end-ok)
+        (setq failed (+ failed 1))
+      )
+      (list (= failed 0) new-name copied skipped failed)
+    )
+  )
+)
+
+(defun swcad-title-rebuild-frame-definition-tree-skipping-records (frame-name records / frame-inserts clean-root backup-name copy-result renamed-old renamed-clean retarget-count retarget-failed ename failed-clean-name)
+  (setq frame-inserts (swcad-title-inserts-by-effective-name frame-name))
+  (setq clean-root (swcad-title-unique-block-name (strcat frame-name "$SWTITLE_CLEAN")))
+  (setq copy-result (swcad-title-copy-clean-block-tree frame-name clean-root records nil))
+  (if (not (car copy-result))
+    (list nil "" (nth 2 copy-result) (nth 3 copy-result) 0 (max 1 (nth 4 copy-result)))
+    (progn
+      (setq backup-name (swcad-title-unique-block-name frame-name))
+      (setq renamed-old (swcad-title-rename-block-definition frame-name backup-name))
+      (setq renamed-clean (if renamed-old (swcad-title-rename-block-definition clean-root frame-name) nil))
+      (if (not renamed-clean)
+        (progn
+          (if (and renamed-old (not (swcad-title-block-exists-p frame-name)))
+            (swcad-title-rename-block-definition backup-name frame-name)
+          )
+          (list nil backup-name (nth 2 copy-result) (nth 3 copy-result) 0 1)
+        )
+        (progn
+          (setq retarget-count 0)
+          (setq retarget-failed 0)
+          (foreach ename frame-inserts
+            (if (swcad-title-change-insert-block-name ename frame-name)
+              (setq retarget-count (+ retarget-count 1))
+              (setq retarget-failed (+ retarget-failed 1))
+            )
+          )
+          (if (= retarget-failed 0)
+            (list T backup-name (nth 2 copy-result) (nth 3 copy-result) retarget-count 0)
+            (progn
+              (setq failed-clean-name (swcad-title-unique-block-name (strcat frame-name "$SWTITLE_FAILED")))
+              (swcad-title-rename-block-definition frame-name failed-clean-name)
+              (if (not (swcad-title-block-exists-p frame-name))
+                (swcad-title-rename-block-definition backup-name frame-name)
+              )
+              (list nil backup-name (nth 2 copy-result) (nth 3 copy-result) retarget-count retarget-failed)
+            )
+          )
+        )
+      )
+    )
+  )
+)
+
 (defun swcad-title-rebuild-block-definition-skipping-handles (block-name skip-handles / source-data backup-name insert-enames renamed begin-ok end-ok data handle copied-count skipped-count failed-count retarget-count clean-data make-result ename rollback cleanup)
   (setq copied-count 0)
   (setq skipped-count 0)
@@ -8119,7 +8939,7 @@
     )
     (T
       (setq source-data (swcad-title-block-definition-entity-data-list block-name))
-      (setq insert-enames (swcad-title-inserts-by-effective-name block-name))
+      (setq insert-enames (swcad-title-all-insert-references-by-effective-name block-name))
       (setq backup-name (swcad-title-unique-block-name block-name))
       (setq renamed (swcad-title-rename-block-definition block-name backup-name))
       (if (not renamed)
@@ -8156,7 +8976,21 @@
                   (setq retarget-count (+ retarget-count 1))
                 )
               )
-              (list T backup-name copied-count skipped-count retarget-count failed-count)
+              (if (< retarget-count (length insert-enames))
+                (setq failed-count (+ failed-count (- (length insert-enames) retarget-count)))
+              )
+              (if (= failed-count 0)
+                (list T backup-name copied-count skipped-count retarget-count failed-count)
+                (progn
+                  (if (swcad-title-block-exists-p block-name)
+                    (setq cleanup (swcad-title-delete-block-definition block-name))
+                  )
+                  (if (and (swcad-title-block-exists-p backup-name) (not (swcad-title-block-exists-p block-name)))
+                    (setq rollback (swcad-title-rename-block-definition backup-name block-name))
+                  )
+                  (list nil backup-name copied-count skipped-count retarget-count failed-count)
+                )
+              )
             )
             (progn
               (if (swcad-title-block-exists-p block-name)
@@ -8214,7 +9048,83 @@
   deleted-count
 )
 
-(defun swcad-title-frame-style-normalization-delete-records (records / normalized-count touched owners owner-name skip-handles rebuild result-ok backup-name copied-count skipped-count retarget-count failed-count direct-deleted)
+(defun swcad-title-frame-style-normalization-delete-records (records / normalized-count touched frame-names frame-name frame-records owners owner-name safe rebuild result-ok backup-name copied-count skipped-count retarget-count failed-count)
+  (setq normalized-count 0)
+  (setq touched nil)
+  (setq frame-names (swcad-title-frame-names-from-records records))
+  (foreach frame-name frame-names
+    (setq frame-records (swcad-title-records-for-frame-name records frame-name))
+    (setq owners (swcad-title-record-owner-names frame-records))
+    (setq safe T)
+    (foreach owner-name owners
+      (if (not (swcad-title-style-normalization-owner-safe-p owner-name frame-records))
+        (setq safe nil)
+      )
+    )
+    (if (not safe)
+      (swcad-title-princ-line
+        (strcat
+          "  "
+          frame-name
+          ": skip, one or more cleanup owners are not checked descendants of this native frame."
+        )
+      )
+      (progn
+        (setq rebuild (swcad-title-rebuild-frame-definition-tree-skipping-records frame-name frame-records))
+        (setq result-ok (car rebuild))
+        (setq backup-name (cadr rebuild))
+        (setq copied-count (nth 2 rebuild))
+        (setq skipped-count (nth 3 rebuild))
+        (setq retarget-count (nth 4 rebuild))
+        (setq failed-count (nth 5 rebuild))
+        (if result-ok
+          (progn
+            (setq normalized-count (+ normalized-count skipped-count))
+            (setq touched (swcad-title-list-add-unique frame-name touched))
+            (swcad-title-princ-line
+              (strcat
+                "  "
+                frame-name
+                ": normalized nested block tree, backup="
+                backup-name
+                ", copied="
+                (itoa copied-count)
+                ", removed-title-geometry="
+                (itoa skipped-count)
+                ", retargeted-frame-inserts="
+                (itoa retarget-count)
+              )
+            )
+          )
+          (swcad-title-princ-line
+            (strcat
+              "  "
+              frame-name
+              ": FAILED to normalize nested block tree, backup="
+              backup-name
+              ", copied="
+              (itoa copied-count)
+              ", intended-remove="
+              (itoa skipped-count)
+              ", retargeted-frame-inserts="
+              (itoa retarget-count)
+              ", failed="
+              (itoa failed-count)
+            )
+          )
+        )
+      )
+    )
+  )
+  (foreach frame-name touched
+    (if (tblobjname "BLOCK" frame-name)
+      (entupd (tblobjname "BLOCK" frame-name))
+    )
+  )
+  (list normalized-count touched)
+)
+
+(defun swcad-title-frame-style-normalization-delete-records-legacy-unused (records / normalized-count touched owners owner-name skip-handles rebuild result-ok backup-name copied-count skipped-count retarget-count failed-count)
   (setq normalized-count 0)
   (setq touched nil)
   (setq owners (swcad-title-record-owner-names records))
@@ -8231,68 +9141,46 @@
         )
       )
       (T
-        (if (swcad-title-native-target-frame-name-p owner-name)
+        (setq rebuild (swcad-title-rebuild-block-definition-skipping-handles owner-name skip-handles))
+        (setq result-ok (car rebuild))
+        (setq backup-name (cadr rebuild))
+        (setq copied-count (nth 2 rebuild))
+        (setq skipped-count (nth 3 rebuild))
+        (setq retarget-count (nth 4 rebuild))
+        (setq failed-count (nth 5 rebuild))
+        (if result-ok
           (progn
-            (setq rebuild (swcad-title-rebuild-block-definition-skipping-handles owner-name skip-handles))
-            (setq result-ok (car rebuild))
-            (setq backup-name (cadr rebuild))
-            (setq copied-count (nth 2 rebuild))
-            (setq skipped-count (nth 3 rebuild))
-            (setq retarget-count (nth 4 rebuild))
-            (setq failed-count (nth 5 rebuild))
-            (if result-ok
-              (progn
-                (setq normalized-count (+ normalized-count skipped-count))
-                (setq touched (swcad-title-list-add-unique owner-name touched))
-                (swcad-title-princ-line
-                  (strcat
-                    "  "
-                    owner-name
-                    ": normalized, backup="
-                    backup-name
-                    ", copied="
-                    (itoa copied-count)
-                    ", removed-title-geometry="
-                    (itoa skipped-count)
-                    ", retargeted-inserts="
-                    (itoa retarget-count)
-                  )
-                )
-              )
-              (swcad-title-princ-line
-                (strcat
-                  "  "
-                  owner-name
-                  ": FAILED to normalize, backup="
-                  backup-name
-                  ", copied="
-                  (itoa copied-count)
-                  ", intended-remove="
-                  (itoa skipped-count)
-                  ", failed="
-                  (itoa failed-count)
-                )
-              )
-            )
-          )
-          (progn
-            (swcad-title-princ-line
-              (strcat
-                "  "
-                owner-name
-                ": nested native-frame descendant normalization allowed; deleting matched entities in-place."
-              )
-            )
-            (setq direct-deleted (swcad-title-delete-block-definition-entity-records-for-owner records owner-name))
-            (setq normalized-count (+ normalized-count direct-deleted))
+            (setq normalized-count (+ normalized-count skipped-count))
             (setq touched (swcad-title-list-add-unique owner-name touched))
             (swcad-title-princ-line
               (strcat
                 "  "
                 owner-name
-                ": normalized in-place, removed-title-geometry="
-                (itoa direct-deleted)
+                ": normalized by rebuild, backup="
+                backup-name
+                ", copied="
+                (itoa copied-count)
+                ", removed-title-geometry="
+                (itoa skipped-count)
+                ", retargeted-inserts="
+                (itoa retarget-count)
               )
+            )
+          )
+          (swcad-title-princ-line
+            (strcat
+              "  "
+              owner-name
+              ": FAILED to normalize by rebuild, backup="
+              backup-name
+              ", copied="
+              (itoa copied-count)
+              ", intended-remove="
+              (itoa skipped-count)
+              ", retargeted-inserts="
+              (itoa retarget-count)
+              ", failed="
+              (itoa failed-count)
             )
           )
         )
@@ -8305,7 +9193,7 @@
   (list normalized-count touched)
 )
 
-(defun swcad-title-frame-style-normalization-clean (/ *error* doc style-records records total answer delete-result deleted-count)
+(defun swcad-title-frame-style-normalization-clean (/ *error* doc style-records records verify-records protected-records total verify-total answer delete-result deleted-count remaining remaining-count)
   (defun *error* (msg)
     (if doc
       (vl-catch-all-apply 'vla-EndUndoMark (list doc))
@@ -8321,7 +9209,10 @@
   (setq doc (swcad-title-doc))
   (setq style-records (swcad-title-frame-style-normalization-records))
   (setq records (swcad-title-frame-style-normalization-entity-records))
+  (setq verify-records (swcad-title-frame-style-independent-residue-records))
+  (setq protected-records (swcad-title-frame-style-protected-records))
   (setq total (length records))
+  (setq verify-total (length verify-records))
   (setq touched nil)
   (swcad-title-princ-line "----- SWTITLEPREPARE 도면틀 스타일 정규화 -----")
   (swcad-title-print-loaded-version)
@@ -8331,9 +9222,16 @@
   (swcad-title-print-frame-style-normalization-records style-records)
   (swcad-title-princ-line "NORMALIZE 대상 엔티티:")
   (swcad-title-print-frame-embedded-title-records records)
+  (swcad-title-print-frame-style-entity-records "독립 검증에서 확인한 기존 표제란 잔여물:" verify-records)
+  (swcad-title-print-frame-style-entity-records "삭제하지 않고 보호하는 도면틀 객체:" protected-records)
   (cond
-    ((= total 0)
+    ((= verify-total 0)
       (swcad-title-apply-result "OK_NO_FRAME_STYLE_NORMALIZATION")
+      (swcad-title-princ-line "도면 데이터는 변경하지 않았습니다.")
+    )
+    ((= total 0)
+      (swcad-title-apply-result "WARN_FRAME_STYLE_RESIDUE_UNCLASSIFIED")
+      (swcad-title-princ-line "독립 검증 잔여물은 있지만 안전한 자동 삭제 후보가 없습니다.")
       (swcad-title-princ-line "도면 데이터는 변경하지 않았습니다.")
     )
     ((swcad-title-document-read-only-p)
@@ -8364,8 +9262,21 @@
           (vl-catch-all-apply 'vla-Regen (list doc 1))
           (vl-catch-all-apply 'vla-EndUndoMark (list doc))
           (swcad-title-princ-line (strcat "정규화로 정리한 도면틀 내부 표제란 형상: " (itoa deleted-count)))
-          (swcad-title-apply-result "OK_FRAME_STYLE_NORMALIZATION_CLEANED")
-          (swcad-title-princ-line "다음: SWTITLESTATUS를 다시 실행해서 도면틀 스타일 정규화 후보가 0인지 확인하세요.")
+          (setq remaining (swcad-title-frame-style-independent-residue-records))
+          (setq remaining-count (length remaining))
+          (swcad-title-princ-line (strcat "삭제 후 독립 잔여물 검증 수: " (itoa remaining-count)))
+          (swcad-title-print-frame-style-entity-records "삭제 후에도 남아 있는 기존 표제란 잔여물:" remaining)
+          (if (> remaining-count 0)
+            (progn
+              (swcad-title-apply-result "WARN_RESIDUE_REMAINS")
+              (swcad-title-princ-line "정리가 완전히 끝나지 않았으므로 성공으로 처리하지 않습니다.")
+            )
+            (progn
+              (swcad-title-apply-result "OK_FRAME_STYLE_NORMALIZATION_CLEANED")
+              (swcad-title-princ-line "독립 검증을 통과했습니다. 같은 정리를 다시 실행해도 추가 삭제가 없어야 합니다.")
+            )
+          )
+          (swcad-title-princ-line "다음: SWTITLESTATUS를 다시 실행해서 독립 잔여물 수가 0인지 확인하세요.")
         )
       )
     )
@@ -19143,7 +20054,7 @@
   (princ)
 )
 
-(defun swcad-title-integrated-verify-final-summary (/ summary source-titles source-frames command-text-records embedded-title-records style-records frame-definition-records frame-definition-blockers orphan-records contaminated frame-records title-enames pair-records geometry-risk-count overlap-risk-count a3a4-count target-title-count target-frame-count pair-count title-missing-outline-count frame-only-source-count source-frame-with-title-count missing-title-count extra-title-count title-missing-tags-count title-empty-attrs-count non-native-like-count required-missing-count required-sheets missing-required-sheets target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records count-shortage-count count-excess-count status record title-ename attr-pairs)
+(defun swcad-title-integrated-verify-final-summary (/ summary source-titles source-frames command-text-records embedded-title-records style-records style-residue-records style-residue-count frame-definition-records frame-definition-blockers orphan-records contaminated frame-records title-enames pair-records geometry-risk-count overlap-risk-count a3a4-count target-title-count target-frame-count pair-count title-missing-outline-count frame-only-source-count source-frame-with-title-count missing-title-count extra-title-count title-missing-tags-count title-empty-attrs-count non-native-like-count required-missing-count required-sheets missing-required-sheets target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records count-shortage-count count-excess-count status result-code record title-ename attr-pairs)
   (swcad-title-open-verify-summary-log)
   (setq summary (swcad-title-fast-sheet-summary))
   (setq source-titles (swcad-title-source-title-candidates))
@@ -19151,6 +20062,8 @@
   (setq command-text-records (swcad-title-command-text-residue-records))
   (setq embedded-title-records (swcad-title-frame-embedded-title-records))
   (setq style-records (swcad-title-frame-style-normalization-records))
+  (setq style-residue-records (swcad-title-frame-style-independent-residue-records))
+  (setq style-residue-count (length style-residue-records))
   (setq frame-definition-records (swcad-title-frame-definition-class-records))
   (setq frame-definition-blockers (swcad-title-frame-definition-blocking-records))
   (setq orphan-records (swcad-title-orphan-target-frame-records))
@@ -19246,13 +20159,21 @@
       (T "OK")
     )
   )
-  (setq *swcad-title-last-apply-status* (strcat "SWTITLEVERIFY_FINAL_" status))
+  (setq result-code
+    (if (and (equal status "WARN") (> style-residue-count 0))
+      "SWTITLEVERIFY_WARN_RESIDUE_REMAINS"
+      (strcat "SWTITLEVERIFY_FINAL_" status)
+    )
+  )
+  (setq *swcad-title-last-apply-status* result-code)
   (swcad-title-princ-line "----- SWTITLEVERIFY 통합 최종 요약 -----")
   (swcad-title-princ-line (strcat "남은 원본 표제란 후보: " (itoa (length source-titles))))
   (swcad-title-princ-line (strcat "남은 원본 도면틀 후보: " (itoa (length source-frames))))
   (swcad-title-princ-line (strcat "실수 명령어 텍스트 후보: " (itoa (length command-text-records))))
   (swcad-title-princ-line (strcat "도면틀 내부 표제란 형상 후보: " (itoa (length embedded-title-records))))
   (swcad-title-princ-line (strcat "도면틀 스타일 정규화 필요 후보: " (itoa (length style-records))))
+  (swcad-title-princ-line (strcat "독립 검증 기존 표제란 잔여물: " (itoa style-residue-count)))
+  (swcad-title-print-frame-style-entity-records "독립 검증 잔여물 상세:" style-residue-records)
   (swcad-title-princ-line (strcat "도면틀 정의 정규화 차단 항목: " (itoa (length frame-definition-blockers))))
   (swcad-title-print-frame-definition-class-records frame-definition-records)
   (swcad-title-print-frame-style-normalization-records style-records)
@@ -19286,7 +20207,7 @@
   (swcad-title-print-string-list "현재 필요한 대상 용지:" required-sheets)
   (swcad-title-print-string-list "누락된 대상 용지:" missing-required-sheets)
   (swcad-title-princ-line (strcat "현재 필요한 대상 용지 누락 수: " (itoa required-missing-count)))
-  (swcad-title-princ-line (strcat "Result: SWTITLEVERIFY_FINAL_" status))
+  (swcad-title-princ-line (strcat "Result: " result-code))
   (swcad-title-princ-line (strcat "최종 결과: " status))
   (cond
     ((equal status "OK")

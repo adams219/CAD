@@ -20,6 +20,15 @@
 
 $ErrorActionPreference = "Stop"
 
+$windowStyleOverride = $env:SWCAD_PROBE_WINDOW_STYLE
+if ($windowStyleOverride) {
+  $validWindowStyles = @("Hidden", "Minimized", "Normal", "Maximized")
+  if ($validWindowStyles -notcontains $windowStyleOverride) {
+    throw "Invalid SWCAD_PROBE_WINDOW_STYLE '$windowStyleOverride'. Expected: $($validWindowStyles -join ', ')."
+  }
+  $WindowStyle = $windowStyleOverride
+}
+
 $gcad = "C:\Program Files\Gstarsoft\GstarCAD Mechanical 2024 Korean\GstarCAD\gcad.exe"
 if (-not (Test-Path -LiteralPath $gcad)) {
   throw "GstarCAD executable not found: $gcad"
