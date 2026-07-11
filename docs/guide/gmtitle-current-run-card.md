@@ -236,10 +236,38 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 현재 기대 결과는 `GMTITLE_SELECTION_CONFIG_NOT_FOUND`입니다.
 `-DeepRegistrySearch`에서 `Recent File List`에 DR 파일 경로가 보여도 최근 직접 열었던 파일 기록일 뿐, GMTITLE 대화상자의 용지/제목블록을 자동 선택할 근거로 쓰지 않습니다.
 
-### 현재 저장본 direct probe 상태
+### 최신 fresh 전체 변환 완료 증거
 
-2026-07-11 저장본을 새 판정기로 다시 읽은 결과, 현재 기본 작업복사본은 첫 native 전 상태가 아닙니다.
-A2와 일부 A3 native-like 쌍은 만들어졌지만, 이 쌍들의 도면틀 정의 안에 별도 `DR_titlea_3rd`와 겹치는 기존 표제란 형상이 남아 있습니다. 남은 A3 변환보다 `SWTITLEPREPARE` 정규화가 먼저입니다. A4는 원본 표제란 부재가 검증된 title-missing/frame-only 예외로 뒤에서 처리합니다.
+2026-07-11에 보존된 미변환 원본의 새 work 복사본으로 처음부터 전체 변환을 다시 수행했다.
+
+```text
+fresh 작업복사본:
+work\0000_A_DRP125_CP_ALL_260626_fresh_e2e_260711_01.dwg
+
+저장 후 재열기 로그:
+work\swtitle_fresh_e2e_final_reopen_260711_01.txt
+
+SWTITLESTATUS: NEXT_FINAL_VERIFY_AND_DOUBLE_CLICK
+SWTITLEVERIFY: SWTITLEVERIFY_FINAL_OK
+source title/frame/frame-only: 0 / 0 / 0
+target title/frame/pair: 13 / 15 / 13
+native-like/non-native-like: 13 / 0
+orphan/duplicate: 0 / 0
+A2/A3/A4: 1 / 12 / 2
+```
+
+A2와 A3 대표 `DR_titlea_3rd`를 실제 더블클릭해 `속성 블록 편집` 표가 열리는 것도 확인했다. A4 두 장은 검증된 source-title-missing 예외로 제목블록 없이 도면틀과 도면 내용을 유지했고, 구버전의 A4 고아 도면틀 문제는 재현되지 않았다.
+
+상세 이력:
+
+```text
+docs\history\gmtitle-fresh-e2e-final-2026-07-11.md
+```
+
+### 기존 부분 변환 저장본 direct probe 상태 (과거 참고)
+
+아래 `workcopy_03` 기록은 잔여물 판정기를 만들 때 사용한 부분 변환 상태다. 최신 성공 여부는 위 fresh 전체 변환 완료 증거를 우선한다.
+A2와 일부 A3 native-like 쌍은 만들어졌지만, 이 쌍들의 도면틀 정의 안에 별도 `DR_titlea_3rd`와 겹치는 기존 표제란 형상이 남아 있던 시점의 기록이다. 남은 A3 변환보다 `SWTITLEPREPARE` 정규화가 먼저였다. A4는 원본 표제란 부재가 검증된 title-missing/frame-only 예외로 뒤에서 처리했다.
 
 ```text
 direct probe 로그:

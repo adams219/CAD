@@ -108,6 +108,12 @@ docs\history\gmtitle-history-github-local-prevention-plan-2026-07-04.md
 docs\history\gmtitle-title-residue-geometry-2026-07-11.md
 ```
 
+보존 원본의 fresh 복사본에서 A2/A3/A4 전체 변환과 `SWTITLEVERIFY_FINAL_OK`까지 통과한 최종 실도면 이력:
+
+```text
+docs\history\gmtitle-fresh-e2e-final-2026-07-11.md
+```
+
 main49 반영 이력:
 
 ```text

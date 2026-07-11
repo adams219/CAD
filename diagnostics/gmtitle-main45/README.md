@@ -907,7 +907,9 @@ Result: ACTUAL_RESIDUE_CLEANUP_COPY_PASS
 Source work-copy SHA256 unchanged: PASS
 ```
 
-The durable 2026-07-11 actual-DWG evidence is recorded in `docs/history/gmtitle-title-residue-geometry-2026-07-11.md`.
+The durable 2026-07-11 actual-DWG residue evidence is recorded in `docs/history/gmtitle-title-residue-geometry-2026-07-11.md`.
+
+The fresh untouched-source end-to-end evidence, including A2/A3 table-editor double-clicks, A4 title-missing outline conversion, save/reopen, and `SWTITLEVERIFY_FINAL_OK`, is recorded in `docs/history/gmtitle-fresh-e2e-final-2026-07-11.md`.
 
 ## Command-Text Guard Comparison Probe
 

@@ -54,6 +54,7 @@ $commandSurfaceHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-command-s
 $automationBoundaryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-automation-boundary-audit-2026-07-05.md"
 $selectionConfigDeepRegistryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-selection-config-deep-registry-2026-07-06.md"
 $titleResidueGeometryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-title-residue-geometry-2026-07-11.md"
+$freshE2eFinalHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-fresh-e2e-final-2026-07-11.md"
 $guidePaths = @(
   "docs\guide\commands.md",
   "docs\guide\gmtitle-unified-flow-reset.md",
@@ -304,6 +305,7 @@ $automationBoundaryHistoryText = Read-Text $automationBoundaryHistoryPath
 $selectionConfigDeepRegistryHistoryText = Read-Text $selectionConfigDeepRegistryHistoryPath
 $finalCompletionGateHistoryText = Read-Text $finalCompletionGateHistoryPath
 $titleResidueGeometryHistoryText = Read-Text $titleResidueGeometryHistoryPath
+$freshE2eFinalHistoryText = Read-Text $freshE2eFinalHistoryPath
 
 Write-Output "===== GMTITLE static preflight ====="
 Write-Output ("Repo root: {0}" -f $repoRoot)
@@ -1120,6 +1122,14 @@ Assert-Contains -Text $titleResidueGeometryHistoryText -Needle "정리 후보: 4
 Assert-Contains -Text $titleResidueGeometryHistoryText -Needle "독립 잔여물 정리 후: 0" -Label "Title residue history independent zero evidence"
 Assert-Contains -Text $titleResidueGeometryHistoryText -Needle "두 번째 실행 후보/삭제: 0 / 0" -Label "Title residue history idempotence evidence"
 Assert-Contains -Text $titleResidueGeometryHistoryText -Needle "SWTITLESTATUS: NEXT_PREPARE_FRAME_STYLE_NORMALIZATION" -Label "Title residue history actual workcopy status"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle "SWTITLEVERIFY: SWTITLEVERIFY_FINAL_OK" -Label "Fresh E2E history final OK evidence"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle "target-title-count: 13" -Label "Fresh E2E history target title count"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle "target-frame-count: 15" -Label "Fresh E2E history target frame count"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle "orphan-target-frame-count: 0" -Label "Fresh E2E history no orphan frame"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle 'A2 `DR_titlea_3rd` 핸들 `16BF8`' -Label "Fresh E2E history A2 editor check"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle 'A3 `DR_titlea_3rd` 핸들 `16C8D`' -Label "Fresh E2E history A3 editor check"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle "구버전 full-flow 파일에서 보였던 A4 고아 도면틀 두 장은 fresh 전체 변환에서 재현되지 않았다" -Label "Fresh E2E history A4 orphan non-reproduction"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle '`_PASTECLIP`으로 해석될 수 있다' -Label "Fresh E2E history CAD clipboard-input guard"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "용지/도면틀:" -Label "Next CAD action Korean dialog paper guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERTNEXT  (권장: 고정 컨트롤로 GMTITLE 선택값 검증 후 native 연속 변환)" -Label "Next CAD action fixed-control shortcut guidance"
 Assert-Contains -Text $nextCadActionRunnerText -Needle "또는 수동 응답을 직접 고르려면: SWTITLECONVERT" -Label "Next CAD action manual convert fallback guidance"
@@ -1265,6 +1275,7 @@ Assert-NoKnownMojibake -Text $automationBoundaryHistoryText -Label "Automation b
 Assert-NoKnownMojibake -Text $selectionConfigDeepRegistryHistoryText -Label "Selection config deep registry history"
 Assert-NoKnownMojibake -Text $finalCompletionGateHistoryText -Label "Final completion gate history"
 Assert-NoKnownMojibake -Text $titleResidueGeometryHistoryText -Label "Title residue geometry history"
+Assert-NoKnownMojibake -Text $freshE2eFinalHistoryText -Label "Fresh E2E final history"
 Assert-NoKnownMojibake -Text $readmeText -Label "Diagnostics README"
 Assert-NoKnownMojibake -Text $unifiedFlowResetGuideText -Label "Unified flow reset guide"
 Assert-Contains -Text $commandSurfaceHistoryText -Needle "GMTITLE 명령/설정 표면 재확인" -Label "Command surface history readable Korean title"
