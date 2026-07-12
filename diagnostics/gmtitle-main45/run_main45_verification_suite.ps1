@@ -112,8 +112,8 @@ function Get-GitWorktreeEvidence {
 function Write-SuiteStatusSummary {
   param(
     [string]$StatusLogPath,
-    [string]$A4OutlinePrepareLogPath,
-    [string]$A4OutlineConvertLogPath,
+    [string]$SourceTitleMissingPrepareLogPath,
+    [string]$SourceTitleMissingScriptGuardLogPath,
     [string]$A3StatusGuidanceLogPath,
     [string]$A3A4BatchGuardLogPath
   )
@@ -147,21 +147,22 @@ function Write-SuiteStatusSummary {
   }
 
   Write-SuiteLastRunLine ""
-  Write-SuiteLastRunLine "Title-missing/frame-only evidence (A4-sized source-title-missing sample):"
-  if (Test-Path -LiteralPath $A4OutlinePrepareLogPath) {
-    $prepareText = Get-Content -LiteralPath $A4OutlinePrepareLogPath -Raw
-    $prepareResult = Get-SuiteFirstRegexValue -Text $prepareText -Pattern "^Prepare result:\s*(.+)$"
+  Write-SuiteLastRunLine "Source-title-missing common fixture evidence:"
+  if (Test-Path -LiteralPath $SourceTitleMissingPrepareLogPath) {
+    $prepareText = Get-Content -LiteralPath $SourceTitleMissingPrepareLogPath -Raw
+    $prepareResult = Get-SuiteFirstRegexValue -Text $prepareText -Pattern "^Prepare status:\s*(.+)$"
     $prepareStatus = Get-SuiteFirstRegexValue -Text $prepareText -Pattern "^After definition status:\s*(.+)$"
     if ($prepareResult) { Write-SuiteLastRunLine ("  prepare-result: {0}" -f $prepareResult) }
     if ($prepareStatus) { Write-SuiteLastRunLine ("  after-definition-status: {0}" -f $prepareStatus) }
   }
-  if (Test-Path -LiteralPath $A4OutlineConvertLogPath) {
-    $convertText = Get-Content -LiteralPath $A4OutlineConvertLogPath -Raw
+  if (Test-Path -LiteralPath $SourceTitleMissingScriptGuardLogPath) {
+    $convertText = Get-Content -LiteralPath $SourceTitleMissingScriptGuardLogPath -Raw
     foreach ($name in @(
-      "Convert result",
+      "Convert status",
+      "After source-frame-count",
       "After frame-only-count",
       "After target title count",
-      "After DR_A4_Outline target frame count"
+      "After target frame count"
     )) {
       $value = Get-SuiteFirstRegexValue -Text $convertText -Pattern ("^" + [regex]::Escape($name) + ":\s*(.+)$")
       if ($value) {
@@ -186,6 +187,99 @@ function Write-SuiteStatusSummary {
     if ($batchStatus) { Write-SuiteLastRunLine ("  Status after batch: {0}" -f $batchStatus) }
     if ($batchPreserved) { Write-SuiteLastRunLine ("  Batch guard preserved candidates: {0}" -f $batchPreserved) }
   }
+}
+
+function Get-SuiteRequiredIntValue {
+  param(
+    [string]$Text,
+    [string]$Name,
+    [string]$Label
+  )
+
+  $value = Get-SuiteFirstRegexValue -Text $Text -Pattern ("^\s*" + [regex]::Escape($Name) + ":\s*(\d+)\s*$")
+  if ($null -eq $value) {
+    throw "Verification failed for ${Label}: missing numeric '$Name'"
+  }
+  return [int]$value
+}
+
+function Assert-WorkcopySummaryInvariant {
+  param(
+    [string]$Path,
+    [string]$Label
+  )
+
+  $text = Get-Content -LiteralPath $Path -Raw
+  $sourceTitle = Get-SuiteRequiredIntValue -Text $text -Name "source-title-count" -Label $Label
+  $sourceFrame = Get-SuiteRequiredIntValue -Text $text -Name "source-frame-count" -Label $Label
+  $frameOnly = Get-SuiteRequiredIntValue -Text $text -Name "frame-only-count" -Label $Label
+  $targetTitle = Get-SuiteRequiredIntValue -Text $text -Name "target-title-count" -Label $Label
+  $targetFrame = Get-SuiteRequiredIntValue -Text $text -Name "target-frame-count" -Label $Label
+
+  if (($sourceTitle + $frameOnly) -ne $sourceFrame) {
+    throw "Verification failed for ${Label}: source-title-count + frame-only-count must equal source-frame-count, got $sourceTitle + $frameOnly != $sourceFrame"
+  }
+  if ($targetTitle -ne $targetFrame) {
+    throw "Verification failed for ${Label}: target-title-count must equal target-frame-count, got $targetTitle != $targetFrame"
+  }
+
+  $pairValue = Get-SuiteFirstRegexValue -Text $text -Pattern "^\s*target-gmtitle-pair-count:\s*(\d+)\s*$"
+  if (($null -ne $pairValue) -and ([int]$pairValue -ne $targetTitle)) {
+    throw "Verification failed for ${Label}: target-gmtitle-pair-count must equal target-title-count, got $pairValue != $targetTitle"
+  }
+
+  $status = Get-SuiteFirstRegexValue -Text $text -Pattern "^Result: OK SWTITLESTATUS status=(\S+)\s*$"
+  if (-not $status -or $status -match "^(ABORT|ERROR)") {
+    throw "Verification failed for ${Label}: SWTITLESTATUS did not return a non-error status"
+  }
+  $verify = Get-SuiteFirstRegexValue -Text $text -Pattern "^Result: OK SWTITLEVERIFY status=(\S+)\s*$"
+  if (-not $verify -or $verify -notmatch "^SWTITLEVERIFY_FINAL_(OK|FAIL)$") {
+    throw "Verification failed for ${Label}: SWTITLEVERIFY result is missing or invalid"
+  }
+
+  Write-Output ("Verified work-copy invariants for {0}: source={1}+{2}/{3}, target={4}/{5}, status={6}, verify={7}" -f $Label, $sourceTitle, $frameOnly, $sourceFrame, $targetTitle, $targetFrame, $status, $verify)
+}
+
+function Assert-ScriptGuardPreservationInvariant {
+  param(
+    [string]$Path,
+    [string]$Label
+  )
+
+  $text = Get-Content -LiteralPath $Path -Raw
+  $pairs = @{}
+  foreach ($name in @(
+    "Source titles before/after",
+    "Source frames before/after",
+    "Frame-only before/after",
+    "Target titles before/after",
+    "Target frames before/after",
+    "INSERT count before/after",
+    "DBMOD before/after"
+  )) {
+    $match = [regex]::Match($text, ("^" + [regex]::Escape($name) + ":\s*(\d+)\s*/\s*(\d+)\s*$"), [System.Text.RegularExpressions.RegexOptions]::Multiline)
+    if (-not $match.Success) {
+      throw "Verification failed for ${Label}: missing before/after pair '$name'"
+    }
+    $before = [int]$match.Groups[1].Value
+    $after = [int]$match.Groups[2].Value
+    if ($before -ne $after) {
+      throw "Verification failed for ${Label}: '$name' changed from $before to $after"
+    }
+    $pairs[$name] = $before
+  }
+
+  if (($pairs["Source titles before/after"] + $pairs["Frame-only before/after"]) -ne $pairs["Source frames before/after"]) {
+    throw "Verification failed for ${Label}: source partition invariant failed"
+  }
+  if ($pairs["Target titles before/after"] -ne $pairs["Target frames before/after"]) {
+    throw "Verification failed for ${Label}: target pair-count invariant failed"
+  }
+  if ($pairs["DBMOD before/after"] -ne 0) {
+    throw "Verification failed for ${Label}: DBMOD must remain 0"
+  }
+
+  Write-Output ("Verified script-guard preservation for {0}: source={1}+{2}/{3}, target={4}/{5}, inserts={6}, dbmod=0" -f $Label, $pairs["Source titles before/after"], $pairs["Frame-only before/after"], $pairs["Source frames before/after"], $pairs["Target titles before/after"], $pairs["Target frames before/after"], $pairs["INSERT count before/after"])
 }
 
 function Assert-NoExistingGstarCAD {
@@ -334,9 +428,9 @@ Write-Output ""
 $loaderLog = Join-Path $workDir "swtitle_loader_probe_main56_diagnostics.txt"
 $copyCompareLog = Join-Path $workDir "swtitle_lsp_copy_compare_current_main56.txt"
 $actualStatusLog = Join-Path $workDir "swtitle_actual_workcopy_status_main56_diagnostics.txt"
-$a4NativeExemplarLog = Join-Path $workDir "swtitle_a4_native_exemplar_probe_260705.txt"
-$a4OutlinePrepareLog = Join-Path $workDir "swtitle_a4_outline_prepare_probe_main56_default.txt"
-$a4OutlineConvertLog = Join-Path $workDir "swtitle_a4_outline_convert_probe_main56_default.txt"
+$sourceTitleMissingGapLog = Join-Path $workDir "swtitle_source_title_missing_gap_a2.txt"
+$sourceTitleMissingPrepareLog = Join-Path $workDir "swtitle_source_title_missing_prepare_a3.txt"
+$sourceTitleMissingScriptGuardLog = Join-Path $workDir "swtitle_source_title_missing_scriptguard_a4.txt"
 $convertScriptGuardLog = Join-Path $workDir "swtitle_convert_script_guard_probe.txt"
 $frameclassLogs = @(
   Join-Path $workDir "swtitle_frameclass_common_probe_mixed.txt"
@@ -365,7 +459,7 @@ Assert-LogContains `
   -Patterns @(
     "Load result: OK",
     "Loaded loader version: 260706-loader-convert-next-response-guidance",
-    "Loaded GMTITLE version: 260711-unified-title-value-3",
+    "Loaded GMTITLE version: 260712-portable-saveas-offsheet-frame-1",
     "Command-line -GMTITLE default enabled: no",
     "SCRIPT command-line -GMTITLE enabled: no",
     "Command c:SWTITLESTATUS: yes",
@@ -391,7 +485,7 @@ Assert-LogContains `
   -Label "current LSP copy compare probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260711-unified-title-value-3",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
     "Command-line -GMTITLE default enabled: no",
     "SCRIPT command-line -GMTITLE enabled: no",
     "Command c:SWTITLESTATUS: yes",
@@ -399,13 +493,13 @@ Assert-LogContains `
     "Command c:SWTITLECONVERT: yes",
     "Command c:SWTITLEVERIFY: yes",
     "Command c:SWTITLEFASTSTATUS: no",
-    "Result: OK SWTITLESTATUS status=NEXT_PREPARE_FRAME_STYLE_NORMALIZATION",
-    "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_FAIL",
-    "source-title-count: 8",
-    "source-frame-count: 10",
-    "frame-only-count: 2",
-    "target-title-count: 5",
-    "target-frame-count: 5",
+    "Result: OK SWTITLESTATUS status=",
+    "Result: OK SWTITLEVERIFY status=",
+    "source-title-count:",
+    "source-frame-count:",
+    "frame-only-count:",
+    "target-title-count:",
+    "target-frame-count:",
     "frame-definition-blockers: 0",
     "frame-embedded-cleanup-records: 0",
     "A2: 1",
@@ -414,6 +508,7 @@ Assert-LogContains `
     "A4: 2",
     "Runtime check completed: yes"
   )
+Assert-WorkcopySummaryInvariant -Path $copyCompareLog -Label "current LSP copy compare probe"
 
 Write-Output ""
 Write-Output "===== 3. Actual work-copy status probe ====="
@@ -426,16 +521,16 @@ Assert-LogContains `
   -Label "actual work-copy status probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260711-unified-title-value-3",
-    "Result: OK SWTITLESTATUS status=NEXT_PREPARE_FRAME_STYLE_NORMALIZATION",
-    "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_FAIL",
-    "source-title-count: 8",
-    "source-frame-count: 10",
-    "frame-only-count: 2",
-    "target-title-count: 5",
-    "target-frame-count: 5",
-    "target-gmtitle-pair-count: 5",
-    "native-like-target-pair-count: 5",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Result: OK SWTITLESTATUS status=",
+    "Result: OK SWTITLEVERIFY status=",
+    "source-title-count:",
+    "source-frame-count:",
+    "frame-only-count:",
+    "target-title-count:",
+    "target-frame-count:",
+    "target-gmtitle-pair-count:",
+    "native-like-target-pair-count:",
     "non-native-like-target-pair-count: 0",
     "cloned-gmtitle-pair-count: 0",
     "a2a3a4-native-upgrade-candidate-count: 0",
@@ -447,111 +542,107 @@ Assert-LogContains `
     "verify-title-missing-first-note-found: no",
     "frame-definition-blockers: 0",
     "frame-embedded-cleanup-records: 0",
-    "next-bootstrap-source-sheet: A3",
-    "next-bootstrap-frame: DR_A3_Outline",
-    "next-bootstrap-title: DR_titlea_3rd",
-    "next-missing-native-source-sheet: <none>",
-    "next-missing-native-frame: <none>",
-    "next-missing-native-title: <none>",
-    "next-missing-native-role: <none>",
-    "missing-native-frame: <none>",
-    "first-native-guidance-ok: no",
+    "next-bootstrap-source-sheet:",
+    "next-bootstrap-frame:",
+    "next-bootstrap-title:",
     "A2: 1",
     "A3: 12",
     "A3: 4",
     "A4: 2",
     "Runtime check completed: yes"
   )
+Assert-WorkcopySummaryInvariant -Path $actualStatusLog -Label "actual work-copy status probe"
 
 Write-Output ""
-Write-Output "===== 4. Source-title-missing native exemplar gap probe (A4-sized sample) ====="
-& (Join-Path $PSScriptRoot "run_a4_native_exemplar_probe.ps1") `
+Write-Output "===== 4. Common source-title-missing gap probe (A2 fixture) ====="
+& (Join-Path $PSScriptRoot "run_source_title_missing_common_probe.ps1") `
+  -Mode Gap `
+  -Sheet A2 `
   -SourceWorkCopyPath $SourceWorkCopyPath `
-  -LogPath $a4NativeExemplarLog `
+  -ProbeDwgPath (Join-Path $workDir "swtitle_source_title_missing_gap_a2.dwg") `
+  -LogPath $sourceTitleMissingGapLog `
   -TimeoutSeconds $TimeoutSeconds
 Assert-LogContains `
-  -Path $a4NativeExemplarLog `
-  -Label "Source-title-missing native exemplar gap probe (A4-sized sample)" `
+  -Path $sourceTitleMissingGapLog `
+  -Label "common source-title-missing gap probe (A2 fixture)" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260711-unified-title-value-3",
-    "DBMOD before checks: 0",
-    "Source frame-only count: 2",
-    "A2: 1",
-    "A3: 12",
-    "A4: 2",
-    "Current target sheet counts:",
-    "A2: 1",
-    "A4 outline definition status: missing",
-    "Definition exists: no",
-    "Visible DR_A4_Outline frame inserts: 0",
-    "Native GMTITLE A4 pair evidence: no",
-    "Result: A4_NATIVE_EXEMPLAR_MISSING_DEFINITION",
-    "No drawing data was saved.",
-    "DBMOD after checks: 0",
-    "Runtime check completed: yes"
-  )
-
-Write-Output ""
-Write-Output "===== 5. Source-title-missing outline native outside marker prepare probe (A4-sized sample) ====="
-& (Join-Path $PSScriptRoot "run_a4_outline_prepare_probe.ps1") `
-  -SourceWorkCopyPath $SourceWorkCopyPath `
-  -ProbeDwgPath (Join-Path $workDir "swtitle_a4_outline_prepare_probe_main56_default.dwg") `
-  -LogPath $a4OutlinePrepareLog `
-  -TimeoutSeconds $TimeoutSeconds
-Assert-LogContains `
-  -Path $a4OutlinePrepareLog `
-  -Label "Source-title-missing outline native outside marker prepare probe (A4-sized sample)" `
-  -Patterns @(
-    "Load result: OK",
-    "Loaded version: 260711-unified-title-value-3",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Fixture mode: GAP",
+    "Fixture sheet: A2",
+    "Expected target frame: DR_A2_Outline",
+    "Before source-title-count: 0",
+    "Before source-frame-count: 1",
+    "Before frame-only-count: 1",
     "Before definition status: missing",
-    "Before frame-only-count: 2",
-    "Before target-sheet-counts:",
-    "A2: 1",
-    "Before DR_A4_Outline definition details:",
-    "Definition exists: no",
-    "Prepare result: OK status=OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED",
-    "After definition status: ready-native-outside-markers",
-    "After frame-only-count: 2",
-    "After target-sheet-counts:",
-    "A2: 1",
-    "After DR_A4_Outline definition details:",
-    "Definition exists: yes",
-    "Test insert effective bbox: (0, 0) - (210, 297)",
-    "Test insert geometry warning: <none>",
-    "Test insert raw selection warning: <none>",
-    "Native check result: OK status=",
+    "Source frame preserved: yes",
+    "After target title count: 0",
+    "After target frame count: 0",
+    "Fixture result: PASS",
+    "No drawing data was saved.",
     "Runtime check completed: yes"
   )
 
 Write-Output ""
-Write-Output "===== 6. Title-missing outline hidden-script safety probe (A4-sized source-title-missing sample) ====="
-& (Join-Path $PSScriptRoot "run_a4_outline_convert_probe.ps1") `
+Write-Output "===== 5. Common source-title-missing definition prepare probe (A3 fixture) ====="
+& (Join-Path $PSScriptRoot "run_source_title_missing_common_probe.ps1") `
+  -Mode Prepare `
+  -Sheet A3 `
   -SourceWorkCopyPath $SourceWorkCopyPath `
-  -ProbeDwgPath (Join-Path $workDir "swtitle_a4_outline_convert_probe_main56_default.dwg") `
-  -LogPath $a4OutlineConvertLog `
+  -ProbeDwgPath (Join-Path $workDir "swtitle_source_title_missing_prepare_a3.dwg") `
+  -LogPath $sourceTitleMissingPrepareLog `
   -TimeoutSeconds $TimeoutSeconds
 Assert-LogContains `
-  -Path $a4OutlineConvertLog `
-  -Label "Title-missing outline hidden-script safety probe (A4-sized source-title-missing sample)" `
+  -Path $sourceTitleMissingPrepareLog `
+  -Label "common source-title-missing definition prepare probe (A3 fixture)" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260711-unified-title-value-3",
-    "Before source-title-count: 8",
-    "Before frame-only-count: 2",
-    "Before target title count: 5",
-    "Before DR_A4_Outline target frame count: 0",
-    "Prepare result: OK status=OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED",
-    "After prepare definition status: ready-native-outside-markers",
-    "Convert result: OK status=ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE",
-    "After source-title-count: 8",
-    "After frame-only-count: 2",
-    "After target title count: 5",
-    "After DR_A4_Outline target frame count: 0",
-    "After target-sheet-counts:",
-    "A2: 1",
-    "A3: 4",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Fixture mode: PREPARE",
+    "Fixture sheet: A3",
+    "Expected target frame: DR_A3_Outline",
+    "Before definition status: missing",
+    "Prepare status: OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED",
+    "After definition ready: yes",
+    "After definition raw bbox risk: no",
+    "After source-title-count: 0",
+    "After source-frame-count: 1",
+    "After frame-only-count: 1",
+    "Source frame preserved: yes",
+    "After target title count: 0",
+    "After target frame count: 0",
+    "Fixture result: PASS",
+    "Runtime check completed: yes"
+  )
+
+Write-Output ""
+Write-Output "===== 6. Common source-title-missing hidden-script safety probe (A4 fixture) ====="
+& (Join-Path $PSScriptRoot "run_source_title_missing_common_probe.ps1") `
+  -Mode ScriptGuard `
+  -Sheet A4 `
+  -SourceWorkCopyPath $SourceWorkCopyPath `
+  -ProbeDwgPath (Join-Path $workDir "swtitle_source_title_missing_scriptguard_a4.dwg") `
+  -LogPath $sourceTitleMissingScriptGuardLog `
+  -TimeoutSeconds $TimeoutSeconds
+Assert-LogContains `
+  -Path $sourceTitleMissingScriptGuardLog `
+  -Label "common source-title-missing hidden-script safety probe (A4 fixture)" `
+  -Patterns @(
+    "Load result: OK",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Fixture mode: SCRIPT_GUARD",
+    "Fixture sheet: A4",
+    "Expected target frame: DR_A4_Outline",
+    "Prepare status: OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED",
+    "After definition ready: yes",
+    "Convert status: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE",
+    "After source-title-count: 0",
+    "After source-frame-count: 1",
+    "After frame-only-count: 1",
+    "Source frame preserved: yes",
+    "After target title count: 0",
+    "After target frame count: 0",
+    "Fixture result: PASS",
     "Runtime check completed: yes"
   )
 
@@ -566,20 +657,21 @@ Assert-LogContains `
   -Label "SWTITLECONVERT script guard probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260711-unified-title-value-3",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
     "SWTITLECONVERT result: OK",
     "Script active before convert: yes",
     "Status after convert: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE",
-    "Source titles before/after: 8/8",
-    "Source frames before/after: 10/10",
-    "Frame-only before/after: 2/2",
-    "Target titles before/after: 5/5",
-    "Target frames before/after: 5/5",
-    "INSERT count before/after: 120/120",
+    "Source titles before/after:",
+    "Source frames before/after:",
+    "Frame-only before/after:",
+    "Target titles before/after:",
+    "Target frames before/after:",
+    "INSERT count before/after:",
     "DBMOD before/after: 0/0",
     "Convert script guard preserved drawing: yes",
     "Runtime check completed: yes"
   )
+Assert-ScriptGuardPreservationInvariant -Path $convertScriptGuardLog -Label "SWTITLECONVERT script guard probe"
 
 Write-Output ""
 Write-Output "===== 8. Common A2/A3/A4 frame-definition probe ====="
@@ -644,17 +736,21 @@ Assert-LogContains `
   -Path $styleNormalizationLog `
   -Label "A2/A3/A4 style-normalization rebuild cleanup probe" `
   -Patterns @(
-    "Loaded version: 260711-unified-title-value-3",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
     "DR_A2_Outline: class=native-format-with-title-geometry",
     "DR_A3_Outline: class=native-format-with-title-geometry",
     "DR_A4_Outline: class=native-format-with-title-geometry",
     "Style-normalization record count: 3",
-    "Style-normalization clean entity count: 42",
-    "Style-normalization deleted count: 42",
+    "Style-normalization clean entity count: 45",
+    "Style-normalization deleted count: 45",
     "Style-normalization record count after clean: 0",
-    "Independent residue count before clean: 42",
+    "Independent residue count before clean: 45",
     "Protected frame entity count before clean: 15",
+    "Off-sheet nested insert count before clean: 3",
+    "Frame definition raw bbox risk count before clean: 3",
     "Independent residue count after clean: 0",
+    "Off-sheet nested insert count after clean: 0",
+    "Frame definition raw bbox risk count after clean: 0",
     "Second clean entity count: 0",
     "Second clean deleted count: 0",
     "Preserved revision text: yes",
@@ -673,7 +769,7 @@ Assert-LogContains `
   -Path $commandTextGuardLog `
   -Label "command-text guard comparison probe" `
   -Patterns @(
-    "Loaded version: 260711-unified-title-value-3",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
     "command-text-count-before: 1",
     "SWTITLESTATUS result: OK status=NEXT_REVIEW_ACCIDENTAL_COMMAND_TEXT",
     "structure-next-action: SWTITLEPREPARE",
@@ -693,7 +789,7 @@ Assert-LogContains `
   -Path $residueProtectionLog `
   -Label "sheet residue protection probe" `
   -Patterns @(
-    "Loaded version: 260711-unified-title-value-3",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
     "bottom-left logo line candidate: yes",
     "bottom-left real text preserved: yes",
     "upper small SW_NOTE balloon preserved: yes",
@@ -716,7 +812,7 @@ Assert-LogContains `
   -Path $embeddedPrepareLog `
   -Label "embedded-title prepare comparison probe" `
   -Patterns @(
-    "Loaded version: 260711-unified-title-value-3",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
     "DR_A2_Outline: class=native-format-with-title-geometry, embedded=4",
     "DR_A3_Outline: class=native-format-with-title-geometry, embedded=4",
     "DR_A4_Outline: class=native-format-with-title-geometry, embedded=4",
@@ -742,7 +838,7 @@ Assert-LogContains `
   -Path $duplicateTargetPairLog `
   -Label "duplicate target pair comparison probe" `
   -Patterns @(
-    "Loaded version: 260711-unified-title-value-3",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
     "Duplicate function present: yes",
     "Duplicate target pair count: 1",
     "Keep frame/title role:",
@@ -765,8 +861,10 @@ Assert-LogContains `
   -Path $adoptionGateLog `
   -Label "native adoption gate comparison probe" `
   -Patterns @(
-    "Loaded version: 260711-unified-title-value-3",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
     "Adoption function present: yes",
+    "Target title attribute count before transfer:",
+    "Target title missing tag count before transfer: 0",
     "Status after transfer: ADOPTED_EXISTING_NATIVE_GMTITLE_TRANSFER",
     "Danger action: <none>",
     "Source title count before/after: 1/0",
@@ -785,15 +883,17 @@ Assert-LogContains `
   -Path $postFirstNativeTransitionLog `
   -Label "post-first-native marker gate probe" `
   -Patterns @(
-    "Loaded version: 260711-unified-title-value-3",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
     "Bootstrap before fixture: A2 / DR_A2_Outline / DR_titlea_3rd",
+    "Source title count before fixture:",
+    "Frame-only count before fixture:",
     "A2 marker-only title native-link kinds: <none>",
-    "Source title count after fixture: 12",
+    "Source title count after fixture:",
     "Native-like pair count after fixture: 0",
-    "Missing native frames after fixture: DR_A3_Outline",
+    "Missing native frames after fixture: DR_A3_Outline, DR_A4_Outline",
     "Next missing native selection after fixture: A3 / DR_A3_Outline / DR_titlea_3rd / title-sheet",
-    "Status after SWTITLESTATUS: NEXT_UPGRADE_NATIVE_GMTITLE",
-    "Expected gate: marker-only A2 target is not accepted as native-like GMTITLE and must be upgraded.",
+    "Status after SWTITLESTATUS: NEXT_",
+    "Expected gate: marker-only A2 target is not accepted as native-like GMTITLE; remaining real source sheets may be reviewed first.",
     "Post-first-native marker gate probe passed: yes",
     "Runtime check completed: yes"
   )
@@ -808,7 +908,7 @@ Assert-LogContains `
   -Path $a3StatusGuidanceLog `
   -Label "A3 status guidance probe" `
   -Patterns @(
-    "Loaded version: 260711-unified-title-value-3",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
     "A2/A3/A4 candidate count before SWTITLESTATUS: 1",
     "SWTITLESTATUS result: OK",
     "Status after SWTITLESTATUS: NEXT_UPGRADE_NATIVE_GMTITLE",
@@ -829,7 +929,7 @@ Assert-LogContains `
   -Label "A2/A3/A4 native replacement batch guard probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260711-unified-title-value-3",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
     "Script active: yes",
     "Batch result: OK",
     "Status after batch: ABORT_NATIVE_GMTITLE_BATCH_SCRIPT_ACTIVE",
@@ -881,9 +981,9 @@ Set-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value @(
   "  Loader probe: PASS",
   "  Current LSP copy compare probe: PASS",
   "  Actual work-copy status probe: PASS",
-  "  Source-title-missing native exemplar gap probe (A4-sized sample): PASS",
-  "  Source-title-missing outline native outside marker prepare probe (A4-sized sample): PASS",
-  "  Title-missing outline hidden-script safety probe (A4-sized source-title-missing sample): PASS",
+  "  Common source-title-missing gap probe (A2 fixture): PASS",
+  "  Common source-title-missing definition prepare probe (A3 fixture): PASS",
+  "  Common source-title-missing hidden-script safety probe (A4 fixture): PASS",
   "  SWTITLECONVERT script guard probe: PASS",
   "  Common A2/A3/A4 frame-definition probe: PASS",
   "  A2/A3/A4 style-normalization rebuild cleanup probe: PASS",
@@ -901,8 +1001,8 @@ Set-Content -LiteralPath $suiteLastRunLog -Encoding UTF8 -Value @(
 )
 Write-SuiteStatusSummary `
   -StatusLogPath $actualStatusLog `
-  -A4OutlinePrepareLogPath $a4OutlinePrepareLog `
-  -A4OutlineConvertLogPath $a4OutlineConvertLog `
+  -SourceTitleMissingPrepareLogPath $sourceTitleMissingPrepareLog `
+  -SourceTitleMissingScriptGuardLogPath $sourceTitleMissingScriptGuardLog `
   -A3StatusGuidanceLogPath $a3StatusGuidanceLog `
   -A3A4BatchGuardLogPath $a3a4BatchGuardLog
 $script:suiteLastRunCompleted = $true

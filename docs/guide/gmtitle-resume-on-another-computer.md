@@ -29,7 +29,7 @@ codex/gm-title
 주의:
 
 ```text
-2026-07-10 현재 로컬 작업 기준은 `260711-unified-title-value-3`입니다.
+2026-07-12 현재 로컬 작업 기준은 `260712-portable-saveas-offsheet-frame-1`입니다.
 현재 로컬 브랜치는 GitHub보다 앞선 커밋이 있을 수 있으므로, 다른 PC에서 이어가기 전에 이 브랜치가 GitHub에 push됐는지 확인합니다.
 다른 PC에서는 `codex/gm-title` 브랜치를 받은 뒤, CAD에서 `SWTITLEVERSION`으로 실제 로드 버전을 확인합니다.
 ```
@@ -79,18 +79,16 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260711-unified-title-value-3
+260712-portable-saveas-offsheet-frame-1
 ```
 
 다른 버전이면 변환하지 말고 다시 APPLOAD 합니다. 그래도 다른 버전이면 다른 브랜치를 받았거나, 열린 CAD 세션이 예전 LSP를 유지하고 있을 수 있습니다.
 
 ## DWG 작업 위치
 
-원본 DWG에서 바로 작업하지 말고 반드시 `work` 폴더의 복사본에서 진행합니다.
-
-```text
-C:\Users\DR-DESIGN\Documents\CAD tool\work
-```
+원본 DWG에서는 먼저 `SWTITLESTATUS`로 읽기 전용 확인을 합니다. 처음 `SWTITLEPREPARE`,
+`SWTITLECONVERTNEXT`, `SWTITLECONVERT`를 실행하면 다른 이름으로 저장 창이 열리므로
+원하는 폴더에 새 작업본 이름을 정합니다. 선택 저장된 새 DWG에서만 변환이 진행되고 원본은 그대로 남습니다.
 
 `Downloads` 원본 DWG나 실제 납품 원본에서 바로 실행하지 않습니다.
 
@@ -115,7 +113,7 @@ SWTITLESTATUS
 SWTITLECONVERTNEXT
 ```
 
-`SWTITLECONVERTNEXT`는 work 복사본에서 `YES`/`OPEN` 응답과 GMTITLE 창의 DR 용지/제목블록/옵션을 고정 컨트롤로 자동 선택하고 readback합니다. 컨트롤이나 값이 예상과 다르면 기존 원본을 유지하고 중단합니다.
+`SWTITLECONVERTNEXT`는 사용자 선택 작업본에서 `YES`/`OPEN` 응답과 GMTITLE 창의 DR 용지/제목블록/옵션을 고정 컨트롤로 자동 선택하고 readback합니다. 컨트롤이나 값이 예상과 다르면 기존 원본을 유지하고 중단합니다.
 
 수동 응답을 직접 고르고 싶으면 아래 명령을 대신 사용할 수 있습니다.
 

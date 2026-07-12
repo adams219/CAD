@@ -106,7 +106,7 @@
               "Probe result: "
               (if
                 (and
-                  (equal version "260711-unified-title-value-3")
+                  (equal version "260712-portable-saveas-offsheet-frame-1")
                   (not (vl-catch-all-error-p cleanup-result))
                   (equal cleanup-status "OK_FRAME_STYLE_NORMALIZATION_CLEANED")
                   (= (length style-before) 15)

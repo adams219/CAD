@@ -155,9 +155,9 @@ Before the hidden GstarCAD probes, the suite now runs two no-CAD preflights:
 1. loader probe
 2. current LSP compare-copy probe
 3. actual work-copy status/verify probe
-4. source-title-missing native exemplar gap probe (A4-sized sample)
-5. source-title-missing outline native outside marker prepare probe (A4-sized sample)
-6. title-missing outline hidden-script safety probe (A4-sized source-title-missing sample)
+4. common source-title-missing gap probe (A2 generated fixture)
+5. common source-title-missing definition prepare probe (A3 generated fixture)
+6. common source-title-missing hidden-script safety probe (A4 generated fixture)
 7. SWTITLECONVERT script guard probe
 8. common A2/A3/A4 frame-definition classification probe
 9. A2/A3/A4 style-normalization rebuild cleanup probe
@@ -222,13 +222,13 @@ no-CAD next-action card probe PASS before hidden GstarCAD starts
 loaded main45 versions
 four workflow commands enabled
 representative legacy commands disabled
-actual work-copy source/target counts
+actual work-copy source/target structural invariants; the suite does not pin a mutable work-copy to old progress counts
 A2/A3/A4 expected sheet counts
 actual work-copy first native guidance: A2 -> DR_A2_Outline + DR_titlea_3rd
-post-first-native marker gate proves an A2 target pair with only SWTITLE markers is not accepted as native-like GMTITLE evidence; the workflow routes it to NEXT_UPGRADE_NATIVE_GMTITLE before continuing
-A4-sized source-title-missing exemplar gap: the saved work-copy still has two title-missing/frame-only sources and no matching DR_A4_Outline target insert yet; this is sample evidence, not an A4-only policy
+post-first-native marker gate proves an A2 target pair with only SWTITLE markers is not accepted as native-like GMTITLE evidence; remaining real source sheets may be reviewed before that pair is upgraded
+one generated source-title-missing fixture is parameterized by sheet size and verifies A2 gap detection, A3 definition preparation, and A4 hidden-script preservation without using the saved work-copy's progress state
 A4 clean scratch comparison evidence: `work\scratch_native_a4_clean_260705.dwg` was saved from a clean gcadiso.dwt CAD test after DR_A4_Outline / DR_titlea_3rd inserted at 0,0 without the frame creation error; it exists only to compare official native DR_A4_Outline structure
-A4-sized source-title-missing outside marker prepare: imported DR_A4_Outline definitions with official small native outside markers are accepted for the sample only when effective geometry/raw-selection checks pass; excessive raw bbox or raw-selection warnings still preserve the original source frames
+source-title-missing definition preparation accepts official native outside markers only when effective geometry/raw-selection checks pass; excessive raw bbox or raw-selection warnings still preserve the original source frame
 SWTITLECONVERT script guard aborts in SCRIPT mode without changing source/target counts, INSERT count, or DBMOD
 mixed/all_contaminated/all_native frame-class PASS results
 A2/A3/A4 style-normalization record count 3 -> 0 after rebuild cleanup
@@ -611,7 +611,7 @@ For the clean A4 scratch from 2026-07-05, use a dedicated log so the main suite'
 work\swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt
 ```
 
-The main verification suite still runs the known gap check by passing the saved default work-copy path explicitly. Current expected suite result for that saved default work copy:
+The historical A4 probe remains available for saved scratch/native comparison, but the main verification suite no longer uses the mutable default work-copy as its title-missing fixture. The suite now generates an isolated source frame with no title and runs the same fixture code for A2, A3, and A4. A historical missing-definition result from this standalone probe looks like:
 
 ```text
 A4 outline definition status: missing

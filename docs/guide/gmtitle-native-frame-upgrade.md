@@ -28,7 +28,7 @@ GMTITLE로 만든 제목블록은 더블클릭했을 때 GstarCAD Mechanical의 
 현재 LSP 버전:
 
 ```text
-260711-unified-title-value-3
+260712-portable-saveas-offsheet-frame-1
 ```
 
 현재 loader 버전은 `SWTITLEVERSION`에서 함께 확인합니다.

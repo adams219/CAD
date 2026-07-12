@@ -15,14 +15,17 @@
 GstarCAD에서 `APPLOAD`를 실행한 뒤 아래 파일을 로드합니다.
 
 ```text
-C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp
+<SWCAD 도구 폴더>\swcad_load.lsp
 ```
 
 GMTITLE 도구만 직접 로드해야 할 때는 아래 파일을 사용할 수 있습니다.
 
 ```text
-C:\Users\DR-DESIGN\Documents\CAD tool\src\tools\gmtitle\swcad_title_scale.lsp
+<SWCAD 도구 폴더>\src\tools\gmtitle\swcad_title_scale.lsp
 ```
+
+GMTITLE 자동 선택을 사용하려면 `swcad_title_scale.lsp`와 같은 폴더의
+`swtitle_gmtitle_dialog_autoselect.ps1`도 함께 둡니다.
 
 로드 후 버전을 확인합니다.
 
@@ -33,7 +36,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260711-unified-title-value-3
+260712-portable-saveas-offsheet-frame-1
 ```
 
 다른 버전이 보이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -55,7 +58,7 @@ SWTITLEVERIFY
 SWTITLECONVERT
 ```
 
-`SWTITLECONVERTNEXT`는 `work` 복사본과 GstarCAD 창을 확인한 뒤 고정 컨트롤 ID로 현재 시트의 `DR_A*_Outline`, `DR_titlea_3rd`, `Frame positioning: ON`, `Object move: OFF`를 선택하고 readback을 통과한 경우에만 확인 버튼을 누릅니다. 남은 표제란 시트는 preserve-copy 공유 핸들을 재사용하지 않고 각각 새 native GMTITLE로 연속 변환합니다. 고정 컨트롤을 찾지 못하거나 readback 값이 다르면 기존 원본을 유지하고 중단하며, 그때만 수동 `SWTITLECONVERT` fallback을 사용합니다.
+원본에서 처음 변경 명령을 실행하면 `SWTITLE 변환 작업본을 다른 이름으로 저장` 창이 먼저 열립니다. 사용자가 선택한 새 DWG가 활성 작업본이 되며 원본은 그대로 남습니다. `SWTITLECONVERTNEXT`는 승인된 작업본과 GstarCAD 창을 확인한 뒤 고정 컨트롤 ID로 현재 시트의 `DR_A*_Outline`, `DR_titlea_3rd`, `Frame positioning: ON`, `Object move: OFF`를 선택하고 readback을 통과한 경우에만 확인 버튼을 누릅니다. 남은 표제란 시트는 preserve-copy 공유 핸들을 재사용하지 않고 각각 새 native GMTITLE로 연속 변환합니다. 고정 컨트롤을 찾지 못하거나 readback 값이 다르면 기존 원본을 유지하고 중단하며, 그때만 수동 `SWTITLECONVERT` fallback을 사용합니다.
 
 `run_next_cad_action.ps1` 카드가 `반복 BATCH 검토 가능`을 표시하면, 이미 같은 DR 용지/제목블록/옵션으로 후보 수가 줄어드는 흐름을 확인했다는 뜻입니다. 이때는 한 장씩 `SWTITLECONVERTNEXT`를 반복하는 대신 수동 `SWTITLECONVERT`를 실행하고 내부 질문에서 `BATCH`를 선택해 같은 조건 구간을 빠르게 처리할 수 있습니다. ISO/일반 기본값, 다른 용지, 후보 수 미감소, 원본 도면 내용 과삭제가 보이면 즉시 중단하고 `SWTITLESTATUS`로 돌아갑니다.
 
@@ -72,7 +75,7 @@ LSP와 고정 컨트롤 보조 프로그램이 자동 처리:
   새 결과 검사/rollback
 
 사람이 확인:
-  현재 열린 파일이 work 복사본인지 확인
+  다른 이름으로 저장된 작업본이 현재 활성 파일인지 확인
   자동 변환 후 SWTITLESTATUS/SWTITLEVERIFY 결과
   대표 DR_titlea_3rd 제목블록의 더블클릭 편집창
 ```
@@ -81,13 +84,13 @@ LSP와 고정 컨트롤 보조 프로그램이 자동 처리:
 
 | 명령 | 용도 | 도면 변경 |
 | --- | --- | --- |
-| `SWTITLESTATUS` | 현재 DWG 상태를 읽기 전용으로 진단하고 다음에 실행할 명령을 안내합니다. work 복사본 여부, 원본 시트 수, A2/A3/A4 예상 수량, GMTITLE target 수량, 도면틀 정의 상태, title-missing/frame-only 예외 상태를 확인합니다. | 없음 |
+| `SWTITLESTATUS` | 현재 DWG 상태를 읽기 전용으로 진단하고 다음에 실행할 명령을 안내합니다. 작업본 승인 여부, 원본 시트 수, A2/A3/A4 예상 수량, GMTITLE target 수량, 도면틀 정의 상태, title-missing/frame-only 예외 상태를 확인합니다. | 없음 |
 | `SWTITLEPREPARE` | 변환 전에 필요한 정리만 수행합니다. 실수로 들어간 명령어 텍스트, 겹친 GMTITLE target, 오염 의심 도면틀 정의, 위험한 raw bbox 등을 후보로 보여주고 `YES` 확인 뒤 처리합니다. | 있음 |
-| `SWTITLECONVERTNEXT` | 상태에 맞는 변환 단계를 실행하고, work 복사본에서는 고정 컨트롤로 DR 용지/제목블록/옵션을 검증하여 남은 시트를 실제 native GMTITLE로 연속 처리합니다. 자동 선택이 불가능하면 원본을 유지하고 중단합니다. | 있음 |
+| `SWTITLECONVERTNEXT` | 최초 실행 시 작업본 저장 위치를 먼저 선택하고, 승인된 작업본에서는 고정 컨트롤로 DR 용지/제목블록/옵션을 검증하여 남은 시트를 실제 native GMTITLE로 연속 처리합니다. 자동 선택이 불가능하면 원본을 유지하고 중단합니다. | 있음 |
 | `SWTITLECONVERT` | `SWTITLECONVERTNEXT`와 같은 변환 흐름을 사용하되, `YES`/`OPEN`/`BATCH`/`MANUAL` 응답을 사용자가 직접 고릅니다. | 있음 |
 | `SWTITLEVERIFY` | 변환 결과를 읽기 전용으로 검증합니다. 남은 원본, 누락/중복, A2/A3/A4 수량, native-like 상태, 최종 OK/WARN/FAIL을 확인합니다. | 없음 |
 
-여러 DWG가 열려 있으면 `SWTITLEPREPARE`, `SWTITLECONVERTNEXT`, `SWTITLECONVERT`가 현재 활성 DWG 경로를 먼저 보여주고 `ACTIVE` 확인을 요구할 수 있습니다. 목표 work 복사본이 맞을 때만 `ACTIVE`를 입력하고, 조금이라도 다르면 Enter로 중단합니다.
+여러 DWG가 열려 있으면 `SWTITLEPREPARE`, `SWTITLECONVERTNEXT`, `SWTITLECONVERT`가 현재 활성 DWG 경로를 먼저 보여주고 `ACTIVE` 확인을 요구할 수 있습니다. 방금 선택 저장한 작업본이 맞을 때만 `ACTIVE`를 입력하고, 조금이라도 다르면 Enter로 중단합니다.
 
 ## 권장 실행 순서
 
@@ -235,11 +238,13 @@ SWTITLEGMTITLEVERIFYALL
 
 ## 주요 로그
 
-로그는 보통 아래 폴더에 저장됩니다.
+일반 사용자 로그는 아래 사용자별 폴더에 저장됩니다.
 
 ```text
-C:\Users\DR-DESIGN\Documents\CAD tool\work
+%LOCALAPPDATA%\SWTitle\logs
 ```
+
+저장소의 기존 `work` 폴더에서 실행하는 진단·회귀 테스트는 호환성을 위해 계속 `work`에 로그를 남깁니다.
 
 자주 보는 로그:
 

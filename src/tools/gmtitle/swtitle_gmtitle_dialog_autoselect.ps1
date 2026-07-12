@@ -23,10 +23,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..\..")).Path
-$workDir = (Resolve-Path -LiteralPath (Join-Path $repoRoot "work")).Path
+$defaultLogRoot = Join-Path ([Environment]::GetFolderPath("LocalApplicationData")) "SWTitle\logs"
+if (-not (Test-Path -LiteralPath $defaultLogRoot)) {
+  [void](New-Item -ItemType Directory -Path $defaultLogRoot -Force)
+}
 if (-not $LogPath) {
-  $LogPath = Join-Path $workDir "swcad_title_gmtitle_autoselect_last.txt"
+  $LogPath = Join-Path $defaultLogRoot "swcad_title_gmtitle_autoselect_last.txt"
 }
 
 if ($ClickOk -and (-not $ApplySelections)) {
@@ -42,12 +44,8 @@ if ($ApplySelections) {
   }
   $resolvedExpectedDwg = (Resolve-Path -LiteralPath $ExpectedDwgPath).Path
   $resolvedSessionLog = (Resolve-Path -LiteralPath $SessionLogPath).Path
-  $workPrefix = $workDir.TrimEnd('\') + '\'
-  if (-not $resolvedExpectedDwg.StartsWith($workPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-    throw "Dialog automation is limited to dedicated DWG copies under work: $resolvedExpectedDwg"
-  }
-  if (-not $resolvedSessionLog.StartsWith($workPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-    throw "Dialog automation requires a session log under work: $resolvedSessionLog"
+  if ([System.IO.Path]::GetExtension($resolvedExpectedDwg) -ine ".dwg") {
+    throw "Dialog automation requires an existing DWG work copy: $resolvedExpectedDwg"
   }
 } else {
   $resolvedExpectedDwg = $null

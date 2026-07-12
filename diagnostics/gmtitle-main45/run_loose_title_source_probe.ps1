@@ -49,7 +49,7 @@ if (-not (Test-Path -LiteralPath $LogPath)) {
 
 $logText = Get-Content -LiteralPath $LogPath -Raw
 $requiredLines = @(
-    "Loaded version: 260711-unified-title-value-3",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
   "Source title count: 15",
   "Source frame count: 15",
   "Frame-only count: 0",

@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260711-unified-title-value-3",
+  [string]$ExpectedGmtitleVersion = "260712-portable-saveas-offsheet-frame-1",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -20,6 +20,10 @@ $a4NativeProbeFixturePath = Join-Path $PSScriptRoot "a4_native_exemplar_probe.ls
 $a4NativeProbeRunnerPath = Join-Path $PSScriptRoot "run_a4_native_exemplar_probe.ps1"
 $a4OutlineConvertProbePath = Join-Path $PSScriptRoot "a4_outline_convert_probe.lsp"
 $a4OutlineConvertRunnerPath = Join-Path $PSScriptRoot "run_a4_outline_convert_probe.ps1"
+$sourceTitleMissingCommonProbePath = Join-Path $PSScriptRoot "source_title_missing_common_probe.lsp"
+$sourceTitleMissingCommonRunnerPath = Join-Path $PSScriptRoot "run_source_title_missing_common_probe.ps1"
+$adoptionGateProbePath = Join-Path $PSScriptRoot "adoption_gate_compare_probe.lsp"
+$adoptionGateRunnerPath = Join-Path $PSScriptRoot "run_adoption_gate_compare_probe.ps1"
 $actualDirectStatusProbePath = Join-Path $PSScriptRoot "actual_workcopy_status_probe.lsp"
 $actualDirectStatusRunnerPath = Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"
 $singleCloneProbePath = Join-Path $PSScriptRoot "single_clone_probe.lsp"
@@ -35,6 +39,8 @@ $unifiedCleanupProbePath = Join-Path $PSScriptRoot "unified_cleanup_probe.lsp"
 $unifiedCleanupRunnerPath = Join-Path $PSScriptRoot "run_unified_cleanup_probe.ps1"
 $unifiedFinalProbePath = Join-Path $PSScriptRoot "unified_final_verification_probe.lsp"
 $unifiedFinalRunnerPath = Join-Path $PSScriptRoot "run_unified_final_verification_probe.ps1"
+$portableWorkcopyProbePath = Join-Path $PSScriptRoot "portable_workcopy_probe.lsp"
+$portableWorkcopyRunnerPath = Join-Path $PSScriptRoot "run_portable_workcopy_probe.ps1"
 $dialogControlProbePath = Join-Path $PSScriptRoot "gmtitle_dialog_control_probe.ps1"
 $dialogAutoselectHelperPath = Join-Path $repoRoot "src\tools\gmtitle\swtitle_gmtitle_dialog_autoselect.ps1"
 $dialogControlSessionProbePath = Join-Path $PSScriptRoot "dialog_control_session_probe.lsp"
@@ -277,6 +283,10 @@ $a4NativeProbeFixtureText = Read-Text $a4NativeProbeFixturePath
 $a4NativeProbeRunnerText = Read-Text $a4NativeProbeRunnerPath
 $a4OutlineConvertProbeText = Read-Text $a4OutlineConvertProbePath
 $a4OutlineConvertRunnerText = Read-Text $a4OutlineConvertRunnerPath
+$sourceTitleMissingCommonProbeText = Read-Text $sourceTitleMissingCommonProbePath
+$sourceTitleMissingCommonRunnerText = Read-Text $sourceTitleMissingCommonRunnerPath
+$adoptionGateProbeText = Read-Text $adoptionGateProbePath
+$adoptionGateRunnerText = Read-Text $adoptionGateRunnerPath
 $actualDirectStatusProbeText = Read-Text $actualDirectStatusProbePath
 $actualDirectStatusRunnerText = Read-Text $actualDirectStatusRunnerPath
 $singleCloneProbeText = Read-Text $singleCloneProbePath
@@ -292,6 +302,8 @@ $unifiedCleanupProbeText = Read-Text $unifiedCleanupProbePath
 $unifiedCleanupRunnerText = Read-Text $unifiedCleanupRunnerPath
 $unifiedFinalProbeText = Read-Text $unifiedFinalProbePath
 $unifiedFinalRunnerText = Read-Text $unifiedFinalRunnerPath
+$portableWorkcopyProbeText = Read-Text $portableWorkcopyProbePath
+$portableWorkcopyRunnerText = Read-Text $portableWorkcopyRunnerPath
 $dialogControlProbeText = Read-Text $dialogControlProbePath
 $dialogAutoselectHelperText = Read-Text $dialogAutoselectHelperPath
 $dialogControlSessionProbeText = Read-Text $dialogControlSessionProbePath
@@ -326,6 +338,8 @@ Test-LispBalance -Text $mainText -Label "swcad_title_scale.lsp"
 Test-LispBalance -Text $loaderText -Label "swcad_load.lsp"
 Test-LispBalance -Text $a4NormProbeText -Label "a4_outline_normalization_probe.lsp"
 Test-LispBalance -Text $a4OutlineConvertProbeText -Label "a4_outline_convert_probe.lsp"
+Test-LispBalance -Text $sourceTitleMissingCommonProbeText -Label "source_title_missing_common_probe.lsp"
+Test-LispBalance -Text $adoptionGateProbeText -Label "adoption_gate_compare_probe.lsp"
 Test-LispBalance -Text $actualDirectStatusProbeText -Label "actual_workcopy_status_probe.lsp"
 Test-LispBalance -Text $singleCloneProbeText -Label "single_clone_probe.lsp"
 Test-LispBalance -Text $preserveCopyMatrixProbeText -Label "preserve_copy_matrix_probe.lsp"
@@ -334,6 +348,7 @@ Test-LispBalance -Text $actualResidueCleanupProbeText -Label "actual_residue_cle
 Test-LispBalance -Text $looseTitleSourceProbeText -Label "loose_title_source_probe.lsp"
 Test-LispBalance -Text $unifiedCleanupProbeText -Label "unified_cleanup_probe.lsp"
 Test-LispBalance -Text $unifiedFinalProbeText -Label "unified_final_verification_probe.lsp"
+Test-LispBalance -Text $portableWorkcopyProbeText -Label "portable_workcopy_probe.lsp"
 Test-LispBalance -Text $dialogControlSessionProbeText -Label "dialog_control_session_probe.lsp"
 Test-LispBalance -Text $postFirstNativeProbeText -Label "post_first_native_transition_probe.lsp"
 Test-PowerShellSyntax -Path $preserveCopyMatrixRunnerPath -Label "run_preserve_copy_matrix_probe.ps1"
@@ -345,6 +360,10 @@ Test-PowerShellSyntax -Path $actualResidueCleanupRunnerPath -Label "run_actual_r
 Test-PowerShellSyntax -Path $looseTitleSourceRunnerPath -Label "run_loose_title_source_probe.ps1"
 Test-PowerShellSyntax -Path $unifiedCleanupRunnerPath -Label "run_unified_cleanup_probe.ps1"
 Test-PowerShellSyntax -Path $unifiedFinalRunnerPath -Label "run_unified_final_verification_probe.ps1"
+Test-PowerShellSyntax -Path $portableWorkcopyRunnerPath -Label "run_portable_workcopy_probe.ps1"
+Test-PowerShellSyntax -Path $sourceTitleMissingCommonRunnerPath -Label "run_source_title_missing_common_probe.ps1"
+Test-PowerShellSyntax -Path $adoptionGateRunnerPath -Label "run_adoption_gate_compare_probe.ps1"
+Test-PowerShellSyntax -Path $suitePath -Label "run_main45_verification_suite.ps1"
 
 $gmtitleVersion = Get-VersionValue -Text $mainText -VariableName "*swcad-title-scale-version*"
 if ($gmtitleVersion -eq $ExpectedGmtitleVersion) {
@@ -417,6 +436,23 @@ Assert-Contains -Text $mainText -Needle "swcad-title-title-missing-outline-polic
 Assert-Contains -Text $mainText -Needle "swcad-title-title-missing-outline-frame-block-present-p" -Label "Generic title-missing outline frame-block presence guard"
 Assert-Contains -Text $mainText -Needle "swcad-title-title-missing-outline-risk-message" -Label "Generic title-missing outline risk message"
 Assert-Contains -Text $mainText -Needle "swcad-title-frame-only-source-for-frame-block" -Label "Title-missing warnings select same-size frame-only source"
+Assert-Contains -Text $mainText -Needle '*swcad-title-workcopy-xdata-marker* "SWTITLE_SELECTED_WORKCOPY"' -Label "Portable work-copy persistent marker"
+Assert-Contains -Text $mainText -Needle "SWTITLE 변환 작업본을 다른 이름으로 저장" -Label "Portable work-copy Save As dialog"
+Assert-Contains -Text $mainText -Needle "*swcad-title-work-copy-saveas-path-override*" -Label "Portable work-copy isolated CAD probe hook"
+Assert-Contains -Text $mainText -Needle "ABORT_WORK_COPY_SAVEAS_CANCELLED" -Label "Portable work-copy cancel guard"
+Assert-Contains -Text $mainText -Needle "ABORT_WORK_COPY_SAME_PATH" -Label "Portable work-copy original overwrite guard"
+Assert-Contains -Text $mainText -Needle "ERROR_WORK_COPY_ACTIVE_PATH_MISMATCH" -Label "Portable work-copy active path verification"
+Assert-Contains -Text $mainText -Needle "swcad-title-mark-selected-work-copy" -Label "Portable work-copy marker write"
+Assert-Contains -Text $mainText -Needle "swcad-title-ensure-work-copy-for-mutation" -Label "Portable work-copy public mutation gate"
+Assert-Contains -Text $mainText -Needle "user-selected-saveas-copy" -Label "Portable work-copy authorization source"
+Assert-Contains -Text $mainText -Needle "LOCALAPPDATA" -Label "Portable per-user log root"
+Assert-Contains -Text $mainText -Needle "*swcad-title-source-path*" -Label "Portable helper path from loaded LSP"
+Assert-NotContains -Text $mainText -Needle '((not (swcad-title-current-dwg-in-work-p)) "BLOCKED_NOT_WORK_COPY")' -Label "Status no fixed work-folder blocker"
+Assert-NotContains -Text $mainText -Needle "현재 DWG가 work 폴더 밖에 있습니다. 계속하려면 EDIT" -Label "No direct original EDIT bypass"
+Assert-Contains -Text $portableWorkcopyProbeText -Needle "PORTABLE_WORKCOPY_OK" -Label "Portable work-copy CAD probe completion marker"
+Assert-Contains -Text $portableWorkcopyProbeText -Needle "user-selected-saveas-copy" -Label "Portable work-copy CAD probe authorization check"
+Assert-Contains -Text $portableWorkcopyRunnerText -Needle "Source SHA256 unchanged" -Label "Portable work-copy source preservation gate"
+Assert-Contains -Text $portableWorkcopyRunnerText -Needle "portable_workcopy_reopen_verify.txt" -Label "Portable work-copy reopen persistence gate"
 if ([regex]::IsMatch($mainText, "\(swcad-title-title-missing-outline-risk-message\s*\r?\n\s*\(car\s+\(swcad-title-frame-only-source-candidates\)\)")) {
   Add-Failure "Title-missing per-size warning must not reuse the first frame-only source."
 }
@@ -562,12 +598,21 @@ Assert-Contains -Text $mainText -Needle "swcad-title-frame-path-entity-records-r
 Assert-Contains -Text $mainText -Needle "swcad-title-frame-style-independent-residue-records" -Label "Frame residue independent verifier"
 Assert-Contains -Text $mainText -Needle "WARN_RESIDUE_REMAINS" -Label "Frame residue post-clean warning"
 Assert-Contains -Text $mainText -Needle "swcad-title-rebuild-frame-definition-tree-skipping-records" -Label "Frame residue nested tree rebuild"
+Assert-Contains -Text $mainText -Needle "swcad-title-frame-style-offsheet-insert-records-from-paths" -Label "Frame residue generic off-sheet nested INSERT detector"
+Assert-Contains -Text $mainText -Needle '"nested-off-sheet-insert"' -Label "Frame residue off-sheet delete reason"
+Assert-Contains -Text $mainText -Needle "(> definition-raw-risk-count 0)" -Label "Final verifier blocks raw frame-definition bbox risk"
+Assert-Contains -Text $mainText -Needle "도면틀 정의 raw bbox 위험 수:" -Label "Final verifier reports raw frame-definition bbox risk"
 Assert-Contains -Text $styleNormalizationProbeText -Needle "PARTIAL TITLE RESIDUE" -Label "Style fixture partial-overlap text"
 Assert-Contains -Text $styleNormalizationProbeText -Needle "SWSTYLE_*_FRAME_CONTENT" -Label "Style fixture nested frame content"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "OFFSHEET REV TABLE" -Label "Style fixture off-sheet nested INSERT"
 Assert-Contains -Text $styleNormalizationProbeText -Needle "Preserved revision text:" -Label "Style fixture revision preservation"
 Assert-Contains -Text $styleNormalizationProbeText -Needle "Independent residue count after clean:" -Label "Style fixture independent post-clean verification"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Off-sheet nested insert count after clean:" -Label "Style fixture off-sheet post-clean verification"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Frame definition raw bbox risk count after clean:" -Label "Style fixture raw bbox post-clean verification"
 Assert-Contains -Text $styleNormalizationProbeText -Needle "Second clean deleted count:" -Label "Style fixture idempotent second clean"
 Assert-Contains -Text $suiteText -Needle "Independent residue count after clean: 0" -Label "Suite requires zero independent residue"
+Assert-Contains -Text $suiteText -Needle "Off-sheet nested insert count after clean: 0" -Label "Suite requires zero off-sheet nested INSERT residue"
+Assert-Contains -Text $suiteText -Needle "Frame definition raw bbox risk count after clean: 0" -Label "Suite requires zero raw frame-definition bbox risk"
 Assert-Contains -Text $suiteText -Needle "Second clean deleted count: 0" -Label "Suite requires idempotent style cleanup"
 Assert-Contains -Text $actualResidueCleanupProbeText -Needle "c:SWTITLEPREPARE" -Label "Actual residue probe exercises public prepare command"
 Assert-Contains -Text $actualResidueCleanupProbeText -Needle "swcad-title-frame-style-records-from-pairs" -Label "Actual residue probe cached independent verification"
@@ -874,17 +919,31 @@ if (($a3a4NextStart -ge 0) -and ($a3a4AutoOpen -gt $a3a4NextStart) -and ($a3a4Pr
   Add-Failure "SWTITLECONVERTNEXT A2/A3/A4 OPEN auto response must be checked before getstring prompt"
 }
 Assert-Contains -Text $mainText -Needle "DR_titlea_3rd/Frame positioning ON/Object move OFF" -Label "SWTITLECONVERTNEXT visual GMTITLE confirmation guard"
-Assert-Contains -Text $suiteText -Needle '"Result: OK SWTITLESTATUS status=NEXT_PREPARE_FRAME_STYLE_NORMALIZATION"' -Label "Suite current work-copy probes expect residue preparation status"
-Assert-Contains -Text $suiteText -Needle '"a2a3a4-native-upgrade-candidate-count: 0"' -Label "Suite current work-copy probes expect zero native-upgrade candidates"
+Assert-Contains -Text $suiteText -Needle "Assert-WorkcopySummaryInvariant" -Label "Suite mutable work-copy structural invariant"
+Assert-Contains -Text $suiteText -Needle '($sourceTitle + $frameOnly) -ne $sourceFrame' -Label "Suite source partition invariant"
+Assert-Contains -Text $suiteText -Needle '$targetTitle -ne $targetFrame' -Label "Suite target pair-count invariant"
+Assert-NotContains -Text $suiteText -Needle '"source-title-count: 8"' -Label "Suite no mutable source-title fixed count"
+Assert-NotContains -Text $suiteText -Needle '"frame-only-count: 2"' -Label "Suite no A4 frame-only fixed count"
+Assert-Contains -Text $suiteText -Needle "Assert-ScriptGuardPreservationInvariant" -Label "Suite script-guard preservation invariant"
+Assert-NotContains -Text $suiteText -Needle '"Source titles before/after: 8/8"' -Label "Suite no mutable script-guard source count"
 Assert-NotContains -Text $suiteText -Needle '"Result: OK SWTITLESTATUS status=NEXT_UPGRADE_NATIVE_GMTITLE"' -Label "Suite current work-copy probes must not expect stale native-upgrade status"
-Assert-Contains -Text $suiteText -Needle "Source-title-missing outline native outside marker prepare probe (A4-sized sample)" -Label "Suite source-title-missing sample outside marker prepare step"
-Assert-Contains -Text $suiteText -Needle "After definition status: ready-native-outside-markers" -Label "Suite source-title-missing sample outside marker prepare expectation"
-Assert-Contains -Text $suiteText -Needle "Title-missing outline hidden-script safety probe (A4-sized source-title-missing sample)" -Label "Suite title-missing outline hidden-script safety step"
+Assert-Contains -Text $suiteText -Needle "Common source-title-missing gap probe (A2 fixture)" -Label "Suite common A2 source-title-missing gap step"
+Assert-Contains -Text $suiteText -Needle "Common source-title-missing definition prepare probe (A3 fixture)" -Label "Suite common A3 source-title-missing prepare step"
+Assert-Contains -Text $suiteText -Needle "Common source-title-missing hidden-script safety probe (A4 fixture)" -Label "Suite common A4 source-title-missing safety step"
+Assert-Contains -Text $suiteText -Needle "run_source_title_missing_common_probe.ps1" -Label "Suite common source-title-missing runner"
 Assert-NotContains -Text $suiteText -Needle "260706-unified-title-missing-3" -Label "Suite stale GMTITLE version expectation"
 Assert-Contains -Text $suiteText -Needle "ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE" -Label "Suite title-missing outline hidden-script safety expectation"
-Assert-Contains -Text $suiteText -Needle "Before target title count: 5" -Label "Suite title-missing preserves existing title count before convert"
-Assert-Contains -Text $suiteText -Needle "After target title count: 5" -Label "Suite title-missing does not add title after convert"
-Assert-Contains -Text $suiteText -Needle "Native GMTITLE A4 pair evidence: no" -Label "Suite source-title-missing sample native-pair gap expectation"
+Assert-Contains -Text $suiteText -Needle "After target title count: 0" -Label "Suite isolated title-missing fixture adds no title in script mode"
+Assert-Contains -Text $sourceTitleMissingCommonProbeText -Needle "SWCAD_STM_SHEET" -Label "Common title-missing fixture sheet parameter"
+Assert-Contains -Text $sourceTitleMissingCommonProbeText -Needle "SWCAD_STM_MODE" -Label "Common title-missing fixture mode parameter"
+Assert-Contains -Text $sourceTitleMissingCommonProbeText -Needle "swcad-title-prepare-title-missing-outline-definition" -Label "Common title-missing fixture prepare path"
+Assert-Contains -Text $sourceTitleMissingCommonProbeText -Needle "swcad-title-transfer-title-missing-outline-apply" -Label "Common title-missing fixture script guard path"
+Assert-Contains -Text $sourceTitleMissingCommonProbeText -Needle "Fixture result: " -Label "Common title-missing fixture result marker"
+Assert-NotContains -Text $sourceTitleMissingCommonProbeText -Needle '"DR_A4_Outline"' -Label "Common title-missing fixture has no A4 target hardcode"
+Assert-Contains -Text $sourceTitleMissingCommonRunnerText -Needle '[ValidateSet("A2", "A3", "A4")]' -Label "Common title-missing runner sheet matrix"
+Assert-Contains -Text $adoptionGateProbeText -Needle "swcad-title-insert-block-reference target-title-name" -Label "Adoption fixture instantiates target attributes"
+Assert-Contains -Text $adoptionGateProbeText -Needle "Target title missing tag count before transfer:" -Label "Adoption fixture verifies required title tags"
+Assert-Contains -Text $suiteText -Needle "Target title missing tag count before transfer: 0" -Label "Suite requires complete adoption title attributes"
 Assert-Contains -Text $suiteText -Needle "WaitForGstarCADClose" -Label "Suite GstarCAD-close wait option"
 Assert-Contains -Text $suiteText -Needle "Assert-NoExistingGstarCAD" -Label "Suite open-GstarCAD preflight"
 Assert-Contains -Text $suiteText -Needle "main56_verification_suite_last_run.txt" -Label "Suite latest run summary log path"
@@ -943,7 +1002,7 @@ Assert-Contains -Text $readmeText -Needle "NEXT_CREATE_FIRST_NATIVE_GMTITLE / NE
 Assert-Contains -Text $readmeText -Needle "NEXT_UPGRADE_NATIVE_GMTITLE -> SWTITLECONVERTNEXT native replacement" -Label "README native-upgrade status recommends convert-next"
 Assert-NotContains -Text $readmeText -Needle "NEXT_CREATE_FIRST_NATIVE_GMTITLE / NEXT_CREATE_MISSING_NATIVE_EXEMPLAR -> SWTITLECONVERT`r`n" -Label "README stale first-native direct convert mapping"
 Assert-NotContains -Text $readmeText -Needle "NEXT_UPGRADE_NATIVE_GMTITLE -> SWTITLECONVERT native replacement" -Label "README stale native-upgrade direct convert mapping"
-Assert-Contains -Text $readmeText -Needle "A4-sized source-title-missing outside marker prepare" -Label "README source-title-missing marker prepare guidance"
+Assert-Contains -Text $readmeText -Needle "one generated source-title-missing fixture is parameterized by sheet size" -Label "README common source-title-missing fixture guidance"
 Assert-Contains -Text $readmeText -Needle "nested-direct-outside" -Label "README nested-direct source-title-missing sample probe guidance"
 Assert-Contains -Text $readmeText -Needle "run_gmtitle_selection_config_probe.ps1" -Label "README GMTITLE selection config probe guidance"
 Assert-Contains -Text $readmeText -Needle "Recent File List" -Label "README selection config recent-file warning"
@@ -991,7 +1050,9 @@ Assert-Contains -Text $dialogAutoselectHelperText -Needle '$requiredIds = @(3010
 Assert-Contains -Text $dialogAutoselectHelperText -Needle "CB_SETCURSEL" -Label "GMTITLE combo selection without screen coordinates"
 Assert-Contains -Text $dialogAutoselectHelperText -Needle "BM_CLICK" -Label "GMTITLE checkbox and OK control action"
 Assert-Contains -Text $dialogAutoselectHelperText -Needle "Readback validation: PASS" -Label "GMTITLE fixed control readback gate"
-Assert-Contains -Text $dialogAutoselectHelperText -Needle "Dialog automation is limited to dedicated DWG copies under work" -Label "GMTITLE dialog automation work-copy guard"
+Assert-Contains -Text $dialogAutoselectHelperText -Needle "Dialog automation requires an existing DWG work copy" -Label "GMTITLE dialog automation DWG guard"
+Assert-Contains -Text $dialogAutoselectHelperText -Needle "The isolated session loaded an unexpected DWG" -Label "GMTITLE dialog automation exact session-DWG guard"
+Assert-NotContains -Text $dialogAutoselectHelperText -Needle "dedicated DWG copies under work" -Label "GMTITLE dialog automation no fixed work-folder guard"
 Assert-Contains -Text $dialogAutoselectHelperText -Needle "-ClickOk requires -ApplySelections" -Label "GMTITLE OK requires exact selection mode"
 Assert-Contains -Text $dialogAutoselectHelperText -Needle "ApplicationWindowHandle" -Label "GMTITLE helper pins selection to the active CAD HWND"
 Assert-Contains -Text $mainText -Needle "swcad-title-start-gmtitle-dialog-autoselect" -Label "GMTITLE LSP launches fixed-control helper"
@@ -1062,8 +1123,11 @@ Assert-Contains -Text $actualDirectStatusProbeText -Needle "first-native-selecti
 Assert-Contains -Text $actualDirectStatusProbeText -Needle "manual-forecast-log-note-found" -Label "Actual workcopy probe manual forecast log check"
 Assert-Contains -Text $actualDirectStatusProbeText -Needle "source-before-title-missing-forecast-note-found" -Label "Actual workcopy probe source-before-title-missing forecast check"
 Assert-Contains -Text $actualDirectStatusProbeText -Needle "next-missing-native-frame" -Label "Actual workcopy probe missing-native frame output"
-Assert-Contains -Text $postFirstNativeProbeText -Needle "marker-only A2 target is not accepted as native-like GMTITLE and must be upgraded" -Label "Post-first-native marker gate negative evidence"
+Assert-Contains -Text $postFirstNativeProbeText -Needle "marker-only A2 target is not accepted as native-like GMTITLE; remaining real source sheets may be reviewed first" -Label "Post-first-native marker gate negative evidence"
 Assert-Contains -Text $postFirstNativeProbeText -Needle "Next missing native selection after fixture" -Label "Post-first-native marker gate next missing selection evidence"
+Assert-Contains -Text $postFirstNativeProbeText -Needle "(- before-source-count 1)" -Label "Post-first-native marker gate derives source count"
+Assert-Contains -Text $postFirstNativeProbeText -Needle "before-frame-only-count" -Label "Post-first-native marker gate derives frame-only count"
+Assert-NotContains -Text $suiteText -Needle '"Source title count after fixture: 12"' -Label "Suite no mutable post-first-native source count"
 Assert-Contains -Text $postFirstNativeRunnerText -Needle "post_first_native_transition_probe.lsp" -Label "Post-first-native marker gate runner"
 Assert-Contains -Text $openWorkcopyRunnerText -Needle "SWTITLESTATUS" -Label "Open workcopy helper status command"
 Assert-Contains -Text $openWorkcopyRunnerText -Needle "이 helper는 SWTITLECONVERTNEXT를 실행하지 않고" -Label "Open workcopy helper Korean no-convert guard"
@@ -1464,7 +1528,7 @@ Assert-Contains -Text $cadTextLogReaderText -Needle "Safety: this script only re
 Assert-Contains -Text $cadTextLogReaderText -Needle "Result: READ_LOG_OK" -Label "CAD text log reader success marker"
 Assert-Contains -Text $cadTextLogReaderText -Needle "Result: LISTED_LOGS" -Label "CAD text log reader list marker"
 Assert-Contains -Text $cadTextLogReaderText -Needle "Find regex:" -Label "CAD text log reader find support"
-Assert-Contains -Text $readmeText -Needle "A4-sized source-title-missing exemplar gap" -Label "README A4-sized source-title-missing exemplar gap wording"
+Assert-Contains -Text $readmeText -Needle "main verification suite no longer uses the mutable default work-copy as its title-missing fixture" -Label "README mutable A4 gap fixture retired"
 Assert-Contains -Text $readmeText -Needle "A4 clean scratch comparison evidence" -Label "README clean A4 scratch comparison evidence"
 Assert-Contains -Text $readmeText -Needle "not as an A4-only conversion policy" -Label "README A4 probe is sample evidence not policy"
 Assert-Contains -Text $readmeText -Needle "The rule being tested is generic" -Label "README title-missing convert probe generic rule"

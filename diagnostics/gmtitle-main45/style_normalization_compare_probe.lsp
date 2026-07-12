@@ -202,13 +202,15 @@
   T
 )
 
-(defun swtitle-stylecmp-create-frame-block (sheet / name child-name logo-name dims width height offset left bottom right top)
+(defun swtitle-stylecmp-create-frame-block (sheet / name child-name logo-name offsheet-name dims width height offset left bottom right top)
   (setq name (swtitle-stylecmp-frame-name-for-sheet sheet))
   (setq child-name (strcat "SWSTYLE_" (strcase (swcad-title-string sheet)) "_FRAME_CONTENT"))
   (setq logo-name (strcat "SWSTYLE_" (strcase (swcad-title-string sheet)) "_TITLE_LOGO"))
+  (setq offsheet-name (strcat "SWSTYLE_" (strcase (swcad-title-string sheet)) "_OFFSHEET_TABLE"))
   (swtitle-stylecmp-park-existing-block name)
   (swtitle-stylecmp-park-existing-block child-name)
   (swtitle-stylecmp-park-existing-block logo-name)
+  (swtitle-stylecmp-park-existing-block offsheet-name)
   (setq dims (swcad-title-sheet-dimensions sheet))
   (setq width (if dims (car dims) 420.0))
   (setq height (if dims (cadr dims) 297.0))
@@ -222,6 +224,17 @@
       (swtitle-stylecmp-block-begin logo-name)
       (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point 0.0 0.0) (swtitle-stylecmp-point 14.0 10.0))
       (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point 0.0 10.0) (swtitle-stylecmp-point 14.0 0.0))
+      (swtitle-stylecmp-block-end)
+    )
+  )
+  (if (not (swcad-title-block-exists-p offsheet-name))
+    (progn
+      (swtitle-stylecmp-block-begin offsheet-name)
+      (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point 0.0 0.0) (swtitle-stylecmp-point 40.0 0.0))
+      (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point 40.0 0.0) (swtitle-stylecmp-point 40.0 10.0))
+      (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point 40.0 10.0) (swtitle-stylecmp-point 0.0 10.0))
+      (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point 0.0 10.0) (swtitle-stylecmp-point 0.0 0.0))
+      (swtitle-stylecmp-entmake-text (swtitle-stylecmp-point 2.0 3.0) "OFFSHEET REV TABLE" 2.5)
       (swtitle-stylecmp-block-end)
     )
   )
@@ -252,6 +265,8 @@
       ;; Its center is outside the old fixed region, but it visibly intersects the actual-title-derived region.
       (swtitle-stylecmp-entmake-text (swtitle-stylecmp-point (+ left 5.0) (+ bottom 64.0)) "PARTIAL TITLE RESIDUE" 8.0)
       (swtitle-stylecmp-entmake-insert logo-name (swtitle-stylecmp-point (+ left 120.0) (+ bottom 12.0)))
+      ;; Generic regression fixture: a nested block far outside the expected sheet.
+      (swtitle-stylecmp-entmake-insert offsheet-name (swtitle-stylecmp-point (+ (* width 2.0) 20.0) (+ height 20.0)))
       (swtitle-stylecmp-block-end)
     )
   )
@@ -340,17 +355,38 @@
   (and value (= (strcase value) "1"))
 )
 
-(defun swtitle-stylecmp-run-clean (/ independent-before protected-before clean-records delete-result after-records independent-after second-clean-records second-delete-result)
+(defun swtitle-stylecmp-offsheet-records (/ result sheet frame-name dims frame-bbox paths)
+  (setq result nil)
+  (foreach sheet (swtitle-stylecmp-requested-sheets)
+    (setq frame-name (swtitle-stylecmp-frame-name-for-sheet sheet))
+    (setq dims (swcad-title-sheet-dimensions sheet))
+    (setq frame-bbox (if dims (list 0.0 0.0 (car dims) (cadr dims)) nil))
+    (setq paths (swcad-title-frame-path-entity-records frame-name))
+    (setq result
+      (append
+        result
+        (swcad-title-frame-style-offsheet-insert-records-from-paths paths frame-bbox)
+      )
+    )
+  )
+  result
+)
+
+(defun swtitle-stylecmp-run-clean (/ independent-before protected-before offsheet-before raw-risk-before clean-records delete-result after-records independent-after offsheet-after raw-risk-after second-clean-records second-delete-result)
   (setq independent-before (swcad-title-frame-style-independent-residue-records))
   (setq protected-before (swcad-title-frame-style-protected-records))
+  (setq offsheet-before (swtitle-stylecmp-offsheet-records))
+  (setq raw-risk-before (swcad-title-frame-definition-raw-bbox-risk-records))
   (setq clean-records (swcad-title-frame-style-normalization-entity-records))
   (setq delete-result (swcad-title-frame-style-normalization-delete-records clean-records))
   (vla-Regen (swcad-title-doc) 1)
   (setq after-records (swcad-title-frame-style-normalization-records))
   (setq independent-after (swcad-title-frame-style-independent-residue-records))
+  (setq offsheet-after (swtitle-stylecmp-offsheet-records))
+  (setq raw-risk-after (swcad-title-frame-definition-raw-bbox-risk-records))
   (setq second-clean-records (swcad-title-frame-style-normalization-entity-records))
   (setq second-delete-result (swcad-title-frame-style-normalization-delete-records second-clean-records))
-  (list clean-records delete-result after-records independent-before protected-before independent-after second-clean-records second-delete-result)
+  (list clean-records delete-result after-records independent-before protected-before independent-after second-clean-records second-delete-result offsheet-before raw-risk-before offsheet-after raw-risk-after)
 )
 
 (defun swtitle-stylecmp-definition-text-present-p (wanted / found blocks block item ename data etype text)
@@ -426,7 +462,7 @@
   )
 )
 
-(defun swtitle-stylecmp-main (/ lsp-path log-path label handle load-result load-ok version-value fixture-result fixture class-result style-present style-record-result style-records clean-result clean-records clean-delete-result clean-after-records independent-before protected-before independent-after second-clean-records second-delete-result status-result status-ok verify-result verify-ok)
+(defun swtitle-stylecmp-main (/ lsp-path log-path label handle load-result load-ok version-value fixture-result fixture class-result style-present style-record-result style-records clean-result clean-records clean-delete-result clean-after-records independent-before protected-before independent-after second-clean-records second-delete-result offsheet-before raw-risk-before offsheet-after raw-risk-after status-result status-ok verify-result verify-ok)
   (setq lsp-path
     (swtitle-stylecmp-env-path
       "SWCAD_COMPARE_LSP"
@@ -533,9 +569,17 @@
                       (setq independent-after (nth 5 clean-result))
                       (setq second-clean-records (nth 6 clean-result))
                       (setq second-delete-result (nth 7 clean-result))
+                      (setq offsheet-before (nth 8 clean-result))
+                      (setq raw-risk-before (nth 9 clean-result))
+                      (setq offsheet-after (nth 10 clean-result))
+                      (setq raw-risk-after (nth 11 clean-result))
                       (swtitle-stylecmp-write-line handle (strcat "Independent residue count before clean: " (itoa (length independent-before))))
                       (swtitle-stylecmp-write-line handle (strcat "Protected frame entity count before clean: " (itoa (length protected-before))))
+                      (swtitle-stylecmp-write-line handle (strcat "Off-sheet nested insert count before clean: " (itoa (length offsheet-before))))
+                      (swtitle-stylecmp-write-line handle (strcat "Frame definition raw bbox risk count before clean: " (itoa (length raw-risk-before))))
                       (swtitle-stylecmp-write-line handle (strcat "Independent residue count after clean: " (itoa (length independent-after))))
+                      (swtitle-stylecmp-write-line handle (strcat "Off-sheet nested insert count after clean: " (itoa (length offsheet-after))))
+                      (swtitle-stylecmp-write-line handle (strcat "Frame definition raw bbox risk count after clean: " (itoa (length raw-risk-after))))
                       (swtitle-stylecmp-write-line handle (strcat "Second clean entity count: " (itoa (length second-clean-records))))
                       (swtitle-stylecmp-write-line handle (strcat "Second clean deleted count: " (itoa (car second-delete-result))))
                       (swtitle-stylecmp-write-line handle (strcat "Preserved revision text: " (if (swtitle-stylecmp-definition-text-present-p "Revision note") "yes" "no")))

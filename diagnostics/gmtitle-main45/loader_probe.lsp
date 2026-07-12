@@ -100,7 +100,7 @@
         (strcat "Loaded GMTITLE version: " (if (boundp '*swcad-title-scale-version*) *swcad-title-scale-version* "<gmtitle version missing>"))
       )
       (swtitle-loader-probe-write-line handle "Expected loader version: 260706-loader-convert-next-response-guidance")
-      (swtitle-loader-probe-write-line handle "Expected GMTITLE version: 260711-unified-title-value-3")
+      (swtitle-loader-probe-write-line handle "Expected GMTITLE version: 260712-portable-saveas-offsheet-frame-1")
       (swtitle-loader-probe-write-line
         handle
         (strcat

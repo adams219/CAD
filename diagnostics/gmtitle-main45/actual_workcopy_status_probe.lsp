@@ -125,7 +125,7 @@
         (swtitle-diag45-write-line handle (strcat "Load result: ERROR - " (vl-catch-all-error-message load-result)))
       )
       (swtitle-diag45-write-line handle (strcat "Loaded version: " version-value))
-      (swtitle-diag45-write-line handle "Expected version: 260711-unified-title-value-3")
+      (swtitle-diag45-write-line handle "Expected version: 260712-portable-saveas-offsheet-frame-1")
       (swtitle-diag45-write-line handle (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swtitle-diag45-write-line handle (strcat "CTAB: " (getvar "CTAB")))
       (swtitle-diag45-write-line handle (strcat "DBMOD before commands: " (itoa (getvar "DBMOD"))))

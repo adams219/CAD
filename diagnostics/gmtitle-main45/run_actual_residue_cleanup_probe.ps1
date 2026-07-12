@@ -121,7 +121,7 @@ try {
 
   $expectations = @(
     "Load result: OK",
-    "Loaded version: 260711-unified-title-value-3",
+    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
     "First cleanup call: OK",
     "First cleanup status: OK_FRAME_STYLE_NORMALIZATION_CLEANED",
     "After style pairs: 0",

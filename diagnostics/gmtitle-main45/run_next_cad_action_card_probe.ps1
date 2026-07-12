@@ -65,7 +65,7 @@ function New-FakeRepoWorkCopy {
   New-Item -ItemType Directory -Path $workPath -Force | Out-Null
   New-Item -ItemType Directory -Path $gmtitlePath -Force | Out-Null
   Set-Content -LiteralPath (Join-Path $repoPath "swcad_load.lsp") -Encoding ASCII -Value "fake loader"
-  Set-Content -LiteralPath (Join-Path $gmtitlePath "swcad_title_scale.lsp") -Encoding ASCII -Value '(setq *swcad-title-scale-version* "260711-unified-title-value-3")'
+  Set-Content -LiteralPath (Join-Path $gmtitlePath "swcad_title_scale.lsp") -Encoding ASCII -Value '(setq *swcad-title-scale-version* "260712-portable-saveas-offsheet-frame-1")'
   $dwgPath = Join-Path $workPath "$DwgName.dwg"
   Set-Content -LiteralPath $dwgPath -Encoding ASCII -Value "fake dwg marker"
   return @{
@@ -96,8 +96,8 @@ function Write-FakeLog {
     [string]$VerifyStatus = "SWTITLEVERIFY_FINAL_FAIL",
     [string]$Frame = "DR_A2_Outline",
     [string]$Title = "DR_titlea_3rd",
-    [string]$LoadedVersion = "260711-unified-title-value-3",
-    [string]$ExpectedVersion = "260711-unified-title-value-3",
+    [string]$LoadedVersion = "260712-portable-saveas-offsheet-frame-1",
+    [string]$ExpectedVersion = "260712-portable-saveas-offsheet-frame-1",
     [string]$NextMissingFrame,
     [string]$NextMissingTitle,
     [string]$NextMissingRole,

@@ -89,7 +89,7 @@ LSP와 고정 컨트롤 보조 프로그램이 자동 처리:
   새 결과 검사와 실패 시 보존/rollback
 
 사람이 확인:
-  현재 열린 파일이 work 복사본인지 확인
+  다른 이름으로 저장한 새 작업본이 현재 활성 파일인지 확인
   SWTITLESTATUS/SWTITLEVERIFY 최종 결과
   대표 DR_titlea_3rd 제목블록의 더블클릭 편집창
   LSP 릴리스/회귀검사에서는 전체 DR_titlea_3rd와 DR_A*_Outline 편집창
@@ -101,13 +101,16 @@ LSP와 고정 컨트롤 보조 프로그램이 자동 처리:
 
 ## 시작 조건
 
-반드시 `work` 폴더 안의 작업복사본에서만 실행합니다.
+원본에서는 읽기 전용 `SWTITLESTATUS`를 먼저 실행할 수 있습니다. 처음 변경 명령을 실행하면
+`SWTITLE 변환 작업본을 다른 이름으로 저장` 창이 열리며, 사용자가 원하는 폴더와 새 파일명을 정합니다.
 
 ```text
-C:\Users\DR-DESIGN\Documents\CAD tool\work
+SWTITLEPREPARE 또는 SWTITLECONVERTNEXT
+-> 작업본 저장 위치 선택
+-> 선택한 새 DWG에서만 정리/변환
 ```
 
-`Downloads` 원본 DWG나 실제 납품 원본에서 바로 실행하지 않습니다.
+원본과 같은 경로를 선택하거나 저장을 취소하면 변환하지 않습니다.
 
 ## 로드
 
@@ -120,7 +123,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260711-unified-title-value-3
+260712-portable-saveas-offsheet-frame-1
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.

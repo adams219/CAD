@@ -13,7 +13,7 @@ SWTITLECONVERTNEXT
 SWTITLEVERIFY
 ```
 
-수동 fallback이 필요할 때만 `SWTITLECONVERT`를 사용합니다. `SWTITLECONVERTNEXT`는 work 복사본에서 GMTITLE 창의 DR 용지/제목블록/옵션을 고정 컨트롤로 선택하고 readback을 검증한 뒤 남은 시트를 연속 처리합니다.
+수동 fallback이 필요할 때만 `SWTITLECONVERT`를 사용합니다. `SWTITLECONVERTNEXT`는 사용자가 다른 이름으로 저장한 작업본에서 GMTITLE 창의 DR 용지/제목블록/옵션을 고정 컨트롤로 선택하고 readback을 검증한 뒤 남은 시트를 연속 처리합니다.
 
 아래 옛 명령은 직접 입력하지 않습니다.
 
@@ -28,28 +28,30 @@ SWTITLEGMTITLEVERIFYALL
 
 옛 명령이 실행된다면 오래된 LSP가 로드된 상태일 수 있습니다. `swcad_load.lsp`를 다시 `APPLOAD`하고 `SWTITLEVERSION`부터 확인합니다.
 
-## 0. 작업복사본 확인
+## 0. 원본과 작업본 원칙
 
-변환은 반드시 `work` 폴더 아래 복사본에서만 합니다.
+원본 DWG에서는 `SWTITLESTATUS`와 `SWTITLEVERIFY` 같은 읽기 전용 명령을 실행할 수 있습니다.
+처음 `SWTITLEPREPARE`, `SWTITLECONVERTNEXT`, `SWTITLECONVERT`를 실행하면 아래 창이 먼저 열립니다.
 
 ```text
-C:\Users\DR-DESIGN\Documents\CAD tool\work
+SWTITLE 변환 작업본을 다른 이름으로 저장
 ```
 
-`Downloads`의 원본 DWG나 실제 납품 원본에서 바로 실행하지 않습니다.
+원하는 폴더와 새 파일명을 정하면 그 새 DWG가 활성 작업본이 됩니다. 원본과 같은 경로는 허용하지 않으며,
+저장을 취소하면 변환도 취소됩니다. 이후 변환과 정리는 선택한 작업본에서만 수행합니다.
 
 ## 1. LSP 로드
 
 GstarCAD에서 `APPLOAD`로 아래 파일을 로드합니다.
 
 ```text
-C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp
+<SWCAD 도구 폴더>\swcad_load.lsp
 ```
 
 GMTITLE 도구만 직접 로드할 때는 아래 파일을 사용할 수 있습니다.
 
 ```text
-C:\Users\DR-DESIGN\Documents\CAD tool\src\tools\gmtitle\swcad_title_scale.lsp
+<SWCAD 도구 폴더>\src\tools\gmtitle\swcad_title_scale.lsp
 ```
 
 로드 후 버전을 확인합니다.
@@ -61,7 +63,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260711-unified-title-value-3
+260712-portable-saveas-offsheet-frame-1
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 로드합니다.
@@ -77,7 +79,7 @@ SWTITLESTATUS
 확인할 내용:
 
 ```text
-현재 DWG가 work 폴더 복사본인지
+현재 DWG가 사용자 선택 작업본으로 승인됐는지
 원본 SolidWorks 표제란 시트 수
 원본 SolidWorks 도면틀 수
 표제란 없는 frame-only 시트 수

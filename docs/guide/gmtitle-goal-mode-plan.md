@@ -20,7 +20,7 @@
 정적 preflight: PASS
 hidden verification suite: PASS 여부는 `run_goal_status.ps1`와 `run_next_cad_action.ps1`가 최신 `work\main56_verification_suite_last_run.txt`의 Generated/Result/Worktree evidence hash를 읽어 판단
 GstarCAD /b script smoke probe: 2026-07-11 정상 창 방식 전체 18단계 회귀에서 PASS
-GMTITLE LSP 버전: 260711-unified-title-value-3
+GMTITLE LSP 버전: 260712-portable-saveas-offsheet-frame-1
 loader 버전: 260706-loader-convert-next-response-guidance
 공개 사용자 명령: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLECONVERT, SWTITLEVERIFY, SWTITLEVERSION, SWSCALESCAN
 A4 raw bbox guard: 있음
@@ -365,7 +365,7 @@ nested-direct-outside probe:
 ```text
 LSP 기준:
 loader: 260706-loader-convert-next-response-guidance
-gmtitle: 260711-unified-title-value-3
+gmtitle: 260712-portable-saveas-offsheet-frame-1
 
 초기 기준 작업 도면:
 C:\Users\DR-DESIGN\Documents\CAD tool\work\0000_A_DRP125_CP_ALL_260626_test_workcopy_03.dwg
@@ -408,7 +408,7 @@ work\swcad_title_verify_summary_last_actual_workcopy_main56_diagnostics.txt
 ```text
 신뢰 가능:
   DWG 파일이 현재 열린 work 복사본과 같음
-  SWTITLE LSP 버전이 260711-unified-title-value-3
+  SWTITLE LSP 버전이 260712-portable-saveas-offsheet-frame-1
   방금 실행한 명령 결과임
 
 신뢰 보류:
@@ -453,14 +453,14 @@ BATCH 자동화:
 따라서 이 작업복사본에서 같은 실수를 피하려면 아래 순서를 지킨다.
 
 ```text
-1. 먼저 SWTITLEVERSION / SWTITLESTATUS로 현재 workcopy와 LSP 버전을 확인한다.
+1. 먼저 SWTITLEVERSION / SWTITLESTATUS로 현재 DWG와 LSP 버전을 확인한다.
 2. 현재 저장본 상태가 NEXT_PREPARE_FRAME_STYLE_NORMALIZATION이면 SWTITLEPREPARE를 한 번 실행한다.
 3. 바로 SWTITLESTATUS를 다시 실행해 style normalization 후보와 독립 잔여물이 0인지 확인한다.
 4. WARN_RESIDUE_REMAINS 또는 같은 NEXT_PREPARE 상태가 남으면 SWTITLECONVERTNEXT를 실행하지 않는다.
 5. 정리가 통과하고 변환 상태가 나오면 GMTITLE 창에서는 로그가 요구한 DR_A*_Outline, DR_titlea_3rd, Frame positioning ON, Object move OFF만 허용한다.
 6. 한 장이 끝나면 SWTITLESTATUS 또는 저장/닫기 후 run_after_manual_gmtitle_step.ps1 -Compact로 다음 상태를 확인한다.
 7. 같은 선택값이 반복되는 구간에서만 BATCH를 쓰고, 숨김/SCRIPT 자동화에는 쓰지 않는다.
-8. 새 work 복사본에서 NEXT_CREATE_FIRST_NATIVE_GMTITLE이 나오면 그때만 첫 대상이 DR_A2_Outline이다.
+8. 새 작업본에서 NEXT_CREATE_FIRST_NATIVE_GMTITLE이 나오면 그때만 첫 대상이 DR_A2_Outline이다.
 9. 원본에 표제란이 없는 시트는 title-missing/frame-only 단계에서 불필요한 DR_titlea_3rd가 생기면 중단한다.
 ```
 
@@ -470,7 +470,7 @@ BATCH 자동화:
 
 | 작업 단위 | 해결하려는 질문 | 통과 증거 | 통과 전 금지 |
 | --- | --- | --- | --- |
-| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 work 복사본을 보고 있는가 | `SWTITLEVERSION=260711-unified-title-value-3`, `작업 폴더 복사본: 예` | `SWTITLECONVERTNEXT` 실행 |
+| 버전/도면 고정 | 지금 열린 CAD가 최신 LSP와 사용자 선택 작업본을 보고 있는가 | `SWTITLEVERSION=260712-portable-saveas-offsheet-frame-1`, `Work-copy authorization: user-selected-saveas-copy` 또는 저장소 진단용 work-copy | `SWTITLECONVERTNEXT` 실행 |
 | 첫 native 기준 객체 | 이 DWG 안에 실제 GMTITLE 쌍이 최소 1개 있는가 | `target-title-count > 0`, 같은 크기 `DR_A*_Outline` 기준 객체 존재 | clone/fast batch 완료 판단 |
 | A2/A3/A4 native 교체 | 겉보기 복제본이 아니라 fresh native 쌍인가 | `A2/A3/A4 native 교체 후보: 0`, clone/shared-link 경고 0 | 도면틀 더블클릭만 보고 성공 판정 |
 | title-missing/frame-only | 원본에 없는 제목블록 없이 도면틀만 교체됐는가 | title-missing 도면틀-only 대상 수와 예상 수량 일치, 불필요한 `DR_titlea_3rd` 없음 | 원본에 없던 제목블록 생성 |
@@ -628,7 +628,7 @@ SWTITLEVERIFY_FINAL_OK가 나오는지
 
 ```text
 원본 DWG는 직접 편집하지 않는다.
-작업은 항상 Documents\CAD tool\work 복사본에서만 한다.
+첫 변경 명령에서 다른 이름으로 저장한 새 작업본에서만 편집한다.
 화면 좌표 클릭 자동화는 기본 방식으로 쓰지 않는다.
 복제 GMTITLE은 native GMTITLE로 간주하지 않는다.
 도면이 겉으로 맞아 보여도 SWTITLEVERIFY_FINAL_OK 전에는 완료가 아니다.
@@ -656,7 +656,7 @@ SWSCALESCAN
 
 | 종류 | 의미 | 판단 증거 | 다음 행동 |
 | --- | --- | --- | --- |
-| 버전/도면 문제 | CAD가 최신 LSP나 work 복사본을 보고 있지 않음 | `SWTITLEVERSION` 불일치, DWG 경로가 `work`가 아님 | APPLOAD 후 다시 상태 확인 |
+| 버전/도면 문제 | CAD가 최신 LSP나 승인된 작업본을 보고 있지 않음 | `SWTITLEVERSION` 불일치, 작업본 승인 표식 없음 | APPLOAD 후 첫 변경 명령에서 작업본 위치 선택 |
 | native 구조 문제 | 겉모양은 맞지만 복제/shared-link라 GMTITLE 인식이 불확실함 | `A2/A3/A4 native 교체 후보`, `복제`, `shared-native-link-handle` | `SWTITLECONVERTNEXT`로 한 장씩 fresh native 교체 |
 | title-missing/frame-only 문제 | 원본 시트에는 표제란이 없고 도면틀만 있음 | `표제란 없는 도면틀 시트`, 대상 도면틀 누락 | native 교체 뒤 같은 크기 도면틀-only 처리 |
 | 잔여물/오염 문제 | 실수 텍스트, 겹친 target, raw bbox 위험, 도면틀 정의 오염 | `SWTITLESTATUS`의 prepare/위험 안내 | 변환 반복 금지, `SWTITLEPREPARE` 또는 원인 분석 |
@@ -669,7 +669,7 @@ SWSCALESCAN
 
 ```text
 APPLOAD
-C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp
+<SWCAD 도구 폴더>\swcad_load.lsp
 SWTITLEVERSION
 SWTITLESTATUS
 ```
@@ -678,13 +678,10 @@ SWTITLESTATUS
 
 ```text
 SWTITLEVERSION:
-260711-unified-title-value-3
+260712-portable-saveas-offsheet-frame-1
 
-DWG 파일:
-C:\Users\DR-DESIGN\Documents\CAD tool\work\...
-
-작업 폴더 복사본:
-예
+Work-copy authorization:
+user-selected-saveas-copy
 ```
 
 통과하지 못하면 `SWTITLECONVERT`를 실행하지 않는다.
@@ -1039,7 +1036,7 @@ Codex가 테스트할 때도 완료 판단은 화면만 보지 않고 최신 로
 
 ```text
 1. APPLOAD로 C:\Users\DR-DESIGN\Documents\CAD tool\swcad_load.lsp 로드
-2. SWTITLEVERSION으로 gmtitle 버전이 260711-unified-title-value-3인지 확인
+2. SWTITLEVERSION으로 gmtitle 버전이 260712-portable-saveas-offsheet-frame-1인지 확인
 3. SWTITLESTATUS로 현재 상태 확인
 4. 현재 저장본이라면 NEXT_PREPARE_FRAME_STYLE_NORMALIZATION인지 확인
 5. SWTITLEPREPARE를 한 번 실행

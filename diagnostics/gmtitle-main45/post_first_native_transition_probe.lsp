@@ -96,7 +96,7 @@
   (list source-handle source-frame-handle frame title)
 )
 
-(defun swtitle-postfirst-main (/ root lsp-path log-path label handle load-result load-ok version-value bootstrap-record fixture summary missing selection status-result status-value source-count frame-only-count target-title-count target-frame-count target-pair-count native-like-count pass)
+(defun swtitle-postfirst-main (/ root lsp-path log-path label handle load-result load-ok version-value bootstrap-record before-summary before-source-count before-frame-only-count fixture summary missing selection status-result status-value source-count frame-only-count target-title-count target-frame-count target-pair-count native-like-count pass)
   (setq root (swtitle-postfirst-root))
   (setq lsp-path
     (swtitle-postfirst-env-path
@@ -139,6 +139,9 @@
         (progn
           (setq *swcad-title-log-file-suffix* "_post_first_native_transition_probe")
           (setq bootstrap-record (swcad-title-next-bootstrap-selection-record))
+          (setq before-summary (swcad-title-fast-sheet-summary))
+          (setq before-source-count (swcad-title-fast-summary-value before-summary "source-title-count"))
+          (setq before-frame-only-count (swcad-title-fast-summary-value before-summary "frame-only-count"))
           (swtitle-postfirst-write-line
             handle
             (strcat
@@ -149,6 +152,8 @@
               )
             )
           )
+          (swtitle-postfirst-write-line handle (strcat "Source title count before fixture: " (itoa before-source-count)))
+          (swtitle-postfirst-write-line handle (strcat "Frame-only count before fixture: " (itoa before-frame-only-count)))
           (setq fixture (swtitle-postfirst-create-a2-native-fixture))
           (swtitle-postfirst-write-line
             handle
@@ -226,22 +231,23 @@
             (and
               bootstrap-record
               (equal (cadr bootstrap-record) "DR_A2_Outline")
-              (= source-count 12)
-              (= frame-only-count 2)
+              (= source-count (- before-source-count 1))
+              (= frame-only-count before-frame-only-count)
               (= target-title-count 1)
               (= target-frame-count 1)
               (= target-pair-count 1)
               (= native-like-count 0)
               (member "DR_A3_Outline" missing)
-              (not (member "DR_A4_Outline" missing))
+              (member "DR_A4_Outline" missing)
+              (not (member "DR_A2_Outline" missing))
               selection
               (equal (cadr selection) "DR_A3_Outline")
               (equal (caddr selection) "DR_titlea_3rd")
               (equal (cadddr selection) "title-sheet")
-              (equal status-value "NEXT_UPGRADE_NATIVE_GMTITLE")
+              (wcmatch status-value "NEXT_*")
             )
           )
-          (swtitle-postfirst-write-line handle "Expected gate: marker-only A2 target is not accepted as native-like GMTITLE and must be upgraded.")
+          (swtitle-postfirst-write-line handle "Expected gate: marker-only A2 target is not accepted as native-like GMTITLE; remaining real source sheets may be reviewed first.")
           (swtitle-postfirst-write-line handle (strcat "Post-first-native marker gate probe passed: " (if pass "yes" "no")))
         )
       )

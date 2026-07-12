@@ -188,7 +188,7 @@
           (setq all-good
             (and
               (not (vl-catch-all-error-p verify-result))
-                  (equal version "260711-unified-title-value-3")
+                  (equal version "260712-portable-saveas-offsheet-frame-1")
               (equal verify-status "SWTITLEVERIFY_FINAL_OK")
               (= source-title-count 0)
               (= source-frame-count 0)

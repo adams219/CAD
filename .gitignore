@@ -46,3 +46,6 @@ work/swcad_title_text_scan_last.txt
 work/swcad_title_transfer_preview_last.txt
 work/swcad_title_transfer_apply_last.txt
 work/swcad_scale_scan_last.txt
+
+# Local portable GMTITLE end-to-end drawings and captured logs
+portable-e2e/

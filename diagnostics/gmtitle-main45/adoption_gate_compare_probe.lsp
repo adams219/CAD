@@ -109,15 +109,15 @@
   (swtitle-adopt-delete-inserts target-title-name)
   (setq source-frame (swtitle-adopt-insert-block source-frame-name '(0.0 0.0 0.0)))
   (setq source-title (swtitle-adopt-insert-block source-title-name '(230.0 10.0 0.0)))
-  (setq target-frame (swtitle-adopt-insert-block target-frame-name '(0.0 0.0 0.0)))
-  (setq target-title (swtitle-adopt-insert-block target-title-name '(230.0 10.0 0.0)))
+  (setq target-frame (swcad-title-insert-block-reference target-frame-name 0.0 0.0))
+  (setq target-title (swcad-title-insert-block-reference target-title-name 230.0 10.0))
   (if (swtitle-adopt-symbol-present-p "SWCAD-TITLE-MARK-NATIVE-EXEMPLAR-PAIR")
     (swcad-title-mark-native-exemplar-pair target-title target-frame target-frame-name "native-apply")
   )
   (list source-frame source-title target-frame target-title)
 )
 
-(defun swtitle-adopt-main (/ root lsp-path log-path label handle load-result load-ok version-value fixture source-count-before source-count-after target-count-before target-count-after adopt-func-present apply-result status danger pass)
+(defun swtitle-adopt-main (/ root lsp-path log-path label handle load-result load-ok version-value fixture source-count-before source-count-after target-count-before target-count-after target-object target-attr-pairs target-missing-tags adopt-func-present apply-result status danger pass)
   (setq root (swtitle-adopt-root))
   (setq lsp-path
     (swtitle-adopt-env-path
@@ -174,6 +174,11 @@
           )
           (setq adopt-func-present (swtitle-adopt-symbol-present-p "SWCAD-TITLE-ADOPTABLE-TARGET-PAIR-FOR-FRAME-BBOX"))
           (swtitle-adopt-write-line handle (strcat "Adoption function present: " (if adopt-func-present "yes" "no")))
+          (setq target-object (swcad-title-safe-vla-object (nth 3 fixture)))
+          (setq target-attr-pairs (if target-object (swcad-title-title-attribute-pairs target-object) nil))
+          (setq target-missing-tags (swcad-title-missing-template-tags target-attr-pairs))
+          (swtitle-adopt-write-line handle (strcat "Target title attribute count before transfer: " (itoa (length target-attr-pairs))))
+          (swtitle-adopt-write-line handle (strcat "Target title missing tag count before transfer: " (itoa (length target-missing-tags))))
           (setq source-count-before (swcad-title-source-title-count))
           (setq target-count-before (swcad-title-count-inserts-by-effective-name "DR_titlea_3rd"))
           (setq *swtitle-adoption-probe-danger-action* "<none>")
@@ -204,6 +209,8 @@
           (setq pass
             (and
               adopt-func-present
+              (> (length target-attr-pairs) 0)
+              (= (length target-missing-tags) 0)
               (equal status "ADOPTED_EXISTING_NATIVE_GMTITLE_TRANSFER")
               (equal danger "<none>")
               (= source-count-after 0)

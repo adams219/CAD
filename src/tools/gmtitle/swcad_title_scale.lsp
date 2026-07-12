@@ -40,7 +40,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260711-unified-title-value-3")
+(setq *swcad-title-scale-version* "260712-portable-saveas-offsheet-frame-1")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -57,6 +57,8 @@
 (setq *swcad-title-allow-script-commandline-gmtitle* nil)
 (setq *swcad-title-exemplar-xdata-app* "SWTITLE_EXEMPLAR")
 (setq *swcad-title-exemplar-xdata-marker* "SWTITLE_NATIVE_EXEMPLAR")
+(setq *swcad-title-workcopy-xdata-app* "SWTITLE_WORKCOPY")
+(setq *swcad-title-workcopy-xdata-marker* "SWTITLE_SELECTED_WORKCOPY")
 (setq *swcad-title-expected-sheet-counts-marker* "SWTITLE_EXPECTED_SHEET_COUNTS")
 (setq *swcad-title-expected-title-counts-marker* "SWTITLE_EXPECTED_TITLE_COUNTS")
 (setq *swcad-title-pending-native-title-ename* nil)
@@ -78,6 +80,14 @@
 (setq *swcad-title-target-frame-block-name* "DR_A3_Outline")
 (setq *swcad-title-target-title-block-name* "DR_titlea_3rd")
 (setq *swcad-title-disabled-legacy-public-commands* nil)
+(setq *swcad-title-work-copy-saveas-path-override* nil)
+(setq *swcad-title-source-path*
+  (cond
+    ((and (boundp '*load-truename*) *load-truename*) *load-truename*)
+    ((findfile "swcad_title_scale.lsp") (findfile "swcad_title_scale.lsp"))
+    (T nil)
+  )
+)
 
 (defun swcad-title-disable-legacy-public-commands (/ names name symbol)
   (setq names
@@ -356,8 +366,11 @@
           ("SWTITLE LSP version:" . "SWTITLE LSP 버전:")
           ("Expected current version for cleaned command surface:" . "정리된 명령어 구성의 예상 현재 버전:")
           ("If a different version is shown, APPLOAD this file again before trusting SWTITLE status results." . "다른 버전이 보이면 SWTITLE 상태 결과를 믿기 전에 이 파일을 APPLOAD로 다시 로드하세요.")
-          ("Work-folder test copy: yes" . "작업 폴더 복사본: 예")
-          ("Work-folder test copy: no" . "작업 폴더 복사본: 아니오")
+          ("Work-folder test copy: yes" . "승인된 작업본: 예")
+          ("Work-folder test copy: no" . "승인된 작업본: 아니오")
+          ("Work-copy authorization: legacy-work-folder" . "작업본 승인 방식: 저장소 진단 work 폴더")
+          ("Work-copy authorization: user-selected-saveas-copy" . "작업본 승인 방식: 다른 이름으로 저장한 사용자 작업본")
+          ("Work-copy authorization: not-selected" . "작업본 승인 방식: 아직 선택하지 않음")
           ("Read-only document: yes" . "읽기 전용 도면: 예")
           ("Read-only document: no" . "읽기 전용 도면: 아니오")
           ("DWG:" . "DWG 파일:")
@@ -937,16 +950,48 @@
   )
 )
 
-(defun swcad-title-work-log-path (filename / home)
-  (setq home (getenv "USERPROFILE"))
-  (if home
-    (strcat
-      (vl-string-translate "\\" "/" home)
-      "/Documents/CAD tool/work/"
-      (swcad-title-log-filename filename)
+(defun swcad-title-ensure-directory-path (path / clean parent result)
+  (setq clean (if path (vl-string-right-trim "\\/" path) nil))
+  (cond
+    ((or (not clean) (= clean "")) nil)
+    ((vl-file-directory-p clean) T)
+    (T
+      (setq parent (vl-filename-directory clean))
+      (if
+        (and
+          parent
+          (/= (strcase parent) (strcase clean))
+          (not (vl-file-directory-p parent))
+        )
+        (swcad-title-ensure-directory-path parent)
+      )
+      (setq result (vl-catch-all-apply 'vl-mkdir (list clean)))
+      (and (not (vl-catch-all-error-p result)) (vl-file-directory-p clean))
     )
-    (swcad-title-log-filename filename)
   )
+)
+
+(defun swcad-title-local-log-root-path (/ base root)
+  (setq base (getenv "LOCALAPPDATA"))
+  (if (not base) (setq base (getenv "TEMP")))
+  (if (not base) (setq base (getvar "DWGPREFIX")))
+  (setq root
+    (if base
+      (strcat (vl-string-right-trim "\\/" (vl-string-translate "\\" "/" base)) "/SWTitle/logs/")
+      ""
+    )
+  )
+  (if (and (/= root "") (swcad-title-ensure-directory-path root)) root "")
+)
+
+(defun swcad-title-work-log-path (filename / root)
+  (setq root
+    (if (swcad-title-current-dwg-under-legacy-work-root-p)
+      (swcad-title-work-root-path)
+      (swcad-title-local-log-root-path)
+    )
+  )
+  (strcat root (swcad-title-log-filename filename))
 )
 
 (defun swcad-title-work-root-path (/ home)
@@ -960,21 +1005,53 @@
   )
 )
 
-(defun swcad-title-repo-root-path (/ home)
-  (setq home (getenv "USERPROFILE"))
-  (if home
-    (strcat
-      (vl-string-translate "\\" "/" home)
-      "/Documents/CAD tool/"
+(defun swcad-title-repo-root-path (/ home source-dir candidate)
+  (setq candidate
+    (if (and (boundp '*swcad-root*) *swcad-root*)
+      (vl-string-right-trim "\\/" (vl-string-translate "\\" "/" *swcad-root*))
+      nil
     )
-    ""
+  )
+  (if (and candidate (findfile (strcat candidate "/src/tools/gmtitle/swcad_title_scale.lsp")))
+    (strcat candidate "/")
+    (progn
+      (setq source-dir (if *swcad-title-source-path* (vl-filename-directory *swcad-title-source-path*) nil))
+      (setq candidate
+        (if source-dir
+          (vl-filename-directory (vl-filename-directory (vl-filename-directory source-dir)))
+          nil
+        )
+      )
+      (if (and candidate (findfile (strcat candidate "/src/tools/gmtitle/swcad_title_scale.lsp")))
+        (strcat (vl-string-right-trim "\\/" (vl-string-translate "\\" "/" candidate)) "/")
+        (progn
+          (setq home (getenv "USERPROFILE"))
+          (if home
+            (strcat (vl-string-translate "\\" "/" home) "/Documents/CAD tool/")
+            ""
+          )
+        )
+      )
+    )
   )
 )
 
-(defun swcad-title-gmtitle-autoselect-helper-path ()
-  (strcat
-    (swcad-title-repo-root-path)
-    "src/tools/gmtitle/swtitle_gmtitle_dialog_autoselect.ps1"
+(defun swcad-title-gmtitle-autoselect-helper-path (/ source-dir same-dir packaged)
+  (setq source-dir (if *swcad-title-source-path* (vl-filename-directory *swcad-title-source-path*) nil))
+  (setq same-dir
+    (if source-dir
+      (strcat (vl-string-right-trim "\\/" (vl-string-translate "\\" "/" source-dir)) "/swtitle_gmtitle_dialog_autoselect.ps1")
+      nil
+    )
+  )
+  (setq packaged
+    (strcat (swcad-title-repo-root-path) "src/tools/gmtitle/swtitle_gmtitle_dialog_autoselect.ps1")
+  )
+  (cond
+    ((and same-dir (findfile same-dir)) same-dir)
+    ((findfile packaged) packaged)
+    (same-dir same-dir)
+    (T packaged)
   )
 )
 
@@ -1185,6 +1262,200 @@
   (vl-string-translate "\\" "/" (strcat (getvar "DWGPREFIX") (getvar "DWGNAME")))
 )
 
+(defun swcad-title-normalized-path (value)
+  (strcase
+    (vl-string-right-trim
+      "\\/"
+      (vl-string-translate "\\" "/" (swcad-title-string value))
+    )
+  )
+)
+
+(defun swcad-title-path-equal-p (left right)
+  (equal (swcad-title-normalized-path left) (swcad-title-normalized-path right))
+)
+
+(defun swcad-title-current-dwg-under-legacy-work-root-p (/ root)
+  (setq root (swcad-title-work-root-path))
+  (and
+    root
+    (/= root "")
+    (swcad-title-string-prefix-p root (swcad-title-current-dwg-full-path))
+  )
+)
+
+(defun swcad-title-work-copy-marker-entity (/ ename)
+  (setq ename (tblobjname "BLOCK" "*Model_Space"))
+  (if ename ename (tblobjname "BLOCK" "*MODEL_SPACE"))
+)
+
+(defun swcad-title-selected-work-copy-p (/ ename record values)
+  (setq ename (swcad-title-work-copy-marker-entity))
+  (setq record
+    (if ename
+      (swcad-title-xdata-record-by-app ename *swcad-title-workcopy-xdata-app*)
+      nil
+    )
+  )
+  (setq values (if record (swcad-title-xdata-text-values record) nil))
+  (if (member *swcad-title-workcopy-xdata-marker* values) T nil)
+)
+
+(defun swcad-title-clear-selected-work-copy-marker (/ ename data clean result)
+  (setq ename (swcad-title-work-copy-marker-entity))
+  (if (and ename (setq data (entget ename '("*"))))
+    (progn
+      (setq clean
+        (swcad-title-remove-xdata-app-from-data data *swcad-title-workcopy-xdata-app*)
+      )
+      (setq result (vl-catch-all-apply 'entmod (list clean)))
+      (not (vl-catch-all-error-p result))
+    )
+    nil
+  )
+)
+
+(defun swcad-title-mark-selected-work-copy (source-name / ename app data clean record result)
+  (setq ename (swcad-title-work-copy-marker-entity))
+  (setq app *swcad-title-workcopy-xdata-app*)
+  (if
+    (and
+      ename
+      (swcad-title-ensure-regapp app)
+      (setq data (entget ename '("*")))
+    )
+    (progn
+      (setq clean (swcad-title-remove-xdata-app-from-data data app))
+      (setq record
+        (list
+          app
+          (cons 1000 *swcad-title-workcopy-xdata-marker*)
+          (cons 1000 *swcad-title-scale-version*)
+          (cons 1000 (strcat "SOURCE-NAME:" (swcad-title-string source-name)))
+        )
+      )
+      (setq result
+        (vl-catch-all-apply
+          'entmod
+          (list (append clean (list (cons -3 (list record)))))
+        )
+      )
+      (and
+        (not (vl-catch-all-error-p result))
+        (swcad-title-selected-work-copy-p)
+      )
+    )
+    nil
+  )
+)
+
+(defun swcad-title-work-copy-timestamp (/ result)
+  (setq result
+    (vl-catch-all-apply
+      'menucmd
+      (list "M=$(edtime,$(getvar,date),YYYYMMDD-HHMMSS)")
+    )
+  )
+  (if (or (vl-catch-all-error-p result) (/= (type result) 'STR) (= result ""))
+    "WORKCOPY"
+    result
+  )
+)
+
+(defun swcad-title-default-work-copy-path (/ prefix base)
+  (setq prefix (vl-string-translate "\\" "/" (getvar "DWGPREFIX")))
+  (setq base (vl-filename-base (getvar "DWGNAME")))
+  (strcat
+    prefix
+    base
+    "_SWTITLE_"
+    (swcad-title-work-copy-timestamp)
+    ".dwg"
+  )
+)
+
+(defun swcad-title-saveas-selected-work-copy (/ source-path source-name default-path selected-path doc saveas-result marker-ok save-result)
+  (setq source-path (swcad-title-current-dwg-full-path))
+  (setq source-name (getvar "DWGNAME"))
+  (setq default-path (swcad-title-default-work-copy-path))
+  (swcad-title-princ-line "변환 전에 원본을 보존할 새 SWTITLE 작업본 위치와 파일명을 선택하세요.")
+  (swcad-title-princ-line "선택한 새 DWG가 활성 도면이 되며, 원본 DWG 파일은 변경하지 않습니다.")
+  (setq selected-path
+    (if
+      (and
+        (boundp '*swcad-title-work-copy-saveas-path-override*)
+        *swcad-title-work-copy-saveas-path-override*
+        (/= (swcad-title-string *swcad-title-work-copy-saveas-path-override*) "")
+      )
+      *swcad-title-work-copy-saveas-path-override*
+      (getfiled
+        "SWTITLE 변환 작업본을 다른 이름으로 저장"
+        default-path
+        "dwg"
+        1
+      )
+    )
+  )
+  (cond
+    ((not selected-path)
+      (swcad-title-apply-result "ABORT_WORK_COPY_SAVEAS_CANCELLED")
+      (swcad-title-princ-line "작업본 저장 위치 선택을 취소했습니다. 원본과 도면 데이터는 변경하지 않았습니다.")
+      nil
+    )
+    ((swcad-title-path-equal-p source-path selected-path)
+      (swcad-title-apply-result "ABORT_WORK_COPY_SAME_PATH")
+      (swcad-title-princ-line "원본과 같은 경로는 선택할 수 없습니다. 다른 파일명이나 폴더를 선택하세요.")
+      (swcad-title-princ-line "도면 데이터는 변경하지 않았습니다.")
+      nil
+    )
+    (T
+      (setq doc (vla-get-ActiveDocument (vlax-get-acad-object)))
+      (setq saveas-result (vl-catch-all-apply 'vla-SaveAs (list doc selected-path)))
+      (cond
+        ((vl-catch-all-error-p saveas-result)
+          (swcad-title-apply-result "ERROR_WORK_COPY_SAVEAS_FAILED")
+          (swcad-title-princ-line
+            (strcat "작업본 저장 실패: " (vl-catch-all-error-message saveas-result))
+          )
+          (swcad-title-princ-line "원본 도면 변환은 시작하지 않았습니다.")
+          nil
+        )
+        ((not (swcad-title-path-equal-p selected-path (swcad-title-current-dwg-full-path)))
+          (swcad-title-apply-result "ERROR_WORK_COPY_ACTIVE_PATH_MISMATCH")
+          (swcad-title-princ-line "저장 후 활성 DWG 경로가 선택한 작업본과 일치하지 않아 중단합니다.")
+          nil
+        )
+        (T
+          (setq marker-ok (swcad-title-mark-selected-work-copy source-name))
+          (if marker-ok
+            (setq save-result (vl-catch-all-apply 'vla-Save (list doc)))
+            (setq save-result nil)
+          )
+          (if
+            (and
+              marker-ok
+              (not (vl-catch-all-error-p save-result))
+              (swcad-title-selected-work-copy-p)
+            )
+            (progn
+              (setq *swcad-title-last-apply-status* "WORK_COPY_SAVEAS_OK")
+              (swcad-title-princ-line (strcat "SWTITLE 작업본 생성 완료: " (swcad-title-current-dwg-full-path)))
+              (swcad-title-princ-line (strcat "보존된 원본: " source-path))
+              T
+            )
+            (progn
+              (swcad-title-clear-selected-work-copy-marker)
+              (swcad-title-apply-result "ERROR_WORK_COPY_MARKER_SAVE_FAILED")
+              (swcad-title-princ-line "작업본 표식을 저장하지 못해 변환을 시작하지 않습니다.")
+              nil
+            )
+          )
+        )
+      )
+    )
+  )
+)
+
 (defun swcad-title-current-dwg-dbmod (/ value)
   (setq value (swcad-title-safe-getvar "DBMOD"))
   (if (numberp value) value 0)
@@ -1263,9 +1534,24 @@
 )
 
 (defun swcad-title-current-dwg-in-work-p ()
-  (swcad-title-string-prefix-p
-    (swcad-title-work-root-path)
-    (swcad-title-current-dwg-full-path)
+  (or
+    (swcad-title-current-dwg-under-legacy-work-root-p)
+    (swcad-title-selected-work-copy-p)
+  )
+)
+
+(defun swcad-title-work-copy-authorization-source ()
+  (cond
+    ((swcad-title-current-dwg-under-legacy-work-root-p) "legacy-work-folder")
+    ((swcad-title-selected-work-copy-p) "user-selected-saveas-copy")
+    (T "not-selected")
+  )
+)
+
+(defun swcad-title-ensure-work-copy-for-mutation ()
+  (if (swcad-title-current-dwg-in-work-p)
+    T
+    (swcad-title-saveas-selected-work-copy)
   )
 )
 
@@ -1275,6 +1561,9 @@
       "Work-folder test copy: "
       (if (swcad-title-current-dwg-in-work-p) "yes" "no")
     )
+  )
+  (swcad-title-princ-line
+    (strcat "Work-copy authorization: " (swcad-title-work-copy-authorization-source))
   )
 )
 
@@ -1337,21 +1626,8 @@
   )
 )
 
-(defun swcad-title-apply-work-copy-confirmed-p (/ answer)
-  (if (swcad-title-current-dwg-in-work-p)
-    T
-    (progn
-      (swcad-title-princ-line "WARNING: current DWG is outside the work test folder.")
-      (swcad-title-princ-line "No SOLIDWORKS title/frame content will be removed unless you explicitly confirm this non-work file.")
-      (setq answer
-        (getstring
-          T
-          "\n현재 DWG가 work 폴더 밖에 있습니다. 계속하려면 EDIT를 입력하고, 중단하려면 Enter를 누르세요: "
-        )
-      )
-      (equal (strcase answer) "EDIT")
-    )
-  )
+(defun swcad-title-apply-work-copy-confirmed-p ()
+  (swcad-title-ensure-work-copy-for-mutation)
 )
 
 (defun swcad-title-open-log (filename header / handle path)
@@ -5414,8 +5690,6 @@
   (setq geometry-risk-count (swcad-title-target-frame-geometry-warning-count frame-records))
   (setq overlap-risk-count (swcad-title-target-frame-overlap-warning-count frame-records))
   (cond
-    ((swcad-title-document-read-only-p) "BLOCKED_READ_ONLY_DOCUMENT")
-    ((not (swcad-title-current-dwg-in-work-p)) "BLOCKED_NOT_WORK_COPY")
     ((> geometry-risk-count 0) "WARN_TARGET_FRAME_GEOMETRY_INVALID")
     ((> overlap-risk-count 0) "WARN_TARGET_FRAME_SELECTION_RISK")
     ((and (= source-count 0) (= frame-only-count 0)) "OK_NO_REMAINING_SOURCES")
@@ -5635,11 +5909,14 @@
     )
   )
 
+  (if (not (swcad-title-current-dwg-in-work-p))
+    (swcad-title-princ-line "작업본 안내: 다음 SWTITLEPREPARE/SWTITLECONVERTNEXT 실행 시 다른 이름으로 저장 창에서 새 작업본 위치를 먼저 선택합니다.")
+  )
+  (if (swcad-title-document-read-only-p)
+    (swcad-title-princ-line "읽기 전용 원본 안내: 원본을 직접 수정하지 않고, 선택한 새 작업본에 저장한 뒤 변환합니다.")
+  )
+
   (cond
-    ((swcad-title-document-read-only-p)
-      (swcad-title-apply-result "NEXT_OPEN_WRITABLE_WORK_COPY")
-      (swcad-title-princ-line "다음: 변경 전에 Documents/CAD tool/work 아래의 쓰기 가능한 작업복사본을 여세요.")
-    )
     ((> command-text-count 0)
       (swcad-title-apply-result "NEXT_REVIEW_ACCIDENTAL_COMMAND_TEXT")
       (swcad-title-princ-line "이유: CAD가 문자/입력 상태였을 때 명령어 글자가 도면에 들어갔을 수 있습니다.")
@@ -8548,7 +8825,64 @@
   result
 )
 
-(defun swcad-title-frame-style-normalization-records-for-frame (frame-name / pairs result pair title frame pair-frame-name context frame-matrix title-bbox root-region world-region frame-root-bbox path-records delete-records verify-records protected-records overlap)
+(defun swcad-title-frame-style-offsheet-insert-p (record frame-bbox / etype item-name bbox child-exists depth tolerance)
+  (setq etype (nth 4 record))
+  (setq item-name (nth 5 record))
+  (setq bbox (nth 7 record))
+  (setq child-exists (nth 13 record))
+  (setq depth (nth 12 record))
+  (setq tolerance 5.0)
+  (and
+    frame-bbox
+    bbox
+    (equal etype "INSERT")
+    child-exists
+    (> depth 0)
+    (not (swcad-title-native-target-title-name-p item-name))
+    (not (swcad-title-native-target-frame-name-p item-name))
+    (> (swcad-title-bbox-area bbox) 0.01)
+    (not (swcad-title-bbox-intersects-p bbox frame-bbox))
+    (or
+      (> (car bbox) (+ (caddr frame-bbox) tolerance))
+      (< (caddr bbox) (- (car frame-bbox) tolerance))
+      (> (cadr bbox) (+ (cadddr frame-bbox) tolerance))
+      (< (cadddr bbox) (- (cadr frame-bbox) tolerance))
+    )
+  )
+)
+
+(defun swcad-title-frame-style-offsheet-insert-records-from-paths (path-records frame-bbox / result skipped-prefixes record insert-path child-prefix)
+  (setq result nil)
+  (setq skipped-prefixes nil)
+  (foreach record path-records
+    (setq insert-path (nth 10 record))
+    (if
+      (and
+        (not (swcad-title-frame-style-path-under-prefixes-p insert-path skipped-prefixes))
+        (swcad-title-frame-style-offsheet-insert-p record frame-bbox)
+      )
+      (progn
+        (setq result
+          (append
+            result
+            (list
+              (swcad-title-frame-style-output-record
+                record
+                frame-bbox
+                "nested-off-sheet-insert"
+              )
+            )
+          )
+        )
+        (setq child-prefix (append insert-path (list (nth 3 record))))
+        (setq skipped-prefixes (append skipped-prefixes (list child-prefix)))
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-frame-style-normalization-records-for-frame (frame-name / pairs result pair title frame pair-frame-name context frame-matrix title-bbox root-region world-region frame-root-bbox path-records title-delete-records title-verify-records offsheet-records delete-records verify-records protected-records overlap)
   (setq pairs (swcad-title-target-gmtitle-pair-records))
   (setq result nil)
   (foreach pair pairs
@@ -8568,8 +8902,11 @@
         (setq world-region (nth 5 context))
         (setq frame-root-bbox (nth 6 context))
         (setq path-records (nth 7 context))
-        (setq delete-records (swcad-title-frame-style-delete-records-from-paths path-records root-region frame-root-bbox))
-        (setq verify-records (swcad-title-frame-style-independent-records-from-paths path-records root-region frame-root-bbox))
+        (setq title-delete-records (swcad-title-frame-style-delete-records-from-paths path-records root-region frame-root-bbox))
+        (setq title-verify-records (swcad-title-frame-style-independent-records-from-paths path-records root-region frame-root-bbox))
+        (setq offsheet-records (swcad-title-frame-style-offsheet-insert-records-from-paths path-records frame-root-bbox))
+        (setq delete-records (append title-delete-records offsheet-records))
+        (setq verify-records (append title-verify-records offsheet-records))
         (setq protected-records (swcad-title-frame-style-protected-records-from-paths path-records root-region frame-root-bbox))
         (setq overlap (swcad-title-bbox-overlap-box world-region title-bbox))
         (if verify-records
@@ -8587,8 +8924,11 @@
                   world-region
                   title-bbox
                   overlap
-                  "actual-title-overlap"
-                  "실제 DR_titlea_3rd 범위와 겹치는 기존 도면틀 내부 표제란 형상이 독립 검증에서 확인됐습니다."
+                  (if offsheet-records "title-overlap-or-off-sheet-residue" "actual-title-overlap")
+                  (if offsheet-records
+                    "실제 제목블록 중복 또는 정상 용지 영역과 완전히 분리된 하위 INSERT 잔여물이 확인됐습니다."
+                    "실제 DR_titlea_3rd 범위와 겹치는 기존 도면틀 내부 표제란 형상이 독립 검증에서 확인됐습니다."
+                  )
                   root-region
                   delete-records
                   verify-records
@@ -8689,7 +9029,7 @@
           )
         )
         (swcad-title-princ-line (strcat "     실제 제목블록 기준 도면틀 로컬 영역=" (swcad-title-bbox-string (nth 11 record))))
-        (swcad-title-princ-line "     판단: 별도 DR_titlea_3rd의 실제 범위와 겹치는 기존 도면틀 내부 형상이 있습니다.")
+        (swcad-title-princ-line (strcat "     판단: " (nth 10 record)))
         (swcad-title-princ-line "     다음: SWTITLEPREPARE에서 작업복사본 안의 도면틀 스타일 정규화를 검토하세요.")
         (setq index (+ index 1))
       )
@@ -9851,14 +10191,14 @@
     )
     ((not (swcad-title-current-dwg-in-work-p))
       (swcad-title-apply-result "ABORT_NOT_WORK_COPY")
-      (swcad-title-princ-line "도면틀 스타일 정규화는 Documents/CAD tool/work 안의 작업복사본에서만 실행합니다.")
+      (swcad-title-princ-line "도면틀 스타일 정규화는 사용자가 다른 이름으로 저장해 승인한 작업본에서만 실행합니다.")
       (swcad-title-princ-line "원본 도면 보호를 위해 도면 데이터는 변경하지 않았습니다.")
     )
     (T
       (setq answer
         (getstring
           T
-          "\n위 NORMALIZE 후보만 정리하려면 YES를 입력하세요. 설치 원본은 수정하지 않고 현재 작업복사본의 도면틀 정의만 바꿉니다. 취소하려면 Enter: "
+          "\n위 NORMALIZE 후보만 정리하려면 YES를 입력하세요. 설치 원본은 수정하지 않고 현재 작업본의 제목 중복/용지 밖 하위 INSERT만 정리합니다. 취소하려면 Enter: "
         )
       )
       (if (/= (strcase answer) "YES")
@@ -9872,7 +10212,7 @@
           (setq deleted-count (car delete-result))
           (vl-catch-all-apply 'vla-Regen (list doc 1))
           (vl-catch-all-apply 'vla-EndUndoMark (list doc))
-          (swcad-title-princ-line (strcat "정규화로 정리한 도면틀 내부 표제란 형상: " (itoa deleted-count)))
+          (swcad-title-princ-line (strcat "정규화로 정리한 도면틀 내부 제목 중복/용지 밖 잔여 형상: " (itoa deleted-count)))
           (swcad-title-frame-style-analysis-cache-invalidate)
           (setq remaining (swcad-title-frame-style-independent-residue-records))
           (setq remaining-count (length remaining))
@@ -20922,7 +21262,7 @@
   (princ)
 )
 
-(defun swcad-title-integrated-verify-final-summary (/ summary source-titles source-frames command-text-records embedded-title-records style-records style-residue-records style-residue-count frame-definition-records frame-definition-blockers orphan-records contaminated frame-records title-enames pair-records geometry-risk-count overlap-risk-count a3a4-count target-title-count target-frame-count pair-count title-missing-outline-count invalid-title-missing-records invalid-title-missing-count frame-only-source-count source-frame-with-title-count missing-title-count extra-title-count title-missing-tags-count title-empty-attrs-count non-native-like-count required-missing-count required-sheets missing-required-sheets target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records count-shortage-count count-excess-count target-title-sheet-counts stored-expected-title-counts expected-title-counts title-count-shortage-records title-count-excess-records title-count-shortage-count title-count-excess-count status result-code record title-ename attr-pairs)
+(defun swcad-title-integrated-verify-final-summary (/ summary source-titles source-frames command-text-records embedded-title-records style-records style-residue-records style-residue-count frame-definition-records frame-definition-blockers definition-raw-risk-records definition-raw-risk-count orphan-records contaminated frame-records title-enames pair-records geometry-risk-count overlap-risk-count a3a4-count target-title-count target-frame-count pair-count title-missing-outline-count invalid-title-missing-records invalid-title-missing-count frame-only-source-count source-frame-with-title-count missing-title-count extra-title-count title-missing-tags-count title-empty-attrs-count non-native-like-count required-missing-count required-sheets missing-required-sheets target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records count-shortage-count count-excess-count target-title-sheet-counts stored-expected-title-counts expected-title-counts title-count-shortage-records title-count-excess-records title-count-shortage-count title-count-excess-count status result-code record title-ename attr-pairs)
   (swcad-title-open-verify-summary-log)
   (setq summary (swcad-title-fast-sheet-summary))
   (setq source-titles (swcad-title-source-title-candidates))
@@ -20934,6 +21274,8 @@
   (setq style-residue-count (length style-residue-records))
   (setq frame-definition-records (swcad-title-frame-definition-class-records))
   (setq frame-definition-blockers (swcad-title-frame-definition-blocking-records))
+  (setq definition-raw-risk-records (swcad-title-frame-definition-raw-bbox-risk-records))
+  (setq definition-raw-risk-count (length definition-raw-risk-records))
   (setq orphan-records (swcad-title-orphan-target-frame-records))
   (setq contaminated (swcad-title-contaminated-target-frame-blocks))
   (setq frame-records (swcad-title-frame-records))
@@ -21027,6 +21369,7 @@
           (> (length embedded-title-records) 0)
           (> (length style-records) 0)
           frame-definition-blockers
+          (> definition-raw-risk-count 0)
           (> (length orphan-records) 0)
           contaminated
           (> geometry-risk-count 0)
@@ -21060,7 +21403,9 @@
   (swcad-title-princ-line (strcat "독립 검증 기존 표제란 잔여물: " (itoa style-residue-count)))
   (swcad-title-print-frame-style-entity-records "독립 검증 잔여물 상세:" style-residue-records)
   (swcad-title-princ-line (strcat "도면틀 정의 정규화 차단 항목: " (itoa (length frame-definition-blockers))))
+  (swcad-title-princ-line (strcat "도면틀 정의 raw bbox 위험 수: " (itoa definition-raw-risk-count)))
   (swcad-title-print-frame-definition-class-records frame-definition-records)
+  (swcad-title-print-frame-definition-raw-bbox-risk-records definition-raw-risk-records)
   (swcad-title-print-frame-style-normalization-records style-records)
   (swcad-title-princ-line (strcat "고아 GMTITLE 도면틀: " (itoa (length orphan-records))))
   (swcad-title-princ-line (strcat "오염 의심 대상 도면틀 정의: " (swcad-title-list-string contaminated)))
@@ -21184,7 +21529,16 @@
 )
 
 (defun c:SWTITLEPREPARE ()
-  (swcad-title-integrated-prepare)
+  (if (swcad-title-script-active-p)
+    (swcad-title-integrated-prepare)
+    (if (swcad-title-ensure-work-copy-for-mutation)
+      (swcad-title-integrated-prepare)
+      (progn
+        (swcad-title-princ-text "\nSWTITLEPREPARE 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
+        (princ)
+      )
+    )
+  )
 )
 
 (defun c:SWTITLECONVERT ()
@@ -21198,7 +21552,13 @@
       (swcad-title-princ-text "\nSWTITLECONVERT 완료: SWTITLESTATUS로 상태를 확인한 뒤 CAD 명령줄에서 직접 다시 실행하세요.")
       (princ)
     )
-    (swcad-title-integrated-convert)
+    (if (swcad-title-ensure-work-copy-for-mutation)
+      (swcad-title-integrated-convert)
+      (progn
+        (swcad-title-princ-text "\nSWTITLECONVERT 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
+        (princ)
+      )
+    )
   )
 )
 
@@ -21235,7 +21595,13 @@
       (swcad-title-princ-text "\nSWTITLECONVERTNEXT 완료: SWTITLESTATUS로 상태를 확인한 뒤 CAD 명령줄에서 직접 다시 실행하세요.")
       (princ)
     )
-    (swcad-title-integrated-convert-next)
+    (if (swcad-title-ensure-work-copy-for-mutation)
+      (swcad-title-integrated-convert-next)
+      (progn
+        (swcad-title-princ-text "\nSWTITLECONVERTNEXT 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
+        (princ)
+      )
+    )
   )
 )
 
