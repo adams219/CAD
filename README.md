@@ -2,6 +2,31 @@
 
 GstarCAD / GstarCAD Mechanical / SolidWorks DWG 변환 도구를 관리하는 저장소입니다.
 
+## 통합 SWCAD Workflow
+
+새 도면에서 SolidWorks DWG를 XREF로 연결한 뒤 GMTITLE, 치수/공차 정규화, A4 Layout 생성을 순서대로 실행하려면 아래 로더를 `APPLOAD`합니다.
+
+```text
+<SWCAD 도구 폴더>\apps\swcad-workflow\swcad_workflow_load.lsp
+```
+
+일반 사용 명령은 세 개입니다.
+
+```text
+SWCADSTATUS
+SWCADRUN
+SWCADVERIFY
+```
+
+상세 구조와 실제 CAD 검증 결과:
+
+```text
+docs\swcad-workflow\architecture.md
+docs\swcad-workflow\test-results-2026-07-13.md
+```
+
+배포 ZIP을 다른 PC에서 사용할 때는 압축을 푼 뒤 `Install_SWCAD_Workflow.cmd`를 한 번 실행하고, 생성된 `SWCAD_Workflow_Load.lsp`를 `APPLOAD`합니다.
+
 ## 기본 로드
 
 GstarCAD에서 `APPLOAD`를 실행한 뒤 아래 파일을 로드합니다.
