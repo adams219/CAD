@@ -25,7 +25,7 @@ SWTITLEVERSION
 현재 GMTITLE 기준 버전:
 
 ```text
-260711-title-residue-geometry-1
+260711-unified-title-value-3
 ```
 
 다른 버전이 보이면 `SWTITLESTATUS` 결과를 믿기 전에 최신 LSP를 다시 APPLOAD 합니다.
@@ -108,11 +108,19 @@ docs\history\gmtitle-history-github-local-prevention-plan-2026-07-04.md
 docs\history\gmtitle-title-residue-geometry-2026-07-11.md
 ```
 
-보존 원본의 fresh 복사본에서 A2/A3/A4 전체 변환과 `SWTITLEVERIFY_FINAL_OK`까지 통과한 최종 실도면 이력:
+13/15를 성공으로 잘못 판정했던 과거 fresh 변환 이력(현재 기준에서는 중간 증거):
 
 ```text
 docs\history\gmtitle-fresh-e2e-final-2026-07-11.md
 ```
+
+일반 TEXT/MTEXT 제목값과 동반 정적 제목 셸 INSERT를 통합해 15/15를 검증하는 최신 이력:
+
+```text
+docs\history\gmtitle-unified-title-shell-cleanup-2026-07-11.md
+```
+
+현재 로컬 최종 검증은 `DR_titlea_3rd 15 / DR 도면틀 15 / native GMTITLE 쌍 15`, 제목 셸 0, 결재자/날짜 결합값 0이며 대표 A2/A3/A4 편집창이 모두 `속성 블록 편집`으로 열렸습니다. 대표 결과는 `work\swtitle_unified_fullflow_titlevalue_cleaned_260711_04.dwg`이고 SHA-256은 `A5ADE688FBAE23592475522544508D69FEAD23C554B518D196D9BF2EE2C61CFA`입니다.
 
 main49 반영 이력:
 

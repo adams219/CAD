@@ -29,7 +29,7 @@ codex/gm-title
 주의:
 
 ```text
-2026-07-10 현재 로컬 작업 기준은 `260711-title-residue-geometry-1`입니다.
+2026-07-10 현재 로컬 작업 기준은 `260711-unified-title-value-3`입니다.
 현재 로컬 브랜치는 GitHub보다 앞선 커밋이 있을 수 있으므로, 다른 PC에서 이어가기 전에 이 브랜치가 GitHub에 push됐는지 확인합니다.
 다른 PC에서는 `codex/gm-title` 브랜치를 받은 뒤, CAD에서 `SWTITLEVERSION`으로 실제 로드 버전을 확인합니다.
 ```
@@ -79,7 +79,7 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260711-title-residue-geometry-1
+260711-unified-title-value-3
 ```
 
 다른 버전이면 변환하지 말고 다시 APPLOAD 합니다. 그래도 다른 버전이면 다른 브랜치를 받았거나, 열린 CAD 세션이 예전 LSP를 유지하고 있을 수 있습니다.
@@ -188,6 +188,9 @@ SWTITLEVERIFY_FINAL_OK
 남은 원본 SolidWorks 표제란: 0
 남은 원본 SolidWorks 도면틀: 0
 frame-only 시트: 0
+target title/frame/native pair: 15 / 15 / 15
+제목블록과 겹치는 원본 제목 셸: 0
+결재자/날짜 결합 속성값: 0
 target-sheet-counts:
   A2: 1
   A3: 12

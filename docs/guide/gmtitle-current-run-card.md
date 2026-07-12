@@ -120,10 +120,24 @@ SWTITLEVERSION
 기대 버전:
 
 ```text
-260711-title-residue-geometry-1
+260711-unified-title-value-3
 ```
 
 다른 버전이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
+
+## loose-text 제목 셸 처리
+
+원본 제목값이 일반 TEXT/MTEXT로 저장되어도, 정적 라벨과 표 선은 별도 INSERT일 수 있습니다. 현재 버전은 이 INSERT를 제목 범위·크기·이름/라벨 증거로 판정해 `제목 셸`로 함께 정리합니다.
+
+```text
+값 원본: 일반 TEXT/MTEXT
+정적 셸: 0310_DR_표제란, 0320_DR_표제란 같은 별도 INSERT
+변환 후: 둘 다 없어지고 DR_titlea_3rd 하나만 남아야 함
+```
+
+`SWTITLEVERIFY`에서 제목블록 범위와 겹치는 원본 제목 셸이 하나라도 남으면 최종 성공으로 인정하지 않습니다. 이 규칙은 A4 전용이 아니라 모든 용지 크기에 공통입니다.
+
+원본 `Approved by`가 `이름/날짜`이고 별도 `Date`에도 같은 날짜가 있으면, 현재 버전은 결재자 이름과 날짜를 공통 규칙으로 분리합니다. 예를 들어 `KS.LEE/20260601 + 2026-06-01`은 `KS.LEE + 2026-06-01`이 됩니다. 이미 정상인 결재자 값은 바꾸지 않으며 이 규칙도 A4 전용이 아닙니다.
 
 ## GMTITLE 배치점 원칙
 
@@ -236,9 +250,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File diagnostics\gmtitle-main45\r
 현재 기대 결과는 `GMTITLE_SELECTION_CONFIG_NOT_FOUND`입니다.
 `-DeepRegistrySearch`에서 `Recent File List`에 DR 파일 경로가 보여도 최근 직접 열었던 파일 기록일 뿐, GMTITLE 대화상자의 용지/제목블록을 자동 선택할 근거로 쓰지 않습니다.
 
-### 최신 fresh 전체 변환 완료 증거
+### 폐기된 13/15 중간 증거
 
-2026-07-11에 보존된 미변환 원본의 새 work 복사본으로 처음부터 전체 변환을 다시 수행했다.
+아래 2026-07-11의 첫 fresh 변환은 당시 검증기가 A4 두 장의 일반 제목 텍스트와 동반 정적 제목 셸을 놓쳐 `13 / 15 / 13`을 성공으로 잘못 판정한 기록입니다. 최신 성공 근거로 사용하지 않습니다.
 
 ```text
 fresh 작업복사본:
@@ -256,18 +270,45 @@ orphan/duplicate: 0 / 0
 A2/A3/A4: 1 / 12 / 2
 ```
 
-A2와 A3 대표 `DR_titlea_3rd`를 실제 더블클릭해 `속성 블록 편집` 표가 열리는 것도 확인했다. A4 두 장은 검증된 source-title-missing 예외로 제목블록 없이 도면틀과 도면 내용을 유지했고, 구버전의 A4 고아 도면틀 문제는 재현되지 않았다.
+A2와 A3 편집창 자체는 정상이었지만, A4는 실제 title-missing이 아니었습니다. A4에도 제목값이 있었고 기존 `0310_DR_표제란`, `0320_DR_표제란` 셸이 남아 새 제목블록과 겹쳤습니다.
 
 상세 이력:
 
 ```text
 docs\history\gmtitle-fresh-e2e-final-2026-07-11.md
+docs\history\gmtitle-unified-title-shell-cleanup-2026-07-11.md
+```
+
+현재 테스트 원본의 새 완료 기준:
+
+```text
+source title/frame/frame-only: 0 / 0 / 0
+target title/frame/pair/native-like: 15 / 15 / 15 / 15
+target title-overlapping source shell inserts: 0
+orphan/duplicate: 0 / 0
+A2/A3/A4 frame: 1 / 12 / 2
+A2/A3/A4 representative editor: 모두 속성 블록 편집 표
+```
+
+2026-07-12 최종 통과 근거:
+
+```text
+원본: work\0000_A_DRP125_CP_ALL_260626_ORIGINAL_TEST_260711.dwg
+원본 SHA256: 3C7735569B7EBAC8300225A81CEFB441562AB656770E5FC8868099B559A959B2
+최종본: work\swtitle_unified_fullflow_titlevalue_cleaned_260711_04.dwg
+최종본 SHA256: A5ADE688FBAE23592475522544508D69FEAD23C554B518D196D9BF2EE2C61CFA
+SWTITLEVERIFY: SWTITLEVERIFY_FINAL_OK
+target title/frame/pair/native-like: 15 / 15 / 15 / 15
+title-overlapping source shell: 0
+A4 combined approval/date value: 0
+protected A4 notes: 8
+A2/A3/A4 대표 편집창: 모두 속성 블록 편집 표
 ```
 
 ### 기존 부분 변환 저장본 direct probe 상태 (과거 참고)
 
-아래 `workcopy_03` 기록은 잔여물 판정기를 만들 때 사용한 부분 변환 상태다. 최신 성공 여부는 위 fresh 전체 변환 완료 증거를 우선한다.
-A2와 일부 A3 native-like 쌍은 만들어졌지만, 이 쌍들의 도면틀 정의 안에 별도 `DR_titlea_3rd`와 겹치는 기존 표제란 형상이 남아 있던 시점의 기록이다. 남은 A3 변환보다 `SWTITLEPREPARE` 정규화가 먼저였다. A4는 원본 표제란 부재가 검증된 title-missing/frame-only 예외로 뒤에서 처리했다.
+아래 `workcopy_03` 기록은 잔여물 판정기를 만들 때 사용한 부분 변환 상태다. 최신 성공 여부는 위 15/15 전체 변환 완료 증거를 우선한다.
+A2와 일부 A3 native-like 쌍은 만들어졌지만, 이 쌍들의 도면틀 정의 안에 별도 `DR_titlea_3rd`와 겹치는 기존 표제란 형상이 남아 있던 시점의 기록이다. 당시 A4를 title-missing/frame-only로 본 판정은 이후 loose-text 제목 2장과 제목 셸 2장을 발견하면서 폐기되었다.
 
 ```text
 direct probe 로그:

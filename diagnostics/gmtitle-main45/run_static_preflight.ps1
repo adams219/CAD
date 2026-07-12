@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260711-title-residue-geometry-1",
+  [string]$ExpectedGmtitleVersion = "260711-unified-title-value-3",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -29,6 +29,12 @@ $preserveCopyMatrixRunnerPath = Join-Path $PSScriptRoot "run_preserve_copy_matri
 $styleNormalizationProbePath = Join-Path $PSScriptRoot "style_normalization_compare_probe.lsp"
 $actualResidueCleanupProbePath = Join-Path $PSScriptRoot "actual_residue_cleanup_probe.lsp"
 $actualResidueCleanupRunnerPath = Join-Path $PSScriptRoot "run_actual_residue_cleanup_probe.ps1"
+$looseTitleSourceProbePath = Join-Path $PSScriptRoot "loose_title_source_probe.lsp"
+$looseTitleSourceRunnerPath = Join-Path $PSScriptRoot "run_loose_title_source_probe.ps1"
+$unifiedCleanupProbePath = Join-Path $PSScriptRoot "unified_cleanup_probe.lsp"
+$unifiedCleanupRunnerPath = Join-Path $PSScriptRoot "run_unified_cleanup_probe.ps1"
+$unifiedFinalProbePath = Join-Path $PSScriptRoot "unified_final_verification_probe.lsp"
+$unifiedFinalRunnerPath = Join-Path $PSScriptRoot "run_unified_final_verification_probe.ps1"
 $dialogControlProbePath = Join-Path $PSScriptRoot "gmtitle_dialog_control_probe.ps1"
 $dialogAutoselectHelperPath = Join-Path $repoRoot "src\tools\gmtitle\swtitle_gmtitle_dialog_autoselect.ps1"
 $dialogControlSessionProbePath = Join-Path $PSScriptRoot "dialog_control_session_probe.lsp"
@@ -280,6 +286,12 @@ $preserveCopyMatrixRunnerText = Read-Text $preserveCopyMatrixRunnerPath
 $styleNormalizationProbeText = Read-Text $styleNormalizationProbePath
 $actualResidueCleanupProbeText = Read-Text $actualResidueCleanupProbePath
 $actualResidueCleanupRunnerText = Read-Text $actualResidueCleanupRunnerPath
+$looseTitleSourceProbeText = Read-Text $looseTitleSourceProbePath
+$looseTitleSourceRunnerText = Read-Text $looseTitleSourceRunnerPath
+$unifiedCleanupProbeText = Read-Text $unifiedCleanupProbePath
+$unifiedCleanupRunnerText = Read-Text $unifiedCleanupRunnerPath
+$unifiedFinalProbeText = Read-Text $unifiedFinalProbePath
+$unifiedFinalRunnerText = Read-Text $unifiedFinalRunnerPath
 $dialogControlProbeText = Read-Text $dialogControlProbePath
 $dialogAutoselectHelperText = Read-Text $dialogAutoselectHelperPath
 $dialogControlSessionProbeText = Read-Text $dialogControlSessionProbePath
@@ -319,6 +331,9 @@ Test-LispBalance -Text $singleCloneProbeText -Label "single_clone_probe.lsp"
 Test-LispBalance -Text $preserveCopyMatrixProbeText -Label "preserve_copy_matrix_probe.lsp"
 Test-LispBalance -Text $styleNormalizationProbeText -Label "style_normalization_compare_probe.lsp"
 Test-LispBalance -Text $actualResidueCleanupProbeText -Label "actual_residue_cleanup_probe.lsp"
+Test-LispBalance -Text $looseTitleSourceProbeText -Label "loose_title_source_probe.lsp"
+Test-LispBalance -Text $unifiedCleanupProbeText -Label "unified_cleanup_probe.lsp"
+Test-LispBalance -Text $unifiedFinalProbeText -Label "unified_final_verification_probe.lsp"
 Test-LispBalance -Text $dialogControlSessionProbeText -Label "dialog_control_session_probe.lsp"
 Test-LispBalance -Text $postFirstNativeProbeText -Label "post_first_native_transition_probe.lsp"
 Test-PowerShellSyntax -Path $preserveCopyMatrixRunnerPath -Label "run_preserve_copy_matrix_probe.ps1"
@@ -327,6 +342,9 @@ Test-PowerShellSyntax -Path $dialogAutoselectHelperPath -Label "swtitle_gmtitle_
 Test-PowerShellSyntax -Path $dialogControlSessionRunnerPath -Label "run_gmtitle_dialog_control_session.ps1"
 Test-PowerShellSyntax -Path $integratedAutoselectBatchRunnerPath -Label "run_integrated_autoselect_batch_probe.ps1"
 Test-PowerShellSyntax -Path $actualResidueCleanupRunnerPath -Label "run_actual_residue_cleanup_probe.ps1"
+Test-PowerShellSyntax -Path $looseTitleSourceRunnerPath -Label "run_loose_title_source_probe.ps1"
+Test-PowerShellSyntax -Path $unifiedCleanupRunnerPath -Label "run_unified_cleanup_probe.ps1"
+Test-PowerShellSyntax -Path $unifiedFinalRunnerPath -Label "run_unified_final_verification_probe.ps1"
 
 $gmtitleVersion = Get-VersionValue -Text $mainText -VariableName "*swcad-title-scale-version*"
 if ($gmtitleVersion -eq $ExpectedGmtitleVersion) {
@@ -552,10 +570,57 @@ Assert-Contains -Text $styleNormalizationProbeText -Needle "Second clean deleted
 Assert-Contains -Text $suiteText -Needle "Independent residue count after clean: 0" -Label "Suite requires zero independent residue"
 Assert-Contains -Text $suiteText -Needle "Second clean deleted count: 0" -Label "Suite requires idempotent style cleanup"
 Assert-Contains -Text $actualResidueCleanupProbeText -Needle "c:SWTITLEPREPARE" -Label "Actual residue probe exercises public prepare command"
-Assert-Contains -Text $actualResidueCleanupProbeText -Needle "swcad-title-frame-style-independent-residue-records" -Label "Actual residue probe independent verification"
+Assert-Contains -Text $actualResidueCleanupProbeText -Needle "swcad-title-frame-style-records-from-pairs" -Label "Actual residue probe cached independent verification"
+Assert-Contains -Text $actualResidueCleanupProbeText -Needle "swcad-title-frame-style-analysis-cache-begin" -Label "Actual residue probe command-scoped analysis cache"
 Assert-Contains -Text $actualResidueCleanupProbeText -Needle "Pair signature unchanged after second cleanup:" -Label "Actual residue probe native-pair signature check"
 Assert-Contains -Text $actualResidueCleanupRunnerText -Needle "Source work-copy SHA256 unchanged: PASS" -Label "Actual residue runner source preservation gate"
 Assert-Contains -Text $actualResidueCleanupRunnerText -Needle "ACTUAL_RESIDUE_CLEANUP_COPY_PASS" -Label "Actual residue runner pass marker"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-source-title-shell-records" -Label "Loose-title companion shell detector"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-target-title-shell-records" -Label "Final title-overlap shell detector"
+Assert-Contains -Text $mainText -Needle "swcad-title-target-title-shell-records))" -Label "Final verifier includes geometric title shell residues"
+if (([regex]::Matches($mainText, [regex]::Escape("swcad-title-delete-handle-list title-shell-handles"))).Count -lt 3) {
+  Add-Failure "Apply, adopt, and finalize paths must all delete verified loose-title companion shell inserts."
+} else {
+  Write-Output "Apply/adopt/finalize companion shell cleanup: found"
+}
+$titleShellStart = $mainText.IndexOf("(defun swcad-title-source-title-shell-records")
+$titleShellEnd = if ($titleShellStart -ge 0) { $mainText.IndexOf("(defun swcad-title-source-title-shell-handles", $titleShellStart) } else { -1 }
+if (($titleShellStart -lt 0) -or ($titleShellEnd -le $titleShellStart)) {
+  Add-Failure "Loose-title companion shell detector function block not found."
+} else {
+  $titleShellText = $mainText.Substring($titleShellStart, $titleShellEnd - $titleShellStart)
+  if ($titleShellText -match "DR_A4_Outline|A4") {
+    Add-Failure "Loose-title companion shell detection must not contain A4-specific branching."
+  } else {
+    Write-Output "Loose-title companion shell detector has no A4-specific branch: absent"
+  }
+}
+Assert-Contains -Text $looseTitleSourceProbeText -Needle "companion-shells=" -Label "Loose-title source probe records companion shell count"
+Assert-Contains -Text $looseTitleSourceRunnerText -Needle "Loose-title companion shell inserts: 2" -Label "Loose-title source runner requires two original companion shells"
+Assert-Contains -Text $unifiedFinalProbeText -Needle "target-shell-count" -Label "Unified final probe checks target-overlapping title shells"
+Assert-Contains -Text $unifiedFinalRunnerText -Needle "Target title-overlapping source shell inserts: 0" -Label "Unified final runner requires zero title shells"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-date-digits" -Label "Common date normalization helper"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-combined-approval-date-split" -Label "Combined approval/date parser"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-normalize-combined-approval-date-values" -Label "Combined approval/date value normalizer"
+Assert-Contains -Text $mainText -Needle "(swcad-title-normalize-combined-approval-date-values result)" -Label "All transfer values use combined approval/date normalization"
+$approvalNormalizeStart = $mainText.IndexOf("(defun swcad-title-normalize-combined-approval-date-values")
+$approvalNormalizeEnd = if ($approvalNormalizeStart -ge 0) { $mainText.IndexOf("(defun swcad-title-transfer-values", $approvalNormalizeStart) } else { -1 }
+if (($approvalNormalizeStart -lt 0) -or ($approvalNormalizeEnd -le $approvalNormalizeStart)) {
+  Add-Failure "Combined approval/date normalization function block not found."
+} else {
+  $approvalNormalizeText = $mainText.Substring($approvalNormalizeStart, $approvalNormalizeEnd - $approvalNormalizeStart)
+  if ($approvalNormalizeText -match "DR_A4_Outline|A4") {
+    Add-Failure "Combined approval/date normalization must not contain A4-specific branching."
+  } else {
+    Write-Output "Combined approval/date normalizer has no A4-specific branch: absent"
+  }
+}
+Assert-Contains -Text $looseTitleSourceProbeText -Needle "approval-normalized-count" -Label "Loose-title source probe detects the original combined approval/date value"
+Assert-Contains -Text $looseTitleSourceRunnerText -Needle "A4 combined approval/date normalized: 1" -Label "Loose-title runner requires one normalized source value"
+Assert-Contains -Text $looseTitleSourceRunnerText -Needle "A4 combined approval/date remaining: 0" -Label "Loose-title runner rejects remaining combined values"
+Assert-Contains -Text $unifiedFinalProbeText -Needle '("GEN-TITLE-APPM{21.7}" . "KS.LEE")' -Label "Final fixture expects the split approver value"
+Assert-NotContains -Text $unifiedFinalProbeText -Needle '("GEN-TITLE-APPM{21.7}" . "KS.LEE/20260601")' -Label "Final fixture rejects the overlapping combined approver/date value"
+Assert-Contains -Text $unifiedFinalRunnerText -Needle "A4 combined approval/date values: 0" -Label "Unified final runner requires no combined approval/date attributes"
 $titleMissingFramePredicateStart = $mainText.IndexOf("(defun swcad-title-title-missing-outline-frame-record-p")
 $titleMissingFramePredicateEnd = if ($titleMissingFramePredicateStart -ge 0) { $mainText.IndexOf("(defun swcad-title-title-missing-outline-frame-count", $titleMissingFramePredicateStart) } else { -1 }
 if (($titleMissingFramePredicateStart -lt 0) -or ($titleMissingFramePredicateEnd -le $titleMissingFramePredicateStart)) {
@@ -1596,7 +1661,7 @@ Assert-Contains -Text $cadChecklistText -Needle "BATCH는 OPEN으로 최소 1장
 Assert-Contains -Text $cadChecklistText -Needle "SWTITLECONVERTNEXT" -Label "CAD checklist convert-next shortcut guidance"
 Assert-Contains -Text $cadChecklistText -Needle '고정 컨트롤 자동 선택이 가능하면 `YES`/`OPEN` 응답과 GMTITLE 용지/제목블록/옵션 선택을 자동 처리합니다.' -Label "CAD checklist fixed-control convert-next scope"
 Assert-Contains -Text $otherComputerTestGuideText -Needle "git checkout codex/gm-title" -Label "Other-computer guide branch checkout"
-Assert-Contains -Text $otherComputerTestGuideText -Needle "260711-title-residue-geometry-1" -Label "Other-computer guide expected version"
+Assert-Contains -Text $otherComputerTestGuideText -Needle $ExpectedGmtitleVersion -Label "Other-computer guide expected version"
 Assert-Contains -Text $otherComputerTestGuideText -Needle "SWTITLESTATUS" -Label "Other-computer guide status-first flow"
 Assert-Contains -Text $otherComputerTestGuideText -Needle "속성 블록 편집 표가 열림" -Label "Other-computer guide representative editor check"
 Assert-Contains -Text $cadChecklistText -Needle '`SWTITLECONVERTNEXT`를 사용하는 경우에는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않습니다' -Label "CAD checklist no extra convert-next response guidance"

@@ -15,24 +15,24 @@
 ```text
 저장소: https://github.com/adams219/CAD.git
 브랜치: codex/gm-title
-기대 LSP 버전: 260711-title-residue-geometry-1
+기대 LSP 버전: 260711-unified-title-value-3
 ```
 
-현재 개발 PC의 대표 A3 기준 검증은 통과했지만, 후속 전체 클릭 검사에서 일부 실패가 확인되었습니다.
+현재 개발 PC에서는 보존 원본으로 15장 전체 변환과 대표 A2/A3/A4 클릭 검증까지 통과했습니다.
 
 ```text
-대표 title: DR_titlea_3rd / handle 16DB5
-편집창: 속성 블록 편집
-결과: PASS_GMTITLE_TABLE_EDITOR
-
-전체 제목블록: 13개 중 12개 표 편집창, 1개 고급 속성 편집기
-전체 도면틀: A2/A3 13개 정상, title-missing A4 2개 REFEDIT
-현재 판정: 전체 편집 동작 미완료
+원본 제목/도면틀: 15 / 15
+완료 제목블록/도면틀/native 쌍: 15 / 15 / 15
+A2/A3/A4: 1 / 12 / 2
+남은 원본 제목·도면틀·제목 셸: 0 / 0 / 0
+A4 결재자/날짜 결합값: 0
+대표 A2/A3/A4 편집창: 모두 속성 블록 편집 표
+현재 판정: SWTITLEVERIFY_FINAL_OK
 ```
 
-다른 PC에서는 대표 한 장만 확인하지 말고 A2/A3/A4 각 유형과 A3 실패 시트를 함께 확인합니다. 현재 결과를 최종 배포 완료판으로 취급하지 않습니다.
+다른 PC에서는 환경 차이에 따른 회귀를 확인하기 위해 A2/A3/A4 각 한 장을 다시 검사합니다. 로컬 검증은 완료됐지만 GitHub에 push되기 전까지 다른 PC 배포본은 최신으로 간주하지 않습니다.
 
-다른 컴퓨터에서 내려받기 전에 `260711-title-residue-geometry-1` 변경이 `origin/codex/gm-title`에 push되었는지 확인합니다. 로컬에만 변경이 남아 있으면 먼저 정적 검증과 커밋·push를 끝냅니다.
+다른 컴퓨터에서 내려받기 전에 `260711-unified-title-value-3` 변경이 `origin/codex/gm-title`에 push되었는지 확인합니다. 로컬에만 변경이 남아 있으면 먼저 정적 검증과 커밋·push를 끝냅니다.
 
 ## 1. 현재 컴퓨터에서 준비
 
@@ -80,13 +80,13 @@ git status --short --branch
 현재 대표 결과 도면:
 
 ```text
-swtitle_integrated_autoselect_fullflow_probe.dwg
+swtitle_unified_fullflow_titlevalue_cleaned_260711_04.dwg
 ```
 
 현재 기록된 SHA-256:
 
 ```text
-3B5DA20A861CEBA2782D051A58587410F5BE5D022F56AAADE5E29DC2809E8BAD
+A5ADE688FBAE23592475522544508D69FEAD23C554B518D196D9BF2EE2C61CFA
 ```
 
 이 파일은 이미 변환된 결과를 확인하는 용도입니다. 처음부터 변환되는 과정을 시험하는 입력 DWG로 사용하지 않습니다.
@@ -195,7 +195,7 @@ SWTITLEVERSION
 기대 결과:
 
 ```text
-260711-title-residue-geometry-1
+260711-unified-title-value-3
 ```
 
 다른 버전이 나오면 변환을 시작하지 않습니다. 브랜치, `git pull`, APPLOAD 경로를 다시 확인합니다.
@@ -278,15 +278,18 @@ REFEDIT가 실행됨
 다음 조건을 모두 만족해야 완료로 판단합니다.
 
 ```text
-SWTITLEVERSION = 260711-title-residue-geometry-1
+SWTITLEVERSION = 260711-unified-title-value-3
 SWTITLEVERIFY_FINAL_OK
 남은 원본 SolidWorks 표제란 = 0
 남은 원본 SolidWorks 도면틀 = 0
 누락된 GMTITLE 시트 = 0
 중복 또는 고아 GMTITLE 쌍 = 0
+DR_titlea_3rd / DR 도면틀 / native GMTITLE 쌍 = 15 / 15 / 15
+제목블록과 겹치는 원본 제목 셸 INSERT = 0
+A4 결재자/날짜 결합 속성값 = 0
 A2/A3/A4 수량이 변환 전 원본 수량과 일치
 도면 안 번호, 주석, BOM, 치수, 모델 형상이 유지됨
-대표 A3 DR_titlea_3rd 더블클릭 시 속성 블록 편집 표가 열림
+대표 A2/A3/A4 DR_titlea_3rd 더블클릭 시 속성 블록 편집 표가 열림
 LSP 릴리스/동등성 검사 시 전체 제목블록과 도면틀 편집창 전수검사 통과
 ```
 
@@ -318,10 +321,10 @@ GitHub 저장소 https://github.com/adams219/CAD.git 의 codex/gm-title 브랜�
 %USERPROFILE%\Documents\CAD tool 에 받아줘.
 원본 DWG는 수정하지 말고 work 폴더의 복사본만 사용해줘.
 GstarCAD Mechanical 2024 Korean의 DR_A2/A3/A4_Outline 및 DR_titlea_3rd 설치 여부를 확인하고,
-swcad_load.lsp 로드 후 SWTITLEVERSION이 260711-title-residue-geometry-1인지 확인해줘.
+swcad_load.lsp 로드 후 SWTITLEVERSION이 260711-unified-title-value-3인지 확인해줘.
 테스트는 SWTITLESTATUS -> 필요한 경우 SWTITLEPREPARE -> SWTITLECONVERTNEXT ->
 SWTITLESTATUS -> SWTITLEVERIFY 순서로 진행하고,
-마지막에는 새 A3 DR_titlea_3rd를 더블클릭했을 때 속성 블록 편집 표가 열리는지 확인해줘.
+마지막에는 대표 A2/A3/A4 DR_titlea_3rd를 각각 더블클릭했을 때 속성 블록 편집 표가 열리는지 확인해줘.
 화면 좌표 클릭은 사용하지 말고, 실제 업무 원본이나 GstarCAD 설치 원본은 수정하지 마.
 ```
 

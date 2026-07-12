@@ -90,7 +90,7 @@
   count
 )
 
-(defun swtitle-actual-clean-main (/ root lsp-path log-path handle load-result load-ok version core-only before-style before-clean before-independent before-protected before-pairs before-native before-signature before-frames before-titles before-orphans prepare-result first-clean-log first-clean-status after-style after-clean after-independent after-pairs after-native after-signature after-frames after-titles after-orphans second-result second-clean-status final-style final-clean final-independent final-pairs final-native final-signature final-frames final-titles final-orphans status-result status-value)
+(defun swtitle-actual-clean-main (/ root lsp-path log-path handle load-result load-ok version core-only before-style-records before-style before-clean before-independent before-protected before-pairs before-native before-signature before-frames before-titles before-orphans prepare-result first-clean-log first-clean-status after-style-records after-style after-clean after-independent after-pairs after-native after-signature after-frames after-titles after-orphans second-result second-clean-status final-style-records final-style final-clean final-independent final-pairs final-native final-signature final-frames final-titles final-orphans status-result status-value)
   (setq root (swtitle-actual-clean-env-path "SWCAD_TOOL_ROOT" "C:/Users/DR-DESIGN/Documents/CAD tool"))
   (setq lsp-path
     (swtitle-actual-clean-env-path
@@ -127,10 +127,12 @@
   )
   (if load-ok
     (progn
-      (setq before-style (length (swcad-title-frame-style-normalization-records)))
-      (setq before-clean (length (swcad-title-frame-style-normalization-entity-records)))
-      (setq before-independent (length (swcad-title-frame-style-independent-residue-records)))
-      (setq before-protected (length (swcad-title-frame-style-protected-records)))
+      (swcad-title-frame-style-analysis-cache-begin)
+      (setq before-style-records (swcad-title-frame-style-normalization-records))
+      (setq before-style (length before-style-records))
+      (setq before-clean (length (swcad-title-frame-style-records-from-pairs before-style-records 12)))
+      (setq before-independent (length (swcad-title-frame-style-records-from-pairs before-style-records 13)))
+      (setq before-protected (length (swcad-title-frame-style-records-from-pairs before-style-records 14)))
       (setq before-pairs (length (swcad-title-target-gmtitle-pair-records)))
       (setq before-native (swtitle-actual-clean-native-like-count))
       (setq before-signature (swtitle-actual-clean-pair-signature))
@@ -147,9 +149,10 @@
       (setq first-clean-log (swcad-title-work-log-path "swcad_title_frame_style_normalization_clean_last.txt"))
       (setq first-clean-status (swtitle-actual-clean-result-from-log first-clean-log))
 
-      (setq after-style (length (swcad-title-frame-style-normalization-records)))
-      (setq after-clean (length (swcad-title-frame-style-normalization-entity-records)))
-      (setq after-independent (length (swcad-title-frame-style-independent-residue-records)))
+      (setq after-style-records (swcad-title-frame-style-normalization-records))
+      (setq after-style (length after-style-records))
+      (setq after-clean (length (swcad-title-frame-style-records-from-pairs after-style-records 12)))
+      (setq after-independent (length (swcad-title-frame-style-records-from-pairs after-style-records 13)))
       (setq after-pairs (length (swcad-title-target-gmtitle-pair-records)))
       (setq after-native (swtitle-actual-clean-native-like-count))
       (setq after-signature (swtitle-actual-clean-pair-signature))
@@ -159,9 +162,10 @@
 
       (setq second-result (vl-catch-all-apply 'swcad-title-frame-style-normalization-clean nil))
       (setq second-clean-status (swtitle-actual-clean-result-from-log first-clean-log))
-      (setq final-style (length (swcad-title-frame-style-normalization-records)))
-      (setq final-clean (length (swcad-title-frame-style-normalization-entity-records)))
-      (setq final-independent (length (swcad-title-frame-style-independent-residue-records)))
+      (setq final-style-records (swcad-title-frame-style-normalization-records))
+      (setq final-style (length final-style-records))
+      (setq final-clean (length (swcad-title-frame-style-records-from-pairs final-style-records 12)))
+      (setq final-independent (length (swcad-title-frame-style-records-from-pairs final-style-records 13)))
       (setq final-pairs (length (swcad-title-target-gmtitle-pair-records)))
       (setq final-native (swtitle-actual-clean-native-like-count))
       (setq final-signature (swtitle-actual-clean-pair-signature))
@@ -176,6 +180,7 @@
           "<missing>"
         )
       )
+      (swcad-title-frame-style-analysis-cache-end)
 
       (setq handle (open log-path "a"))
       (if handle

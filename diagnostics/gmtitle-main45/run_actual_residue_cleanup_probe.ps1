@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$SourceWorkCopyPath,
 
   [string]$ProbeDwgPath,
@@ -121,7 +121,7 @@ try {
 
   $expectations = @(
     "Load result: OK",
-    "Loaded version: 260711-title-residue-geometry-1",
+    "Loaded version: 260711-unified-title-value-3",
     "First cleanup call: OK",
     "First cleanup status: OK_FRAME_STYLE_NORMALIZATION_CLEANED",
     "After style pairs: 0",

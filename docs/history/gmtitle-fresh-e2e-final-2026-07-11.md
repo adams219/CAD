@@ -5,6 +5,8 @@
 기준 커밋: `6fa7347`  
 LSP 버전: `260711-title-residue-geometry-1`
 
+> **후속 판정:** 이 문서는 당시 검증기가 A4 두 장의 일반 TEXT/MTEXT 제목값과 그 아래의 `0310_DR_표제란`, `0320_DR_표제란` 정적 제목 셸 INSERT를 제목 데이터로 통합 인식하지 못했던 중간 결과다. 따라서 `target-title-count: 13`과 A4 title-missing 판정은 현재 완료 기준이 아니다. 최신 기준과 15/15 결과는 `gmtitle-unified-title-shell-cleanup-2026-07-11.md`를 따른다.
+
 ## 목적
 
 부분 변환 이력이 섞인 기존 작업복사본이 아니라, 보존된 미변환 원본의 새 복사본에서 A2/A3/A4 전체 흐름을 처음부터 다시 실행한다.
