@@ -30,6 +30,26 @@ SWCADVERIFY
 
 DIMSTYLE 단계는 실행 전후의 치수 측정값, `DIMLFAC`, 상·하 공차 의미를 핸들별로 비교합니다. 기존 SWAUTO가 native Mechanical fit을 붙이며 오버라이드를 바꾸는 경우 달라진 치수만 복원하고, 완전히 일치할 때만 다음 단계로 이동합니다.
 
+## 수동 배치와 Layout 좌표
+
+통합 앱은 XREF를 자동으로 이동하지 않습니다. 사용자가 XREF 상태에서 원하는 위치와 출력 순서로 배치한 뒤 변환을 시작합니다.
+
+```text
+사용자 수동 XREF 배치
+→ 현재 좌표를 유지한 materialize
+→ GMTITLE·DIMSTYLE 변환
+→ 최종 GMTITLE 도면틀 bbox 자동 계산
+→ Layout 자동 생성
+```
+
+- XREF 축척은 `1`, 회전은 `0`을 사용합니다.
+- 첫 도면의 왼쪽 아래를 `(0,0)`에 두는 것은 선택 사항입니다.
+- 같은 행은 왼쪽에서 오른쪽, 다른 행은 위쪽에서 아래쪽 순서로 Layout 번호를 붙입니다.
+- `SWCADSTATUS`는 Layout 생성 전에 예정 수량과 좌표를 최대 12개까지 보여줍니다.
+- 실제 생성에는 미리보기와 같은 전체 좌표 계획을 사용합니다.
+- 저장 후 `MANUAL_FRAME_COORDINATES` 모드, 계획 수량, 좌표 지문이 유지돼야 최종 검증을 통과합니다.
+- Layout 생성 뒤 도면틀 위치가 바뀌면 좌표 지문이 달라져 다음 `SWCADRUN`에서 Layout을 다시 생성합니다.
+
 ## XREF 지원 범위
 
 - 원본 SolidWorks DWG XREF만 자동 materialize합니다.

@@ -71,10 +71,17 @@ DIMENSION_SEMANTICS=PRESERVED
 
 ## Layout 계약
 
+- 앱은 XREF나 변환된 도면 객체를 자동으로 이동하지 않는다.
+- 사용자가 XREF 상태에서 배치한 좌표를 materialize 전후로 보존한다.
+- 최종 native GMTITLE 도면틀의 effective bbox를 Layout 모델 창으로 사용한다.
+- 같은 행은 왼쪽→오른쪽, 다른 행은 위쪽→아래쪽으로 정렬한다.
+- `SWCADSTATUS`와 실제 생성은 동일한 `swapp-layout-plan` 결과를 사용한다.
 - 검증된 DR A2/A3/A4 도면틀 각각을 하나의 A4 Layout으로 만든다.
 - 이름은 `SWCAD-SHEET-001`부터 시작한다.
 - Layout마다 뷰포트는 정확히 하나이고 용지 크기는 210 x 297 또는 297 x 210이어야 한다.
 - 재실행 시 앱 접두사의 Layout만 교체하므로 중복되지 않는다.
+- DWG 상태에는 `LAYOUT_PLACEMENT_MODE=MANUAL_FRAME_COORDINATES`, `LAYOUT_PLAN_COUNT`, `LAYOUT_PLAN_SIGNATURE`를 저장한다.
+- 현재 도면틀 좌표 지문이 저장값과 다르면 기존 Layout을 완료 상태로 인정하지 않고 다시 생성한다.
 
 ## 완료 조건
 
@@ -85,6 +92,7 @@ DIMENSION_SEMANTICS=PRESERVED
 - 치수 스타일/Mechanical fit 감사 통과
 - `DIMENSION_SEMANTICS=PRESERVED`
 - GMTITLE 도면틀 수와 SWCAD Layout 수 일치
+- 수동 배치 좌표 모드와 Layout 좌표 계획 수량·지문 유지
 - 각 Layout의 A4 용지와 단일 뷰포트 확인
 
 최종 성공 문자열은 `SWCADVERIFY_FINAL_OK`다.

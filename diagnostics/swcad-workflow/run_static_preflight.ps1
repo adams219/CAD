@@ -95,6 +95,13 @@ function Assert-Contains {
   }
 }
 
+function Assert-NotContains {
+  param([string]$Text, [string]$Needle, [string]$Label)
+  if ($Text.Contains($Needle)) {
+    Add-Failure "$Label must not contain: $Needle"
+  }
+}
+
 foreach ($relative in $required) {
   $path = Join-Path $repoRoot $relative
   if (-not (Test-Path -LiteralPath $path)) {
@@ -184,11 +191,18 @@ foreach ($needle in @(
   "DIMENSION_SEMANTICS",
   "swapp-restore-dimension-semantic-snapshots",
   "SWCAD_DIMENSION_SEMANTICS_CHANGED",
+  "MANUAL_FRAME_COORDINATES",
+  "swapp-layout-plan",
+  "swapp-print-layout-plan-items",
+  "LAYOUT_PLAN_COUNT",
+  "LAYOUT_PLAN_SIGNATURE",
   "SWCAD-SHEET",
   "SWCADVERIFY_FINAL_OK"
 )) {
   Assert-Contains $appText $needle "Workflow safety contract"
 }
+Assert-NotContains $appText "vla-Move" "Manual placement policy"
+Assert-NotContains $appText "_.MOVE" "Manual placement policy"
 
 foreach ($needle in @(
   "[StringComparison]::OrdinalIgnoreCase",

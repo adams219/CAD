@@ -52,7 +52,7 @@
   (not (vl-catch-all-error-p result))
 )
 
-(defun swapp-int-main (/ root mode source output log-path handle load-result load-ok attached command-ok summary xrefs dimensions source-titles source-frames evidence native-targets stage dim-state layouts title-status dim-ok layout-ok verify-command-ok pass unmatched-before unmatched-after unmatched-handle same-handle-after same-handle-before)
+(defun swapp-int-main (/ root mode source output log-path handle load-result load-ok attached command-ok summary xrefs dimensions source-titles source-frames evidence native-targets stage dim-state layouts title-status dim-ok layout-ok verify-command-ok pass unmatched-before unmatched-after unmatched-handle same-handle-after same-handle-before layout-plan)
   (setq root (vl-string-translate "\\" "/" (swapp-int-env "SWCAD_WORKFLOW_ROOT" "C:/Users/DR-DESIGN/Documents/CAD tool")))
   (setq mode (strcase (swapp-int-env "SWCAD_WORKFLOW_MODE" "MATERIALIZE_RAW")))
   (setq source (vl-string-translate "\\" "/" (swapp-int-env "SWCAD_WORKFLOW_SOURCE" "")))
@@ -146,6 +146,7 @@
             (setq command-ok (and (swapp-title-complete-p evidence) (swapp-int-command-ok 'c:SWCADRUN)))
             (setq dim-state (swapp-state-value "DIMSTYLE"))
             (setq stage (swapp-workflow-stage))
+            (setq layout-plan (if (equal stage "LAYOUT") (swapp-layout-plan) nil))
             (setq command-ok (and command-ok (equal stage "LAYOUT") (swapp-int-command-ok 'c:SWCADRUN)))
             (setq stage (swapp-workflow-stage))
             (setq layouts (length (swapp-with-layout-prefix-names)))
@@ -153,7 +154,7 @@
               (progn
                 (setq title-status (swcad-title-integrated-verify-final-summary))
                 (setq dim-ok (swapp-dimstyle-verify))
-                (setq layout-ok (swapp-layouts-valid-p (length (swcad-title-frame-records))))
+                (setq layout-ok (swapp-layout-state-valid-p (length (swcad-title-frame-records))))
                 (swapp-save-current)
               )
               (progn
@@ -166,6 +167,13 @@
             (swapp-int-write handle (strcat "DIMSTYLE state: " (if dim-state dim-state "<none>")))
             (swapp-int-write handle (strcat "Dimension semantics: " (if (swapp-state-value "DIMENSION_SEMANTICS") (swapp-state-value "DIMENSION_SEMANTICS") "<none>")))
             (swapp-int-write handle (strcat "Dimension restore count: " (if (swapp-state-value "DIMENSION_RESTORE_COUNT") (swapp-state-value "DIMENSION_RESTORE_COUNT") "<none>")))
+            (swapp-int-write handle (strcat "Layout plan count before create: " (itoa (length layout-plan))))
+            (if layout-plan
+              (progn
+                (swapp-int-write handle (strcat "Layout plan first: " (swapp-layout-plan-item-text (car layout-plan) 1)))
+                (swapp-int-write handle (strcat "Layout plan last: " (swapp-layout-plan-item-text (car (reverse layout-plan)) (length layout-plan))))
+              )
+            )
             (if (equal (swapp-state-value "DIMENSION_SEMANTICS") "CHANGED")
               (progn
                 (setq unmatched-before (swapp-first-unmatched-semantic *swapp-last-dimension-semantics-before* *swapp-last-dimension-semantics-after*))
@@ -182,6 +190,9 @@
               )
             )
             (swapp-int-write handle (strcat "Layout count: " (itoa layouts)))
+            (swapp-int-write handle (strcat "Layout placement mode: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "<none>")))
+            (swapp-int-write handle (strcat "Layout state plan count: " (if (swapp-state-value "LAYOUT_PLAN_COUNT") (swapp-state-value "LAYOUT_PLAN_COUNT") "<none>")))
+            (swapp-int-write handle (strcat "Layout state signature: " (if (swapp-state-value "LAYOUT_PLAN_SIGNATURE") (swapp-state-value "LAYOUT_PLAN_SIGNATURE") "<none>")))
             (swapp-int-write handle (strcat "Title verify status: " title-status))
             (swapp-int-write handle (strcat "DIMSTYLE audit: " (swapp-int-bool dim-ok)))
             (swapp-int-write handle (strcat "Layout audit: " (swapp-int-bool layout-ok)))
@@ -191,7 +202,11 @@
                 command-ok
                 (equal dim-state "OK")
                 (equal (swapp-state-value "DIMENSION_SEMANTICS") "PRESERVED")
+                (= (length layout-plan) 15)
                 (= layouts 15)
+                (equal (swapp-state-value "LAYOUT_PLACEMENT_MODE") *swapp-layout-placement-mode*)
+                (equal (swapp-state-value "LAYOUT_PLAN_COUNT") "15")
+                (equal (swapp-state-value "LAYOUT_PLAN_SIGNATURE") (swapp-layout-plan-signature layout-plan))
                 (equal title-status "OK")
                 dim-ok layout-ok
                 (equal stage "COMPLETE")
@@ -203,12 +218,15 @@
             (setq layouts (length (swapp-with-layout-prefix-names)))
             (setq title-status (swcad-title-integrated-verify-final-summary))
             (setq dim-ok (swapp-dimstyle-verify))
-            (setq layout-ok (swapp-layouts-valid-p (length (swcad-title-frame-records))))
+            (setq layout-ok (swapp-layout-state-valid-p (length (swcad-title-frame-records))))
             (setq verify-command-ok (swapp-int-command-ok 'c:SWCADVERIFY))
             (swapp-int-write handle (strcat "DIMSTYLE state: " (if (swapp-state-value "DIMSTYLE") (swapp-state-value "DIMSTYLE") "<none>")))
             (swapp-int-write handle (strcat "Dimension semantics: " (if (swapp-state-value "DIMENSION_SEMANTICS") (swapp-state-value "DIMENSION_SEMANTICS") "<none>")))
             (swapp-int-write handle (strcat "Dimension restore count: " (if (swapp-state-value "DIMENSION_RESTORE_COUNT") (swapp-state-value "DIMENSION_RESTORE_COUNT") "<none>")))
             (swapp-int-write handle (strcat "LAYOUT state: " (if (swapp-state-value "LAYOUT") (swapp-state-value "LAYOUT") "<none>")))
+            (swapp-int-write handle (strcat "Layout placement mode: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "<none>")))
+            (swapp-int-write handle (strcat "Layout state plan count: " (if (swapp-state-value "LAYOUT_PLAN_COUNT") (swapp-state-value "LAYOUT_PLAN_COUNT") "<none>")))
+            (swapp-int-write handle (strcat "Layout state signature: " (if (swapp-state-value "LAYOUT_PLAN_SIGNATURE") (swapp-state-value "LAYOUT_PLAN_SIGNATURE") "<none>")))
             (swapp-int-write handle (strcat "Layout count: " (itoa layouts)))
             (swapp-int-write handle (strcat "Title verify status: " title-status))
             (swapp-int-write handle (strcat "DIMSTYLE audit: " (swapp-int-bool dim-ok)))
@@ -221,6 +239,9 @@
                 (equal (swapp-state-value "DIMSTYLE") "OK")
                 (equal (swapp-state-value "DIMENSION_SEMANTICS") "PRESERVED")
                 (equal (swapp-state-value "LAYOUT") "OK")
+                (equal (swapp-state-value "LAYOUT_PLACEMENT_MODE") *swapp-layout-placement-mode*)
+                (equal (swapp-state-value "LAYOUT_PLAN_COUNT") "15")
+                (equal (swapp-state-value "LAYOUT_PLAN_SIGNATURE") (swapp-layout-plan-signature (swapp-layout-plan)))
                 (= layouts 15)
                 (equal title-status "OK")
                 dim-ok layout-ok verify-command-ok

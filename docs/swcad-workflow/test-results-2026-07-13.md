@@ -39,6 +39,13 @@ native GMTITLE 기준본은 EXPLODE 후 target title/frame/native-like pair가 `
 
 치수 의미 검사는 143개 핸들의 raw measurement, `DIMLFAC`, 상·하 공차와 표시 플래그를 전후 비교한다. 최초 진단에서 핸들 `37C1`의 불일치를 확인했고, 전체 비교에서는 73개 핸들의 의미 오버라이드 변화가 감지됐다. 통합 앱은 이 73개만 선택 복원했으며 이후 143개가 전부 일치했다. 복원 직후와 최종 검증에서 Mechanical fit 데이터 및 스타일 감사도 통과했다.
 
+Layout 검사는 최종 GMTITLE 도면틀 15개의 수동 배치 좌표를 왼쪽→오른쪽, 위쪽→아래쪽으로 계산했다. 생성 전 계획 수량 15, 생성 후 Layout 수 15, `LAYOUT_PLACEMENT_MODE=MANUAL_FRAME_COORDINATES`, 저장 후 계획 수량 15와 좌표 지문을 확인한다. 앱 코드에는 XREF나 도면 객체를 자동 이동하는 `vla-Move`/`MOVE` 경로가 없다.
+
+- 첫 창: `(0, 0.0837) - (594, 420.0837)`
+- 마지막 창: `(6293.9789, 0.4261) - (6713.9789, 297.4261)`
+- 저장된 좌표 지문: `15:653975:391240`
+- 재열기 결과: `COMPLETE`, `SWCADVERIFY_FINAL_OK`, `DBMOD=0`
+
 ## 재실행 조건
 
 - 앱 Layout 접두사 수: 15
@@ -46,6 +53,7 @@ native GMTITLE 기준본은 EXPLODE 후 target title/frame/native-like pair가 `
 - Layout당 뷰포트: 1
 - 모든 Layout 용지: A4
 - 저장 후 `DIMSTYLE=OK`, `DIMENSION_SEMANTICS=PRESERVED`, `LAYOUT=OK`
+- 저장 후 `LAYOUT_PLACEMENT_MODE=MANUAL_FRAME_COORDINATES`, `LAYOUT_PLAN_COUNT=15`, 좌표 지문 일치
 - 최종 상태: `COMPLETE`
 
 ## 실행 명령

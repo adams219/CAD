@@ -18,6 +18,8 @@ SWCADRUN
 SWCADVERIFY
 ```
 
+사용자가 XREF를 원하는 순서와 위치로 수동 배치하면, 앱은 좌표를 움직이지 않고 최종 GMTITLE 도면틀 범위를 계산해 Layout을 자동 생성합니다. `SWCADSTATUS`에서 생성 전 좌표 순서를 확인할 수 있습니다.
+
 상세 구조와 실제 CAD 검증 결과:
 
 ```text

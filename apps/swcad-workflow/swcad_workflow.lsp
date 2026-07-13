@@ -3,9 +3,11 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "260713-xref-mvp-3")
+(setq *swapp-version* "260713-manual-placement-layout-2")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-layout-prefix* "SWCAD-SHEET")
+(setq *swapp-layout-placement-mode* "MANUAL_FRAME_COORDINATES")
+(setq *swapp-layout-preview-limit* 12)
 (setq *swapp-transform-tolerance* 1e-8)
 (setq *swapp-geometry-tolerance* 0.001)
 (setq *swapp-dimension-semantic-codes* '(47 48 71 72 144 146 272 283 284 286))
@@ -538,6 +540,95 @@
   (reverse result)
 )
 
+(defun swapp-layout-plan ()
+  (gsla-sort-windows (swapp-frame-windows))
+)
+
+(defun swapp-layout-plan-item-handle (item / ename data handle)
+  (setq ename (car item))
+  (setq data (if ename (entget ename) nil))
+  (setq handle (if data (cdr (assoc 5 data)) nil))
+  (if handle handle "<없음>")
+)
+
+(defun swapp-layout-coordinate-text (value)
+  (if (numberp value) (rtos (float value) 2 4) "?")
+)
+
+(defun swapp-layout-signature-coordinate-text (value)
+  (if (numberp value) (rtos (float value) 2 6) "?")
+)
+
+(defun swapp-layout-plan-coordinate-data (plan / result item win ll ur)
+  (setq result "")
+  (foreach item plan
+    (setq win (cdr item))
+    (setq ll (car win))
+    (setq ur (cadr win))
+    (setq result
+      (strcat
+        result
+        "|" (swapp-layout-signature-coordinate-text (car ll))
+        "," (swapp-layout-signature-coordinate-text (cadr ll))
+        "," (swapp-layout-signature-coordinate-text (car ur))
+        "," (swapp-layout-signature-coordinate-text (cadr ur))
+      )
+    )
+  )
+  result
+)
+
+(defun swapp-text-rolling-hash (text modulus seed / index value)
+  (setq index 1)
+  (setq value seed)
+  (while (<= index (strlen text))
+    (setq value (rem (+ (* value 257) (ascii (substr text index 1))) modulus))
+    (setq index (1+ index))
+  )
+  value
+)
+
+(defun swapp-layout-plan-signature (plan / data)
+  (setq data (swapp-layout-plan-coordinate-data plan))
+  (strcat
+    (itoa (length plan))
+    ":" (itoa (swapp-text-rolling-hash data 1000003 17))
+    ":" (itoa (swapp-text-rolling-hash data 1000033 29))
+  )
+)
+
+(defun swapp-layout-plan-item-text (item index / win ll ur)
+  (setq win (cdr item))
+  (setq ll (car win))
+  (setq ur (cadr win))
+  (strcat
+    "#" (if (< index 100) "0" "") (if (< index 10) "0" "") (itoa index)
+    " frame=" (swapp-layout-plan-item-handle item)
+    " LL=(" (swapp-layout-coordinate-text (car ll)) ", " (swapp-layout-coordinate-text (cadr ll)) ")"
+    " UR=(" (swapp-layout-coordinate-text (car ur)) ", " (swapp-layout-coordinate-text (cadr ur)) ")"
+    " size=" (swapp-layout-coordinate-text (gsla-window-width win)) " x " (swapp-layout-coordinate-text (gsla-window-height win))
+  )
+)
+
+(defun swapp-print-layout-plan-items (plan limit / total index item)
+  (setq total (length plan))
+  (princ "\n----- SWCAD Layout 좌표 계획 -----")
+  (princ "\n배치 방식: 사용자가 배치한 최종 GMTITLE 도면틀 좌표 유지")
+  (princ "\n정렬 순서: 같은 행은 왼쪽→오른쪽, 다른 행은 위쪽→아래쪽")
+  (princ (strcat "\n예정 Layout 수: " (itoa total)))
+  (setq index 1)
+  (foreach item plan
+    (if (<= index limit)
+      (princ (strcat "\n  " (swapp-layout-plan-item-text item index)))
+    )
+    (setq index (1+ index))
+  )
+  (if (> total limit)
+    (princ (strcat "\n  ... 나머지 " (itoa (- total limit)) "개 좌표는 생성 시 같은 규칙으로 사용합니다."))
+  )
+  plan
+)
+
 (defun swapp-with-layout-prefix-names (/ old names)
   (setq old *gsla-prefix*)
   (setq *gsla-prefix* *swapp-layout-prefix*)
@@ -574,6 +665,22 @@
   ok
 )
 
+(defun swapp-layout-state-valid-p (expected / count-text plan signature)
+  (setq count-text (swapp-state-value "LAYOUT_PLAN_COUNT"))
+  (setq plan (swapp-layout-plan))
+  (setq signature (swapp-state-value "LAYOUT_PLAN_SIGNATURE"))
+  (and
+    (equal (swapp-state-value "LAYOUT") "OK")
+    (equal (swapp-state-value "LAYOUT_PLACEMENT_MODE") *swapp-layout-placement-mode*)
+    count-text
+    (= (atoi count-text) expected)
+    (= (length plan) expected)
+    signature
+    (equal signature (swapp-layout-plan-signature plan))
+    (swapp-layouts-valid-p expected)
+  )
+)
+
 (defun swapp-workflow-stage (/ xrefs evidence frames)
   (swapp-activate-model)
   (setq xrefs (swapp-top-xref-references))
@@ -586,7 +693,7 @@
         ((swapp-title-complete-p evidence)
           (cond
             ((not (swapp-dimstyle-marked-p)) "DIMSTYLE")
-            ((not (swapp-layouts-valid-p frames)) "LAYOUT")
+            ((not (swapp-layout-state-valid-p frames)) "LAYOUT")
             (T "COMPLETE")
           )
         )
@@ -933,7 +1040,7 @@
       nil
     )
     (progn
-      (setq windows (swapp-frame-windows))
+      (setq windows (swapp-layout-plan))
       (setq expected (length windows))
       (cond
         ((= expected 0)
@@ -948,6 +1055,7 @@
           nil
         )
         (T
+          (swapp-print-layout-plan-items windows *swapp-layout-preview-limit*)
           (swapp-delete-app-layouts)
           (setq old-prefix *gsla-prefix*)
           (setq *gsla-prefix* *swapp-layout-prefix*)
@@ -958,6 +1066,9 @@
           (if result
             (progn
               (swapp-state-set "LAYOUT" "OK")
+              (swapp-state-set "LAYOUT_PLACEMENT_MODE" *swapp-layout-placement-mode*)
+              (swapp-state-set "LAYOUT_PLAN_COUNT" (itoa expected))
+              (swapp-state-set "LAYOUT_PLAN_SIGNATURE" (swapp-layout-plan-signature windows))
               (swapp-state-set "LAYOUT_COUNT" (itoa expected))
               (swapp-save-current)
               (princ (strcat "\n결과: SWCAD_LAYOUT_OK, 생성 수=" (itoa expected)))
@@ -979,7 +1090,7 @@
 ;;; Public workflow commands
 ;;; ---------------------------
 
-(defun swapp-print-status (/ stage references evidence frames layouts state)
+(defun swapp-print-status (/ stage references evidence frames layouts state plan)
   (swapp-activate-model)
   (setq stage (swapp-workflow-stage))
   (setq references (swapp-top-xref-references))
@@ -992,6 +1103,7 @@
   (princ (strcat "\nDWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (princ (strcat "\n현재 단계: " stage))
   (princ (strcat "\n최상위 XREF: " (itoa (length references))))
+  (princ "\nXREF 배치 정책: 사용자가 정한 좌표 유지, 자동 이동 없음")
   (princ (strcat "\n최상위 치수: " (itoa (swapp-top-dimension-count))))
   (princ (strcat "\n남은 원본 title/frame 합계: " (itoa (swapp-evidence-value evidence "source-count"))))
   (princ
@@ -1005,6 +1117,13 @@
   )
   (princ (strcat "\nDIMSTYLE 상태: " (if (swapp-state-value "DIMSTYLE") (swapp-state-value "DIMSTYLE") "미실행")))
   (princ (strcat "\nSWCAD Layout: " (itoa (length layouts)) " / 기대 " (itoa frames)))
+  (princ (strcat "\nLayout 좌표 모드: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "미생성")))
+  (if (member stage '("DIMSTYLE" "LAYOUT" "COMPLETE"))
+    (progn
+      (setq plan (swapp-layout-plan))
+      (swapp-print-layout-plan-items plan *swapp-layout-preview-limit*)
+    )
+  )
   (princ (strcat "\n권장 다음 명령: " (if (equal stage "COMPLETE") "SWCADVERIFY" "SWCADRUN")))
   stage
 )
@@ -1073,11 +1192,14 @@
   (setq title-status (swcad-title-integrated-verify-final-summary))
   (setq dim-ok (swapp-dimstyle-verify))
   (setq frames (length (swcad-title-frame-records)))
-  (setq layout-ok (swapp-layouts-valid-p frames))
+  (setq layout-ok (swapp-layout-state-valid-p frames))
   (setq final-ok (and (= xrefs 0) (equal title-status "OK") dim-ok (> frames 0) layout-ok))
   (princ (strcat "\n남은 XREF: " (itoa xrefs)))
   (princ (strcat "\nGMTITLE 최종 상태: " title-status))
   (princ (strcat "\nDIMSTYLE 감사: " (if dim-ok "OK" "CHECK_NEEDED")))
+  (princ (strcat "\nLayout 좌표 모드: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "<없음>")))
+  (princ (strcat "\nLayout 좌표 계획 수: " (if (swapp-state-value "LAYOUT_PLAN_COUNT") (swapp-state-value "LAYOUT_PLAN_COUNT") "<없음>")))
+  (princ (strcat "\nLayout 좌표 지문: " (if (swapp-state-value "LAYOUT_PLAN_SIGNATURE") (swapp-state-value "LAYOUT_PLAN_SIGNATURE") "<없음>")))
   (princ (strcat "\nA4 Layout 검증: " (if layout-ok "OK" "CHECK_NEEDED") " (" (itoa frames) "장)"))
   (princ (strcat "\n최종 결과: " (if final-ok "SWCADVERIFY_FINAL_OK" "SWCADVERIFY_FINAL_FAIL")))
   (princ)
