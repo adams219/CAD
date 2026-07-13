@@ -3,7 +3,7 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "260713-manual-placement-layout-2")
+(setq *swapp-version* "260713-sheet-wrapper-materialize-2")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-layout-prefix* "SWCAD-SHEET")
 (setq *swapp-layout-placement-mode* "MANUAL_FRAME_COORDINATES")
@@ -225,31 +225,217 @@
   result
 )
 
-(defun swapp-target-reference-name-p (name / upper)
+(defun swapp-target-title-reference-name-p (name / upper)
   (setq upper (if name (strcase name) ""))
-  (or
-    (vl-string-search "DR_TITLEA_3RD" upper)
+  (if (vl-string-search "DR_TITLEA_3RD" upper) T nil)
+)
+
+(defun swapp-target-frame-reference-name-p (name / upper)
+  (setq upper (if name (strcase name) ""))
+  (if
+    (or
     (vl-string-search "DR_A1_OUTLINE" upper)
     (vl-string-search "DR_A2_OUTLINE" upper)
     (vl-string-search "DR_A3_OUTLINE" upper)
     (vl-string-search "DR_A4_OUTLINE" upper)
+  )
+    T
+    nil
+  )
+)
+
+(defun swapp-target-reference-name-p (name)
+  (or
+    (swapp-target-title-reference-name-p name)
+    (swapp-target-frame-reference-name-p name)
+  )
+)
+
+(defun swapp-reference-ename (reference)
+  (swapp-safe 'vlax-vla-object->ename (list reference))
+)
+
+(defun swapp-native-target-reference-p (reference / ename kinds)
+  (if (swapp-target-reference-name-p (swapp-reference-name reference))
+    (progn
+      (setq ename (swapp-reference-ename reference))
+      (setq kinds (if ename (swcad-title-native-link-target-kinds ename) nil))
+      (if (swcad-title-internal-native-link-kinds-p kinds) T nil)
+    )
+    nil
+  )
+)
+
+(setq *swapp-dimension-count-cache* nil)
+
+(defun swapp-block-expandable-dimension-count (block-name stack / upper cached block total child child-name)
+  (setq upper (if block-name (strcase block-name) ""))
+  (cond
+    ((or (= upper "") (member upper stack) (swapp-target-reference-name-p block-name)) 0)
+    ((setq cached (assoc upper *swapp-dimension-count-cache*)) (cdr cached))
+    (T
+      (setq total 0)
+      (setq block (swapp-block-definition block-name))
+      (if block
+        (foreach child (swapp-collection-items block)
+          (cond
+            ((swapp-dimension-p child)
+              (setq total (1+ total))
+            )
+            ((swapp-block-reference-p child)
+              (setq child-name (swapp-reference-name child))
+              (setq total
+                (+ total (swapp-block-expandable-dimension-count child-name (cons upper stack)))
+              )
+            )
+          )
+        )
+      )
+      (setq *swapp-dimension-count-cache*
+        (cons (cons upper total) *swapp-dimension-count-cache*)
+      )
+      total
+    )
+  )
+)
+
+(defun swapp-reference-expandable-dimension-count (reference / name block)
+  (setq name (swapp-reference-name reference))
+  (setq block (swapp-block-definition name))
+  (if
+    (and
+      block
+      (not (swapp-target-reference-name-p name))
+    )
+    (swapp-block-expandable-dimension-count name nil)
+    0
+  )
+)
+
+(defun swapp-references-expandable-dimension-count (references / total reference)
+  (setq *swapp-dimension-count-cache* nil)
+  (setq total 0)
+  (foreach reference references
+    (setq total (+ total (swapp-reference-expandable-dimension-count reference)))
+  )
+  total
+)
+
+(defun swapp-model-expandable-dimension-count (/ references object)
+  (setq references nil)
+  (foreach object (swapp-collection-items (swapp-model))
+    (if (swapp-block-reference-p object)
+      (setq references (append references (list object)))
+    )
+  )
+  (swapp-references-expandable-dimension-count references)
+)
+
+(defun swapp-top-dimension-container-references (/ result object name block count)
+  (setq *swapp-dimension-count-cache* nil)
+  (setq result nil)
+  (foreach object (swapp-collection-items (swapp-model))
+    (if (swapp-block-reference-p object)
+      (progn
+        (setq name (swapp-reference-name object))
+        (setq block (swapp-block-definition name))
+        (setq count
+          (if (and block (not (swapp-xref-definition-p block)))
+            (swapp-reference-expandable-dimension-count object)
+            0
+          )
+        )
+        (if (> count 0)
+          (setq result (append result (list object)))
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swapp-explode-dimension-containers (/ references rounds exposed count success)
+  (setq references (swapp-top-dimension-container-references))
+  (setq rounds 0)
+  (setq exposed 0)
+  (setq success T)
+  (while (and success references (< rounds 32))
+    (setq rounds (1+ rounds))
+    (foreach reference references
+      (if success
+        (progn
+          (setq count (swapp-explode-reference reference))
+          (if count
+            (setq exposed (+ exposed count))
+            (setq success nil)
+          )
+        )
+      )
+    )
+    (if success
+      (progn
+        (vla-Regen (swapp-doc) 1)
+        (setq references (swapp-top-dimension-container-references))
+      )
+    )
+  )
+  (if (and success (not references))
+    (list
+      (cons "objects" exposed)
+      (cons "rounds" rounds)
+    )
+    nil
   )
 )
 
 (setq *swapp-scan-visited* nil)
 (setq *swapp-scan-dimensions* 0)
 (setq *swapp-scan-target-references* 0)
+(setq *swapp-scan-target-frame-references* 0)
+(setq *swapp-scan-target-title-references* 0)
 
-(defun swapp-scan-object (object stack / block-name upper block child)
-  (if (swapp-dimension-p object)
-    (setq *swapp-scan-dimensions* (1+ *swapp-scan-dimensions*))
+(defun swapp-scan-items-sheet-wrapper-p (items / child child-name frame-found title-found)
+  (setq frame-found nil)
+  (setq title-found nil)
+  (foreach child items
+    (if
+      (and
+        (not (and frame-found title-found))
+        (swapp-block-reference-p child)
+      )
+      (progn
+        (setq child-name (swapp-reference-name child))
+        (if (swapp-target-frame-reference-name-p child-name)
+          (setq frame-found T)
+        )
+        (if (swapp-target-title-reference-name-p child-name)
+          (setq title-found T)
+        )
+      )
+    )
   )
+  (and frame-found title-found)
+)
+
+(defun swapp-scan-object (object stack inside-sheet-wrapper depth / block-name upper block children child child-inside-wrapper)
   (if (swapp-block-reference-p object)
     (progn
       (setq block-name (swapp-reference-name object))
       (setq upper (if block-name (strcase block-name) ""))
-      (if (swapp-target-reference-name-p block-name)
-        (setq *swapp-scan-target-references* (1+ *swapp-scan-target-references*))
+      (if
+        (and
+          (not inside-sheet-wrapper)
+          (swapp-target-reference-name-p block-name)
+        )
+        (progn
+          (setq *swapp-scan-target-references* (1+ *swapp-scan-target-references*))
+          (if (swapp-target-frame-reference-name-p block-name)
+            (setq *swapp-scan-target-frame-references* (1+ *swapp-scan-target-frame-references*))
+          )
+          (if (swapp-target-title-reference-name-p block-name)
+            (setq *swapp-scan-target-title-references* (1+ *swapp-scan-target-title-references*))
+          )
+        )
       )
       (if
         (and
@@ -261,8 +447,21 @@
           (setq *swapp-scan-visited* (cons upper *swapp-scan-visited*))
           (setq block (swapp-block-definition block-name))
           (if block
-            (foreach child (swapp-collection-items block)
-              (swapp-scan-object child (cons upper stack))
+            (progn
+              (setq children (swapp-collection-items block))
+              (setq child-inside-wrapper
+                (or
+                  inside-sheet-wrapper
+                  (and
+                    (= depth 1)
+                    (not (swapp-xref-definition-p block))
+                    (swapp-scan-items-sheet-wrapper-p children)
+                  )
+                )
+              )
+              (foreach child children
+                (swapp-scan-object child (cons upper stack) child-inside-wrapper (1+ depth))
+              )
             )
           )
         )
@@ -271,16 +470,21 @@
   )
 )
 
-(defun swapp-xref-deep-evidence (references / reference)
+(defun swapp-xref-deep-evidence (references / reference dimension-count)
+  (setq dimension-count (swapp-references-expandable-dimension-count references))
   (setq *swapp-scan-dimensions* 0)
   (setq *swapp-scan-target-references* 0)
+  (setq *swapp-scan-target-frame-references* 0)
+  (setq *swapp-scan-target-title-references* 0)
   (foreach reference references
     (setq *swapp-scan-visited* nil)
-    (swapp-scan-object reference nil)
+    (swapp-scan-object reference nil nil 0)
   )
   (list
-    (cons "dimensions" *swapp-scan-dimensions*)
+    (cons "dimensions" dimension-count)
     (cons "target-references" *swapp-scan-target-references*)
+    (cons "target-frame-references" *swapp-scan-target-frame-references*)
+    (cons "target-title-references" *swapp-scan-target-title-references*)
   )
 )
 
@@ -353,7 +557,208 @@
   )
 )
 
-(defun swapp-materialize-xrefs (/ references unique-names xref-definition-count evidence expected-dimensions native-targets transforms-ok reference name block bind-result explode-count one-count before-bbox after-bbox after-xrefs after-dimensions summary source-titles source-frames success)
+(defun swapp-sheet-wrapper-record (reference / name block child child-name frame-count title-count native-target-count dimension-count object-count)
+  (setq name (swapp-reference-name reference))
+  (setq block (swapp-block-definition name))
+  (if
+    (and
+      block
+      (not (swapp-xref-definition-p block))
+      (not (swapp-target-reference-name-p name))
+    )
+    (progn
+      (setq frame-count 0)
+      (setq title-count 0)
+      (setq native-target-count 0)
+      (setq dimension-count 0)
+      (setq object-count 0)
+      (foreach child (swapp-collection-items block)
+        (setq object-count (1+ object-count))
+        (if (swapp-dimension-p child)
+          (setq dimension-count (1+ dimension-count))
+        )
+        (if (swapp-block-reference-p child)
+          (progn
+            (setq child-name (swapp-reference-name child))
+            (if (swapp-native-target-reference-p child)
+              (setq native-target-count (1+ native-target-count))
+            )
+            (if (swapp-target-frame-reference-name-p child-name)
+              (setq frame-count (1+ frame-count))
+            )
+            (if (swapp-target-title-reference-name-p child-name)
+              (setq title-count (1+ title-count))
+            )
+          )
+        )
+      )
+      (if (and (> frame-count 0) (> title-count 0))
+        (list
+          (cons "reference" reference)
+          (cons "name" name)
+          (cons "frames" frame-count)
+          (cons "titles" title-count)
+          (cons "native-targets" native-target-count)
+          (cons "dimensions" dimension-count)
+          (cons "objects" object-count)
+          (cons "transform-supported" (swapp-reference-transform-supported-p reference))
+        )
+        nil
+      )
+    )
+    nil
+  )
+)
+
+(defun swapp-sheet-wrapper-records (/ result object record)
+  (setq result nil)
+  (foreach object (swapp-collection-items (swapp-model))
+    (if (swapp-block-reference-p object)
+      (progn
+        (setq record (swapp-sheet-wrapper-record object))
+        (if record (setq result (append result (list record))))
+      )
+    )
+  )
+  result
+)
+
+(defun swapp-sheet-wrapper-value (record key)
+  (cdr (assoc key record))
+)
+
+(defun swapp-sheet-wrapper-direct-dimension-count (records / total record)
+  (setq total 0)
+  (foreach record records
+    (setq total (+ total (swapp-sheet-wrapper-value record "dimensions")))
+  )
+  total
+)
+
+(defun swapp-sheet-wrapper-transforms-supported-p (records / result record)
+  (setq result T)
+  (foreach record records
+    (if (not (swapp-sheet-wrapper-value record "transform-supported"))
+      (setq result nil)
+    )
+  )
+  result
+)
+
+(defun swapp-sheet-wrapper-native-free-p (records / result record)
+  (setq result T)
+  (foreach record records
+    (if (> (swapp-sheet-wrapper-value record "native-targets") 0)
+      (setq result nil)
+    )
+  )
+  result
+)
+
+(defun swapp-explode-sheet-wrapper-records (records / result record count)
+  (setq result 0)
+  (foreach record records
+    (if (numberp result)
+      (progn
+        (setq count
+          (swapp-explode-reference
+            (swapp-sheet-wrapper-value record "reference")
+          )
+        )
+        (if count
+          (setq result (+ result count))
+          (setq result nil)
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swapp-materialize-sheet-wrappers (/ records direct-dimensions expandable-dimensions before-dimensions expected-dimensions before-bbox explode-count dimension-result dimension-exposed dimension-rounds after-records after-dimensions after-bbox summary source-titles source-frames success)
+  (swapp-activate-model)
+  (setq records (swapp-sheet-wrapper-records))
+  (cond
+    ((not records)
+      (princ "\nSWCAD 시트 묶음: 분해할 중첩 시트 블록이 없습니다.")
+      nil
+    )
+    ((not (swapp-sheet-wrapper-transforms-supported-p records))
+      (princ "\n결과: BLOCKED_UNSUPPORTED_SHEET_WRAPPER_TRANSFORM")
+      (princ "\n시트 묶음은 축척 1, 회전 0일 때만 자동 분해합니다.")
+      nil
+    )
+    ((not (swapp-sheet-wrapper-native-free-p records))
+      (princ "\n결과: BLOCKED_NATIVE_GMTITLE_SHEET_WRAPPER")
+      (princ "\n시트 묶음 안에 실제 native GMTITLE 연결 데이터가 있어 자동 분해하지 않습니다.")
+      nil
+    )
+    ((not (swcad-title-ensure-work-copy-for-mutation))
+      (princ "\n결과: ABORT_WORKCOPY_NOT_CREATED")
+      nil
+    )
+    (T
+      (setq direct-dimensions (swapp-sheet-wrapper-direct-dimension-count records))
+      (setq before-dimensions (swapp-top-dimension-count))
+      (setq expandable-dimensions (swapp-model-expandable-dimension-count))
+      (setq expected-dimensions (+ before-dimensions expandable-dimensions))
+      (setq before-bbox (swapp-model-bbox))
+      (princ "\n----- SWCAD 중첩 시트 묶음 1단계 분해 -----")
+      (princ (strcat "\n시트 묶음: " (itoa (length records))))
+      (princ (strcat "\n묶음 내부 직접 치수: " (itoa direct-dimensions)))
+      (princ (strcat "\n내용 블록까지 포함한 변환 대상 치수: " (itoa expandable-dimensions)))
+      (princ "\n정책: 도면 내용은 유지하고 바깥 시트 묶음 INSERT만 한 단계 분해합니다.")
+      (setq explode-count (swapp-explode-sheet-wrapper-records records))
+      (setq dimension-result
+        (if (numberp explode-count) (swapp-explode-dimension-containers) nil)
+      )
+      (setq dimension-exposed (if dimension-result (swapp-evidence-value dimension-result "objects") 0))
+      (setq dimension-rounds (if dimension-result (swapp-evidence-value dimension-result "rounds") 0))
+      (vla-Regen (swapp-doc) 1)
+      (setq after-records (swapp-sheet-wrapper-records))
+      (setq after-dimensions (swapp-top-dimension-count))
+      (setq after-bbox (swapp-model-bbox))
+      (setq summary (swcad-title-fast-sheet-summary))
+      (setq source-titles (swcad-title-fast-summary-value summary "source-title-count"))
+      (setq source-frames (swcad-title-fast-summary-value summary "source-frame-count"))
+      (setq success
+        (and
+          (numberp explode-count)
+          dimension-result
+          (= (length after-records) 0)
+          (= after-dimensions expected-dimensions)
+          (swapp-bbox-near-p before-bbox after-bbox)
+          (> source-titles 0)
+          (> source-frames 0)
+        )
+      )
+      (princ (strcat "\n분해로 노출된 최상위 객체: " (itoa (if (numberp explode-count) explode-count 0))))
+      (princ (strcat "\n치수 내용 블록 추가 분해: " (itoa dimension-exposed) " objects / " (itoa dimension-rounds) " rounds"))
+      (princ (strcat "\n남은 시트 묶음: " (itoa (length after-records))))
+      (princ (strcat "\n분해 후 최상위 치수: " (itoa after-dimensions)))
+      (princ (strcat "\n분해 후 원본 표제란/도면틀: " (itoa source-titles) " / " (itoa source-frames)))
+      (if success
+        (progn
+          (swapp-state-set "SHEET_WRAPPERS" "OK")
+          (swapp-state-set "SHEET_WRAPPER_COUNT" (itoa (length records)))
+          (swapp-state-set "DIMENSION_COUNT" (itoa after-dimensions))
+          (swapp-state-set "SOURCE_FRAME_COUNT" (itoa source-frames))
+          (swapp-save-current)
+          (princ "\n결과: SWCAD_SHEET_WRAPPER_MATERIALIZE_OK")
+          T
+        )
+        (progn
+          (swapp-state-set "SHEET_WRAPPERS" "FAILED")
+          (princ "\n결과: SWCAD_SHEET_WRAPPER_MATERIALIZE_FAILED")
+          (princ "\n작업본에서 UNDO 후 상태를 확인하세요. 이 실패 상태에서는 GMTITLE 변환을 계속하지 마세요.")
+          nil
+        )
+      )
+    )
+  )
+)
+
+(defun swapp-materialize-xrefs (/ references unique-names xref-definition-count evidence expected-dimensions native-targets native-target-frames native-target-titles transforms-ok reference name block bind-result explode-count one-count wrapper-records wrapper-count wrapper-explode-count dimension-result dimension-exposed dimension-rounds after-wrapper-count before-bbox after-bbox after-xrefs after-dimensions summary source-titles source-frames success)
   (swapp-activate-model)
   (setq references (swapp-top-xref-references))
   (setq xref-definition-count (swapp-xref-definition-count))
@@ -367,6 +772,8 @@
       (setq evidence (swapp-xref-deep-evidence references))
       (setq expected-dimensions (swapp-evidence-value evidence "dimensions"))
       (setq native-targets (swapp-evidence-value evidence "target-references"))
+      (setq native-target-frames (swapp-evidence-value evidence "target-frame-references"))
+      (setq native-target-titles (swapp-evidence-value evidence "target-title-references"))
       (setq transforms-ok T)
       (foreach reference references
         (if (not (swapp-reference-transform-supported-p reference))
@@ -378,13 +785,14 @@
       (princ (strcat "\nXREF 정의: " (itoa xref-definition-count)))
       (princ (strcat "\nXREF 내부 치수: " (itoa expected-dimensions)))
       (princ (strcat "\nXREF 내부 native GMTITLE 참조: " (itoa native-targets)))
+      (princ (strcat "\nXREF 내부 최상위 DR 도면틀/표제란: " (itoa native-target-frames) " / " (itoa native-target-titles)))
       (cond
         ((/= xref-definition-count (length unique-names))
           (princ "\n결과: BLOCKED_NESTED_OR_UNREFERENCED_XREF")
           (princ "\n중첩 또는 최상위에 연결되지 않은 XREF가 있어 자동 결합하지 않습니다.")
           nil
         )
-        ((> native-targets 0)
+        ((and (> native-target-frames 0) (> native-target-titles 0))
           (princ "\n결과: BLOCKED_NATIVE_GMTITLE_XREF")
           (princ "\n이미 GMTITLE인 XREF는 BIND/EXPLODE 시 native 링크가 풀리므로 자동 변환하지 않습니다.")
           nil
@@ -419,7 +827,29 @@
             )
           )
           (vla-Regen (swapp-doc) 1)
+          (setq wrapper-records (swapp-sheet-wrapper-records))
+          (setq wrapper-count (length wrapper-records))
+          (setq wrapper-explode-count 0)
+          (if (and success wrapper-records)
+            (if
+              (and
+                (swapp-sheet-wrapper-transforms-supported-p wrapper-records)
+                (swapp-sheet-wrapper-native-free-p wrapper-records)
+              )
+              (progn
+                (setq wrapper-explode-count (swapp-explode-sheet-wrapper-records wrapper-records))
+                (if (not (numberp wrapper-explode-count)) (setq success nil))
+              )
+              (setq success nil)
+            )
+          )
+          (setq dimension-result (if success (swapp-explode-dimension-containers) nil))
+          (if (not dimension-result) (setq success nil))
+          (setq dimension-exposed (if dimension-result (swapp-evidence-value dimension-result "objects") 0))
+          (setq dimension-rounds (if dimension-result (swapp-evidence-value dimension-result "rounds") 0))
+          (vla-Regen (swapp-doc) 1)
           (setq after-xrefs (swapp-xref-definition-count))
+          (setq after-wrapper-count (length (swapp-sheet-wrapper-records)))
           (setq after-dimensions (swapp-top-dimension-count))
           (setq after-bbox (swapp-model-bbox))
           (setq summary (swcad-title-fast-sheet-summary))
@@ -429,19 +859,26 @@
             (and
               success
               (= after-xrefs 0)
+              (= after-wrapper-count 0)
               (= after-dimensions expected-dimensions)
               (swapp-bbox-near-p before-bbox after-bbox)
               (> source-frames 0)
             )
           )
           (princ (strcat "\n분해된 최상위 객체: " (itoa explode-count)))
+          (princ (strcat "\n추가로 분해한 시트 묶음: " (itoa wrapper-count)))
+          (princ (strcat "\n시트 묶음에서 노출된 객체: " (itoa (if (numberp wrapper-explode-count) wrapper-explode-count 0))))
+          (princ (strcat "\n치수 내용 블록 추가 분해: " (itoa dimension-exposed) " objects / " (itoa dimension-rounds) " rounds"))
           (princ (strcat "\n변환 후 XREF 정의: " (itoa after-xrefs)))
+          (princ (strcat "\n변환 후 남은 시트 묶음: " (itoa after-wrapper-count)))
           (princ (strcat "\n변환 후 최상위 치수: " (itoa after-dimensions)))
           (princ (strcat "\n변환 후 원본 표제란/도면틀: " (itoa source-titles) " / " (itoa source-frames)))
           (if success
             (progn
               (swapp-state-set "MATERIALIZED" "OK")
               (swapp-state-set "XREF_COUNT" (itoa (length references)))
+              (swapp-state-set "SHEET_WRAPPERS" "OK")
+              (swapp-state-set "SHEET_WRAPPER_COUNT" (itoa wrapper-count))
               (swapp-state-set "DIMENSION_COUNT" (itoa after-dimensions))
               (swapp-state-set "SOURCE_FRAME_COUNT" (itoa source-frames))
               (swapp-save-current)
@@ -681,11 +1118,12 @@
   )
 )
 
-(defun swapp-workflow-stage (/ xrefs evidence frames)
+(defun swapp-workflow-stage (/ xrefs wrappers evidence frames)
   (swapp-activate-model)
   (setq xrefs (swapp-top-xref-references))
   (cond
     (xrefs "XREF")
+    ((setq wrappers (swapp-sheet-wrapper-records)) "SHEET_WRAPPERS")
     (T
       (setq evidence (swapp-title-evidence))
       (setq frames (swapp-evidence-value evidence "target-frame-count"))
@@ -1090,10 +1528,11 @@
 ;;; Public workflow commands
 ;;; ---------------------------
 
-(defun swapp-print-status (/ stage references evidence frames layouts state plan)
+(defun swapp-print-status (/ stage references wrappers evidence frames layouts state plan)
   (swapp-activate-model)
   (setq stage (swapp-workflow-stage))
   (setq references (swapp-top-xref-references))
+  (setq wrappers (swapp-sheet-wrapper-records))
   (setq evidence (swapp-title-evidence))
   (setq frames (swapp-evidence-value evidence "target-frame-count"))
   (setq layouts (swapp-with-layout-prefix-names))
@@ -1104,6 +1543,10 @@
   (princ (strcat "\n현재 단계: " stage))
   (princ (strcat "\n최상위 XREF: " (itoa (length references))))
   (princ "\nXREF 배치 정책: 사용자가 정한 좌표 유지, 자동 이동 없음")
+  (princ (strcat "\n중첩 시트 묶음: " (itoa (length wrappers))))
+  (if wrappers
+    (princ "\n시트 묶음 정책: 도면·치수·표제란을 품은 바깥 INSERT만 한 단계 분해")
+  )
   (princ (strcat "\n최상위 치수: " (itoa (swapp-top-dimension-count))))
   (princ (strcat "\n남은 원본 title/frame 합계: " (itoa (swapp-evidence-value evidence "source-count"))))
   (princ
@@ -1152,6 +1595,7 @@
   (princ (strcat "\n현재 단계: " stage))
   (cond
     ((equal stage "XREF") (swapp-materialize-xrefs))
+    ((equal stage "SHEET_WRAPPERS") (swapp-materialize-sheet-wrappers))
     ((equal stage "TITLE") (swapp-run-title-next))
     ((equal stage "DIMSTYLE") (swapp-run-dimstyle))
     ((equal stage "LAYOUT") (swapp-run-layout))
@@ -1185,16 +1629,18 @@
   )
 )
 
-(defun c:SWCADVERIFY (/ xrefs title-status dim-ok frames layout-ok final-ok)
+(defun c:SWCADVERIFY (/ xrefs wrappers title-status dim-ok frames layout-ok final-ok)
   (swapp-activate-model)
   (princ "\n===== SWCADVERIFY 통합 최종 검증 =====")
   (setq xrefs (length (swapp-top-xref-references)))
+  (setq wrappers (length (swapp-sheet-wrapper-records)))
   (setq title-status (swcad-title-integrated-verify-final-summary))
   (setq dim-ok (swapp-dimstyle-verify))
   (setq frames (length (swcad-title-frame-records)))
   (setq layout-ok (swapp-layout-state-valid-p frames))
-  (setq final-ok (and (= xrefs 0) (equal title-status "OK") dim-ok (> frames 0) layout-ok))
+  (setq final-ok (and (= xrefs 0) (= wrappers 0) (equal title-status "OK") dim-ok (> frames 0) layout-ok))
   (princ (strcat "\n남은 XREF: " (itoa xrefs)))
+  (princ (strcat "\n남은 중첩 시트 묶음: " (itoa wrappers)))
   (princ (strcat "\nGMTITLE 최종 상태: " title-status))
   (princ (strcat "\nDIMSTYLE 감사: " (if dim-ok "OK" "CHECK_NEEDED")))
   (princ (strcat "\nLayout 좌표 모드: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "<없음>")))

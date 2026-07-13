@@ -36,18 +36,24 @@ SWCADVERIFY
 `SWCADRUN`은 현재 상태에서 다음 안전 단계 하나만 실행한다. 중간에 종료해도 DWG의 `SWCAD_WORKFLOW_STATE` XRecord를 읽어 재개한다.
 
 ```text
-XREF → TITLE → DIMSTYLE → LAYOUT → COMPLETE
+XREF → SHEET_WRAPPERS(필요한 경우) → TITLE → DIMSTYLE → LAYOUT → COMPLETE
 ```
 
 ## XREF materialize 결정
 
-실제 GstarCAD 비교 결과에 따라 원본 SolidWorks XREF는 `BIND` 후 최상위 참조를 정확히 한 번 `EXPLODE`한다.
+실제 GstarCAD 비교 결과에 따라 원본 SolidWorks XREF는 `BIND` 후 최상위 참조를 한 번 `EXPLODE`한다. XREF 아래에 시트 전체를 감싼 블록이 있으면 추가 구조 정규화를 수행한다.
 
 - Attached 상태는 치수와 원본 도면틀이 XREF 내부에 남아 후속 모듈이 직접 처리할 수 없다.
 - BIND만 한 상태도 최상위 객체가 블록 참조라 후속 모듈의 원본 시트 감지가 되지 않는다.
 - BIND 후 1회 EXPLODE는 치수 143개, 원본 title/frame 15/15, 전체 bbox와 치수 의미 해시를 유지한다.
+- 시트 전체 블록은 도면 내용, 치수, DR 도면틀, DR 표제란을 함께 품는다. 이를 frame-only 도면틀로 오인해 삭제하면 도면 전체가 사라질 수 있으므로 바깥 INSERT부터 분리한다.
+- DR 도면틀·표제란은 유지하고, 치수가 들어 있는 비대상 내용 블록만 반복 EXPLODE해 DIMSTYLE이 모든 치수를 볼 수 있게 한다.
+- 같은 블록 정의가 여러 번 삽입되면 deep 치수도 삽입 횟수만큼 계산한다. 순환 참조는 스택으로 차단한다.
+- native XREF 차단은 이름 하나가 아니라 XREF 최상위의 DR frame/title 동시 존재로 판정한다. 시트 묶음 안의 이름만 같은 DR 블록은 변환 대상으로 통과시킨다.
 - 이미 native GMTITLE인 XREF는 EXPLODE할 때 native link가 사라지므로 자동 materialize를 차단한다.
 - 중첩/미참조 XREF, 축척 1 이외, 회전 0 이외도 MVP에서 차단한다.
+
+부분 materialize 작업본도 자동 복구한다. 최상위 XREF는 없지만 시트 묶음이 남아 있으면 `SHEET_WRAPPERS`가 먼저 실행되고, 성공 조건은 묶음 0, instance-aware deep 치수와 최상위 치수 일치, 모델 bbox 보존, 원본 title/frame 감지다.
 
 첫 변경 전에 GMTITLE 모듈의 Save As 계약을 사용한다. 사용자가 정한 별도 작업본만 변경하며 호스트 원본과 XREF 원본은 저장하지 않는다.
 
@@ -88,6 +94,7 @@ DIMENSION_SEMANTICS=PRESERVED
 `SWCADVERIFY`는 다음 조건을 모두 확인한다.
 
 - 남은 XREF 0
+- 남은 중첩 시트 묶음 0
 - GMTITLE 최종 상태 `OK`
 - 치수 스타일/Mechanical fit 감사 통과
 - `DIMENSION_SEMANTICS=PRESERVED`

@@ -2,7 +2,7 @@
 
 (vl-load-com)
 
-(setq *swapp-loader-version* "260713-manual-placement-layout-2")
+(setq *swapp-loader-version* "260713-sheet-wrapper-materialize-2")
 
 (defun swapp-loader-source (/ source)
   (setq source nil)

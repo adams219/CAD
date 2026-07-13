@@ -4,6 +4,7 @@ SolidWorks 원본 도면이 연결된 XREF 호스트를 다음 순서로 처리�
 
 ```text
 XREF 작업본 생성/결합
+→ 중첩 시트 묶음과 치수 내용 블록 materialize
 → GMTITLE 도면틀·표제란 변환
 → DIMSTYLE·맞춤공차 정규화
 → A4 Layout 생성
@@ -54,9 +55,15 @@ DIMSTYLE 단계는 실행 전후의 치수 측정값, `DIMLFAC`, 상·하 공차
 
 - 원본 SolidWorks DWG XREF만 자동 materialize합니다.
 - 축척 `1`, 회전 `0`인 모델 공간 XREF를 지원합니다.
-- `BIND` 후 최상위 XREF 참조를 정확히 한 번만 `EXPLODE`합니다.
-- 이미 native GMTITLE인 XREF는 링크가 풀리는 것이 확인됐으므로 자동 처리하지 않습니다.
+- `BIND` 후 최상위 XREF 참조를 한 번 `EXPLODE`합니다.
+- 도면·치수·DR 도면틀·DR 표제란을 함께 품은 시트 묶음은 바깥 INSERT만 한 단계씩 풉니다.
+- DIMSTYLE이 모든 치수를 처리할 수 있도록 DR 도면틀·표제란을 제외한 치수 포함 내용 블록만 반복 분해합니다.
+- 이미 일부 BIND/EXPLODE가 끝난 도면은 `SHEET_WRAPPERS` 단계에서 같은 처리를 이어갑니다.
+- XREF 최상위에 DR 도면틀과 DR 표제란이 함께 있는 완성 native GMTITLE은 링크 보호를 위해 자동 처리하지 않습니다.
+- 시트 묶음 안의 이름만 같은 DR 블록이나 `POINT`를 가리키는 깨진 XData는 native 증거로 보지 않습니다.
 - 중첩 XREF와 최상위에 연결되지 않은 XREF 정의가 있으면 원본을 건드리지 않고 중단합니다.
+
+41장 대표 파일에서는 시트 묶음 `10 → 0`, 최상위 치수 `0 → 254`, 원본 표제란/도면틀 `30/41`을 확인했습니다. GstarCAD의 BIND와 다단계 EXPLODE, 저장 후 재스캔 때문에 이 단계는 몇 분 걸릴 수 있습니다.
 
 첫 변경 전에 GMTITLE 모듈의 다른 이름으로 저장 창을 사용해 사용자가 지정한 독립 작업본을 만듭니다. 원본 DWG와 XREF 원본은 저장하지 않습니다.
 

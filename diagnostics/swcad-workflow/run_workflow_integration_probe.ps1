@@ -1,8 +1,10 @@
 param(
   [int]$TimeoutSeconds = 360,
 
-  [ValidateSet("MATERIALIZE_RAW", "NATIVE_GUARD", "DOWNSTREAM", "REOPEN")]
-  [string[]]$Modes = @("MATERIALIZE_RAW", "NATIVE_GUARD", "DOWNSTREAM", "REOPEN")
+  [switch]$AllowExistingGstarCAD,
+
+  [ValidateSet("MATERIALIZE_RAW", "MATERIALIZE_WRAPPED_XREF", "NATIVE_GUARD", "SHEET_WRAPPERS", "DOWNSTREAM", "REOPEN")]
+  [string[]]$Modes = @("MATERIALIZE_RAW", "MATERIALIZE_WRAPPED_XREF", "NATIVE_GUARD", "SHEET_WRAPPERS", "DOWNSTREAM", "REOPEN")
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,12 +12,15 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
 $rawSource = (Resolve-Path -LiteralPath (Join-Path $repoRoot "work\0000_A_DRP125_CP_ALL_260626_ORIGINAL_TEST_260711.dwg")).Path
 $nativeSource = (Resolve-Path -LiteralPath (Join-Path $repoRoot "portable-e2e\output\swtitle_portable_result_260712.dwg")).Path
+$sheetWrapperSource = (Resolve-Path -LiteralPath (Join-Path $repoRoot "work\swcad-workflow-tests\sheet_wrapper_source_fixture_260713.dwg")).Path
 $probe = Join-Path $PSScriptRoot "workflow_integration_probe.lsp"
 $runner = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_readonly_probe.ps1"
 $testRoot = Join-Path $repoRoot "work\swcad-workflow-tests"
 $logRoot = Join-Path $repoRoot "tmp\swcad-workflow-integration"
 $materializedOutput = Join-Path $testRoot "workflow_materialized_raw.dwg"
+$materializedWrappedOutput = Join-Path $testRoot "workflow_materialized_wrapped_xref.dwg"
 $downstreamOutput = Join-Path $testRoot "workflow_downstream_complete.dwg"
+$sheetWrapperOutput = Join-Path $testRoot "workflow_sheet_wrappers.dwg"
 $scriptPath = Join-Path $testRoot "workflow_integration_probe.scr"
 
 $templateCandidates = @(
@@ -29,14 +34,30 @@ if (-not $templatePath) {
 
 [void](New-Item -ItemType Directory -Path $testRoot -Force)
 [void](New-Item -ItemType Directory -Path $logRoot -Force)
-Remove-Item -LiteralPath $materializedOutput, $downstreamOutput -Force -ErrorAction SilentlyContinue
-Copy-Item -LiteralPath $nativeSource -Destination $downstreamOutput -Force
+if ($Modes -contains "MATERIALIZE_RAW") {
+  Remove-Item -LiteralPath $materializedOutput -Force -ErrorAction SilentlyContinue
+}
+if ($Modes -contains "MATERIALIZE_WRAPPED_XREF") {
+  Remove-Item -LiteralPath $materializedWrappedOutput -Force -ErrorAction SilentlyContinue
+}
+if ($Modes -contains "SHEET_WRAPPERS") {
+  Remove-Item -LiteralPath $sheetWrapperOutput -Force -ErrorAction SilentlyContinue
+  Copy-Item -LiteralPath $sheetWrapperSource -Destination $sheetWrapperOutput -Force
+}
+if ($Modes -contains "DOWNSTREAM") {
+  Remove-Item -LiteralPath $downstreamOutput -Force -ErrorAction SilentlyContinue
+  Copy-Item -LiteralPath $nativeSource -Destination $downstreamOutput -Force
+}
+if (($Modes -contains "REOPEN") -and (-not (Test-Path -LiteralPath $downstreamOutput))) {
+  throw "REOPEN requires an existing downstream output. Run DOWNSTREAM first: $downstreamOutput"
+}
 
 $rootForLisp = $repoRoot.Replace("\", "/")
 $probeForLisp = $probe.Replace("\", "/")
 
 $rawHashBefore = (Get-FileHash -Algorithm SHA256 -LiteralPath $rawSource).Hash
 $nativeHashBefore = (Get-FileHash -Algorithm SHA256 -LiteralPath $nativeSource).Hash
+$sheetWrapperHashBefore = (Get-FileHash -Algorithm SHA256 -LiteralPath $sheetWrapperSource).Hash
 
 function Invoke-WorkflowProbe {
   param(
@@ -62,13 +83,18 @@ function Invoke-WorkflowProbe {
   )
   [IO.File]::WriteAllLines($scriptPath, $scriptLines, [Text.UTF8Encoding]::new($false))
 
-  $runnerOutput = & $runner `
-    -DwgPath $DwgPath `
-    -ScriptPath $scriptPath `
-    -LogPath $logPath `
-    -CompletionPattern "Runtime check completed:" `
-    -TimeoutSeconds $TimeoutSeconds `
-    -WindowStyle Minimized
+  $runnerArguments = @{
+    DwgPath = $DwgPath
+    ScriptPath = $scriptPath
+    LogPath = $logPath
+    CompletionPattern = "Runtime check completed:"
+    TimeoutSeconds = $TimeoutSeconds
+    WindowStyle = "Minimized"
+  }
+  if ($AllowExistingGstarCAD) {
+    $runnerArguments.AllowExistingGstarCAD = $true
+  }
+  $runnerOutput = & $runner @runnerArguments
 
   $text = [IO.File]::ReadAllText($logPath)
   foreach ($marker in $Required) {
@@ -96,6 +122,25 @@ if ($Modes -contains "MATERIALIZE_RAW") {
   )
 }
 
+if ($Modes -contains "MATERIALIZE_WRAPPED_XREF") {
+  Invoke-WorkflowProbe `
+  -Mode "MATERIALIZE_WRAPPED_XREF" `
+  -DwgPath $templatePath `
+  -SourcePath $sheetWrapperSource `
+  -OutputPath $materializedWrappedOutput `
+  -Required @(
+    "Wrapped XREF top target frames/titles:",
+    "Remaining XREF count: 0",
+    "Remaining sheet wrappers: 0",
+    "Top dimension count matched expected: yes",
+    "Source title count: 30",
+    "Source frame count: 41",
+    "Materialized state: OK",
+    "Workflow stage: TITLE",
+    "Runtime check completed: yes"
+  )
+}
+
 if ($Modes -contains "NATIVE_GUARD") {
   Invoke-WorkflowProbe `
   -Mode "NATIVE_GUARD" `
@@ -107,6 +152,23 @@ if ($Modes -contains "NATIVE_GUARD") {
     "Remaining XREF count: 1",
     "Materialized state: <none>",
     "Workflow stage: XREF",
+    "Runtime check completed: yes"
+  )
+}
+
+if ($Modes -contains "SHEET_WRAPPERS") {
+  Invoke-WorkflowProbe `
+  -Mode "SHEET_WRAPPERS" `
+  -DwgPath $sheetWrapperOutput `
+  -SourcePath "" `
+  -OutputPath "" `
+  -Required @(
+    "Sheet wrappers before: 10",
+    "Sheet wrappers after: 0",
+    "Top dimension count matched expected: yes",
+    "Model bbox preserved: yes",
+    "Sheet wrapper state: OK",
+    "Workflow stage: TITLE",
     "Runtime check completed: yes"
   )
 }
@@ -164,16 +226,22 @@ if ($Modes -contains "REOPEN") {
 
 $rawHashAfter = (Get-FileHash -Algorithm SHA256 -LiteralPath $rawSource).Hash
 $nativeHashAfter = (Get-FileHash -Algorithm SHA256 -LiteralPath $nativeSource).Hash
+$sheetWrapperHashAfter = (Get-FileHash -Algorithm SHA256 -LiteralPath $sheetWrapperSource).Hash
 if ($rawHashAfter -ne $rawHashBefore) {
   throw "Raw source hash changed. Before=$rawHashBefore After=$rawHashAfter"
 }
 if ($nativeHashAfter -ne $nativeHashBefore) {
   throw "Native source hash changed. Before=$nativeHashBefore After=$nativeHashAfter"
 }
+if ($sheetWrapperHashAfter -ne $sheetWrapperHashBefore) {
+  throw "Sheet-wrapper source hash changed. Before=$sheetWrapperHashBefore After=$sheetWrapperHashAfter"
+}
 
 Write-Output "===== SWCAD Workflow integration result ====="
 if ($Modes -contains "MATERIALIZE_RAW") { Write-Output "Raw XREF materialization: PASS" }
+if ($Modes -contains "MATERIALIZE_WRAPPED_XREF") { Write-Output "Nested sheet-wrapper XREF materialization: PASS" }
 if ($Modes -contains "NATIVE_GUARD") { Write-Output "Native GMTITLE XREF guard: PASS" }
+if ($Modes -contains "SHEET_WRAPPERS") { Write-Output "Nested sheet-wrapper materialization: PASS" }
 if ($Modes -contains "DOWNSTREAM") { Write-Output "GMTITLE -> DIMSTYLE -> 15 A4 Layout handoff: PASS" }
 if ($Modes -contains "REOPEN") { Write-Output "Save/reopen/state persistence: PASS" }
 Write-Output ("Raw source SHA256 unchanged: {0}" -f $rawHashAfter)
