@@ -1,13 +1,15 @@
 # SWCAD Workflow 검증 결과 (2026-07-13)
 
+> 이 문서는 2026-07-13 성능·구조 회귀의 역사 기록이다. 2026-07-14부터 Layout은 `SWCAD-SHEET-###`/`MANUAL_FRAME_COORDINATES` 대신 원본 파일명과 `XREF_SOURCE_FILENAME_COORDINATES`를 사용한다. 최신 자동 정리·이름 정책과 재열기 결과는 `source-layout-cleanup-test-2026-07-14.md`를 기준으로 한다.
+
 ## 대표 파일
 
 | 용도 | 파일 | SHA-256 |
 | --- | --- | --- |
-| 원본 SolidWorks 다중 시트 | `work/0000_A_DRP125_CP_ALL_260626_ORIGINAL_TEST_260711.dwg` | `3C7735569B7EBAC8300225A81CEFB441562AB656770E5FC8868099B559A959B2` |
+| 원본 SolidWorks 다중 시트 | `work/_preserved_20260714/fixtures/0000_A_DRP125_CP_ALL_260626_ORIGINAL_TEST_260711.dwg` | `3C7735569B7EBAC8300225A81CEFB441562AB656770E5FC8868099B559A959B2` |
 | native GMTITLE 15장 기준본 | `portable-e2e/output/swtitle_portable_result_260712.dwg` | `1F2D3BA224A27E141CB64D79DC4FE75DCC00819D2F07751D83E8380CCE17AA23` |
-| 중첩 시트 묶음 회귀 기준본 | `work/swcad-workflow-tests/sheet_wrapper_source_fixture_260713.dwg` | `3590FF177D46988BF7E319720A540D71CF3AE98D696F0896D85B7F2FD5E49D7E` |
-| 사용자 확인 30장 완성본 | `work/Verify_XRef Sw WorkFlow Test_260713.dwg` | `91DD5BAED6851EE6B776A8D1B5A6B58F52C5C272EA5E570F8652A2E7B386DF6C` |
+| 중첩 시트 묶음 회귀 기준본 | `work/_preserved_20260714/fixtures/sheet_wrapper_source_fixture_260713.dwg` | `3590FF177D46988BF7E319720A540D71CF3AE98D696F0896D85B7F2FD5E49D7E` |
+| 사용자 확인 30장 완성본 | `work/_preserved_20260714/fixtures/Verify_XRef Sw WorkFlow Test_260713.dwg` | `91DD5BAED6851EE6B776A8D1B5A6B58F52C5C272EA5E570F8652A2E7B386DF6C` |
 
 각 회귀 실행 전후에 사용한 원본/기준본 SHA-256은 동일했다.
 
@@ -65,7 +67,7 @@ native GMTITLE 기준본은 EXPLODE 후 target title/frame/native-like pair가 `
 
 ### 30장 완성본의 과거 수량 기록 호환
 
-사용자가 저장하고 모든 GMTITLE 더블클릭을 확인한 `work/Verify_XRef Sw WorkFlow Test_260713.dwg`는 직접 수정하지 않고, `work/swcad-workflow-tests/verify_xref_legacy_count_rebase_probe.dwg` 복사본에서 검사했다.
+사용자가 저장하고 모든 GMTITLE 더블클릭을 확인한 `work/_preserved_20260714/fixtures/Verify_XRef Sw WorkFlow Test_260713.dwg`는 직접 수정하지 않고, `work/swcad-workflow-tests/verify_xref_legacy_count_rebase_probe.dwg` 복사본에서 검사했다.
 
 - 과거 XData 기대 도면틀: `A3=36, A4=5`, 합계 41
 - 과거 XData 기대 제목 보유 시트: `A3=30, A4=0`, 합계 30
@@ -96,7 +98,9 @@ Layout 검사는 최종 GMTITLE 도면틀 15개의 수동 배치 좌표를 왼�
 - 저장된 좌표 지문: `15:653975:391240`
 - 재열기 결과: `COMPLETE`, `SWCADVERIFY_FINAL_OK`, `DBMOD=0`
 
-## 재실행 조건
+## 당시 재실행 조건
+
+아래 값은 2026-07-13 버전의 회귀 기준이다. 최신 출처 기반 이름·소유권 조건은 `source-layout-cleanup-test-2026-07-14.md`에 기록했다.
 
 - 앱 Layout 접두사 수: 15
 - 기대 GMTITLE 도면틀 수: 15

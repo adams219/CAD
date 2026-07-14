@@ -218,7 +218,16 @@ foreach ($needle in @(
   "DIMENSION_SEMANTICS",
   "swapp-restore-dimension-semantic-snapshots",
   "SWCAD_DIMENSION_SEMANTICS_CHANGED",
-  "MANUAL_FRAME_COORDINATES",
+  "XREF_SOURCE_FILENAME_COORDINATES",
+  "CAPTURED_BEFORE_BIND",
+  "SOURCE_SHEET_STATUS",
+  "SOURCE_SHEET_COUNT",
+  "FINAL_SHEET_COUNT",
+  "LAYOUT_OWNED_COUNT",
+  "SOURCE_FILE_STEM_NO_PREFIX_NO_SEQUENCE",
+  "swapp-run-resource-cleanup",
+  "RESOURCE_CLEANUP_ZERO_PASS",
+  "XREF_BOUND_UNUSED_V1",
   "swapp-layout-plan",
   "swapp-print-layout-plan-items",
   "LAYOUT_PLAN_COUNT",
@@ -230,6 +239,7 @@ foreach ($needle in @(
 }
 Assert-NotContains $appText "vla-Move" "Manual placement policy"
 Assert-NotContains $appText "_.MOVE" "Manual placement policy"
+Assert-NotContains $appText "*swapp-layout-prefix*" "Prefix-free Layout ownership policy"
 
 foreach ($needle in @(
   "swapp-read-cache-begin",

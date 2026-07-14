@@ -12,9 +12,9 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
-$rawSource = (Resolve-Path -LiteralPath (Join-Path $repoRoot "work\0000_A_DRP125_CP_ALL_260626_ORIGINAL_TEST_260711.dwg")).Path
+$rawSource = (Resolve-Path -LiteralPath (Join-Path $repoRoot "work\_preserved_20260714\fixtures\0000_A_DRP125_CP_ALL_260626_ORIGINAL_TEST_260711.dwg")).Path
 $nativeSource = (Resolve-Path -LiteralPath (Join-Path $repoRoot "portable-e2e\output\swtitle_portable_result_260712.dwg")).Path
-$sheetWrapperSource = (Resolve-Path -LiteralPath (Join-Path $repoRoot "work\swcad-workflow-tests\sheet_wrapper_source_fixture_260713.dwg")).Path
+$sheetWrapperSource = (Resolve-Path -LiteralPath (Join-Path $repoRoot "work\_preserved_20260714\fixtures\sheet_wrapper_source_fixture_260713.dwg")).Path
 $probe = Join-Path $PSScriptRoot "workflow_integration_probe.lsp"
 $runner = Join-Path $repoRoot "diagnostics\gmtitle-main45\run_readonly_probe.ps1"
 $testRoot = Join-Path $repoRoot "work\swcad-workflow-tests"
@@ -134,6 +134,9 @@ if ($Modes -contains "MATERIALIZE_RAW") {
     "Source frame count: 15",
     "Materialized state: OK",
     "Workflow stage: TITLE",
+    "Source metadata state: CAPTURED_BEFORE_BIND",
+    "Source metadata count: 1",
+    "Source metadata audit: yes",
     "Runtime check completed: yes"
   )
 }
@@ -156,6 +159,10 @@ if ($Modes -contains "MATERIALIZE_WRAPPED_XREF") {
     "Source frame count: 30",
     "Materialized state: OK",
     "Workflow stage: TITLE",
+    "Source metadata state: CAPTURED_BEFORE_BIND",
+    "Source metadata count: 1",
+    'Source metadata first: (1 "sheet_wrapper_source_fixture_260713"',
+    "Source metadata audit: yes",
     "Runtime check completed: yes"
   )
 }
@@ -203,11 +210,16 @@ if ($Modes -contains "DOWNSTREAM") {
     "DIMSTYLE state: OK",
     "Dimension semantics: PRESERVED",
     "Dimension restore count:",
+    "Resource cleanup state: OK",
+    "Resource cleanup zero pass: YES",
+    "Resource cleanup audit: yes",
     "Layout plan count before create: 15",
     "Layout plan first: #001",
     "Layout plan last: #015",
     "Layout count: 15",
-    "Layout placement mode: MANUAL_FRAME_COORDINATES",
+    "Layout placement mode: XREF_SOURCE_FILENAME_COORDINATES",
+    "Layout name policy: SOURCE_FILE_STEM_NO_PREFIX_NO_SEQUENCE",
+    "Owned layout count: 15",
     "Layout state plan count: 15",
     "Layout state signature: 15:",
     "Title verify status: OK",
@@ -228,13 +240,18 @@ if ($Modes -contains "REOPEN") {
     "DIMSTYLE state: OK",
     "Dimension semantics: PRESERVED",
     "Dimension restore count:",
+    "Resource cleanup state: OK",
+    "Resource cleanup zero pass: YES",
     "LAYOUT state: OK",
-    "Layout placement mode: MANUAL_FRAME_COORDINATES",
+    "Layout placement mode: XREF_SOURCE_FILENAME_COORDINATES",
+    "Layout name policy: SOURCE_FILE_STEM_NO_PREFIX_NO_SEQUENCE",
+    "Owned layout count: 15",
     "Layout state plan count: 15",
     "Layout state signature: 15:",
     "Layout count: 15",
     "Title verify status: OK",
     "DIMSTYLE audit: yes",
+    "Resource cleanup audit: yes",
     "Layout audit: yes",
     "Public SWCADVERIFY returned without error: yes",
     "Workflow stage: COMPLETE",

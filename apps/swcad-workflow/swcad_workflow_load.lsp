@@ -2,7 +2,7 @@
 
 (vl-load-com)
 
-(setq *swapp-loader-version* "260714-command-inventory-performance-3")
+(setq *swapp-loader-version* "260714-source-layout-cleanup-1")
 
 (defun swapp-loader-source (/ source)
   (setq source nil)

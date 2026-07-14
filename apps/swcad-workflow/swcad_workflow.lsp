@@ -3,10 +3,15 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "260714-command-inventory-performance-3")
+(setq *swapp-version* "260714-source-layout-cleanup-1")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
-(setq *swapp-layout-prefix* "SWCAD-SHEET")
-(setq *swapp-layout-placement-mode* "MANUAL_FRAME_COORDINATES")
+(setq *swapp-legacy-layout-prefix* "SWCAD-SHEET")
+(setq *swapp-layout-placement-mode* "XREF_SOURCE_FILENAME_COORDINATES")
+(setq *swapp-source-state-prefix* "SOURCE_SHEET_")
+(setq *swapp-final-sheet-state-prefix* "FINAL_SHEET_")
+(setq *swapp-layout-owned-state-prefix* "LAYOUT_OWNED_")
+(setq *swapp-resource-cleanup-policy* "XREF_BOUND_UNUSED_V1")
+(setq *swapp-resource-cleanup-max-passes* 6)
 (setq *swapp-layout-preview-limit* 12)
 (setq *swapp-transform-tolerance* 1e-8)
 (setq *swapp-geometry-tolerance* 0.001)
@@ -39,6 +44,7 @@
 (setq *swapp-last-command-cache-misses* 0)
 (setq *swapp-last-command-title-insert-scans* 0)
 (setq *swapp-last-command-title-insert-cache-hits* 0)
+(setq *swapp-resource-source-reference-names* nil)
 
 ;;; ---------------------------
 ;;; Common helpers and state
@@ -195,6 +201,83 @@
   (swapp-state-write (swapp-alist-put items key value))
 )
 
+(defun swapp-string-starts-ci-p (text prefix / text-length prefix-length)
+  (setq text (if text text ""))
+  (setq prefix (if prefix prefix ""))
+  (setq text-length (strlen text))
+  (setq prefix-length (strlen prefix))
+  (and
+    (<= prefix-length text-length)
+    (equal (strcase (substr text 1 prefix-length)) (strcase prefix))
+  )
+)
+
+(defun swapp-state-replace-prefix (prefix replacements / items result pair replacement)
+  (setq items (swapp-state-read))
+  (setq result nil)
+  (foreach pair items
+    (if (not (swapp-string-starts-ci-p (car pair) prefix))
+      (setq result (append result (list pair)))
+    )
+  )
+  (foreach replacement replacements
+    (setq result (swapp-alist-put result (car replacement) (cdr replacement)))
+  )
+  (swapp-state-write result)
+)
+
+(defun swapp-replace-all (text old new / pos)
+  (setq text (if text text ""))
+  (while (setq pos (vl-string-search old text))
+    (setq text
+      (strcat
+        (substr text 1 pos)
+        new
+        (substr text (+ pos (strlen old) 1))
+      )
+    )
+  )
+  text
+)
+
+(defun swapp-state-field-encode (value / text)
+  (setq text (if value value ""))
+  (setq text (swapp-replace-all text "%" "%25"))
+  (setq text (swapp-replace-all text "|" "%7C"))
+  (setq text (swapp-replace-all text "=" "%3D"))
+  (setq text (swapp-replace-all text "\r" "%0D"))
+  (setq text (swapp-replace-all text "\n" "%0A"))
+  text
+)
+
+(defun swapp-state-field-decode (value / text)
+  (setq text (if value value ""))
+  (setq text (swapp-replace-all text "%0A" "\n"))
+  (setq text (swapp-replace-all text "%0D" "\r"))
+  (setq text (swapp-replace-all text "%3D" "="))
+  (setq text (swapp-replace-all text "%7C" "|"))
+  (setq text (swapp-replace-all text "%25" "%"))
+  text
+)
+
+(defun swapp-string-split (text separator / result rest pos)
+  (setq result nil)
+  (setq rest (if text text ""))
+  (while (setq pos (vl-string-search separator rest))
+    (setq result (append result (list (substr rest 1 pos))))
+    (setq rest (substr rest (+ pos (strlen separator) 1)))
+  )
+  (append result (list rest))
+)
+
+(defun swapp-index-text (index)
+  (strcat
+    (if (< index 100) "0" "")
+    (if (< index 10) "0" "")
+    (itoa index)
+  )
+)
+
 (defun swapp-save-current (/ result)
   (setq result (vl-catch-all-apply 'vla-Save (list (swapp-doc))))
   (not (vl-catch-all-error-p result))
@@ -328,7 +411,7 @@
 )
 
 (defun swapp-cached-layout-names ()
-  (swapp-read-cache-fetch "LAYOUT_NAMES" 'swapp-with-layout-prefix-names nil)
+  (swapp-read-cache-fetch "LAYOUT_NAMES" 'swapp-layout-owned-names nil)
 )
 
 ;;; ---------------------------
@@ -399,6 +482,181 @@
     )
   )
   result
+)
+
+(defun swapp-object-bbox4 (object / result minpt maxpt minlist maxlist)
+  (setq result (if object (vl-catch-all-apply 'vla-GetBoundingBox (list object 'minpt 'maxpt)) nil))
+  (if (or (not object) (vl-catch-all-error-p result))
+    nil
+    (progn
+      (setq minlist (vlax-safearray->list minpt))
+      (setq maxlist (vlax-safearray->list maxpt))
+      (list (car minlist) (cadr minlist) (car maxlist) (cadr maxlist))
+    )
+  )
+)
+
+(defun swapp-bbox4-window (bbox)
+  (if bbox
+    (list
+      (list (car bbox) (cadr bbox) 0.0)
+      (list (caddr bbox) (cadddr bbox) 0.0)
+    )
+    nil
+  )
+)
+
+(defun swapp-object-handle (object / value)
+  (setq value (if object (swapp-safe 'vla-get-Handle (list object)) nil))
+  (if value value "")
+)
+
+(defun swapp-xref-definition-path (block / value)
+  (setq value (if block (swapp-safe 'vla-get-Path (list block)) nil))
+  (if (or (not (= (type value) 'STR)) (= (strlen (vl-string-trim " \t\r\n" value)) 0))
+    (setq value (if block (swapp-safe 'vla-get-XRefPath (list block)) nil))
+  )
+  (if (= (type value) 'STR) value "")
+)
+
+(defun swapp-source-stem-from-path-or-name (path reference-name / raw base)
+  (setq raw (vl-string-trim " \t\r\n" (if (> (strlen path) 0) path reference-name)))
+  (setq base (if (> (strlen raw) 0) (swapp-safe 'vl-filename-base (list raw)) nil))
+  (if (and base (> (strlen (vl-string-trim " \t\r\n" base)) 0))
+    (vl-string-trim " \t\r\n" base)
+    raw
+  )
+)
+
+;;; Source sheet record: (order stem reference-name reference-handle bbox4).
+(defun swapp-source-sheet-record-from-reference (reference / name block path stem bbox)
+  (setq name (swapp-reference-name reference))
+  (setq block (swapp-block-definition name))
+  (setq path (swapp-xref-definition-path block))
+  (setq stem (swapp-source-stem-from-path-or-name path (if name name "")))
+  (setq bbox (swapp-object-bbox4 reference))
+  (if (and bbox (> (strlen stem) 0))
+    (list 0 stem (if name name "") (swapp-object-handle reference) bbox)
+    nil
+  )
+)
+
+(defun swapp-source-sheet-records-from-references (references / sortable reference record window sorted result item index)
+  (setq sortable nil)
+  (foreach reference references
+    (setq record (swapp-source-sheet-record-from-reference reference))
+    (setq window (if record (swapp-bbox4-window (nth 4 record)) nil))
+    (if window (setq sortable (append sortable (list (cons record window)))))
+  )
+  (setq sorted (gsla-sort-windows sortable))
+  (setq result nil)
+  (setq index 1)
+  (foreach item sorted
+    (setq record (car item))
+    (setq result
+      (append
+        result
+        (list
+          (list index (nth 1 record) (nth 2 record) (nth 3 record) (nth 4 record))
+        )
+      )
+    )
+    (setq index (1+ index))
+  )
+  result
+)
+
+(defun swapp-source-sheet-record-serialize (record / bbox)
+  (setq bbox (nth 4 record))
+  (strcat
+    (itoa (car record)) "|"
+    (swapp-state-field-encode (nth 1 record)) "|"
+    (swapp-state-field-encode (nth 2 record)) "|"
+    (swapp-state-field-encode (nth 3 record)) "|"
+    (rtos (car bbox) 2 8) "|"
+    (rtos (cadr bbox) 2 8) "|"
+    (rtos (caddr bbox) 2 8) "|"
+    (rtos (cadddr bbox) 2 8)
+  )
+)
+
+(defun swapp-source-sheet-record-parse (text / fields)
+  (setq fields (swapp-string-split text "|"))
+  (if (>= (length fields) 8)
+    (list
+      (atoi (nth 0 fields))
+      (swapp-state-field-decode (nth 1 fields))
+      (swapp-state-field-decode (nth 2 fields))
+      (swapp-state-field-decode (nth 3 fields))
+      (list
+        (atof (nth 4 fields))
+        (atof (nth 5 fields))
+        (atof (nth 6 fields))
+        (atof (nth 7 fields))
+      )
+    )
+    nil
+  )
+)
+
+(defun swapp-source-sheet-records-write (records / replacements record index)
+  (setq replacements
+    (list
+      (cons "SOURCE_SHEET_STATUS" "CAPTURED_BEFORE_BIND")
+      (cons "SOURCE_SHEET_COUNT" (itoa (length records)))
+    )
+  )
+  (setq index 1)
+  (foreach record records
+    (setq replacements
+      (append
+        replacements
+        (list
+          (cons
+            (strcat *swapp-source-state-prefix* (swapp-index-text index))
+            (swapp-source-sheet-record-serialize record)
+          )
+        )
+      )
+    )
+    (setq index (1+ index))
+  )
+  (swapp-state-replace-prefix *swapp-source-state-prefix* replacements)
+)
+
+(defun swapp-source-sheet-records-read (/ count index text record result)
+  (setq count (atoi (if (swapp-state-value "SOURCE_SHEET_COUNT") (swapp-state-value "SOURCE_SHEET_COUNT") "0")))
+  (setq index 1)
+  (setq result nil)
+  (while (<= index count)
+    (setq text (swapp-state-value (strcat *swapp-source-state-prefix* (swapp-index-text index))))
+    (setq record (if text (swapp-source-sheet-record-parse text) nil))
+    (if record (setq result (append result (list record))))
+    (setq index (1+ index))
+  )
+  result
+)
+
+(defun swapp-print-source-sheet-records (records limit / index record bbox)
+  (princ (strcat "\n원본 XREF 시트 메타데이터: " (itoa (length records)) "개"))
+  (setq index 1)
+  (foreach record records
+    (if (<= index limit)
+      (progn
+        (setq bbox (nth 4 record))
+        (princ
+          (strcat
+            "\n  #" (swapp-index-text index)
+            " 파일=" (nth 1 record)
+            " 범위=(" (rtos (car bbox) 2 3) ", " (rtos (cadr bbox) 2 3) ")-("
+            (rtos (caddr bbox) 2 3) ", " (rtos (cadddr bbox) 2 3) ")"
+          )
+        )
+      )
+    )
+    (setq index (1+ index))
+  )
+  records
 )
 
 (defun swapp-target-title-reference-name-p (name / upper)
@@ -952,7 +1210,7 @@
   )
 )
 
-(defun swapp-materialize-xrefs (/ references unique-names xref-definition-count evidence expected-dimensions native-targets native-target-frames native-target-titles transforms-ok reference name block bind-result explode-count one-count wrapper-records wrapper-count wrapper-explode-count dimension-result dimension-exposed dimension-rounds after-wrapper-count before-bbox after-bbox after-xrefs after-dimensions summary source-titles source-frames success)
+(defun swapp-materialize-xrefs (/ references unique-names source-records xref-definition-count evidence expected-dimensions native-targets native-target-frames native-target-titles transforms-ok reference name block bind-result explode-count one-count wrapper-records wrapper-count wrapper-explode-count dimension-result dimension-exposed dimension-rounds after-wrapper-count before-bbox after-bbox after-xrefs after-dimensions summary source-titles source-frames success)
   (swapp-activate-model)
   (setq references (swapp-top-xref-references))
   (setq xref-definition-count (swapp-xref-definition-count))
@@ -963,6 +1221,7 @@
     )
     (T
       (setq unique-names (swapp-unique-reference-names references))
+      (setq source-records (swapp-source-sheet-records-from-references references))
       (setq evidence (swapp-xref-deep-evidence references))
       (setq expected-dimensions (swapp-evidence-value evidence "dimensions"))
       (setq native-targets (swapp-evidence-value evidence "target-references"))
@@ -980,7 +1239,13 @@
       (princ (strcat "\nXREF 내부 치수: " (itoa expected-dimensions)))
       (princ (strcat "\nXREF 내부 native GMTITLE 참조: " (itoa native-targets)))
       (princ (strcat "\nXREF 내부 최상위 DR 도면틀/표제란: " (itoa native-target-frames) " / " (itoa native-target-titles)))
+      (swapp-print-source-sheet-records source-records *swapp-layout-preview-limit*)
       (cond
+        ((/= (length source-records) (length references))
+          (princ "\n결과: BLOCKED_XREF_SOURCE_METADATA_INCOMPLETE")
+          (princ "\nBIND 전에 일부 XREF의 파일명 또는 배치 범위를 읽지 못해 원본명 추적을 중단했습니다.")
+          nil
+        )
         ((/= xref-definition-count (length unique-names))
           (princ "\n결과: BLOCKED_NESTED_OR_UNREFERENCED_XREF")
           (princ "\n중첩 또는 최상위에 연결되지 않은 XREF가 있어 자동 결합하지 않습니다.")
@@ -998,6 +1263,11 @@
         )
         ((not (swcad-title-ensure-work-copy-for-mutation))
           (princ "\n결과: ABORT_WORKCOPY_NOT_CREATED")
+          nil
+        )
+        ((not (swapp-source-sheet-records-write source-records))
+          (princ "\n결과: BLOCKED_XREF_SOURCE_METADATA_WRITE_FAILED")
+          (princ "\n작업본 DWG의 SWCAD_WORKFLOW_STATE에 원본 파일명과 좌표를 기록하지 못했습니다.")
           nil
         )
         (T
@@ -1177,8 +1447,375 @@
   (reverse result)
 )
 
-(defun swapp-layout-plan ()
-  (gsla-sort-windows (swapp-frame-windows))
+(defun swapp-name-member-ci-p (name names / found item)
+  (setq found nil)
+  (foreach item names
+    (if (equal (strcase name) (strcase item)) (setq found T))
+  )
+  found
+)
+
+(defun swapp-string-lists-equal-ci-p (first second / ok)
+  (setq ok (= (length first) (length second)))
+  (while (and ok first second)
+    (if (not (equal (strcase (car first)) (strcase (car second)))) (setq ok nil))
+    (setq first (cdr first))
+    (setq second (cdr second))
+  )
+  ok
+)
+
+(defun swapp-all-paper-layout-names (/ layouts layout name result)
+  (setq layouts (vla-get-Layouts (swapp-doc)))
+  (setq result nil)
+  (vlax-for layout layouts
+    (setq name (vla-get-Name layout))
+    (if (not (equal (strcase name) "MODEL"))
+      (setq result (append result (list name)))
+    )
+  )
+  result
+)
+
+(defun swapp-legacy-layout-names (/ old names)
+  (setq old *gsla-prefix*)
+  (setq *gsla-prefix* *swapp-legacy-layout-prefix*)
+  (setq names (gsla-generated-layout-names))
+  (setq *gsla-prefix* old)
+  names
+)
+
+(defun swapp-layout-owned-names (/ count index value result legacy)
+  (setq count (atoi (if (swapp-state-value "LAYOUT_OWNED_COUNT") (swapp-state-value "LAYOUT_OWNED_COUNT") "0")))
+  (setq index 1)
+  (setq result nil)
+  (while (<= index count)
+    (setq value (swapp-state-value (strcat *swapp-layout-owned-state-prefix* (swapp-index-text index))))
+    (if value (setq result (append result (list (swapp-state-field-decode value)))))
+    (setq index (1+ index))
+  )
+  (if (and (not result) (equal (swapp-state-value "LAYOUT") "OK"))
+    (progn
+      (setq legacy (swapp-legacy-layout-names))
+      (if legacy (setq result legacy))
+    )
+  )
+  result
+)
+
+(defun swapp-layout-owned-names-write (names / replacements name index)
+  (setq replacements (list (cons "LAYOUT_OWNED_COUNT" (itoa (length names)))))
+  (setq index 1)
+  (foreach name names
+    (setq replacements
+      (append
+        replacements
+        (list
+          (cons
+            (strcat *swapp-layout-owned-state-prefix* (swapp-index-text index))
+            (swapp-state-field-encode name)
+          )
+        )
+      )
+    )
+    (setq index (1+ index))
+  )
+  (swapp-state-replace-prefix *swapp-layout-owned-state-prefix* replacements)
+)
+
+(defun swapp-user-layout-names (/ owned result name)
+  (setq owned (swapp-layout-owned-names))
+  (setq result nil)
+  (foreach name (swapp-all-paper-layout-names)
+    (if (not (swapp-name-member-ci-p name owned))
+      (setq result (append result (list name)))
+    )
+  )
+  result
+)
+
+(defun swapp-layout-value-usable-p (value / upper)
+  (setq value (vl-string-trim " \t\r\n" (if value value "")))
+  (setq upper (strcase value))
+  (and
+    (> (strlen value) 0)
+    (not (member upper '("-" "--" "XXX" "NONE" "<NONE>" "<없음>")))
+  )
+)
+
+(defun swapp-file-stem-value (value / text base)
+  (setq text (vl-string-trim " \t\r\n" (if value value "")))
+  (setq base (if (> (strlen text) 0) (swapp-safe 'vl-filename-base (list text)) nil))
+  (if (and base (> (strlen base) 0)) base text)
+)
+
+(defun swapp-clean-layout-base-name (value / name)
+  (setq name (gsla-clean-layout-name (swapp-file-stem-value value)))
+  (setq name (vl-string-trim " .\t\r\n" name))
+  (if (> (strlen name) 200) (setq name (substr name 1 200)))
+  name
+)
+
+(defun swapp-bbox4-center (bbox)
+  (if bbox
+    (list (/ (+ (car bbox) (caddr bbox)) 2.0) (/ (+ (cadr bbox) (cadddr bbox)) 2.0))
+    nil
+  )
+)
+
+(defun swapp-point-distance2 (first second / dx dy)
+  (setq dx (- (car first) (car second)))
+  (setq dy (- (cadr first) (cadr second)))
+  (+ (* dx dx) (* dy dy))
+)
+
+(defun swapp-source-record-score (record frame-bbox / source-bbox overlap area)
+  (setq source-bbox (nth 4 record))
+  (setq overlap (swcad-title-bbox-overlap-box source-bbox frame-bbox))
+  (setq area (if overlap (swcad-title-bbox-area overlap) 0.0))
+  (if (> area 0.0)
+    (+ 1000000000000.0 area)
+    (- 0.0 (swapp-point-distance2 (swapp-bbox4-center source-bbox) (swapp-bbox4-center frame-bbox)))
+  )
+)
+
+(defun swapp-best-source-record (records used-orders frame-bbox preferred-index / preferred best best-score score record)
+  (setq preferred
+    (if (and (> preferred-index 0) (<= preferred-index (length records)))
+      (nth (1- preferred-index) records)
+      nil
+    )
+  )
+  (if (and preferred (not (member (car preferred) used-orders)))
+    preferred
+    (progn
+      (setq best nil)
+      (setq best-score nil)
+      (foreach record records
+        (if (not (member (car record) used-orders))
+          (progn
+            (setq score (swapp-source-record-score record frame-bbox))
+            (if (or (not best-score) (> score best-score))
+              (progn (setq best record) (setq best-score score))
+            )
+          )
+        )
+      )
+      best
+    )
+  )
+)
+
+(defun swapp-title-pair-for-frame (frame pairs / found pair)
+  (setq found nil)
+  (foreach pair pairs
+    (if (and (not found) (eq frame (cadr pair))) (setq found pair))
+  )
+  found
+)
+
+(defun swapp-count-alist-increment (items key / result pair found)
+  (setq result nil)
+  (setq found nil)
+  (foreach pair items
+    (if (equal (strcase (car pair)) (strcase key))
+      (progn
+        (setq result (append result (list (cons (car pair) (1+ (cdr pair))))))
+        (setq found T)
+      )
+      (setq result (append result (list pair)))
+    )
+  )
+  (if found result (append result (list (cons key 1))))
+)
+
+(defun swapp-count-alist-value (items key / pair)
+  (setq pair (assoc (strcase key) items))
+  (if pair (cdr pair) 0)
+)
+
+(defun swapp-layout-drawing-counts (pairs / result pair title object attrs value key)
+  (setq result nil)
+  (foreach pair pairs
+    (setq title (car pair))
+    (setq object (swcad-title-safe-vla-object title))
+    (setq attrs (if object (swcad-title-title-attribute-pairs object) nil))
+    (setq value (swcad-title-attr-value-by-tag attrs "GEN-TITLE-DWG{23}"))
+    (setq key (strcase (swapp-file-stem-value value)))
+    (if (> (strlen key) 0) (setq result (swapp-count-alist-increment result key)))
+  )
+  result
+)
+
+(defun swapp-bound-source-prefix (name / pos prefix upper)
+  (setq name (if name name ""))
+  (setq upper (strcase name))
+  (setq pos (vl-string-search "$0$" upper))
+  (setq prefix (if (and pos (> pos 0)) (vl-string-trim " \t\r\n" (substr name 1 pos)) ""))
+  (if
+    (or
+      (< (strlen prefix) 3)
+      (swapp-string-starts-ci-p prefix "*")
+      (vl-string-search "DR_A1_OUTLINE" (strcase prefix))
+      (vl-string-search "DR_A2_OUTLINE" (strcase prefix))
+      (vl-string-search "DR_A3_OUTLINE" (strcase prefix))
+      (vl-string-search "DR_A4_OUTLINE" (strcase prefix))
+      (vl-string-search "DR_TITLEA_3RD" (strcase prefix))
+      (vl-string-search "GENIUS_" (strcase prefix))
+    )
+    ""
+    prefix
+  )
+)
+
+;;; Bound source record: (source-prefix bbox4 reference-name).
+(defun swapp-bound-source-records (/ result object name prefix bbox)
+  (setq result nil)
+  (foreach object (swapp-model-insert-objects)
+    (setq name (swapp-reference-name object))
+    (setq prefix (swapp-bound-source-prefix name))
+    (setq bbox (if (> (strlen prefix) 0) (swapp-object-bbox4 object) nil))
+    (if bbox (setq result (append result (list (list prefix bbox name)))))
+  )
+  result
+)
+
+(defun swapp-bound-source-score-add (scores prefix value / result pair found)
+  (setq result nil)
+  (setq found nil)
+  (foreach pair scores
+    (if (equal (strcase (car pair)) (strcase prefix))
+      (progn
+        (setq result (append result (list (cons (car pair) (+ (cdr pair) value)))))
+        (setq found T)
+      )
+      (setq result (append result (list pair)))
+    )
+  )
+  (if found result (append result (list (cons prefix value))))
+)
+
+(defun swapp-bound-source-for-frame (records frame-bbox / scores record bbox center overlap score best best-score pair)
+  (setq scores nil)
+  (foreach record records
+    (setq bbox (nth 1 record))
+    (setq center (swapp-bbox4-center bbox))
+    (setq overlap (swcad-title-bbox-overlap-box bbox frame-bbox))
+    (if
+      (or
+        (swcad-title-point-in-bbox-p center (swcad-title-expand-bbox frame-bbox 2.0))
+        overlap
+      )
+      (progn
+        (setq score (+ 1.0 (if overlap (swcad-title-bbox-area overlap) 0.0)))
+        (setq scores (swapp-bound-source-score-add scores (car record) score))
+      )
+    )
+  )
+  (setq best "")
+  (setq best-score nil)
+  (foreach pair scores
+    (if (or (not best-score) (> (cdr pair) best-score))
+      (progn (setq best (car pair)) (setq best-score (cdr pair)))
+    )
+  )
+  best
+)
+
+(defun swapp-layout-base-result (source-stem source-kind drawing file-no sheet frame / handle)
+  (cond
+    ((swapp-layout-value-usable-p source-stem) (list (swapp-clean-layout-base-name source-stem) source-kind))
+    ((swapp-layout-value-usable-p drawing) (list (swapp-clean-layout-base-name drawing) "GMTITLE_FILE_NAME"))
+    ((swapp-layout-value-usable-p file-no) (list (swapp-clean-layout-base-name file-no) "GMTITLE_FILE_NO"))
+    ((swapp-layout-value-usable-p sheet) (list (swapp-clean-layout-base-name sheet) "GMTITLE_SHEET"))
+    (T
+      (setq handle (cdr (assoc 5 (entget frame))))
+      (list (strcat "Sheet-" (if handle handle "unknown")) "FRAME_HANDLE_FALLBACK")
+    )
+  )
+)
+
+(defun swapp-layout-unique-name (base file-no sheet used / candidates candidate result suffix)
+  (setq candidates (list base))
+  (if (swapp-layout-value-usable-p file-no)
+    (setq candidates (append candidates (list (swapp-clean-layout-base-name (strcat base " - " file-no)))))
+  )
+  (if (swapp-layout-value-usable-p sheet)
+    (setq candidates (append candidates (list (swapp-clean-layout-base-name (strcat base " - " sheet)))))
+  )
+  (setq result nil)
+  (foreach candidate candidates
+    (if (and (not result) (> (strlen candidate) 0) (not (swapp-name-member-ci-p candidate used)))
+      (setq result candidate)
+    )
+  )
+  (if (not result)
+    (progn
+      (setq suffix 2)
+      (setq candidate (strcat base "_" (itoa suffix)))
+      (while (swapp-name-member-ci-p candidate used)
+        (setq suffix (1+ suffix))
+        (setq candidate (strcat base "_" (itoa suffix)))
+      )
+      (setq result candidate)
+    )
+  )
+  result
+)
+
+;;; Layout plan item:
+;;; (frame-ename window source-stem file-no sheet layout-name source-kind title-ename).
+(defun swapp-layout-plan (/ frames sources preferred pairs drawing-counts bound-records used-source-orders used-names result index frame-item frame window frame-bbox source source-stem source-kind bound-source pair title title-object attrs drawing drawing-count file-no sheet base-result layout-name)
+  (setq frames (gsla-sort-windows (swapp-frame-windows)))
+  (setq sources (swapp-source-sheet-records-read))
+  (setq preferred (if (= (length sources) (length frames)) T nil))
+  (setq pairs (swcad-title-target-gmtitle-pair-records))
+  (setq drawing-counts (swapp-layout-drawing-counts pairs))
+  (setq bound-records (if sources nil (swapp-bound-source-records)))
+  (setq used-source-orders nil)
+  (setq used-names (swapp-user-layout-names))
+  (setq result nil)
+  (setq index 1)
+  (foreach frame-item frames
+    (setq frame (car frame-item))
+    (setq window (cdr frame-item))
+    (setq frame-bbox
+      (list
+        (car (car window)) (cadr (car window))
+        (car (cadr window)) (cadr (cadr window))
+      )
+    )
+    (setq source (swapp-best-source-record sources used-source-orders frame-bbox (if preferred index 0)))
+    (if source (setq used-source-orders (append used-source-orders (list (car source)))))
+    (setq source-stem (if source (nth 1 source) ""))
+    (setq source-kind (if source "XREF_FILE" ""))
+    (setq pair (swapp-title-pair-for-frame frame pairs))
+    (setq title (if pair (car pair) nil))
+    (setq title-object (if title (swcad-title-safe-vla-object title) nil))
+    (setq attrs (if title-object (swcad-title-title-attribute-pairs title-object) nil))
+    (setq drawing (swcad-title-attr-value-by-tag attrs "GEN-TITLE-DWG{23}"))
+    (setq drawing-count (swapp-count-alist-value drawing-counts (strcase (swapp-file-stem-value drawing))))
+    (setq file-no (swcad-title-attr-value-by-tag attrs "GEN-TITLE-NR{23}"))
+    (setq sheet (swcad-title-attr-value-by-tag attrs "GEN-TITLE-SIZ{6.7}"))
+    (setq bound-source (if source "" (swapp-bound-source-for-frame bound-records frame-bbox)))
+    (if (and (not source) (swapp-layout-value-usable-p bound-source) (or (not (swapp-layout-value-usable-p drawing)) (> drawing-count 1)))
+      (progn
+        (setq source-stem bound-source)
+        (setq source-kind "BOUND_BLOCK_PREFIX")
+      )
+    )
+    (setq base-result (swapp-layout-base-result source-stem source-kind drawing file-no sheet frame))
+    (setq layout-name (swapp-layout-unique-name (car base-result) file-no sheet used-names))
+    (setq used-names (append used-names (list layout-name)))
+    (setq result
+      (append
+        result
+        (list (list frame window source-stem file-no sheet layout-name (cadr base-result) title))
+      )
+    )
+    (setq index (1+ index))
+  )
+  result
 )
 
 (defun swapp-layout-plan-item-handle (item / ename data handle)
@@ -1199,7 +1836,7 @@
 (defun swapp-layout-plan-coordinate-data (plan / result item win ll ur)
   (setq result "")
   (foreach item plan
-    (setq win (cdr item))
+    (setq win (cadr item))
     (setq ll (car win))
     (setq ur (cadr win))
     (setq result
@@ -1209,6 +1846,8 @@
         "," (swapp-layout-signature-coordinate-text (cadr ll))
         "," (swapp-layout-signature-coordinate-text (car ur))
         "," (swapp-layout-signature-coordinate-text (cadr ur))
+        "|" (swapp-state-field-encode (nth 5 item))
+        "|" (swapp-state-field-encode (nth 2 item))
       )
     )
   )
@@ -1235,11 +1874,13 @@
 )
 
 (defun swapp-layout-plan-item-text (item index / win ll ur)
-  (setq win (cdr item))
+  (setq win (cadr item))
   (setq ll (car win))
   (setq ur (cadr win))
   (strcat
     "#" (if (< index 100) "0" "") (if (< index 10) "0" "") (itoa index)
+    " name=" (nth 5 item)
+    " source=" (nth 6 item)
     " frame=" (swapp-layout-plan-item-handle item)
     " LL=(" (swapp-layout-coordinate-text (car ll)) ", " (swapp-layout-coordinate-text (cadr ll)) ")"
     " UR=(" (swapp-layout-coordinate-text (car ur)) ", " (swapp-layout-coordinate-text (cadr ur)) ")"
@@ -1249,9 +1890,9 @@
 
 (defun swapp-print-layout-plan-items (plan limit / total index item)
   (setq total (length plan))
-  (princ "\n----- SWCAD Layout 좌표 계획 -----")
-  (princ "\n배치 방식: 사용자가 배치한 최종 GMTITLE 도면틀 좌표 유지")
-  (princ "\n정렬 순서: 같은 행은 왼쪽→오른쪽, 다른 행은 위쪽→아래쪽")
+  (princ "\n----- SWCAD Layout 원본명 계획 -----")
+  (princ "\n배치 순서: 사용자가 놓은 XREF/GMTITLE 좌표 순서")
+  (princ "\n이름 우선순위: XREF 원본 파일명 -> GMTITLE File Name -> FILE NO -> Sheet")
   (princ (strcat "\n예정 Layout 수: " (itoa total)))
   (setq index 1)
   (foreach item plan
@@ -1261,17 +1902,9 @@
     (setq index (1+ index))
   )
   (if (> total limit)
-    (princ (strcat "\n  ... 나머지 " (itoa (- total limit)) "개 좌표는 생성 시 같은 규칙으로 사용합니다."))
+    (princ (strcat "\n  ... 나머지 " (itoa (- total limit)) "개도 같은 규칙으로 생성합니다."))
   )
   plan
-)
-
-(defun swapp-with-layout-prefix-names (/ old names)
-  (setq old *gsla-prefix*)
-  (setq *gsla-prefix* *swapp-layout-prefix*)
-  (setq names (gsla-generated-layout-names))
-  (setq *gsla-prefix* old)
-  names
 )
 
 (defun swapp-layout-paper-a4-p (size / width height long-side short-side)
@@ -1287,17 +1920,34 @@
   )
 )
 
-(defun swapp-layouts-valid-p (expected / names layouts name layout paper viewports ok)
-  (setq names (swapp-with-layout-prefix-names))
+(defun swapp-layout-plan-names (plan / result item)
+  (setq result nil)
+  (foreach item plan (setq result (append result (list (nth 5 item)))))
+  result
+)
+
+(defun swapp-layouts-valid-p (plan / names owned layouts name layout paper viewports ok tab-order previous-tab)
+  (setq names (swapp-layout-plan-names plan))
+  (setq owned (swapp-layout-owned-names))
   (setq layouts (vla-get-Layouts (swapp-doc)))
-  (setq ok (= (length names) expected))
+  (setq ok (and (= (length names) (length plan)) (swapp-string-lists-equal-ci-p names owned)))
+  (setq previous-tab nil)
   (foreach name names
     (setq layout (swapp-safe 'vla-Item (list layouts name)))
     (setq paper (if layout (gsla-layout-paper-size layout) nil))
     (setq viewports (gsla-viewport-entities-for-layout name))
-    (if (or (not layout) (not (swapp-layout-paper-a4-p paper)) (/= (length viewports) 1))
+    (setq tab-order (if layout (swapp-safe 'vla-get-TabOrder (list layout)) nil))
+    (if
+      (or
+        (not layout)
+        (not (swapp-layout-paper-a4-p paper))
+        (/= (length viewports) 1)
+        (not (numberp tab-order))
+        (and previous-tab (<= tab-order previous-tab))
+      )
       (setq ok nil)
     )
+    (if (numberp tab-order) (setq previous-tab tab-order))
   )
   ok
 )
@@ -1314,7 +1964,7 @@
     (= (length plan) expected)
     signature
     (equal signature (swapp-layout-plan-signature plan))
-    (swapp-layouts-valid-p expected)
+    (swapp-layouts-valid-p plan)
   )
 )
 
@@ -1331,6 +1981,7 @@
         ((swapp-title-complete-p evidence)
           (cond
             ((not (swapp-dimstyle-marked-p)) "DIMSTYLE")
+            ((not (swapp-resource-cleanup-marked-p)) "CLEANUP")
             ((not (swapp-layout-state-valid-p frames)) "LAYOUT")
             (T "COMPLETE")
           )
@@ -1647,8 +2298,385 @@
   )
 )
 
+(defun swapp-model-object-count ()
+  (vla-get-Count (swapp-model))
+)
+
+(defun swapp-title-integrity-snapshot (/ pairs result pair title frame title-object attrs)
+  (setq pairs (swcad-title-target-gmtitle-pair-records))
+  (setq result nil)
+  (foreach pair pairs
+    (setq title (car pair))
+    (setq frame (cadr pair))
+    (setq title-object (swcad-title-safe-vla-object title))
+    (setq attrs (if title-object (swcad-title-title-attribute-pairs title-object) nil))
+    (setq result
+      (append
+        result
+        (list
+          (list
+            (cdr (assoc 5 (entget title)))
+            (cdr (assoc 5 (entget frame)))
+            (nth 2 pair)
+            (nth 3 pair)
+            (nth 4 pair)
+            (if (swcad-title-target-pair-native-like-p pair) "NATIVE" "NOT_NATIVE")
+            attrs
+          )
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swapp-workflow-integrity-snapshot ()
+  (list
+    (swapp-model-object-count)
+    (swapp-model-bbox)
+    (swapp-dimension-semantics)
+    (swapp-title-integrity-snapshot)
+  )
+)
+
+(defun swapp-workflow-integrity-equal-p (before after)
+  (and
+    (= (nth 0 before) (nth 0 after))
+    (or
+      (and (not (nth 1 before)) (not (nth 1 after)))
+      (swapp-bbox-near-p (nth 1 before) (nth 1 after))
+    )
+    (swapp-semantic-multiset-equal-p (nth 2 before) (nth 2 after))
+    (equal (nth 3 before) (nth 3 after))
+  )
+)
+
+(defun swapp-workflow-integrity-signature (snapshot / text)
+  (setq text (vl-princ-to-string snapshot))
+  (strcat
+    (itoa (nth 0 snapshot)) ":"
+    (itoa (swapp-text-rolling-hash text 1000003 41)) ":"
+    (itoa (swapp-text-rolling-hash text 1000033 67))
+  )
+)
+
+(defun swapp-resource-collection (category / doc)
+  (setq doc (swapp-doc))
+  (cond
+    ((equal category "BLOCKS") (swapp-safe 'vla-get-Blocks (list doc)))
+    ((equal category "DIMSTYLES") (swapp-safe 'vla-get-DimStyles (list doc)))
+    ((equal category "TEXTSTYLES") (swapp-safe 'vla-get-TextStyles (list doc)))
+    ((equal category "LINETYPES") (swapp-safe 'vla-get-Linetypes (list doc)))
+    (T nil)
+  )
+)
+
+(defun swapp-source-reference-names (/ result record name)
+  (setq result nil)
+  (foreach record (swapp-source-sheet-records-read)
+    (setq name (strcase (nth 2 record)))
+    (if (and (> (strlen name) 0) (not (member name result)))
+      (setq result (append result (list name)))
+    )
+  )
+  result
+)
+
+(defun swapp-source-reference-name-p (name)
+  (if (member (strcase name) *swapp-resource-source-reference-names*) T nil)
+)
+
+;;; Kept command-scoped so thousands of table records do not reread the XRecord.
+(defun swapp-resource-source-name-cache-begin ()
+  (setq *swapp-resource-source-reference-names* (swapp-source-reference-names))
+  *swapp-resource-source-reference-names*
+)
+
+(defun swapp-resource-source-name-cache-end ()
+  (setq *swapp-resource-source-reference-names* nil)
+  T
+)
+
+(defun swapp-resource-protected-p (name / upper)
+  (setq upper (strcase (if name name "")))
+  (or
+    (member upper '("" "0" "STANDARD" "BYLAYER" "BYBLOCK" "CONTINUOUS" "DEFPOINTS"))
+    (swapp-string-starts-ci-p upper "*MODEL_SPACE")
+    (swapp-string-starts-ci-p upper "*PAPER_SPACE")
+    (vl-string-search "AM_ISO" upper)
+    (vl-string-search "DR_A1_OUTLINE" upper)
+    (vl-string-search "DR_A2_OUTLINE" upper)
+    (vl-string-search "DR_A3_OUTLINE" upper)
+    (vl-string-search "DR_A4_OUTLINE" upper)
+    (vl-string-search "DR_TITLEA_3RD" upper)
+    (vl-string-search "GENIUS_" upper)
+    (vl-string-search "GMTITLE" upper)
+  )
+)
+
+(defun swapp-resource-xref-candidate-p (category name / upper)
+  (setq upper (strcase (if name name "")))
+  (and
+    (not (swapp-resource-protected-p name))
+    (or
+      (vl-string-search "$0$" upper)
+      (and (equal category "DIMSTYLES") (wcmatch upper "*SLDDIMSTYLE*"))
+      (and (equal category "BLOCKS") (swapp-source-reference-name-p name))
+    )
+  )
+)
+
+(defun swapp-resource-candidate-objects (category / collection object name result)
+  (setq collection (swapp-resource-collection category))
+  (setq result nil)
+  (if collection
+    (foreach object (swapp-collection-items collection)
+      (setq name (swapp-safe 'vla-get-Name (list object)))
+      (if (and name (swapp-resource-xref-candidate-p category name))
+        (setq result (append result (list object)))
+      )
+    )
+  )
+  result
+)
+
+(defun swapp-delete-unused-resource-category (category / before deleted object after)
+  (setq before (swapp-resource-candidate-objects category))
+  (setq deleted 0)
+  (foreach object before
+    (if (swapp-call-ok-p 'vla-Delete (list object)) (setq deleted (1+ deleted)))
+  )
+  (setq after (swapp-resource-candidate-objects category))
+  (list category (length before) deleted (length after))
+)
+
+(defun swapp-delete-unused-resource-pass (/ categories result category record total)
+  (setq categories '("BLOCKS" "DIMSTYLES" "TEXTSTYLES" "LINETYPES"))
+  (setq result nil)
+  (setq total 0)
+  (foreach category categories
+    (setq record (swapp-delete-unused-resource-category category))
+    (setq result (append result (list record)))
+    (setq total (+ total (nth 2 record)))
+  )
+  (cons total result)
+)
+
+(defun swapp-print-resource-pass (pass result / record)
+  (princ (strcat "\n정리 반복 #" (itoa pass) ": 삭제 " (itoa (car result)) "개"))
+  (foreach record (cdr result)
+    (princ
+      (strcat
+        "\n  " (nth 0 record)
+        ": 후보 " (itoa (nth 1 record))
+        ", 삭제 " (itoa (nth 2 record))
+        ", 남음(사용 중 포함) " (itoa (nth 3 record))
+      )
+    )
+  )
+  result
+)
+
+(defun swapp-resource-candidate-count (/ category total)
+  (setq total 0)
+  (foreach category '("BLOCKS" "DIMSTYLES" "TEXTSTYLES" "LINETYPES")
+    (setq total (+ total (length (swapp-resource-candidate-objects category))))
+  )
+  total
+)
+
+(defun swapp-resource-cleanup-marked-p ()
+  (and
+    (equal (swapp-state-value "RESOURCE_CLEANUP") "OK")
+    (equal (swapp-state-value "RESOURCE_CLEANUP_POLICY") *swapp-resource-cleanup-policy*)
+    (equal (swapp-state-value "RESOURCE_CLEANUP_ZERO_PASS") "YES")
+  )
+)
+
+(defun swapp-resource-cleanup-verify (/ snapshot signature)
+  (setq snapshot (swapp-workflow-integrity-snapshot))
+  (setq signature (swapp-workflow-integrity-signature snapshot))
+  (and
+    (swapp-resource-cleanup-marked-p)
+    (equal signature (swapp-state-value "RESOURCE_CLEANUP_INTEGRITY"))
+  )
+)
+
+(defun swapp-run-resource-cleanup (/ doc undo-open before after pass result removed total-removed remaining zero-pass integrity-ok snapshot-signature undo-result)
+  (swapp-activate-model)
+  (if (not (swcad-title-ensure-work-copy-for-mutation))
+    (progn
+      (princ "\n리소스 정리 중단: 작업본을 만들지 않았습니다.")
+      nil
+    )
+    (progn
+      (princ "\n----- SWCAD 미사용 XREF 리소스 안전 정리 -----")
+      (princ "\n대상: $0$ 결합 흔적 블록/치수스타일/문자스타일/선종류와 미사용 SLD 치수스타일")
+      (princ "\n보호: 현재 사용 중인 정의, 기본값, AM_ISO, GMTITLE 관련 정의")
+      (setq before (swapp-workflow-integrity-snapshot))
+      (swapp-resource-source-name-cache-begin)
+      (setq doc (swapp-doc))
+      (setq undo-open nil)
+      (if (swapp-call-ok-p 'vla-StartUndoMark (list doc)) (setq undo-open T))
+      (setq pass 1)
+      (setq total-removed 0)
+      (setq zero-pass nil)
+      (setq integrity-ok T)
+      (while (and integrity-ok (not zero-pass) (<= pass *swapp-resource-cleanup-max-passes*))
+        (setq result (swapp-delete-unused-resource-pass))
+        (setq removed (car result))
+        (setq total-removed (+ total-removed removed))
+        (swapp-print-resource-pass pass result)
+        (setq after (swapp-workflow-integrity-snapshot))
+        (setq integrity-ok (swapp-workflow-integrity-equal-p before after))
+        (if (= removed 0) (setq zero-pass T))
+        (setq pass (1+ pass))
+      )
+      (if undo-open
+        (progn
+          (swapp-safe 'vla-EndUndoMark (list doc))
+          (setq undo-open nil)
+        )
+      )
+      (setq remaining (swapp-resource-candidate-count))
+      (swapp-resource-source-name-cache-end)
+      (cond
+        ((not integrity-ok)
+          (setq undo-result (vl-catch-all-apply 'vl-cmdf (list "_.UNDO" "1")))
+          (swapp-state-set "RESOURCE_CLEANUP" "FAILED_INTEGRITY")
+          (princ "\n결과: SWCAD_RESOURCE_CLEANUP_INTEGRITY_CHANGED")
+          (princ "\n정리 전 상태로 UNDO를 시도했습니다. 현재 도면을 저장하지 말고 SWCADVERIFY로 확인하세요.")
+          nil
+        )
+        ((not zero-pass)
+          (swapp-state-set "RESOURCE_CLEANUP" "FAILED_NOT_CONVERGED")
+          (princ "\n결과: SWCAD_RESOURCE_CLEANUP_NOT_CONVERGED")
+          (princ "\n제한 반복 안에 삭제 0개 확인에 도달하지 못했습니다. 같은 명령을 반복하지 말고 로그를 확인하세요.")
+          nil
+        )
+        (T
+          (setq after (swapp-workflow-integrity-snapshot))
+          (setq snapshot-signature (swapp-workflow-integrity-signature after))
+          (swapp-state-set "RESOURCE_CLEANUP" "OK")
+          (swapp-state-set "RESOURCE_CLEANUP_POLICY" *swapp-resource-cleanup-policy*)
+          (swapp-state-set "RESOURCE_CLEANUP_ZERO_PASS" "YES")
+          (swapp-state-set "RESOURCE_CLEANUP_REMOVED" (itoa total-removed))
+          (swapp-state-set "RESOURCE_CLEANUP_PASSES" (itoa (1- pass)))
+          (swapp-state-set "RESOURCE_CLEANUP_REMAINING_REFERENCED" (itoa remaining))
+          (swapp-state-set "RESOURCE_CLEANUP_INTEGRITY" snapshot-signature)
+          (swapp-save-current)
+          (princ (strcat "\n결과: SWCAD_RESOURCE_CLEANUP_OK, 삭제 " (itoa total-removed) "개, 마지막 반복 삭제 0개"))
+          T
+        )
+      )
+    )
+  )
+)
+
+(defun swapp-final-sheet-record-serialize (item / frame-handle title-handle window ll ur)
+  (setq frame-handle (swapp-layout-plan-item-handle item))
+  (setq title-handle
+    (if (nth 7 item)
+      (cdr (assoc 5 (entget (nth 7 item))))
+      ""
+    )
+  )
+  (setq window (cadr item))
+  (setq ll (car window))
+  (setq ur (cadr window))
+  (strcat
+    (swapp-state-field-encode frame-handle) "|"
+    (swapp-state-field-encode (if title-handle title-handle "")) "|"
+    (swapp-state-field-encode (nth 2 item)) "|"
+    (swapp-state-field-encode (nth 5 item)) "|"
+    (swapp-state-field-encode (nth 6 item)) "|"
+    (rtos (car ll) 2 8) "|" (rtos (cadr ll) 2 8) "|"
+    (rtos (car ur) 2 8) "|" (rtos (cadr ur) 2 8)
+  )
+)
+
+(defun swapp-final-sheet-records-write (plan / replacements item index)
+  (setq replacements
+    (list
+      (cons "FINAL_SHEET_STATUS" "MAPPED_TO_GMTITLE_AND_LAYOUT")
+      (cons "FINAL_SHEET_COUNT" (itoa (length plan)))
+    )
+  )
+  (setq index 1)
+  (foreach item plan
+    (setq replacements
+      (append
+        replacements
+        (list
+          (cons
+            (strcat *swapp-final-sheet-state-prefix* (swapp-index-text index))
+            (swapp-final-sheet-record-serialize item)
+          )
+        )
+      )
+    )
+    (setq index (1+ index))
+  )
+  (swapp-state-replace-prefix *swapp-final-sheet-state-prefix* replacements)
+)
+
+(defun swapp-max-paper-layout-tab-order (/ layouts layout name value result)
+  (setq layouts (vla-get-Layouts (swapp-doc)))
+  (setq result 0)
+  (vlax-for layout layouts
+    (setq name (vla-get-Name layout))
+    (if (not (equal (strcase name) "MODEL"))
+      (progn
+        (setq value (swapp-safe 'vla-get-TabOrder (list layout)))
+        (if (and (numberp value) (> value result)) (setq result value))
+      )
+    )
+  )
+  result
+)
+
+(defun swapp-create-named-layouts (plan / doc undo-open oldcmdecho tab-base index item name window result layout created ok)
+  (setq doc (swapp-doc))
+  (setq undo-open nil)
+  (setq oldcmdecho (getvar "CMDECHO"))
+  (setvar "CMDECHO" 0)
+  (if (swapp-call-ok-p 'vla-StartUndoMark (list doc)) (setq undo-open T))
+  (gsla-ensure-vport-layer)
+  (setq tab-base (swapp-max-paper-layout-tab-order))
+  (setq index 1)
+  (setq created 0)
+  (setq ok T)
+  (foreach item plan
+    (if ok
+      (progn
+        (setq name (nth 5 item))
+        (setq window (cadr item))
+        (if (or (gsla-layout-exists-p name) (<= (gsla-window-width window) 1e-9) (<= (gsla-window-height window) 1e-9))
+          (setq ok nil)
+          (progn
+            (setq result (vl-catch-all-apply 'gsla-make-layout (list name window)))
+            (if (vl-catch-all-error-p result)
+              (setq ok nil)
+              (progn
+                (setq layout (swapp-safe 'vla-Item (list (vla-get-Layouts doc) name)))
+                (if layout (swapp-safe 'vla-put-TabOrder (list layout (+ tab-base index))))
+                (setq created (1+ created))
+                (princ (strcat "\nLayout 생성: " name))
+              )
+            )
+          )
+        )
+      )
+    )
+    (setq index (1+ index))
+  )
+  (setvar "CMDECHO" oldcmdecho)
+  (if undo-open (swapp-safe 'vla-EndUndoMark (list doc)))
+  (if (and ok (= created (length plan))) created nil)
+)
+
 (defun swapp-delete-app-layouts (/ names layouts model-layout name layout count)
-  (setq names (swapp-with-layout-prefix-names))
+  (setq names (swapp-layout-owned-names))
   (setq layouts (vla-get-Layouts (swapp-doc)))
   (setq model-layout (swapp-safe 'vla-Item (list layouts "Model")))
   (if model-layout (swapp-safe 'vla-put-ActiveLayout (list (swapp-doc) model-layout)))
@@ -1662,7 +2690,7 @@
   count
 )
 
-(defun swapp-run-layout (/ windows expected old-prefix result)
+(defun swapp-run-layout (/ plan names expected created ownership-ok mapping-ok result)
   (swapp-activate-model)
   (if (not (swcad-title-ensure-work-copy-for-mutation))
     (progn
@@ -1670,8 +2698,9 @@
       nil
     )
     (progn
-      (setq windows (swapp-layout-plan))
-      (setq expected (length windows))
+      (setq plan (swapp-layout-plan))
+      (setq names (swapp-layout-plan-names plan))
+      (setq expected (length plan))
       (cond
         ((= expected 0)
           (princ "\n결과: SWCAD_LAYOUT_NO_GMTITLE_FRAMES")
@@ -1685,20 +2714,20 @@
           nil
         )
         (T
-          (swapp-print-layout-plan-items windows *swapp-layout-preview-limit*)
+          (swapp-print-layout-plan-items plan *swapp-layout-preview-limit*)
           (swapp-delete-app-layouts)
-          (setq old-prefix *gsla-prefix*)
-          (setq *gsla-prefix* *swapp-layout-prefix*)
-          (gsla-create-layouts windows)
-          (setq *gsla-prefix* old-prefix)
+          (setq created (swapp-create-named-layouts plan))
           (swapp-activate-model)
-          (setq result (swapp-layouts-valid-p expected))
+          (setq ownership-ok (if created (swapp-layout-owned-names-write names) nil))
+          (setq mapping-ok (if ownership-ok (swapp-final-sheet-records-write plan) nil))
+          (setq result (and created (= created expected) ownership-ok mapping-ok (swapp-layouts-valid-p plan)))
           (if result
             (progn
               (swapp-state-set "LAYOUT" "OK")
               (swapp-state-set "LAYOUT_PLACEMENT_MODE" *swapp-layout-placement-mode*)
+              (swapp-state-set "LAYOUT_NAME_POLICY" "SOURCE_FILE_STEM_NO_PREFIX_NO_SEQUENCE")
               (swapp-state-set "LAYOUT_PLAN_COUNT" (itoa expected))
-              (swapp-state-set "LAYOUT_PLAN_SIGNATURE" (swapp-layout-plan-signature windows))
+              (swapp-state-set "LAYOUT_PLAN_SIGNATURE" (swapp-layout-plan-signature plan))
               (swapp-state-set "LAYOUT_COUNT" (itoa expected))
               (swapp-save-current)
               (princ (strcat "\n결과: SWCAD_LAYOUT_OK, 생성 수=" (itoa expected)))
@@ -1722,12 +2751,13 @@
 
 (defun swapp-stage-label (stage)
   (cond
-    ((equal stage "XREF") "1/5 입력 도면 준비 - XREF 분해")
-    ((equal stage "SHEET_WRAPPERS") "1/5 입력 도면 준비 - 시트 묶음 분해")
-    ((equal stage "TITLE") "2/5 GMTITLE 변환")
-    ((equal stage "DIMSTYLE") "3/5 치수 스타일 통일")
-    ((equal stage "LAYOUT") "4/5 Layout 생성")
-    ((equal stage "COMPLETE") "5/5 최종 검증 준비 완료")
+    ((equal stage "XREF") "1/6 입력 도면 준비 - XREF 분해")
+    ((equal stage "SHEET_WRAPPERS") "1/6 입력 도면 준비 - 시트 묶음 분해")
+    ((equal stage "TITLE") "2/6 GMTITLE 변환")
+    ((equal stage "DIMSTYLE") "3/6 치수 스타일 통일")
+    ((equal stage "CLEANUP") "4/6 미사용 XREF 리소스 정리")
+    ((equal stage "LAYOUT") "5/6 원본 파일명 Layout 생성")
+    ((equal stage "COMPLETE") "6/6 최종 검증 준비 완료")
     ((equal stage "BLOCKED_NO_SHEETS") "중단 - 처리할 시트를 찾지 못함")
     (T stage)
   )
@@ -1776,6 +2806,15 @@
     ((and (equal stage "TITLE") (swapp-title-blocking-status-p last-status))
       "SWCADRUN 반복 금지 - 현재 도면을 저장하지 말고 오류 원인을 확인하세요"
     )
+    ((and (equal stage "DIMSTYLE") (equal (swapp-state-value "DIMSTYLE") "FAILED"))
+      "SWCADRUN 반복 금지 - DIMSTYLE 실패 원인을 확인하세요"
+    )
+    ((and (equal stage "CLEANUP") (swapp-string-starts-ci-p (if (swapp-state-value "RESOURCE_CLEANUP") (swapp-state-value "RESOURCE_CLEANUP") "") "FAILED"))
+      "SWCADRUN 반복 금지 - 리소스 정리 실패 원인과 무결성 로그를 확인하세요"
+    )
+    ((and (equal stage "LAYOUT") (equal (swapp-state-value "LAYOUT") "FAILED"))
+      "SWCADRUN 반복 금지 - Layout 생성 실패 원인을 확인하세요"
+    )
     (T "SWCADRUN")
   )
 )
@@ -1817,9 +2856,12 @@
     )
   )
   (princ (strcat "\nDIMSTYLE 상태: " (if (swapp-state-value "DIMSTYLE") (swapp-state-value "DIMSTYLE") "미실행")))
+  (princ (strcat "\nXREF 리소스 정리: " (if (swapp-state-value "RESOURCE_CLEANUP") (swapp-state-value "RESOURCE_CLEANUP") "미실행")))
+  (princ (strcat "\n원본 파일명 메타데이터: " (if (swapp-state-value "SOURCE_SHEET_COUNT") (swapp-state-value "SOURCE_SHEET_COUNT") "0") "개"))
   (princ (strcat "\nSWCAD Layout: " (itoa (length layouts)) " / 기대 " (itoa frames)))
   (princ (strcat "\nLayout 좌표 모드: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "미생성")))
-  (if (member stage '("DIMSTYLE" "LAYOUT" "COMPLETE"))
+  (princ (strcat "\nLayout 이름 정책: " (if (swapp-state-value "LAYOUT_NAME_POLICY") (swapp-state-value "LAYOUT_NAME_POLICY") "원본 파일명 stem 예정")))
+  (if (member stage '("DIMSTYLE" "CLEANUP" "LAYOUT" "COMPLETE"))
     (progn
       (setq plan (swapp-layout-plan))
       (swapp-print-layout-plan-items plan *swapp-layout-preview-limit*)
@@ -1888,7 +2930,7 @@
   (swapp-command-performance-begin)
   (swapp-read-cache-begin)
   (setq stage (swapp-workflow-stage))
-  (setq mutating-stage (if (member stage '("XREF" "SHEET_WRAPPERS" "TITLE" "DIMSTYLE" "LAYOUT")) T nil))
+  (setq mutating-stage (if (member stage '("XREF" "SHEET_WRAPPERS" "TITLE" "DIMSTYLE" "CLEANUP" "LAYOUT")) T nil))
   (princ "\n===== SWCADRUN 다음 안전 단계 실행 =====")
   (princ (strcat "\n실행 전 단계: " (swapp-stage-label stage) " [" stage "]"))
   (setq run-result nil)
@@ -1898,6 +2940,7 @@
     ((equal stage "SHEET_WRAPPERS") (setq run-result (swapp-materialize-sheet-wrappers)))
     ((equal stage "TITLE") (setq run-result (swapp-run-title-next)))
     ((equal stage "DIMSTYLE") (setq run-result (swapp-run-dimstyle)))
+    ((equal stage "CLEANUP") (setq run-result (swapp-run-resource-cleanup)))
     ((equal stage "LAYOUT") (setq run-result (swapp-run-layout)))
     ((equal stage "COMPLETE") (princ "\n모든 단계가 준비됐습니다. SWCADVERIFY를 실행하세요."))
     (T (princ "\n처리할 도면틀/XREF를 찾지 못했습니다. 새 호스트 도면의 XREF 상태를 확인하세요."))
@@ -1937,7 +2980,7 @@
   )
 )
 
-(defun c:SWCADVERIFY (/ xrefs wrappers title-result title-status dim-ok frames layout-ok final-ok old-legacy-compat legacy-compat-enabled)
+(defun c:SWCADVERIFY (/ xrefs wrappers title-result title-status dim-ok cleanup-ok frames layout-ok final-ok old-legacy-compat legacy-compat-enabled)
   (swapp-command-performance-begin)
   (swapp-read-cache-begin)
   (swapp-activate-model)
@@ -1945,6 +2988,7 @@
   (setq xrefs (length (swapp-cached-top-xref-references)))
   (setq wrappers (length (swapp-sheet-wrapper-records)))
   (setq dim-ok (swapp-dimstyle-verify))
+  (setq cleanup-ok (swapp-resource-cleanup-verify))
   (setq frames (length (swcad-title-frame-records)))
   (setq layout-ok (swapp-layout-state-valid-p frames))
   (setq legacy-compat-enabled
@@ -1952,6 +2996,7 @@
       (= xrefs 0)
       (= wrappers 0)
       dim-ok
+      cleanup-ok
       (> frames 0)
       layout-ok
     )
@@ -1968,11 +3013,12 @@
       title-result
     )
   )
-  (setq final-ok (and (= xrefs 0) (= wrappers 0) (equal title-status "OK") dim-ok (> frames 0) layout-ok))
+  (setq final-ok (and (= xrefs 0) (= wrappers 0) (equal title-status "OK") dim-ok cleanup-ok (> frames 0) layout-ok))
   (princ (strcat "\n남은 XREF: " (itoa xrefs)))
   (princ (strcat "\n남은 중첩 시트 묶음: " (itoa wrappers)))
   (princ (strcat "\nGMTITLE 최종 상태: " title-status))
   (princ (strcat "\nDIMSTYLE 감사: " (if dim-ok "OK" "CHECK_NEEDED")))
+  (princ (strcat "\n미사용 XREF 리소스 정리 감사: " (if cleanup-ok "OK" "CHECK_NEEDED")))
   (princ (strcat "\nLayout 좌표 모드: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "<없음>")))
   (princ (strcat "\nLayout 좌표 계획 수: " (if (swapp-state-value "LAYOUT_PLAN_COUNT") (swapp-state-value "LAYOUT_PLAN_COUNT") "<없음>")))
   (princ (strcat "\nLayout 좌표 지문: " (if (swapp-state-value "LAYOUT_PLAN_SIGNATURE") (swapp-state-value "LAYOUT_PLAN_SIGNATURE") "<없음>")))

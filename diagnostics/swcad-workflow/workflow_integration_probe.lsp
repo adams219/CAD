@@ -30,6 +30,34 @@
   (if value "yes" "no")
 )
 
+(defun swapp-int-source-metadata-ok-p (source records / record bbox expected-stem)
+  (setq record (car records))
+  (setq bbox (if record (nth 4 record) nil))
+  (setq expected-stem (if source (vl-filename-base source) ""))
+  (and
+    (equal (swapp-state-value "SOURCE_SHEET_STATUS") "CAPTURED_BEFORE_BIND")
+    (= (length records) 1)
+    (= (nth 0 record) 1)
+    (equal (strcase (nth 1 record)) (strcase expected-stem))
+    bbox
+    (= (length bbox) 4)
+    (numberp (nth 0 bbox))
+    (numberp (nth 1 bbox))
+    (numberp (nth 2 bbox))
+    (numberp (nth 3 bbox))
+    (< (nth 0 bbox) (nth 2 bbox))
+    (< (nth 1 bbox) (nth 3 bbox))
+  )
+)
+
+(defun swapp-int-write-source-metadata (handle records audit / first)
+  (setq first (car records))
+  (swapp-int-write handle (strcat "Source metadata state: " (if (swapp-state-value "SOURCE_SHEET_STATUS") (swapp-state-value "SOURCE_SHEET_STATUS") "<none>")))
+  (swapp-int-write handle (strcat "Source metadata count: " (itoa (length records))))
+  (swapp-int-write handle (strcat "Source metadata first: " (if first (vl-princ-to-string first) "<none>")))
+  (swapp-int-write handle (strcat "Source metadata audit: " (swapp-int-bool audit)))
+)
+
 (defun swapp-int-write-performance (handle label)
   (swapp-int-write handle (strcat label " elapsed ms: " (itoa *swapp-last-command-elapsed-ms*)))
   (swapp-int-write handle (strcat label " read ms: " (itoa *swapp-last-command-read-ms*)))
@@ -60,7 +88,7 @@
   (not (vl-catch-all-error-p result))
 )
 
-(defun swapp-int-main (/ root mode source output log-path handle load-result load-ok attached command-ok status-command-ok status-dbmod-before status-dbmod-after summary xrefs dimensions source-titles source-frames evidence native-targets native-target-frames native-target-titles stage dim-state layouts title-status dim-ok layout-ok verify-command-ok pass unmatched-before unmatched-after unmatched-handle same-handle-after same-handle-before layout-plan wrappers wrapper-index wrapper-record wrappers-before wrappers-after dimensions-before dimensions-after expected-dimensions-after bbox-before bbox-after)
+(defun swapp-int-main (/ root mode source output log-path handle load-result load-ok attached command-ok status-command-ok status-dbmod-before status-dbmod-after summary xrefs dimensions source-titles source-frames source-records source-metadata-ok evidence native-targets native-target-frames native-target-titles stage dim-state cleanup-state layouts title-status dim-ok cleanup-ok layout-ok verify-command-ok pass unmatched-before unmatched-after unmatched-handle same-handle-after same-handle-before layout-plan wrappers wrapper-index wrapper-record wrappers-before wrappers-after dimensions-before dimensions-after expected-dimensions-after bbox-before bbox-after)
   (setq root (vl-string-translate "\\" "/" (swapp-int-env "SWCAD_WORKFLOW_ROOT" "C:/Users/DR-DESIGN/Documents/CAD tool")))
   (setq mode (strcase (swapp-int-env "SWCAD_WORKFLOW_MODE" "MATERIALIZE_RAW")))
   (setq source (vl-string-translate "\\" "/" (swapp-int-env "SWCAD_WORKFLOW_SOURCE" "")))
@@ -105,6 +133,8 @@
             (setq source-titles (swcad-title-fast-summary-value summary "source-title-count"))
             (setq source-frames (swcad-title-fast-summary-value summary "source-frame-count"))
             (setq stage (swapp-workflow-stage))
+            (setq source-records (swapp-source-sheet-records-read))
+            (setq source-metadata-ok (swapp-int-source-metadata-ok-p source source-records))
             (swapp-int-write handle (strcat "Attach result: " (swapp-int-bool attached)))
             (swapp-int-write handle (strcat "Public SWCADRUN result: " (swapp-int-bool command-ok)))
             (swapp-int-write handle (strcat "Remaining XREF count: " (itoa xrefs)))
@@ -113,6 +143,7 @@
             (swapp-int-write handle (strcat "Source frame count: " (itoa source-frames)))
             (swapp-int-write handle (strcat "Materialized state: " (if (swapp-state-value "MATERIALIZED") (swapp-state-value "MATERIALIZED") "<none>")))
             (swapp-int-write handle (strcat "Workflow stage: " stage))
+            (swapp-int-write-source-metadata handle source-records source-metadata-ok)
             (setq pass
               (and
                 attached command-ok
@@ -122,6 +153,7 @@
                 (= source-frames 15)
                 (equal (swapp-state-value "MATERIALIZED") "OK")
                 (equal stage "TITLE")
+                source-metadata-ok
                 (findfile output)
               )
             )
@@ -152,6 +184,8 @@
             (setq source-titles (swcad-title-fast-summary-value summary "source-title-count"))
             (setq source-frames (swcad-title-fast-summary-value summary "source-frame-count"))
             (setq stage (swapp-workflow-stage))
+            (setq source-records (swapp-source-sheet-records-read))
+            (setq source-metadata-ok (swapp-int-source-metadata-ok-p source source-records))
             (setq status-dbmod-before (getvar "DBMOD"))
             (setq status-command-ok (swapp-int-command-ok 'c:SWCADSTATUS))
             (setq status-dbmod-after (getvar "DBMOD"))
@@ -166,6 +200,7 @@
             (swapp-int-write handle (strcat "Materialized state: " (if (swapp-state-value "MATERIALIZED") (swapp-state-value "MATERIALIZED") "<none>")))
             (swapp-int-write handle (strcat "Workflow stage: " stage))
             (swapp-int-write handle (strcat "Public SWCADSTATUS read-only: " (swapp-int-bool (= status-dbmod-before status-dbmod-after))))
+            (swapp-int-write-source-metadata handle source-records source-metadata-ok)
             (setq pass
               (and
                 attached command-ok
@@ -180,6 +215,7 @@
                 (= source-frames 30)
                 (equal (swapp-state-value "MATERIALIZED") "OK")
                 (equal stage "TITLE")
+                source-metadata-ok
                 (findfile output)
               )
             )
@@ -282,10 +318,14 @@
             (setq command-ok (and (swapp-title-complete-p evidence) (swapp-int-command-ok 'c:SWCADRUN)))
             (setq dim-state (swapp-state-value "DIMSTYLE"))
             (setq stage (swapp-workflow-stage))
+            (setq command-ok (and command-ok (equal stage "CLEANUP") (swapp-int-command-ok 'c:SWCADRUN)))
+            (setq cleanup-state (swapp-state-value "RESOURCE_CLEANUP"))
+            (setq cleanup-ok (swapp-resource-cleanup-verify))
+            (setq stage (swapp-workflow-stage))
             (setq layout-plan (if (equal stage "LAYOUT") (swapp-layout-plan) nil))
             (setq command-ok (and command-ok (equal stage "LAYOUT") (swapp-int-command-ok 'c:SWCADRUN)))
             (setq stage (swapp-workflow-stage))
-            (setq layouts (length (swapp-with-layout-prefix-names)))
+            (setq layouts (length (swapp-layout-owned-names)))
             (if command-ok
               (progn
                 (setq title-status (swcad-title-integrated-verify-final-summary))
@@ -303,6 +343,9 @@
             (swapp-int-write handle (strcat "DIMSTYLE state: " (if dim-state dim-state "<none>")))
             (swapp-int-write handle (strcat "Dimension semantics: " (if (swapp-state-value "DIMENSION_SEMANTICS") (swapp-state-value "DIMENSION_SEMANTICS") "<none>")))
             (swapp-int-write handle (strcat "Dimension restore count: " (if (swapp-state-value "DIMENSION_RESTORE_COUNT") (swapp-state-value "DIMENSION_RESTORE_COUNT") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup state: " (if cleanup-state cleanup-state "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup zero pass: " (if (swapp-state-value "RESOURCE_CLEANUP_ZERO_PASS") (swapp-state-value "RESOURCE_CLEANUP_ZERO_PASS") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup audit: " (swapp-int-bool cleanup-ok)))
             (swapp-int-write handle (strcat "Layout plan count before create: " (itoa (length layout-plan))))
             (if layout-plan
               (progn
@@ -327,6 +370,8 @@
             )
             (swapp-int-write handle (strcat "Layout count: " (itoa layouts)))
             (swapp-int-write handle (strcat "Layout placement mode: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "<none>")))
+            (swapp-int-write handle (strcat "Layout name policy: " (if (swapp-state-value "LAYOUT_NAME_POLICY") (swapp-state-value "LAYOUT_NAME_POLICY") "<none>")))
+            (swapp-int-write handle (strcat "Owned layout count: " (if (swapp-state-value "LAYOUT_OWNED_COUNT") (swapp-state-value "LAYOUT_OWNED_COUNT") "<none>")))
             (swapp-int-write handle (strcat "Layout state plan count: " (if (swapp-state-value "LAYOUT_PLAN_COUNT") (swapp-state-value "LAYOUT_PLAN_COUNT") "<none>")))
             (swapp-int-write handle (strcat "Layout state signature: " (if (swapp-state-value "LAYOUT_PLAN_SIGNATURE") (swapp-state-value "LAYOUT_PLAN_SIGNATURE") "<none>")))
             (swapp-int-write handle (strcat "Title verify status: " title-status))
@@ -338,6 +383,8 @@
                 command-ok
                 (equal dim-state "OK")
                 (equal (swapp-state-value "DIMENSION_SEMANTICS") "PRESERVED")
+                (equal cleanup-state "OK")
+                cleanup-ok
                 (= (length layout-plan) 15)
                 (= layouts 15)
                 (equal (swapp-state-value "LAYOUT_PLACEMENT_MODE") *swapp-layout-placement-mode*)
@@ -351,21 +398,27 @@
           )
           ((equal mode "REOPEN")
             (setq stage (swapp-workflow-stage))
-            (setq layouts (length (swapp-with-layout-prefix-names)))
+            (setq layouts (length (swapp-layout-owned-names)))
             (setq title-status (swcad-title-integrated-verify-final-summary))
             (setq dim-ok (swapp-dimstyle-verify))
+            (setq cleanup-ok (swapp-resource-cleanup-verify))
             (setq layout-ok (swapp-layout-state-valid-p (length (swcad-title-frame-records))))
             (setq verify-command-ok (swapp-int-command-ok 'c:SWCADVERIFY))
             (swapp-int-write handle (strcat "DIMSTYLE state: " (if (swapp-state-value "DIMSTYLE") (swapp-state-value "DIMSTYLE") "<none>")))
             (swapp-int-write handle (strcat "Dimension semantics: " (if (swapp-state-value "DIMENSION_SEMANTICS") (swapp-state-value "DIMENSION_SEMANTICS") "<none>")))
             (swapp-int-write handle (strcat "Dimension restore count: " (if (swapp-state-value "DIMENSION_RESTORE_COUNT") (swapp-state-value "DIMENSION_RESTORE_COUNT") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup state: " (if (swapp-state-value "RESOURCE_CLEANUP") (swapp-state-value "RESOURCE_CLEANUP") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup zero pass: " (if (swapp-state-value "RESOURCE_CLEANUP_ZERO_PASS") (swapp-state-value "RESOURCE_CLEANUP_ZERO_PASS") "<none>")))
             (swapp-int-write handle (strcat "LAYOUT state: " (if (swapp-state-value "LAYOUT") (swapp-state-value "LAYOUT") "<none>")))
             (swapp-int-write handle (strcat "Layout placement mode: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "<none>")))
+            (swapp-int-write handle (strcat "Layout name policy: " (if (swapp-state-value "LAYOUT_NAME_POLICY") (swapp-state-value "LAYOUT_NAME_POLICY") "<none>")))
+            (swapp-int-write handle (strcat "Owned layout count: " (if (swapp-state-value "LAYOUT_OWNED_COUNT") (swapp-state-value "LAYOUT_OWNED_COUNT") "<none>")))
             (swapp-int-write handle (strcat "Layout state plan count: " (if (swapp-state-value "LAYOUT_PLAN_COUNT") (swapp-state-value "LAYOUT_PLAN_COUNT") "<none>")))
             (swapp-int-write handle (strcat "Layout state signature: " (if (swapp-state-value "LAYOUT_PLAN_SIGNATURE") (swapp-state-value "LAYOUT_PLAN_SIGNATURE") "<none>")))
             (swapp-int-write handle (strcat "Layout count: " (itoa layouts)))
             (swapp-int-write handle (strcat "Title verify status: " title-status))
             (swapp-int-write handle (strcat "DIMSTYLE audit: " (swapp-int-bool dim-ok)))
+            (swapp-int-write handle (strcat "Resource cleanup audit: " (swapp-int-bool cleanup-ok)))
             (swapp-int-write handle (strcat "Layout audit: " (swapp-int-bool layout-ok)))
             (swapp-int-write handle (strcat "Public SWCADVERIFY returned without error: " (swapp-int-bool verify-command-ok)))
             (swapp-int-write handle (strcat "Workflow stage: " stage))
@@ -374,6 +427,8 @@
               (and
                 (equal (swapp-state-value "DIMSTYLE") "OK")
                 (equal (swapp-state-value "DIMENSION_SEMANTICS") "PRESERVED")
+                (equal (swapp-state-value "RESOURCE_CLEANUP") "OK")
+                cleanup-ok
                 (equal (swapp-state-value "LAYOUT") "OK")
                 (equal (swapp-state-value "LAYOUT_PLACEMENT_MODE") *swapp-layout-placement-mode*)
                 (equal (swapp-state-value "LAYOUT_PLAN_COUNT") "15")

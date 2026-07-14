@@ -8,7 +8,8 @@ SolidWorks DWG를 XREF로 모은 새 호스트 도면에서 기존 세 도구를
 XREF 독립 작업본 생성 및 materialize
 → native GMTITLE 변환
 → 치수/공차 정규화
-→ 도면별 A4 Layout 생성
+→ 미사용 XREF 리소스 정리
+→ 원본 파일명 A4 Layout 생성
 → 통합 검증
 ```
 
@@ -33,10 +34,10 @@ SWCADRUN
 SWCADVERIFY
 ```
 
-`SWCADRUN`은 현재 상태에서 다음 안전 단계 하나만 실행한다. 중간에 종료해도 DWG의 `SWCAD_WORKFLOW_STATE` XRecord를 읽어 재개한다. 단계는 사용자에게 1/5부터 5/5까지 표시하며, GMTITLE 결과가 `ABORT_`, `ERROR_`, `WARN_`이면 같은 명령의 반복을 권장하지 않는다.
+`SWCADRUN`은 현재 상태에서 다음 안전 단계 하나만 실행한다. 중간에 종료해도 DWG의 `SWCAD_WORKFLOW_STATE` XRecord를 읽어 재개한다. 단계는 사용자에게 1/6부터 6/6까지 표시하며, GMTITLE 결과가 `ABORT_`, `ERROR_`, `WARN_`이면 같은 명령의 반복을 권장하지 않는다.
 
 ```text
-XREF → SHEET_WRAPPERS(필요한 경우) → TITLE → DIMSTYLE → LAYOUT → COMPLETE
+XREF → SHEET_WRAPPERS(필요한 경우) → TITLE → DIMSTYLE → CLEANUP → LAYOUT → COMPLETE
 ```
 
 ## 성능 구조
@@ -70,6 +71,19 @@ XREF → SHEET_WRAPPERS(필요한 경우) → TITLE → DIMSTYLE → LAYOUT → 
 
 첫 변경 전에 GMTITLE 모듈의 Save As 계약을 사용한다. 사용자가 정한 별도 작업본만 변경하며 호스트 원본과 XREF 원본은 저장하지 않는다.
 
+## 출처 메타데이터 계약
+
+XREF를 BIND/EXPLODE하면 원본 경로와 참조명이 사라진다. 따라서 materialize 직전에 최상위 XREF를 사용자의 좌표 순서로 정렬하고 다음 값을 DWG 내부 `SWCAD_WORKFLOW_STATE` XRecord에 기록한다.
+
+```text
+SOURCE_SHEET_COUNT
+SOURCE_SHEET_001...
+  = order | source DWG stem | reference name | reference handle | bbox
+SOURCE_SHEET_STATUS=CAPTURED_BEFORE_BIND
+```
+
+GMTITLE 변환 뒤에는 최종 frame/title 핸들과 출처를 `FINAL_SHEET_*`에 연결한다. 이미 materialize된 구버전 도면은 `GMTITLE File Name → 검증된 $0$ 결합 블록 접두사 → FILE NO → Sheet → frame handle` 순으로 복구한다. 하나의 일반적인 파일명이 여러 시트에 반복되면 그 값은 출처로 채택하지 않고 공간적으로 해당 frame 안에 가장 많이 나타나는 결합 블록 접두사를 사용한다.
+
 ## 치수 의미 보존
 
 대표 도면에서 기존 SWAUTO는 스타일 감사 자체는 통과했지만, native Mechanical fit 적용 중 핸들 `37C1`의 의미 오버라이드가 다음처럼 달라지는 사례가 발견됐다.
@@ -88,6 +102,18 @@ DIMENSION_SEMANTICS=PRESERVED
 
 복원 후에도 기존 스타일 감사와 Mechanical fit 감사가 모두 통과해야 한다.
 
+## 미사용 리소스 정리 계약
+
+DIMSTYLE 이후 Layout 전에 `$0$` 결합 흔적과 미사용 SLD 정의를 제한 반복으로 정리한다.
+
+- 범위: 블록, 치수 스타일, 문자 스타일, 선종류
+- 보호: 기본/현재/실참조 정의, `AM_ISO`, `DR_A*_Outline`, `DR_titlea_3rd`, `GENIUS_`, `GMTITLE`
+- 수렴: 최대 6회 안에 삭제 0개 반복 도달
+- 무결성: 모델 객체 수, 모델 bbox, 치수 의미 다중집합, GMTITLE frame/title 링크·속성·bbox 일치
+- 상태: `RESOURCE_CLEANUP=OK`, `RESOURCE_CLEANUP_ZERO_PASS=YES`, 정책 `XREF_BOUND_UNUSED_V1`
+
+삭제 중 무결성이 달라지면 UNDO를 시도하고 실패 상태를 기록한다. 같은 `SWCADRUN`을 반복하지 않으며 Layout 생성도 차단한다.
+
 ## Layout 계약
 
 - 앱은 XREF나 변환된 도면 객체를 자동으로 이동하지 않는다.
@@ -96,10 +122,12 @@ DIMENSION_SEMANTICS=PRESERVED
 - 같은 행은 왼쪽→오른쪽, 다른 행은 위쪽→아래쪽으로 정렬한다.
 - `SWCADSTATUS`와 실제 생성은 동일한 `swapp-layout-plan` 결과를 사용한다.
 - 검증된 DR A2/A3/A4 도면틀 각각을 하나의 A4 Layout으로 만든다.
-- 이름은 `SWCAD-SHEET-001`부터 시작한다.
+- 이름은 출처 DWG stem만 사용하며 `SWCAD` 접두사와 자동 순번을 붙이지 않는다.
+- 충돌 시 `FILE NO`, `Sheet`, 마지막 최소 숫자 suffix 순으로만 구분한다.
 - Layout마다 뷰포트는 정확히 하나이고 용지 크기는 210 x 297 또는 297 x 210이어야 한다.
-- 재실행 시 앱 접두사의 Layout만 교체하므로 중복되지 않는다.
-- DWG 상태에는 `LAYOUT_PLACEMENT_MODE=MANUAL_FRAME_COORDINATES`, `LAYOUT_PLAN_COUNT`, `LAYOUT_PLAN_SIGNATURE`를 저장한다.
+- 앱 소유 Layout은 이름 접두사가 아니라 `LAYOUT_OWNED_*` XRecord로 관리하며 사용자 Layout은 보존한다.
+- 재실행 시 XRecord에 기록된 앱 Layout만 교체한다. 구버전 `SWCAD-SHEET-*`는 최초 마이그레이션에서만 앱 소유로 읽는다.
+- DWG 상태에는 `LAYOUT_PLACEMENT_MODE=XREF_SOURCE_FILENAME_COORDINATES`, `LAYOUT_PLAN_COUNT`, `LAYOUT_PLAN_SIGNATURE`, `LAYOUT_NAME_POLICY=SOURCE_FILE_STEM_NO_PREFIX_NO_SEQUENCE`를 저장한다.
 - 현재 도면틀 좌표 지문이 저장값과 다르면 기존 Layout을 완료 상태로 인정하지 않고 다시 생성한다.
 
 ## 완료 조건
@@ -111,8 +139,9 @@ DIMENSION_SEMANTICS=PRESERVED
 - GMTITLE 최종 상태 `OK`
 - 치수 스타일/Mechanical fit 감사 통과
 - `DIMENSION_SEMANTICS=PRESERVED`
+- 미사용 XREF 리소스 정리 상태와 저장된 무결성 지문 일치
 - GMTITLE 도면틀 수와 SWCAD Layout 수 일치
-- 수동 배치 좌표 모드와 Layout 좌표 계획 수량·지문 유지
+- 출처 기반 좌표 모드, Layout 이름·소유권, 계획 수량·지문 유지
 - 각 Layout의 A4 용지와 단일 뷰포트 확인
 
 최종 성공 문자열은 `SWCADVERIFY_FINAL_OK`다.

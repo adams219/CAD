@@ -7,7 +7,8 @@ XREF 작업본 생성/결합
 → 중첩 시트 묶음과 치수 내용 블록 materialize
 → GMTITLE 도면틀·표제란 변환
 → DIMSTYLE·맞춤공차 정규화
-→ A4 Layout 생성
+→ 미사용 XREF 리소스 안전 정리
+→ 원본 파일명 A4 Layout 생성
 → 통합 검증
 ```
 
@@ -27,7 +28,7 @@ SWCADRUN
 SWCADVERIFY
 ```
 
-`SWCADRUN`은 현재 상태에서 안전한 다음 단계 하나만 실행합니다. 출력에는 `1/5 입력 준비 → 2/5 GMTITLE → 3/5 치수 → 4/5 Layout → 5/5 검증` 중 현재 위치와 실행 전후 단계가 표시됩니다. `ABORT_`, `ERROR_`, `WARN_` 결과에서는 반복 실행을 중지하고 원인을 확인해야 하며, `SWCADSTATUS`가 다시 `SWCADRUN`을 권장할 때만 계속합니다.
+`SWCADRUN`은 현재 상태에서 안전한 다음 단계 하나만 실행합니다. 출력에는 `1/6 입력 준비 → 2/6 GMTITLE → 3/6 치수 → 4/6 정리 → 5/6 Layout → 6/6 검증` 중 현재 위치와 실행 전후 단계가 표시됩니다. `ABORT_`, `ERROR_`, `WARN_` 결과에서는 반복 실행을 중지하고 원인을 확인해야 하며, `SWCADSTATUS`가 다시 `SWCADRUN`을 권장할 때만 계속합니다.
 
 DIMSTYLE 단계는 실행 전후의 치수 측정값, `DIMLFAC`, 상·하 공차 의미를 핸들별로 비교합니다. 기존 SWAUTO가 native Mechanical fit을 붙이며 오버라이드를 바꾸는 경우 달라진 치수만 복원하고, 완전히 일치할 때만 다음 단계로 이동합니다.
 
@@ -37,19 +38,21 @@ DIMSTYLE 단계는 실행 전후의 치수 측정값, `DIMLFAC`, 상·하 공차
 
 ```text
 사용자 수동 XREF 배치
-→ 현재 좌표를 유지한 materialize
+→ 원본 DWG 파일명·좌표·순서를 저장한 뒤 materialize
 → GMTITLE·DIMSTYLE 변환
 → 최종 GMTITLE 도면틀 bbox 자동 계산
-→ Layout 자동 생성
+→ 원본 파일명 Layout 자동 생성
 ```
 
 - XREF 축척은 `1`, 회전은 `0`을 사용합니다.
 - 첫 도면의 왼쪽 아래를 `(0,0)`에 두는 것은 선택 사항입니다.
-- 같은 행은 왼쪽에서 오른쪽, 다른 행은 위쪽에서 아래쪽 순서로 Layout 번호를 붙입니다.
+- 같은 행은 왼쪽에서 오른쪽, 다른 행은 위쪽에서 아래쪽 순서로 Layout 탭을 만듭니다.
 - `SWCADSTATUS`는 Layout 생성 전에 예정 수량과 좌표를 최대 12개까지 보여줍니다.
 - 실제 생성에는 미리보기와 같은 전체 좌표 계획을 사용합니다.
-- 저장 후 `MANUAL_FRAME_COORDINATES` 모드, 계획 수량, 좌표 지문이 유지돼야 최종 검증을 통과합니다.
+- 저장 후 `XREF_SOURCE_FILENAME_COORDINATES` 모드, 계획 수량, 좌표 지문, Layout 소유권 목록이 유지돼야 최종 검증을 통과합니다.
 - Layout 생성 뒤 도면틀 위치가 바뀌면 좌표 지문이 달라져 다음 `SWCADRUN`에서 Layout을 다시 생성합니다.
+
+XREF를 BIND하기 직전에 각 최상위 참조의 파일명 stem, 참조명, 핸들, bbox, 배치 순서를 `SWCAD_WORKFLOW_STATE`에 저장합니다. 이미 materialize된 도면에서는 고유한 GMTITLE `File Name`, 검증된 `$0$` 결합 블록 접두사, `FILE NO`, `Sheet`, 도면틀 핸들 순으로 이름을 복구합니다.
 
 ## XREF 지원 범위
 
@@ -69,9 +72,21 @@ DIMSTYLE 단계는 실행 전후의 치수 측정값, `DIMLFAC`, 상·하 공차
 
 첫 변경 전에 GMTITLE 모듈의 다른 이름으로 저장 창을 사용해 사용자가 지정한 독립 작업본을 만듭니다. 원본 DWG와 XREF 원본은 저장하지 않습니다.
 
+## 자동 리소스 정리
+
+DIMSTYLE 단계 뒤에는 XREF 결합에서 생긴 미사용 정의를 자동으로 정리합니다.
+
+- 대상은 `$0$` 결합 흔적 블록·치수 스타일·문자 스타일·선종류와 미사용 `SLDDIMSTYLE`입니다.
+- 현재 사용 중인 정의, 기본값, `AM_ISO`, `DR_A*_Outline`, `DR_titlea_3rd`, GMTITLE/GENIUS 정의는 보호합니다.
+- 최대 6회까지만 반복하고 삭제 0개 반복에 도달해야 완료합니다.
+- 각 반복 뒤 모델 객체 수, 전체 bbox, 치수값·공차·축척 의미, GMTITLE 링크·속성을 비교합니다.
+- 무결성이 달라지거나 0개 반복에 도달하지 못하면 Layout 단계로 진행하지 않습니다.
+
 ## Layout 정책
 
-MVP는 기존 `GSA4GO`와 동일하게 모든 DR A2/A3/A4 도면틀을 A4 Layout으로 만듭니다. 앱 전용 Layout 이름은 `SWCAD-SHEET-001`부터 시작합니다. 다시 실행할 때 앱이 만든 Layout만 교체하므로 중복 생성하지 않습니다.
+모든 DR A2/A3/A4 도면틀을 A4 Layout으로 만듭니다. 이름은 `SWCAD` 접두사와 자동 순번 없이 원본 DWG 파일명 stem만 사용합니다. 실제 이름이 겹칠 때만 `FILE NO`, `Sheet`, 마지막 최소 숫자 suffix 순으로 구분합니다.
+
+앱이 만든 Layout 이름은 접두사로 판정하지 않고 `LAYOUT_OWNED_*` XRecord에 저장합니다. 다시 실행할 때 이 목록의 Layout만 교체하므로 `Layout1`, `Layout2` 같은 사용자 탭은 보존됩니다. PDF 이름도 Layout 이름을 따릅니다.
 
 ## 패키지
 
@@ -94,4 +109,5 @@ SWCAD_Workflow_Load.lsp
 ```text
 docs\swcad-workflow\architecture.md
 docs\swcad-workflow\test-results-2026-07-13.md
+docs\swcad-workflow\source-layout-cleanup-test-2026-07-14.md
 ```
