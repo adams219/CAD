@@ -49,7 +49,7 @@ if (-not (Test-Path -LiteralPath $LogPath)) {
 
 $logText = Get-Content -LiteralPath $LogPath -Raw
 $requiredLines = @(
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
   "SWTITLEVERIFY status: SWTITLEVERIFY_FINAL_OK",
   "Remaining source titles/frames/frame-only: 0/0/0",
   "Target title/frame-pair/native-like: 15/15/15",

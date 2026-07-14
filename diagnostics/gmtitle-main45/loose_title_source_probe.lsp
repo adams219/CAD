@@ -178,7 +178,7 @@
           (setq all-good
             (and
               all-good
-              (equal version "260712-portable-saveas-offsheet-frame-1")
+              (equal version "260713-frame-style-structure-guard-1")
               (= (swcad-title-fast-summary-value summary "source-title-count") 15)
               (= (swcad-title-fast-summary-value summary "source-frame-count") 15)
               (= (swcad-title-fast-summary-value summary "frame-only-count") 0)

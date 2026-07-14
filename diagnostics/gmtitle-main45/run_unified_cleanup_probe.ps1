@@ -52,7 +52,7 @@ if (-not (Test-Path -LiteralPath $LogPath)) {
 
 $logText = Get-Content -LiteralPath $LogPath -Raw
 $requiredLines = @(
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
   "Before style/delete/residue: 15/52/52",
   "Before pair/native-like: 15/15",
   "Cleanup call: OK",

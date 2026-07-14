@@ -3,6 +3,8 @@ param(
 
   [switch]$AllowExistingGstarCAD,
 
+  [switch]$PrepareOnly,
+
   [ValidateSet("MATERIALIZE_RAW", "MATERIALIZE_WRAPPED_XREF", "NATIVE_GUARD", "SHEET_WRAPPERS", "DOWNSTREAM", "REOPEN")]
   [string[]]$Modes = @("MATERIALIZE_RAW", "MATERIALIZE_WRAPPED_XREF", "NATIVE_GUARD", "SHEET_WRAPPERS", "DOWNSTREAM", "REOPEN")
 )
@@ -30,6 +32,9 @@ $templateCandidates = @(
 $templatePath = $templateCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 if (-not $templatePath) {
   throw "No GstarCAD Mechanical template found."
+}
+if ($PrepareOnly -and $Modes.Count -ne 1) {
+  throw "PrepareOnly requires exactly one integration mode."
 }
 
 [void](New-Item -ItemType Directory -Path $testRoot -Force)
@@ -83,6 +88,17 @@ function Invoke-WorkflowProbe {
   )
   [IO.File]::WriteAllLines($scriptPath, $scriptLines, [Text.UTF8Encoding]::new($false))
 
+  if ($PrepareOnly) {
+    Write-Output ("{0}: prepared without launching GstarCAD" -f $Mode)
+    Write-Output ("Start drawing/template: {0}" -f $DwgPath)
+    Write-Output ("Script: {0}" -f $scriptPath)
+    Write-Output ("Expected log: {0}" -f $logPath)
+    if ($OutputPath) {
+      Write-Output ("Expected output: {0}" -f $OutputPath)
+    }
+    return
+  }
+
   $runnerArguments = @{
     DwgPath = $DwgPath
     ScriptPath = $scriptPath
@@ -130,11 +146,14 @@ if ($Modes -contains "MATERIALIZE_WRAPPED_XREF") {
   -OutputPath $materializedWrappedOutput `
   -Required @(
     "Wrapped XREF top target frames/titles:",
+    "Public SWCADRUN INSERT full scans:",
+    "Public SWCADSTATUS INSERT full scans: 1",
+    "Public SWCADSTATUS read-only: yes",
     "Remaining XREF count: 0",
     "Remaining sheet wrappers: 0",
     "Top dimension count matched expected: yes",
     "Source title count: 30",
-    "Source frame count: 41",
+    "Source frame count: 30",
     "Materialized state: OK",
     "Workflow stage: TITLE",
     "Runtime check completed: yes"
@@ -222,6 +241,11 @@ if ($Modes -contains "REOPEN") {
     "DBMOD after: 0",
     "Runtime check completed: yes"
   )
+}
+
+if ($PrepareOnly) {
+  Write-Output "SWCAD Workflow integration probe prepared."
+  return
 }
 
 $rawHashAfter = (Get-FileHash -Algorithm SHA256 -LiteralPath $rawSource).Hash

@@ -30,6 +30,14 @@
   (if value "yes" "no")
 )
 
+(defun swapp-int-write-performance (handle label)
+  (swapp-int-write handle (strcat label " elapsed ms: " (itoa *swapp-last-command-elapsed-ms*)))
+  (swapp-int-write handle (strcat label " read ms: " (itoa *swapp-last-command-read-ms*)))
+  (swapp-int-write handle (strcat label " inventory hits/misses: " (itoa *swapp-last-command-cache-hits*) "/" (itoa *swapp-last-command-cache-misses*)))
+  (swapp-int-write handle (strcat label " INSERT full scans: " (itoa *swapp-last-command-title-insert-scans*)))
+  (swapp-int-write handle (strcat label " INSERT cache hits: " (itoa *swapp-last-command-title-insert-cache-hits*)))
+)
+
 (defun swapp-int-attach (source / result)
   (setq result
     (vl-catch-all-apply
@@ -52,7 +60,7 @@
   (not (vl-catch-all-error-p result))
 )
 
-(defun swapp-int-main (/ root mode source output log-path handle load-result load-ok attached command-ok summary xrefs dimensions source-titles source-frames evidence native-targets native-target-frames native-target-titles stage dim-state layouts title-status dim-ok layout-ok verify-command-ok pass unmatched-before unmatched-after unmatched-handle same-handle-after same-handle-before layout-plan wrappers wrapper-index wrapper-record wrappers-before wrappers-after dimensions-before dimensions-after expected-dimensions-after bbox-before bbox-after)
+(defun swapp-int-main (/ root mode source output log-path handle load-result load-ok attached command-ok status-command-ok status-dbmod-before status-dbmod-after summary xrefs dimensions source-titles source-frames evidence native-targets native-target-frames native-target-titles stage dim-state layouts title-status dim-ok layout-ok verify-command-ok pass unmatched-before unmatched-after unmatched-handle same-handle-after same-handle-before layout-plan wrappers wrapper-index wrapper-record wrappers-before wrappers-after dimensions-before dimensions-after expected-dimensions-after bbox-before bbox-after)
   (setq root (vl-string-translate "\\" "/" (swapp-int-env "SWCAD_WORKFLOW_ROOT" "C:/Users/DR-DESIGN/Documents/CAD tool")))
   (setq mode (strcase (swapp-int-env "SWCAD_WORKFLOW_MODE" "MATERIALIZE_RAW")))
   (setq source (vl-string-translate "\\" "/" (swapp-int-env "SWCAD_WORKFLOW_SOURCE" "")))
@@ -135,14 +143,19 @@
             (swapp-int-write handle "Milestone: before wrapped XREF SWCADRUN")
             (setq command-ok (if attached (swapp-int-command-ok 'c:SWCADRUN) nil))
             (swapp-int-write handle (strcat "Milestone: after wrapped XREF SWCADRUN=" (swapp-int-bool command-ok)))
+            (if command-ok (swapp-int-write-performance handle "Public SWCADRUN"))
             (setq summary (swcad-title-fast-sheet-summary))
             (setq xrefs (length (swapp-top-xref-references)))
-            (setq wrappers-after (length (swapp-sheet-wrapper-records)))
+            (setq wrappers-after (length (swapp-sheet-wrapper-status-records)))
             (setq dimensions (swapp-top-dimension-count))
             (setq bbox-after (swapp-model-bbox))
             (setq source-titles (swcad-title-fast-summary-value summary "source-title-count"))
             (setq source-frames (swcad-title-fast-summary-value summary "source-frame-count"))
             (setq stage (swapp-workflow-stage))
+            (setq status-dbmod-before (getvar "DBMOD"))
+            (setq status-command-ok (swapp-int-command-ok 'c:SWCADSTATUS))
+            (setq status-dbmod-after (getvar "DBMOD"))
+            (if status-command-ok (swapp-int-write-performance handle "Public SWCADSTATUS"))
             (swapp-int-write handle (strcat "Remaining XREF count: " (itoa xrefs)))
             (swapp-int-write handle (strcat "Remaining sheet wrappers: " (itoa wrappers-after)))
             (swapp-int-write handle (strcat "Top dimension count: " (itoa dimensions)))
@@ -152,15 +165,19 @@
             (swapp-int-write handle (strcat "Source frame count: " (itoa source-frames)))
             (swapp-int-write handle (strcat "Materialized state: " (if (swapp-state-value "MATERIALIZED") (swapp-state-value "MATERIALIZED") "<none>")))
             (swapp-int-write handle (strcat "Workflow stage: " stage))
+            (swapp-int-write handle (strcat "Public SWCADSTATUS read-only: " (swapp-int-bool (= status-dbmod-before status-dbmod-after))))
             (setq pass
               (and
                 attached command-ok
+                status-command-ok
+                (= *swapp-last-command-title-insert-scans* 1)
+                (= status-dbmod-before status-dbmod-after)
                 (= native-target-titles 0)
                 (= xrefs 0)
                 (= wrappers-after 0)
                 (= dimensions expected-dimensions-after)
                 (= source-titles 30)
-                (= source-frames 41)
+                (= source-frames 30)
                 (equal (swapp-state-value "MATERIALIZED") "OK")
                 (equal stage "TITLE")
                 (findfile output)

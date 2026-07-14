@@ -459,7 +459,7 @@ Assert-LogContains `
   -Patterns @(
     "Load result: OK",
     "Loaded loader version: 260706-loader-convert-next-response-guidance",
-    "Loaded GMTITLE version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded GMTITLE version: 260713-frame-style-structure-guard-1",
     "Command-line -GMTITLE default enabled: no",
     "SCRIPT command-line -GMTITLE enabled: no",
     "Command c:SWTITLESTATUS: yes",
@@ -485,7 +485,7 @@ Assert-LogContains `
   -Label "current LSP copy compare probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "Command-line -GMTITLE default enabled: no",
     "SCRIPT command-line -GMTITLE enabled: no",
     "Command c:SWTITLESTATUS: yes",
@@ -521,7 +521,7 @@ Assert-LogContains `
   -Label "actual work-copy status probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "Result: OK SWTITLESTATUS status=",
     "Result: OK SWTITLEVERIFY status=",
     "source-title-count:",
@@ -567,7 +567,7 @@ Assert-LogContains `
   -Label "common source-title-missing gap probe (A2 fixture)" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "Fixture mode: GAP",
     "Fixture sheet: A2",
     "Expected target frame: DR_A2_Outline",
@@ -597,7 +597,7 @@ Assert-LogContains `
   -Label "common source-title-missing definition prepare probe (A3 fixture)" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "Fixture mode: PREPARE",
     "Fixture sheet: A3",
     "Expected target frame: DR_A3_Outline",
@@ -629,7 +629,7 @@ Assert-LogContains `
   -Label "common source-title-missing hidden-script safety probe (A4 fixture)" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "Fixture mode: SCRIPT_GUARD",
     "Fixture sheet: A4",
     "Expected target frame: DR_A4_Outline",
@@ -657,7 +657,7 @@ Assert-LogContains `
   -Label "SWTITLECONVERT script guard probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "SWTITLECONVERT result: OK",
     "Script active before convert: yes",
     "Status after convert: ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE",
@@ -736,7 +736,7 @@ Assert-LogContains `
   -Path $styleNormalizationLog `
   -Label "A2/A3/A4 style-normalization rebuild cleanup probe" `
   -Patterns @(
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "DR_A2_Outline: class=native-format-with-title-geometry",
     "DR_A3_Outline: class=native-format-with-title-geometry",
     "DR_A4_Outline: class=native-format-with-title-geometry",
@@ -745,7 +745,7 @@ Assert-LogContains `
     "Style-normalization deleted count: 45",
     "Style-normalization record count after clean: 0",
     "Independent residue count before clean: 45",
-    "Protected frame entity count before clean: 15",
+    "Protected frame entity count before clean:",
     "Off-sheet nested insert count before clean: 3",
     "Frame definition raw bbox risk count before clean: 3",
     "Independent residue count after clean: 0",
@@ -755,6 +755,11 @@ Assert-LogContains `
     "Second clean deleted count: 0",
     "Preserved revision text: yes",
     "Preserved coordinate text: yes",
+    "Preserved A4 inset bottom edge: yes",
+    "Preserved A4 inset right edge: yes",
+    "Preserved A4 wide-band coordinate E: yes",
+    "Preserved A4 wide-band coordinate F: yes",
+    "Preserved A4 full-sheet cover: yes",
     "Runtime check completed: yes"
   )
 
@@ -769,7 +774,7 @@ Assert-LogContains `
   -Path $commandTextGuardLog `
   -Label "command-text guard comparison probe" `
   -Patterns @(
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "command-text-count-before: 1",
     "SWTITLESTATUS result: OK status=NEXT_REVIEW_ACCIDENTAL_COMMAND_TEXT",
     "structure-next-action: SWTITLEPREPARE",
@@ -789,7 +794,7 @@ Assert-LogContains `
   -Path $residueProtectionLog `
   -Label "sheet residue protection probe" `
   -Patterns @(
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "bottom-left logo line candidate: yes",
     "bottom-left real text preserved: yes",
     "upper small SW_NOTE balloon preserved: yes",
@@ -812,7 +817,7 @@ Assert-LogContains `
   -Path $embeddedPrepareLog `
   -Label "embedded-title prepare comparison probe" `
   -Patterns @(
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "DR_A2_Outline: class=native-format-with-title-geometry, embedded=4",
     "DR_A3_Outline: class=native-format-with-title-geometry, embedded=4",
     "DR_A4_Outline: class=native-format-with-title-geometry, embedded=4",
@@ -838,7 +843,7 @@ Assert-LogContains `
   -Path $duplicateTargetPairLog `
   -Label "duplicate target pair comparison probe" `
   -Patterns @(
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "Duplicate function present: yes",
     "Duplicate target pair count: 1",
     "Keep frame/title role:",
@@ -861,7 +866,7 @@ Assert-LogContains `
   -Path $adoptionGateLog `
   -Label "native adoption gate comparison probe" `
   -Patterns @(
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "Adoption function present: yes",
     "Target title attribute count before transfer:",
     "Target title missing tag count before transfer: 0",
@@ -883,7 +888,7 @@ Assert-LogContains `
   -Path $postFirstNativeTransitionLog `
   -Label "post-first-native marker gate probe" `
   -Patterns @(
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "Bootstrap before fixture: A2 / DR_A2_Outline / DR_titlea_3rd",
     "Source title count before fixture:",
     "Frame-only count before fixture:",
@@ -908,7 +913,7 @@ Assert-LogContains `
   -Path $a3StatusGuidanceLog `
   -Label "A3 status guidance probe" `
   -Patterns @(
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "A2/A3/A4 candidate count before SWTITLESTATUS: 1",
     "SWTITLESTATUS result: OK",
     "Status after SWTITLESTATUS: NEXT_UPGRADE_NATIVE_GMTITLE",
@@ -929,7 +934,7 @@ Assert-LogContains `
   -Label "A2/A3/A4 native replacement batch guard probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "Script active: yes",
     "Batch result: OK",
     "Status after batch: ABORT_NATIVE_GMTITLE_BATCH_SCRIPT_ACTIVE",

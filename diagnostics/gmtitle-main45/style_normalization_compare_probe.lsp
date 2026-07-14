@@ -73,6 +73,21 @@
   )
 )
 
+(defun swtitle-stylecmp-entmake-solid (p1 p2 p3 p4)
+  (entmake
+    (list
+      '(0 . "SOLID")
+      '(100 . "AcDbEntity")
+      '(8 . "0")
+      '(100 . "AcDbTrace")
+      (cons 10 p1)
+      (cons 11 p2)
+      (cons 12 p3)
+      (cons 13 p4)
+    )
+  )
+)
+
 (defun swtitle-stylecmp-entmake-text (point text height)
   (entmake
     (list
@@ -249,6 +264,22 @@
       (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point (+ left 12.0) 0.0) (swtitle-stylecmp-point (+ left 12.0) 8.0))
       (swtitle-stylecmp-entmake-text (swtitle-stylecmp-point (+ left 10.0) 2.0) "1" 2.5)
       (swtitle-stylecmp-entmake-text (swtitle-stylecmp-point 12.0 (- height 18.0)) "Revision note" 3.0)
+      ;; Real DR frames use inset borders up to 20 mm from the paper edge.
+      (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point 20.0 10.0) (swtitle-stylecmp-point (- width 10.0) 10.0))
+      (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point (- width 10.0) 10.0) (swtitle-stylecmp-point (- width 10.0) (- height 10.0)))
+      (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point 20.0 10.0) (swtitle-stylecmp-point 20.0 (- height 10.0)))
+      (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point 15.0 5.0) (swtitle-stylecmp-point (- width 5.0) 5.0))
+      (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point (- width 5.0) 5.0) (swtitle-stylecmp-point (- width 5.0) (- height 5.0)))
+      (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point 15.0 5.0) (swtitle-stylecmp-point 15.0 (- height 5.0)))
+      (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point 15.0 48.5) (swtitle-stylecmp-point 20.0 48.5))
+      (swtitle-stylecmp-entmake-text (swtitle-stylecmp-point 17.0 70.0) "E" 2.5)
+      (swtitle-stylecmp-entmake-text (swtitle-stylecmp-point 17.0 25.0) "F" 2.5)
+      (swtitle-stylecmp-entmake-solid
+        (swtitle-stylecmp-point 0.0 0.0)
+        (swtitle-stylecmp-point width 0.0)
+        (swtitle-stylecmp-point 0.0 height)
+        (swtitle-stylecmp-point width height)
+      )
       ;; Native-format title-like geometry inside the frame definition.
       (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point left bottom) (swtitle-stylecmp-point right bottom))
       (swtitle-stylecmp-entmake-line (swtitle-stylecmp-point right bottom) (swtitle-stylecmp-point right top))
@@ -389,24 +420,56 @@
   (list clean-records delete-result after-records independent-before protected-before independent-after second-clean-records second-delete-result offsheet-before raw-risk-before offsheet-after raw-risk-after)
 )
 
-(defun swtitle-stylecmp-definition-text-present-p (wanted / found blocks block item ename data etype text)
+(defun swtitle-stylecmp-active-text-present-p (sheet wanted / found record)
   (setq found nil)
-  (setq blocks (vla-get-Blocks (swcad-title-doc)))
-  (vlax-for block blocks
-    (if (wcmatch (strcase (vla-get-Name block)) "SWSTYLE_*_FRAME_CONTENT")
-      (vlax-for item block
-        (setq ename (swcad-title-vla-object->ename item))
-        (setq data (if ename (entget ename '("*")) nil))
-        (setq etype (strcase (swcad-title-string (swcad-title-dxf-value data 0))))
-        (if (member etype '("TEXT" "MTEXT" "ATTDEF"))
-          (progn
-            (setq text (swcad-title-text-entity-value data))
-            (if (equal (strcase (swcad-title-string text)) (strcase (swcad-title-string wanted)))
-              (setq found T)
-            )
-          )
+  (foreach record
+    (swcad-title-frame-path-entity-records
+      (swtitle-stylecmp-frame-name-for-sheet sheet)
+    )
+    (if
+      (and
+        (member (nth 4 record) '("TEXT" "MTEXT" "ATTDEF"))
+        (equal
+          (strcase (swcad-title-string (nth 8 record)))
+          (strcase (swcad-title-string wanted))
         )
       )
+      (setq found T)
+    )
+  )
+  found
+)
+
+(defun swtitle-stylecmp-active-bbox-present-p (sheet etype wanted tolerance / found record bbox)
+  (setq found nil)
+  (foreach record
+    (swcad-title-frame-path-entity-records
+      (swtitle-stylecmp-frame-name-for-sheet sheet)
+    )
+    (setq bbox (nth 7 record))
+    (if
+      (and
+        (equal (strcase (swcad-title-string (nth 4 record))) (strcase etype))
+        (swcad-title-bbox-nearly-same-p bbox wanted tolerance)
+      )
+      (setq found T)
+    )
+  )
+  found
+)
+
+(defun swtitle-stylecmp-active-sheet-cover-present-p (sheet / found frame-name dims frame-bbox record)
+  (setq found nil)
+  (setq frame-name (swtitle-stylecmp-frame-name-for-sheet sheet))
+  (setq dims (swcad-title-sheet-dimensions sheet))
+  (setq frame-bbox (if dims (list 0.0 0.0 (car dims) (cadr dims)) nil))
+  (foreach record (swcad-title-frame-path-entity-records frame-name)
+    (if
+      (and
+        (equal (nth 4 record) "SOLID")
+        (swcad-title-frame-style-sheet-coverage-p (nth 7 record) frame-bbox)
+      )
+      (setq found T)
     )
   )
   found
@@ -582,8 +645,13 @@
                       (swtitle-stylecmp-write-line handle (strcat "Frame definition raw bbox risk count after clean: " (itoa (length raw-risk-after))))
                       (swtitle-stylecmp-write-line handle (strcat "Second clean entity count: " (itoa (length second-clean-records))))
                       (swtitle-stylecmp-write-line handle (strcat "Second clean deleted count: " (itoa (car second-delete-result))))
-                      (swtitle-stylecmp-write-line handle (strcat "Preserved revision text: " (if (swtitle-stylecmp-definition-text-present-p "Revision note") "yes" "no")))
-                      (swtitle-stylecmp-write-line handle (strcat "Preserved coordinate text: " (if (swtitle-stylecmp-definition-text-present-p "1") "yes" "no")))
+                      (swtitle-stylecmp-write-line handle (strcat "Preserved revision text: " (if (swtitle-stylecmp-active-text-present-p "A3" "Revision note") "yes" "no")))
+                      (swtitle-stylecmp-write-line handle (strcat "Preserved coordinate text: " (if (swtitle-stylecmp-active-text-present-p "A3" "1") "yes" "no")))
+                      (swtitle-stylecmp-write-line handle (strcat "Preserved A4 inset bottom edge: " (if (swtitle-stylecmp-active-bbox-present-p "A4" "LINE" (list 20.0 10.0 200.0 10.0) 0.01) "yes" "no")))
+                      (swtitle-stylecmp-write-line handle (strcat "Preserved A4 inset right edge: " (if (swtitle-stylecmp-active-bbox-present-p "A4" "LINE" (list 200.0 10.0 200.0 287.0) 0.01) "yes" "no")))
+                      (swtitle-stylecmp-write-line handle (strcat "Preserved A4 wide-band coordinate E: " (if (swtitle-stylecmp-active-text-present-p "A4" "E") "yes" "no")))
+                      (swtitle-stylecmp-write-line handle (strcat "Preserved A4 wide-band coordinate F: " (if (swtitle-stylecmp-active-text-present-p "A4" "F") "yes" "no")))
+                      (swtitle-stylecmp-write-line handle (strcat "Preserved A4 full-sheet cover: " (if (swtitle-stylecmp-active-sheet-cover-present-p "A4") "yes" "no")))
                     )
                   )
                 )

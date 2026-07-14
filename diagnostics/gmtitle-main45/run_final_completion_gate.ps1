@@ -195,7 +195,7 @@ Assert-LogContains `
   -Label "final completion status probe" `
   -Patterns @(
     "Load result: OK",
-    "Loaded version: 260712-portable-saveas-offsheet-frame-1",
+    "Loaded version: 260713-frame-style-structure-guard-1",
     "Result: OK SWTITLESTATUS",
     "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_OK",
     "source-title-count: 0",

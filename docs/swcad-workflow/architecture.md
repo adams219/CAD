@@ -33,11 +33,24 @@ SWCADRUN
 SWCADVERIFY
 ```
 
-`SWCADRUN`은 현재 상태에서 다음 안전 단계 하나만 실행한다. 중간에 종료해도 DWG의 `SWCAD_WORKFLOW_STATE` XRecord를 읽어 재개한다.
+`SWCADRUN`은 현재 상태에서 다음 안전 단계 하나만 실행한다. 중간에 종료해도 DWG의 `SWCAD_WORKFLOW_STATE` XRecord를 읽어 재개한다. 단계는 사용자에게 1/5부터 5/5까지 표시하며, GMTITLE 결과가 `ABORT_`, `ERROR_`, `WARN_`이면 같은 명령의 반복을 권장하지 않는다.
 
 ```text
 XREF → SHEET_WRAPPERS(필요한 경우) → TITLE → DIMSTYLE → LAYOUT → COMPLETE
 ```
+
+## 성능 구조
+
+- `SWCADSTATUS`, `SWCADRUN`, `SWCADVERIFY`는 명령이 시작될 때 읽기 전용 인벤토리를 만들고 같은 명령 안의 단계 판정과 상태 출력이 이를 공유한다.
+- 도면이 실제로 변경되는 단계 직전에는 캐시를 닫고, 변경 직후 한 번만 새 인벤토리를 만든다. 변경 전 객체를 변경 후에 재사용하지 않는다.
+- GMTITLE 모듈은 모델 공간 INSERT 목록을 명령당 한 번 물리 스캔하고, 도면틀·제목블록·원본 후보 판정은 같은 목록을 재사용한다.
+- 여러 시트 변환은 시작 시 대상 레코드 큐를 한 번 만들고, 각 시트 처리 전 전체 도면을 다시 스캔하지 않는다. 큐의 객체가 사라졌거나 형상이 달라지면 안전하게 중단한다.
+- XREF와 wrapper 탐색은 모델 공간의 모든 객체를 COM으로 열거하지 않고 `INSERT` 선택집합만 읽는다. 치수 의미 검사는 `DIMENSION` 선택집합만 읽는다.
+- 같은 wrapper 블록 정의가 여러 번 삽입되면 내부 frame/title/dimension 증거는 정의별 한 번만 계산한다.
+- 중간 상태 판정도 현재 도면의 `INSERT`를 읽어 wrapper가 다시 생기지 않았는지 확인한다. 실제 변환 직후와 최종 `SWCADVERIFY`에서는 수량·치수·bbox 등 결과 안전 조건을 깊게 검사한다.
+- 모델 공간 전체 객체 순회는 bbox 보존 안전 감사에만 허용한다.
+
+30장 기준 실측은 `SWCADRUN 124,921 → 53,833 ms`, `SWCADSTATUS 28,674 → 842 ms`다. 남은 시간의 대부분은 BIND/EXPLODE/REGEN과 bbox 보존 검사이며, 이는 결과 안전성과 연결된 별도 최적화 대상으로 취급한다.
 
 ## XREF materialize 결정
 
@@ -103,3 +116,5 @@ DIMENSION_SEMANTICS=PRESERVED
 - 각 Layout의 A4 용지와 단일 뷰포트 확인
 
 최종 성공 문자열은 `SWCADVERIFY_FINAL_OK`다.
+
+구버전 XData에 중첩 블록명 기반의 잘못된 기대 용지 수가 남은 완성본은 별도 읽기 전용 호환 게이트를 통과할 수 있다. 통합 앱이 XREF·wrapper 0, DIMSTYLE 감사, Layout 수량·좌표 지문을 먼저 통과한 경우에만 이 게이트를 켠다. 그 안에서도 모든 target frame/title이 완전한 1:1 native 쌍이고 원본 후보, 중복 쌍, 수량 부족, 형상 경고가 없을 때만 실제 용지별 수량을 검증에 사용한다. `SWCADVERIFY` 자체는 XData를 쓰거나 도면을 저장하지 않으며, GMTITLE 단독 검증과 현재 분류기 표식이 있는 도면의 불일치는 자동 보정하지 않는다.

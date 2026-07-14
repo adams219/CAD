@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260712-portable-saveas-offsheet-frame-1",
+  [string]$ExpectedGmtitleVersion = "260714-read-scan-cache-batch-queue-1",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -602,10 +602,29 @@ Assert-Contains -Text $mainText -Needle "swcad-title-frame-style-offsheet-insert
 Assert-Contains -Text $mainText -Needle '"nested-off-sheet-insert"' -Label "Frame residue off-sheet delete reason"
 Assert-Contains -Text $mainText -Needle "(> definition-raw-risk-count 0)" -Label "Final verifier blocks raw frame-definition bbox risk"
 Assert-Contains -Text $mainText -Needle "도면틀 정의 raw bbox 위험 수:" -Label "Final verifier reports raw frame-definition bbox risk"
+Assert-Contains -Text $mainText -Needle "swcad-title-bound-block-leaf-name" -Label "Source-frame classifier uses bound-block leaf names"
+Assert-Contains -Text $mainText -Needle "swcad-title-source-frame-bbox-plausible-p" -Label "Source-frame classifier validates sheet geometry"
+Assert-Contains -Text $mainText -Needle "SWTITLE_COUNT_CLASSIFIER=BOUND_LEAF_GEOMETRY_V1" -Label "Expected-count XDATA records classifier version"
+Assert-Contains -Text $mainText -Needle "swcad-title-rebase-expected-counts-for-complete-targets" -Label "Legacy expected-count internal rebase"
+Assert-Contains -Text $mainText -Needle "ABORT_CURRENT_CLASSIFIER_COUNT_MISMATCH" -Label "Current classifier count mismatch cannot self-rebase"
+Assert-Contains -Text $mainText -Needle "ABORT_EXPECTED_COUNT_REBASE_PREFLIGHT_NOT_OK" -Label "Legacy count rebase requires strict final preflight"
+Assert-Contains -Text $mainText -Needle "(swcad-title-duplicate-target-pair-records)" -Label "Legacy count rebase rejects duplicate target pairs"
+Assert-Contains -Text $mainText -Needle "(swcad-title-counts-total stored-title-counts)" -Label "Legacy count rebase preserves expected title total"
+Assert-Contains -Text $mainText -Needle "ERROR_EXPECTED_COUNT_REBASE_ROLLED_BACK" -Label "Legacy count rebase rollback path"
+Assert-Contains -Text $mainText -Needle "내부 안전 재검증 값" -Label "Final verifier supports isolated count-rebase preflight"
+Assert-Contains -Text $mainText -Needle "swcad-title-legacy-expected-count-compatibility" -Label "Legacy expected-count read-only compatibility"
+Assert-Contains -Text $mainText -Needle "legacy xdata 읽기 전용 안전 호환값" -Label "Legacy compatibility verification log source"
+Assert-Contains -Text $mainText -Needle "*swcad-title-legacy-count-compatibility-enabled*" -Label "Legacy compatibility probe isolation switch"
 Assert-Contains -Text $styleNormalizationProbeText -Needle "PARTIAL TITLE RESIDUE" -Label "Style fixture partial-overlap text"
-Assert-Contains -Text $styleNormalizationProbeText -Needle "SWSTYLE_*_FRAME_CONTENT" -Label "Style fixture nested frame content"
+Assert-Contains -Text $styleNormalizationProbeText -Needle '"_FRAME_CONTENT"' -Label "Style fixture nested frame content"
 Assert-Contains -Text $styleNormalizationProbeText -Needle "OFFSHEET REV TABLE" -Label "Style fixture off-sheet nested INSERT"
 Assert-Contains -Text $styleNormalizationProbeText -Needle "Preserved revision text:" -Label "Style fixture revision preservation"
+Assert-Contains -Text $mainText -Needle '*swcad-title-frame-style-structural-edge-band*' -Label "Frame style inset-edge protection band"
+Assert-Contains -Text $mainText -Needle 'swcad-title-frame-style-sheet-coverage-p' -Label "Frame style full-sheet coverage protection"
+Assert-Contains -Text $mainText -Needle 'ambiguous-partial-geometry-overlap' -Label "Frame style partial-overlap fail-closed guard"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Preserved A4 inset bottom edge:" -Label "Style fixture A4 inset bottom-edge preservation"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Preserved A4 inset right edge:" -Label "Style fixture A4 inset right-edge preservation"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Preserved A4 full-sheet cover:" -Label "Style fixture full-sheet coverage preservation"
 Assert-Contains -Text $styleNormalizationProbeText -Needle "Independent residue count after clean:" -Label "Style fixture independent post-clean verification"
 Assert-Contains -Text $styleNormalizationProbeText -Needle "Off-sheet nested insert count after clean:" -Label "Style fixture off-sheet post-clean verification"
 Assert-Contains -Text $styleNormalizationProbeText -Needle "Frame definition raw bbox risk count after clean:" -Label "Style fixture raw bbox post-clean verification"

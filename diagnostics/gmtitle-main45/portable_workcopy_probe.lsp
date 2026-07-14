@@ -59,7 +59,7 @@
           helper-ok
           local-log-ok
           (= dbmod 0)
-          (equal *swcad-title-scale-version* "260712-portable-saveas-offsheet-frame-1")
+          (equal *swcad-title-scale-version* "260713-frame-style-structure-guard-1")
         )
       )
       (swtitle-portable-write-line handle (strcat "Source before: " source-before))

@@ -3,7 +3,7 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "260713-sheet-wrapper-materialize-2")
+(setq *swapp-version* "260714-command-inventory-performance-3")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-layout-prefix* "SWCAD-SHEET")
 (setq *swapp-layout-placement-mode* "MANUAL_FRAME_COORDINATES")
@@ -14,6 +14,31 @@
 (setq *swapp-last-dimension-semantics-before* nil)
 (setq *swapp-last-dimension-semantics-after* nil)
 (setq *swapp-last-dimension-semantic-snapshots* nil)
+(setq *swapp-read-cache-enabled* nil)
+(setq *swapp-read-cache-values* nil)
+(setq *swapp-read-cache-start-ms* nil)
+(setq *swapp-read-cache-hit-count* 0)
+(setq *swapp-read-cache-miss-count* 0)
+(setq *swapp-read-cache-last-elapsed-ms* 0)
+(setq *swapp-read-cache-last-hit-count* 0)
+(setq *swapp-read-cache-last-miss-count* 0)
+(setq *swapp-read-cache-last-title-insert-scans* 0)
+(setq *swapp-read-cache-last-title-insert-cache-hits* 0)
+(setq *swapp-command-performance-active* nil)
+(setq *swapp-command-performance-start-ms* nil)
+(setq *swapp-command-performance-read-ms* 0)
+(setq *swapp-command-performance-cache-hits* 0)
+(setq *swapp-command-performance-cache-misses* 0)
+(setq *swapp-command-performance-title-insert-scans* 0)
+(setq *swapp-command-performance-title-insert-cache-hits* 0)
+(setq *swapp-command-performance-title-insert-scan-base* 0)
+(setq *swapp-command-performance-title-insert-cache-hit-base* 0)
+(setq *swapp-last-command-elapsed-ms* 0)
+(setq *swapp-last-command-read-ms* 0)
+(setq *swapp-last-command-cache-hits* 0)
+(setq *swapp-last-command-cache-misses* 0)
+(setq *swapp-last-command-title-insert-scans* 0)
+(setq *swapp-last-command-title-insert-cache-hits* 0)
 
 ;;; ---------------------------
 ;;; Common helpers and state
@@ -56,6 +81,34 @@
     )
   )
   (reverse result)
+)
+
+(defun swapp-model-objects-by-dxf-type (entity-type / ss index ename object result)
+  (setq ss (ssget "_X" (list (cons 0 entity-type) (cons 410 "Model"))))
+  (setq index 0)
+  (setq result nil)
+  (if ss
+    (while (< index (sslength ss))
+      (setq ename (ssname ss index))
+      (setq object
+        (if ename
+          (swapp-safe 'vlax-ename->vla-object (list ename))
+          nil
+        )
+      )
+      (if object (setq result (cons object result)))
+      (setq index (1+ index))
+    )
+  )
+  (reverse result)
+)
+
+(defun swapp-model-insert-objects ()
+  (swapp-model-objects-by-dxf-type "INSERT")
+)
+
+(defun swapp-model-dimension-objects ()
+  (swapp-model-objects-by-dxf-type "DIMENSION")
 )
 
 (defun swapp-alist-put (items key value / result pair found)
@@ -151,6 +204,133 @@
   (and (numberp a) (numberp b) (<= (abs (- (float a) (float b))) tolerance))
 )
 
+;;; Command-scoped read cache. It never survives a drawing mutation.
+(defun swapp-read-cache-begin ()
+  (setq *swapp-read-cache-enabled* T)
+  (setq *swapp-read-cache-values* nil)
+  (setq *swapp-read-cache-start-ms* (getvar "DATE"))
+  (setq *swapp-read-cache-hit-count* 0)
+  (setq *swapp-read-cache-miss-count* 0)
+  (swcad-title-read-scan-cache-begin)
+  T
+)
+
+(defun swapp-read-cache-fetch (key fn args / pair value)
+  (setq pair (if *swapp-read-cache-enabled* (assoc key *swapp-read-cache-values*) nil))
+  (if pair
+    (progn
+      (setq *swapp-read-cache-hit-count* (1+ *swapp-read-cache-hit-count*))
+      (cdr pair)
+    )
+    (progn
+      (setq value (apply fn args))
+      (if *swapp-read-cache-enabled*
+        (progn
+          (setq *swapp-read-cache-miss-count* (1+ *swapp-read-cache-miss-count*))
+          (setq *swapp-read-cache-values* (append *swapp-read-cache-values* (list (cons key value))))
+        )
+      )
+      value
+    )
+  )
+)
+
+(defun swapp-read-cache-end (/ now elapsed)
+  (swcad-title-read-scan-cache-end)
+  (setq now (getvar "DATE"))
+  (setq elapsed
+    (if (numberp *swapp-read-cache-start-ms*)
+      (fix (+ 0.5 (* 86400000.0 (- now *swapp-read-cache-start-ms*))))
+      0
+    )
+  )
+  (if (< elapsed 0) (setq elapsed 0))
+  (setq *swapp-read-cache-last-elapsed-ms* elapsed)
+  (setq *swapp-read-cache-last-hit-count* *swapp-read-cache-hit-count*)
+  (setq *swapp-read-cache-last-miss-count* *swapp-read-cache-miss-count*)
+  (setq *swapp-read-cache-last-title-insert-scans* (swcad-title-read-scan-stat "physical-insert-scans"))
+  (setq *swapp-read-cache-last-title-insert-cache-hits* (swcad-title-read-scan-stat "insert-cache-hits"))
+  (if *swapp-command-performance-active*
+    (progn
+      (setq *swapp-command-performance-read-ms* (+ *swapp-command-performance-read-ms* elapsed))
+      (setq *swapp-command-performance-cache-hits* (+ *swapp-command-performance-cache-hits* *swapp-read-cache-hit-count*))
+      (setq *swapp-command-performance-cache-misses* (+ *swapp-command-performance-cache-misses* *swapp-read-cache-miss-count*))
+      (setq *swapp-command-performance-title-insert-scans* (+ *swapp-command-performance-title-insert-scans* *swapp-read-cache-last-title-insert-scans*))
+      (setq *swapp-command-performance-title-insert-cache-hits* (+ *swapp-command-performance-title-insert-cache-hits* *swapp-read-cache-last-title-insert-cache-hits*))
+    )
+  )
+  (setq *swapp-read-cache-enabled* nil)
+  (setq *swapp-read-cache-values* nil)
+  (setq *swapp-read-cache-start-ms* nil)
+  T
+)
+
+(defun swapp-command-performance-begin ()
+  (setq *swapp-command-performance-active* T)
+  (setq *swapp-command-performance-start-ms* (getvar "DATE"))
+  (setq *swapp-command-performance-read-ms* 0)
+  (setq *swapp-command-performance-cache-hits* 0)
+  (setq *swapp-command-performance-cache-misses* 0)
+  (setq *swapp-command-performance-title-insert-scans* 0)
+  (setq *swapp-command-performance-title-insert-cache-hits* 0)
+  (setq *swapp-command-performance-title-insert-scan-base* *swcad-title-total-physical-insert-scans*)
+  (setq *swapp-command-performance-title-insert-cache-hit-base* *swcad-title-total-insert-cache-hits*)
+  T
+)
+
+(defun swapp-command-performance-end (label / now elapsed)
+  (setq now (getvar "DATE"))
+  (setq elapsed
+    (if (numberp *swapp-command-performance-start-ms*)
+      (fix (+ 0.5 (* 86400000.0 (- now *swapp-command-performance-start-ms*))))
+      0
+    )
+  )
+  (if (< elapsed 0) (setq elapsed 0))
+  (setq *swapp-last-command-elapsed-ms* elapsed)
+  (setq *swapp-last-command-read-ms* *swapp-command-performance-read-ms*)
+  (setq *swapp-last-command-cache-hits* *swapp-command-performance-cache-hits*)
+  (setq *swapp-last-command-cache-misses* *swapp-command-performance-cache-misses*)
+  (setq *swapp-last-command-title-insert-scans*
+    (- *swcad-title-total-physical-insert-scans* *swapp-command-performance-title-insert-scan-base*)
+  )
+  (setq *swapp-last-command-title-insert-cache-hits*
+    (- *swcad-title-total-insert-cache-hits* *swapp-command-performance-title-insert-cache-hit-base*)
+  )
+  (setq *swapp-command-performance-active* nil)
+  (setq *swapp-command-performance-start-ms* nil)
+  (princ
+    (strcat
+      "\n성능 계측 [" label "]: 전체=" (itoa elapsed) "ms"
+      ", 읽기=" (itoa *swapp-last-command-read-ms*) "ms"
+      ", 인벤토리 적중/생성=" (itoa *swapp-last-command-cache-hits*) "/" (itoa *swapp-last-command-cache-misses*)
+      ", INSERT 전역 스캔=" (itoa *swapp-last-command-title-insert-scans*)
+      ", 재사용=" (itoa *swapp-last-command-title-insert-cache-hits*)
+    )
+  )
+  elapsed
+)
+
+(defun swapp-cached-top-xref-references ()
+  (swapp-read-cache-fetch "TOP_XREFS" 'swapp-top-xref-references nil)
+)
+
+(defun swapp-cached-sheet-wrapper-records ()
+  (swapp-read-cache-fetch "SHEET_WRAPPERS" 'swapp-sheet-wrapper-status-records nil)
+)
+
+(defun swapp-cached-title-evidence ()
+  (swapp-read-cache-fetch "TITLE_EVIDENCE" 'swapp-title-evidence nil)
+)
+
+(defun swapp-cached-top-dimension-count ()
+  (swapp-read-cache-fetch "TOP_DIMENSION_COUNT" 'swapp-top-dimension-count nil)
+)
+
+(defun swapp-cached-layout-names ()
+  (swapp-read-cache-fetch "LAYOUT_NAMES" 'swapp-with-layout-prefix-names nil)
+)
+
 ;;; ---------------------------
 ;;; XREF discovery and materialization
 ;;; ---------------------------
@@ -191,15 +371,11 @@
 
 (defun swapp-top-xref-references (/ result object name block)
   (setq result nil)
-  (foreach object (swapp-collection-items (swapp-model))
-    (if (swapp-block-reference-p object)
-      (progn
-        (setq name (swapp-reference-name object))
-        (setq block (swapp-block-definition name))
-        (if (swapp-xref-definition-p block)
-          (setq result (cons object result))
-        )
-      )
+  (foreach object (swapp-model-insert-objects)
+    (setq name (swapp-reference-name object))
+    (setq block (swapp-block-definition name))
+    (if (swapp-xref-definition-p block)
+      (setq result (cons object result))
     )
   )
   (reverse result)
@@ -321,34 +497,25 @@
   total
 )
 
-(defun swapp-model-expandable-dimension-count (/ references object)
-  (setq references nil)
-  (foreach object (swapp-collection-items (swapp-model))
-    (if (swapp-block-reference-p object)
-      (setq references (append references (list object)))
-    )
-  )
+(defun swapp-model-expandable-dimension-count (/ references)
+  (setq references (swapp-model-insert-objects))
   (swapp-references-expandable-dimension-count references)
 )
 
 (defun swapp-top-dimension-container-references (/ result object name block count)
   (setq *swapp-dimension-count-cache* nil)
   (setq result nil)
-  (foreach object (swapp-collection-items (swapp-model))
-    (if (swapp-block-reference-p object)
-      (progn
-        (setq name (swapp-reference-name object))
-        (setq block (swapp-block-definition name))
-        (setq count
-          (if (and block (not (swapp-xref-definition-p block)))
-            (swapp-reference-expandable-dimension-count object)
-            0
-          )
-        )
-        (if (> count 0)
-          (setq result (append result (list object)))
-        )
+  (foreach object (swapp-model-insert-objects)
+    (setq name (swapp-reference-name object))
+    (setq block (swapp-block-definition name))
+    (setq count
+      (if (and block (not (swapp-xref-definition-p block)))
+        (swapp-reference-expandable-dimension-count object)
+        0
       )
+    )
+    (if (> count 0)
+      (setq result (append result (list object)))
     )
   )
   result
@@ -557,8 +724,7 @@
   )
 )
 
-(defun swapp-sheet-wrapper-record (reference / name block child child-name frame-count title-count native-target-count dimension-count object-count)
-  (setq name (swapp-reference-name reference))
+(defun swapp-sheet-wrapper-definition-evidence (name / block child child-name frame-count title-count native-target-count dimension-count object-count)
   (setq block (swapp-block-definition name))
   (if
     (and
@@ -594,14 +760,11 @@
       )
       (if (and (> frame-count 0) (> title-count 0))
         (list
-          (cons "reference" reference)
-          (cons "name" name)
           (cons "frames" frame-count)
           (cons "titles" title-count)
           (cons "native-targets" native-target-count)
           (cons "dimensions" dimension-count)
           (cons "objects" object-count)
-          (cons "transform-supported" (swapp-reference-transform-supported-p reference))
         )
         nil
       )
@@ -610,21 +773,52 @@
   )
 )
 
-(defun swapp-sheet-wrapper-records (/ result object record)
+(defun swapp-sheet-wrapper-record-from-evidence (reference name evidence)
+  (if evidence
+    (append
+      (list
+        (cons "reference" reference)
+        (cons "name" name)
+      )
+      evidence
+      (list (cons "transform-supported" (swapp-reference-transform-supported-p reference)))
+    )
+    nil
+  )
+)
+
+(defun swapp-sheet-wrapper-record (reference / name evidence)
+  (setq name (swapp-reference-name reference))
+  (setq evidence (swapp-sheet-wrapper-definition-evidence name))
+  (swapp-sheet-wrapper-record-from-evidence reference name evidence)
+)
+
+(defun swapp-sheet-wrapper-records (/ result definition-cache object name upper pair evidence record)
   (setq result nil)
-  (foreach object (swapp-collection-items (swapp-model))
-    (if (swapp-block-reference-p object)
+  (setq definition-cache nil)
+  (foreach object (swapp-model-insert-objects)
+    (setq name (swapp-reference-name object))
+    (setq upper (if name (strcase name) ""))
+    (setq pair (assoc upper definition-cache))
+    (if pair
+      (setq evidence (cdr pair))
       (progn
-        (setq record (swapp-sheet-wrapper-record object))
-        (if record (setq result (append result (list record))))
+        (setq evidence (swapp-sheet-wrapper-definition-evidence name))
+        (setq definition-cache (cons (cons upper evidence) definition-cache))
       )
     )
+    (setq record (swapp-sheet-wrapper-record-from-evidence object name evidence))
+    (if record (setq result (append result (list record))))
   )
   result
 )
 
 (defun swapp-sheet-wrapper-value (record key)
   (cdr (assoc key record))
+)
+
+(defun swapp-sheet-wrapper-status-records ()
+  (swapp-sheet-wrapper-records)
 )
 
 (defun swapp-sheet-wrapper-direct-dimension-count (records / total record)
@@ -902,7 +1096,9 @@
 ;;; Module evidence and stages
 ;;; ---------------------------
 
-(defun swapp-title-evidence (/ summary sources frames titles pairs native-like record geometry overlap)
+(defun swapp-title-evidence (/ cache-owned summary sources frames titles pairs native-like record geometry overlap result)
+  (setq cache-owned (not *swcad-title-read-scan-cache-enabled*))
+  (if cache-owned (swcad-title-read-scan-cache-begin))
   (setq summary (swcad-title-fast-sheet-summary))
   (setq sources
     (+
@@ -912,7 +1108,7 @@
   )
   (setq frames (swcad-title-frame-records))
   (setq titles (swcad-title-inserts-by-effective-name (swcad-title-target-title-block-name)))
-  (setq pairs (swcad-title-target-gmtitle-pair-records))
+  (setq pairs (swcad-title-target-gmtitle-pair-records-from frames titles))
   (setq native-like 0)
   (foreach record pairs
     (if (swcad-title-target-pair-native-like-p record)
@@ -921,15 +1117,19 @@
   )
   (setq geometry (swcad-title-target-frame-geometry-warning-count frames))
   (setq overlap (swcad-title-target-frame-overlap-warning-count frames))
-  (list
-    (cons "source-count" sources)
-    (cons "target-title-count" (length titles))
-    (cons "target-frame-count" (length frames))
-    (cons "target-pair-count" (length pairs))
-    (cons "native-like-count" native-like)
-    (cons "geometry-warning-count" geometry)
-    (cons "overlap-warning-count" overlap)
+  (setq result
+    (list
+      (cons "source-count" sources)
+      (cons "target-title-count" (length titles))
+      (cons "target-frame-count" (length frames))
+      (cons "target-pair-count" (length pairs))
+      (cons "native-like-count" native-like)
+      (cons "geometry-warning-count" geometry)
+      (cons "overlap-warning-count" overlap)
+    )
   )
+  (if cache-owned (swcad-title-read-scan-cache-end))
+  result
 )
 
 (defun swapp-title-complete-p (evidence / frames)
@@ -1120,12 +1320,12 @@
 
 (defun swapp-workflow-stage (/ xrefs wrappers evidence frames)
   (swapp-activate-model)
-  (setq xrefs (swapp-top-xref-references))
+  (setq xrefs (swapp-cached-top-xref-references))
   (cond
     (xrefs "XREF")
-    ((setq wrappers (swapp-sheet-wrapper-records)) "SHEET_WRAPPERS")
+    ((setq wrappers (swapp-cached-sheet-wrapper-records)) "SHEET_WRAPPERS")
     (T
-      (setq evidence (swapp-title-evidence))
+      (setq evidence (swapp-cached-title-evidence))
       (setq frames (swapp-evidence-value evidence "target-frame-count"))
       (cond
         ((swapp-title-complete-p evidence)
@@ -1185,13 +1385,9 @@
 
 (defun swapp-dimension-semantics (/ result object record)
   (setq result nil)
-  (foreach object (swapp-collection-items (swapp-model))
-    (if (swapp-dimension-p object)
-      (progn
-        (setq record (swapp-dim-semantic-record object))
-        (if record (setq result (cons record result)))
-      )
-    )
+  (foreach object (swapp-model-dimension-objects)
+    (setq record (swapp-dim-semantic-record object))
+    (if record (setq result (cons record result)))
   )
   (reverse result)
 )
@@ -1216,13 +1412,9 @@
 
 (defun swapp-dimension-semantic-snapshots (/ result object snapshot)
   (setq result nil)
-  (foreach object (swapp-collection-items (swapp-model))
-    (if (swapp-dimension-p object)
-      (progn
-        (setq snapshot (swapp-dim-semantic-snapshot object))
-        (if snapshot (setq result (cons snapshot result)))
-      )
-    )
+  (foreach object (swapp-model-dimension-objects)
+    (setq snapshot (swapp-dim-semantic-snapshot object))
+    (if snapshot (setq result (cons snapshot result)))
   )
   (reverse result)
 )
@@ -1528,26 +1720,92 @@
 ;;; Public workflow commands
 ;;; ---------------------------
 
-(defun swapp-print-status (/ stage references wrappers evidence frames layouts state plan)
+(defun swapp-stage-label (stage)
+  (cond
+    ((equal stage "XREF") "1/5 입력 도면 준비 - XREF 분해")
+    ((equal stage "SHEET_WRAPPERS") "1/5 입력 도면 준비 - 시트 묶음 분해")
+    ((equal stage "TITLE") "2/5 GMTITLE 변환")
+    ((equal stage "DIMSTYLE") "3/5 치수 스타일 통일")
+    ((equal stage "LAYOUT") "4/5 Layout 생성")
+    ((equal stage "COMPLETE") "5/5 최종 검증 준비 완료")
+    ((equal stage "BLOCKED_NO_SHEETS") "중단 - 처리할 시트를 찾지 못함")
+    (T stage)
+  )
+)
+
+(defun swapp-title-action-label (action)
+  (cond
+    ((swcad-title-string-prefix-p "SWTITLEPREPARE" action) "도면틀/잔여물 사전 정리")
+    ((swcad-title-string-prefix-p "SWTITLECONVERTNEXT" action) "다음 시트 GMTITLE 변환")
+    ((swcad-title-string-prefix-p "SWTITLEVERIFY" action) "GMTITLE 최종 검증")
+    (T "판정 불가")
+  )
+)
+
+(defun swapp-title-last-status ()
+  (if
+    (and
+      (boundp '*swcad-title-last-apply-status*)
+      *swcad-title-last-apply-status*
+    )
+    (swcad-title-string *swcad-title-last-apply-status*)
+    ""
+  )
+)
+
+(defun swapp-title-blocking-status-p (status / upper)
+  (setq upper (strcase (swcad-title-string status)))
+  (and
+    (> (strlen upper) 0)
+    (or
+      (swcad-title-string-prefix-p "ABORT_" upper)
+      (swcad-title-string-prefix-p "ERROR_" upper)
+      (swcad-title-string-prefix-p "WARN_" upper)
+      (swcad-title-string-prefix-p "BLOCKED_" upper)
+      (swcad-title-string-prefix-p "REVIEW_" upper)
+      (swcad-title-string-prefix-p "SWTITLEVERIFY_WARN_" upper)
+      (swcad-title-string-prefix-p "SWTITLEVERIFY_FINAL_WARN" upper)
+      (swcad-title-string-prefix-p "SWTITLEVERIFY_FINAL_FAIL" upper)
+    )
+  )
+)
+
+(defun swapp-recommended-next-action (stage last-status)
+  (cond
+    ((equal stage "COMPLETE") "SWCADVERIFY")
+    ((and (equal stage "TITLE") (swapp-title-blocking-status-p last-status))
+      "SWCADRUN 반복 금지 - 현재 도면을 저장하지 말고 오류 원인을 확인하세요"
+    )
+    (T "SWCADRUN")
+  )
+)
+
+(defun swapp-print-status (/ stage stage-label last-status recommended references wrappers evidence frames layouts state plan)
   (swapp-activate-model)
   (setq stage (swapp-workflow-stage))
-  (setq references (swapp-top-xref-references))
-  (setq wrappers (swapp-sheet-wrapper-records))
-  (setq evidence (swapp-title-evidence))
+  (setq stage-label (swapp-stage-label stage))
+  (setq last-status (swapp-title-last-status))
+  (setq recommended (swapp-recommended-next-action stage last-status))
+  (setq references (swapp-cached-top-xref-references))
+  (setq wrappers (swapp-cached-sheet-wrapper-records))
+  (setq evidence (swapp-cached-title-evidence))
   (setq frames (swapp-evidence-value evidence "target-frame-count"))
-  (setq layouts (swapp-with-layout-prefix-names))
+  (setq layouts (swapp-cached-layout-names))
   (setq state (swapp-state-read))
   (princ "\n===== SWCADSTATUS 통합 작업 상태 =====")
   (princ (strcat "\nSWCAD Workflow 버전: " *swapp-version*))
   (princ (strcat "\nDWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
-  (princ (strcat "\n현재 단계: " stage))
+  (princ (strcat "\n현재 단계: " stage-label " [" stage "]"))
+  (if (> (strlen last-status) 0)
+    (princ (strcat "\n마지막 GMTITLE 결과: " last-status))
+  )
   (princ (strcat "\n최상위 XREF: " (itoa (length references))))
   (princ "\nXREF 배치 정책: 사용자가 정한 좌표 유지, 자동 이동 없음")
   (princ (strcat "\n중첩 시트 묶음: " (itoa (length wrappers))))
   (if wrappers
     (princ "\n시트 묶음 정책: 도면·치수·표제란을 품은 바깥 INSERT만 한 단계 분해")
   )
-  (princ (strcat "\n최상위 치수: " (itoa (swapp-top-dimension-count))))
+  (princ (strcat "\n최상위 치수: " (itoa (swapp-cached-top-dimension-count))))
   (princ (strcat "\n남은 원본 title/frame 합계: " (itoa (swapp-evidence-value evidence "source-count"))))
   (princ
     (strcat
@@ -1567,43 +1825,93 @@
       (swapp-print-layout-plan-items plan *swapp-layout-preview-limit*)
     )
   )
-  (princ (strcat "\n권장 다음 명령: " (if (equal stage "COMPLETE") "SWCADVERIFY" "SWCADRUN")))
+  (princ (strcat "\n권장 다음 작업: " recommended))
   stage
 )
 
-(defun swapp-run-title-next (/ action)
+(defun swapp-run-title-next (/ action action-label ran status)
   (swapp-activate-model)
   (setq action (swcad-title-integrated-structure-diagnosis))
-  (princ (strcat "\nSWCAD가 선택한 GMTITLE 단계: " action))
+  (setq action-label (swapp-title-action-label action))
+  (setq ran nil)
+  (if (boundp '*swcad-title-last-apply-status*)
+    (setq *swcad-title-last-apply-status* nil)
+  )
+  (princ (strcat "\n이번 GMTITLE 하위 단계: " action-label " [" action "]"))
   (cond
-    ((swcad-title-string-prefix-p "SWTITLEPREPARE" action) (c:SWTITLEPREPARE))
-    ((swcad-title-string-prefix-p "SWTITLECONVERTNEXT" action) (c:SWTITLECONVERTNEXT))
-    ((swcad-title-string-prefix-p "SWTITLEVERIFY" action) (c:SWTITLEVERIFY))
+    ((swcad-title-string-prefix-p "SWTITLEPREPARE" action)
+      (setq ran T)
+      (c:SWTITLEPREPARE)
+    )
+    ((swcad-title-string-prefix-p "SWTITLECONVERTNEXT" action)
+      (setq ran T)
+      (c:SWTITLECONVERTNEXT)
+    )
+    ((swcad-title-string-prefix-p "SWTITLEVERIFY" action)
+      (setq ran T)
+      (c:SWTITLEVERIFY)
+    )
     (T (princ "\nGMTITLE 다음 단계를 안전하게 결정하지 못했습니다. SWTITLESTATUS 로그를 확인하세요."))
   )
-  (princ "\n다음: SWCADSTATUS로 결과를 확인한 뒤 SWCADRUN을 다시 실행하세요.")
+  (setq status (swapp-title-last-status))
+  (cond
+    ((not ran)
+      (princ "\n진행 중지: 판정되지 않은 상태에서 SWCADRUN을 반복하지 마세요.")
+      nil
+    )
+    ((swapp-title-blocking-status-p status)
+      (princ (strcat "\n진행 중지: GMTITLE 결과가 " status " 입니다."))
+      (princ "\n현재 도면을 저장하지 말고 원인을 확인하세요. SWCADRUN을 반복하지 마세요.")
+      nil
+    )
+    (T
+      (princ (strcat "\n이번 GMTITLE 하위 단계 완료. 결과=" (if (> (strlen status) 0) status "<상태 없음>")))
+      (princ "\nSWCADSTATUS에서 단계 변화를 확인한 뒤 안내가 SWCADRUN일 때만 계속하세요.")
+      T
+    )
+  )
 )
 
-(defun c:SWCADSTATUS ()
-  (swapp-print-status)
+(defun c:SWCADSTATUS (/ result)
+  (swapp-command-performance-begin)
+  (swapp-read-cache-begin)
+  (setq result (vl-catch-all-apply 'swapp-print-status nil))
+  (swapp-read-cache-end)
+  (swapp-command-performance-end "SWCADSTATUS")
+  (if (vl-catch-all-error-p result)
+    (princ (strcat "\nSWCADSTATUS 오류: " (vl-catch-all-error-message result)))
+  )
   (princ)
 )
 
-(defun c:SWCADRUN (/ stage)
+(defun c:SWCADRUN (/ stage after-stage run-result mutating-stage)
+  (swapp-command-performance-begin)
+  (swapp-read-cache-begin)
   (setq stage (swapp-workflow-stage))
+  (setq mutating-stage (if (member stage '("XREF" "SHEET_WRAPPERS" "TITLE" "DIMSTYLE" "LAYOUT")) T nil))
   (princ "\n===== SWCADRUN 다음 안전 단계 실행 =====")
-  (princ (strcat "\n현재 단계: " stage))
+  (princ (strcat "\n실행 전 단계: " (swapp-stage-label stage) " [" stage "]"))
+  (setq run-result nil)
+  (if mutating-stage (swapp-read-cache-end))
   (cond
-    ((equal stage "XREF") (swapp-materialize-xrefs))
-    ((equal stage "SHEET_WRAPPERS") (swapp-materialize-sheet-wrappers))
-    ((equal stage "TITLE") (swapp-run-title-next))
-    ((equal stage "DIMSTYLE") (swapp-run-dimstyle))
-    ((equal stage "LAYOUT") (swapp-run-layout))
+    ((equal stage "XREF") (setq run-result (swapp-materialize-xrefs)))
+    ((equal stage "SHEET_WRAPPERS") (setq run-result (swapp-materialize-sheet-wrappers)))
+    ((equal stage "TITLE") (setq run-result (swapp-run-title-next)))
+    ((equal stage "DIMSTYLE") (setq run-result (swapp-run-dimstyle)))
+    ((equal stage "LAYOUT") (setq run-result (swapp-run-layout)))
     ((equal stage "COMPLETE") (princ "\n모든 단계가 준비됐습니다. SWCADVERIFY를 실행하세요."))
     (T (princ "\n처리할 도면틀/XREF를 찾지 못했습니다. 새 호스트 도면의 XREF 상태를 확인하세요."))
   )
+  (if mutating-stage (swapp-read-cache-begin))
+  (setq after-stage (swapp-workflow-stage))
+  (princ (strcat "\n실행 후 단계: " (swapp-stage-label after-stage) " [" after-stage "]"))
+  (if (and (equal stage after-stage) (not run-result))
+    (princ "\n단계가 진행되지 않았습니다. 아래의 마지막 결과와 권장 작업을 확인하세요.")
+  )
   (princ "\n")
   (swapp-print-status)
+  (swapp-read-cache-end)
+  (swapp-command-performance-end "SWCADRUN")
   (princ)
 )
 
@@ -1629,15 +1937,37 @@
   )
 )
 
-(defun c:SWCADVERIFY (/ xrefs wrappers title-status dim-ok frames layout-ok final-ok)
+(defun c:SWCADVERIFY (/ xrefs wrappers title-result title-status dim-ok frames layout-ok final-ok old-legacy-compat legacy-compat-enabled)
+  (swapp-command-performance-begin)
+  (swapp-read-cache-begin)
   (swapp-activate-model)
   (princ "\n===== SWCADVERIFY 통합 최종 검증 =====")
-  (setq xrefs (length (swapp-top-xref-references)))
+  (setq xrefs (length (swapp-cached-top-xref-references)))
   (setq wrappers (length (swapp-sheet-wrapper-records)))
-  (setq title-status (swcad-title-integrated-verify-final-summary))
   (setq dim-ok (swapp-dimstyle-verify))
   (setq frames (length (swcad-title-frame-records)))
   (setq layout-ok (swapp-layout-state-valid-p frames))
+  (setq legacy-compat-enabled
+    (and
+      (= xrefs 0)
+      (= wrappers 0)
+      dim-ok
+      (> frames 0)
+      layout-ok
+    )
+  )
+  (setq old-legacy-compat *swcad-title-legacy-count-compatibility-enabled*)
+  (setq *swcad-title-legacy-count-compatibility-enabled* legacy-compat-enabled)
+  (setq title-result
+    (vl-catch-all-apply 'swcad-title-integrated-verify-final-summary nil)
+  )
+  (setq *swcad-title-legacy-count-compatibility-enabled* old-legacy-compat)
+  (setq title-status
+    (if (vl-catch-all-error-p title-result)
+      "ERROR"
+      title-result
+    )
+  )
   (setq final-ok (and (= xrefs 0) (= wrappers 0) (equal title-status "OK") dim-ok (> frames 0) layout-ok))
   (princ (strcat "\n남은 XREF: " (itoa xrefs)))
   (princ (strcat "\n남은 중첩 시트 묶음: " (itoa wrappers)))
@@ -1647,7 +1977,10 @@
   (princ (strcat "\nLayout 좌표 계획 수: " (if (swapp-state-value "LAYOUT_PLAN_COUNT") (swapp-state-value "LAYOUT_PLAN_COUNT") "<없음>")))
   (princ (strcat "\nLayout 좌표 지문: " (if (swapp-state-value "LAYOUT_PLAN_SIGNATURE") (swapp-state-value "LAYOUT_PLAN_SIGNATURE") "<없음>")))
   (princ (strcat "\nA4 Layout 검증: " (if layout-ok "OK" "CHECK_NEEDED") " (" (itoa frames) "장)"))
+  (princ (strcat "\nlegacy 수량 읽기 전용 호환 게이트: " (if legacy-compat-enabled "사용 가능" "사용 안 함")))
   (princ (strcat "\n최종 결과: " (if final-ok "SWCADVERIFY_FINAL_OK" "SWCADVERIFY_FINAL_FAIL")))
+  (swapp-read-cache-end)
+  (swapp-command-performance-end "SWCADVERIFY")
   (princ)
 )
 

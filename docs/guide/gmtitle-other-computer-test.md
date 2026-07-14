@@ -15,7 +15,7 @@
 ```text
 저장소: https://github.com/adams219/CAD.git
 브랜치: codex/gm-title
-기대 LSP 버전: 260712-portable-saveas-offsheet-frame-1
+기대 LSP 버전: 260714-read-scan-cache-batch-queue-1
 ```
 
 현재 개발 PC에서는 보존 원본으로 15장 전체 변환과 대표 A2/A3/A4 클릭 검증까지 통과했습니다.
@@ -32,7 +32,7 @@ A4 결재자/날짜 결합값: 0
 
 다른 PC에서는 환경 차이에 따른 회귀를 확인하기 위해 A2/A3/A4 각 한 장을 다시 검사합니다. 로컬 검증은 완료됐지만 GitHub에 push되기 전까지 다른 PC 배포본은 최신으로 간주하지 않습니다.
 
-다른 컴퓨터에서 내려받기 전에 `260712-portable-saveas-offsheet-frame-1` 변경이 `origin/codex/gm-title`에 push되었는지 확인합니다. 로컬에만 변경이 남아 있으면 먼저 정적 검증과 커밋·push를 끝냅니다.
+다른 컴퓨터에서 내려받기 전에 `260714-read-scan-cache-batch-queue-1` 변경이 현재 작업 브랜치에 push되었는지 확인합니다. 로컬에만 변경이 남아 있으면 먼저 정적 검증과 커밋·push를 끝냅니다.
 
 ## 1. 현재 컴퓨터에서 준비
 
@@ -198,7 +198,7 @@ SWTITLEVERSION
 기대 결과:
 
 ```text
-260712-portable-saveas-offsheet-frame-1
+260714-read-scan-cache-batch-queue-1
 ```
 
 다른 버전이 나오면 변환을 시작하지 않습니다. 브랜치, `git pull`, APPLOAD 경로를 다시 확인합니다.
@@ -281,7 +281,7 @@ REFEDIT가 실행됨
 다음 조건을 모두 만족해야 완료로 판단합니다.
 
 ```text
-SWTITLEVERSION = 260712-portable-saveas-offsheet-frame-1
+SWTITLEVERSION = 260714-read-scan-cache-batch-queue-1
 SWTITLEVERIFY_FINAL_OK
 남은 원본 SolidWorks 표제란 = 0
 남은 원본 SolidWorks 도면틀 = 0
@@ -324,7 +324,7 @@ GitHub 저장소 https://github.com/adams219/CAD.git 의 codex/gm-title 브랜�
 원하는 로컬 도구 폴더에 받아줘.
 원본 DWG는 수정하지 말고, 첫 SWTITLEPREPARE/SWTITLECONVERTNEXT 실행 때 다른 이름으로 저장 창에서 새 작업본을 선택해줘.
 GstarCAD Mechanical 2024 Korean의 DR_A2/A3/A4_Outline 및 DR_titlea_3rd 설치 여부를 확인하고,
-swcad_load.lsp 로드 후 SWTITLEVERSION이 260712-portable-saveas-offsheet-frame-1인지 확인해줘.
+swcad_load.lsp 로드 후 SWTITLEVERSION이 260714-read-scan-cache-batch-queue-1인지 확인해줘.
 테스트는 SWTITLESTATUS -> 필요한 경우 SWTITLEPREPARE -> SWTITLECONVERTNEXT ->
 SWTITLESTATUS -> SWTITLEVERIFY 순서로 진행하고,
 마지막에는 대표 A2/A3/A4 DR_titlea_3rd를 각각 더블클릭했을 때 속성 블록 편집 표가 열리는지 확인해줘.

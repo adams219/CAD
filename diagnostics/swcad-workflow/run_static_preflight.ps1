@@ -15,6 +15,8 @@ $required = @(
   "diagnostics\swcad-workflow\run_workflow_loader_probe.ps1",
   "diagnostics\swcad-workflow\workflow_integration_probe.lsp",
   "diagnostics\swcad-workflow\run_workflow_integration_probe.ps1",
+  "diagnostics\swcad-workflow\legacy_count_rebase_probe.lsp",
+  "diagnostics\swcad-workflow\run_legacy_count_rebase_probe.ps1",
   "docs\swcad-workflow\architecture.md",
   "docs\swcad-workflow\test-results-2026-07-13.md"
 )
@@ -114,7 +116,8 @@ foreach ($relative in @(
   "apps\swcad-workflow\swcad_workflow_load.lsp",
   "diagnostics\swcad-workflow\xref_materialize_probe.lsp",
   "diagnostics\swcad-workflow\workflow_loader_probe.lsp",
-  "diagnostics\swcad-workflow\workflow_integration_probe.lsp"
+  "diagnostics\swcad-workflow\workflow_integration_probe.lsp",
+  "diagnostics\swcad-workflow\legacy_count_rebase_probe.lsp"
 )) {
   Test-LispBalance (Join-Path $repoRoot $relative)
 }
@@ -124,7 +127,8 @@ foreach ($relative in @(
   "diagnostics\swcad-workflow\run_static_preflight.ps1",
   "diagnostics\swcad-workflow\run_xref_materialize_matrix.ps1",
   "diagnostics\swcad-workflow\run_workflow_loader_probe.ps1",
-  "diagnostics\swcad-workflow\run_workflow_integration_probe.ps1"
+  "diagnostics\swcad-workflow\run_workflow_integration_probe.ps1",
+  "diagnostics\swcad-workflow\run_legacy_count_rebase_probe.ps1"
 )) {
   Test-PowerShellSyntax (Join-Path $repoRoot $relative)
 }
@@ -154,9 +158,15 @@ foreach ($line in Get-Content -LiteralPath $manifestPath) {
 $appPath = Join-Path $repoRoot "apps\swcad-workflow\swcad_workflow.lsp"
 $loaderPath = Join-Path $repoRoot "apps\swcad-workflow\swcad_workflow_load.lsp"
 $packagePath = Join-Path $repoRoot "apps\swcad-workflow\package.ps1"
+$gmtitlePath = Join-Path $repoRoot "src\tools\gmtitle\swcad_title_scale.lsp"
 $appText = Read-Utf8 $appPath
 $loaderText = Read-Utf8 $loaderPath
 $packageText = Read-Utf8 $packagePath
+$gmtitleText = Read-Utf8 $gmtitlePath
+$integrationProbeText = Read-Utf8 (Join-Path $repoRoot "diagnostics\swcad-workflow\workflow_integration_probe.lsp")
+$integrationRunnerText = Read-Utf8 (Join-Path $repoRoot "diagnostics\swcad-workflow\run_workflow_integration_probe.ps1")
+$rebaseProbeText = Read-Utf8 (Join-Path $repoRoot "diagnostics\swcad-workflow\legacy_count_rebase_probe.lsp")
+$rebaseRunnerText = Read-Utf8 (Join-Path $repoRoot "diagnostics\swcad-workflow\run_legacy_count_rebase_probe.ps1")
 
 $commands = [regex]::Matches($appText, '(?m)^\(defun c:(SWCAD[^\s(]*)') | ForEach-Object { $_.Groups[1].Value }
 $expectedCommands = @("SWCADSTATUS", "SWCADRUN", "SWCADVERIFY")
@@ -197,6 +207,14 @@ foreach ($needle in @(
   "BLOCKED_NATIVE_GMTITLE_SHEET_WRAPPER",
   "SWCAD_SHEET_WRAPPER_MATERIALIZE_OK",
   "SHEET_WRAPPERS",
+  "swapp-stage-label",
+  "swapp-title-action-label",
+  "swapp-title-blocking-status-p",
+  '"ABORT_"',
+  '"ERROR_"',
+  '"WARN_"',
+  '"SWTITLEVERIFY_FINAL_FAIL"',
+  "swapp-recommended-next-action",
   "DIMENSION_SEMANTICS",
   "swapp-restore-dimension-semantic-snapshots",
   "SWCAD_DIMENSION_SEMANTICS_CHANGED",
@@ -212,6 +230,50 @@ foreach ($needle in @(
 }
 Assert-NotContains $appText "vla-Move" "Manual placement policy"
 Assert-NotContains $appText "_.MOVE" "Manual placement policy"
+
+foreach ($needle in @(
+  "swapp-read-cache-begin",
+  "swapp-read-cache-end",
+  "swapp-cached-title-evidence",
+  "swapp-command-performance-end",
+  "*swapp-last-command-title-insert-scans*",
+  "swcad-title-target-gmtitle-pair-records-from",
+  "swapp-sheet-wrapper-definition-evidence",
+  "swapp-sheet-wrapper-status-records",
+  "swapp-model-insert-objects",
+  "swapp-model-dimension-objects"
+)) {
+  Assert-Contains $appText $needle "Command-scoped inventory performance contract"
+}
+$fullModelObjectScan = '(foreach object (swapp-collection-items (swapp-model))'
+$fullModelObjectScanCount = ([regex]::Matches($appText, [regex]::Escape($fullModelObjectScan))).Count
+if ($fullModelObjectScanCount -ne 1) {
+  Add-Failure "Full model COM object scans must remain limited to the bbox safety audit. Actual count: $fullModelObjectScanCount"
+}
+Assert-Contains $integrationProbeText "swapp-sheet-wrapper-status-records" "No duplicate post-materialize wrapper audit"
+foreach ($needle in @(
+  "swcad-title-read-scan-cache-begin",
+  "swcad-title-all-insert-enames",
+  "swcad-title-transfer-batch-source-records",
+  "*swcad-title-batch-source-record*",
+  "*swcad-title-native-upgrade-batch-remaining-hint*",
+  "(setq current (nth (1- index) records))"
+)) {
+  Assert-Contains $gmtitleText $needle "GMTITLE scan/queue performance contract"
+}
+Assert-NotContains $gmtitleText "(setq records (swcad-title-a3a4-native-upgrade-candidate-records))`r`n            (if" "Per-sheet native-upgrade full rescan"
+
+Assert-Contains $integrationProbeText "(= source-frames 30)" "Wrapped-XREF source-frame classifier expectation"
+Assert-NotContains $integrationProbeText "(= source-frames 41)" "Stale wrapped-XREF false source-frame count"
+Assert-Contains $integrationRunnerText '"Source frame count: 30"' "Wrapped-XREF runner corrected frame count"
+Assert-Contains $integrationRunnerText 'PrepareOnly' "Visible-CAD integration script preparation mode"
+Assert-Contains $appText '*swcad-title-legacy-count-compatibility-enabled*' "Integrated legacy-count compatibility gate"
+Assert-Contains $appText 'legacy-compat-enabled' "Integrated legacy-count compatibility status output"
+Assert-Contains $rebaseProbeText "swcad-title-rebase-expected-counts-for-complete-targets" "Legacy count rebase runtime coverage"
+Assert-Contains $rebaseProbeText "Native structure unchanged:" "Legacy count rebase native structure guard"
+Assert-Contains $rebaseProbeText "Legacy compatibility read-only:" "Legacy count compatibility read-only runtime guard"
+Assert-Contains $rebaseProbeText "Public SWCADVERIFY read-only:" "Public legacy compatibility runtime guard"
+Assert-Contains $rebaseRunnerText "Source DWG hash changed" "Legacy count rebase source preservation gate"
 
 foreach ($needle in @(
   "[StringComparison]::OrdinalIgnoreCase",

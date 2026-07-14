@@ -40,7 +40,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260712-portable-saveas-offsheet-frame-1")
+(setq *swcad-title-scale-version* "260714-read-scan-cache-batch-queue-1")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -61,6 +61,10 @@
 (setq *swcad-title-workcopy-xdata-marker* "SWTITLE_SELECTED_WORKCOPY")
 (setq *swcad-title-expected-sheet-counts-marker* "SWTITLE_EXPECTED_SHEET_COUNTS")
 (setq *swcad-title-expected-title-counts-marker* "SWTITLE_EXPECTED_TITLE_COUNTS")
+(setq *swcad-title-count-classifier-marker* "SWTITLE_COUNT_CLASSIFIER=BOUND_LEAF_GEOMETRY_V1")
+(setq *swcad-title-expected-sheet-counts-override* nil)
+(setq *swcad-title-expected-title-counts-override* nil)
+(setq *swcad-title-legacy-count-compatibility-enabled* nil)
 (setq *swcad-title-pending-native-title-ename* nil)
 (setq *swcad-title-pending-native-frame-ename* nil)
 (setq *swcad-title-pending-native-frame-block* nil)
@@ -72,11 +76,28 @@
 (setq *swcad-title-frame-style-analysis-cache-enabled* nil)
 (setq *swcad-title-frame-style-analysis-cache-valid* nil)
 (setq *swcad-title-frame-style-analysis-cache-records* nil)
+(setq *swcad-title-read-scan-cache-enabled* nil)
+(setq *swcad-title-read-scan-cache-inserts-valid* nil)
+(setq *swcad-title-read-scan-cache-inserts* nil)
+(setq *swcad-title-read-scan-start-ms* nil)
+(setq *swcad-title-read-scan-physical-insert-scans* 0)
+(setq *swcad-title-read-scan-insert-cache-hits* 0)
+(setq *swcad-title-total-physical-insert-scans* 0)
+(setq *swcad-title-total-insert-cache-hits* 0)
+(setq *swcad-title-read-scan-last-elapsed-ms* 0)
+(setq *swcad-title-read-scan-last-physical-insert-scans* 0)
+(setq *swcad-title-read-scan-last-insert-cache-hits* 0)
+(setq *swcad-title-batch-source-record* nil)
+(setq *swcad-title-batch-frame-record* nil)
+(setq *swcad-title-native-upgrade-batch-remaining-hint* nil)
 (setq *swcad-title-last-gmtitle-autoselect-started* nil)
 (setq *swcad-title-skip-native-upgrade-confirmation* nil)
 (setq *swcad-title-a3a4-batch-default-all* nil)
 (setq *swcad-title-pending-manual-native-upgrade* nil)
 (setq *swcad-title-native-placement-trust-tolerance* 0.5)
+(setq *swcad-title-frame-style-structural-edge-band* 25.0)
+(setq *swcad-title-frame-style-contained-margin* 0.5)
+(setq *swcad-title-frame-style-sheet-coverage-ratio* 0.75)
 (setq *swcad-title-target-frame-block-name* "DR_A3_Outline")
 (setq *swcad-title-target-title-block-name* "DR_titlea_3rd")
 (setq *swcad-title-disabled-legacy-public-commands* nil)
@@ -86,6 +107,98 @@
     ((and (boundp '*load-truename*) *load-truename*) *load-truename*)
     ((findfile "swcad_title_scale.lsp") (findfile "swcad_title_scale.lsp"))
     (T nil)
+  )
+)
+
+;;; A read-scan cache is deliberately short-lived. Callers must close it before
+;;; any command that can add, erase, or replace drawing entities.
+(defun swcad-title-read-scan-cache-begin ()
+  (setq *swcad-title-read-scan-cache-enabled* T)
+  (setq *swcad-title-read-scan-cache-inserts-valid* nil)
+  (setq *swcad-title-read-scan-cache-inserts* nil)
+  (setq *swcad-title-read-scan-start-ms* (getvar "DATE"))
+  (setq *swcad-title-read-scan-physical-insert-scans* 0)
+  (setq *swcad-title-read-scan-insert-cache-hits* 0)
+  T
+)
+
+(defun swcad-title-read-scan-cache-invalidate ()
+  (setq *swcad-title-read-scan-cache-inserts-valid* nil)
+  (setq *swcad-title-read-scan-cache-inserts* nil)
+  T
+)
+
+(defun swcad-title-read-scan-cache-end (/ now elapsed)
+  (setq now (getvar "DATE"))
+  (setq elapsed
+    (if (numberp *swcad-title-read-scan-start-ms*)
+      (fix (+ 0.5 (* 86400000.0 (- now *swcad-title-read-scan-start-ms*))))
+      0
+    )
+  )
+  (if (< elapsed 0) (setq elapsed 0))
+  (setq *swcad-title-read-scan-last-elapsed-ms* elapsed)
+  (setq *swcad-title-read-scan-last-physical-insert-scans* *swcad-title-read-scan-physical-insert-scans*)
+  (setq *swcad-title-read-scan-last-insert-cache-hits* *swcad-title-read-scan-insert-cache-hits*)
+  (setq *swcad-title-read-scan-cache-enabled* nil)
+  (setq *swcad-title-read-scan-start-ms* nil)
+  (swcad-title-read-scan-cache-invalidate)
+  (list
+    (cons "elapsed-ms" *swcad-title-read-scan-last-elapsed-ms*)
+    (cons "physical-insert-scans" *swcad-title-read-scan-last-physical-insert-scans*)
+    (cons "insert-cache-hits" *swcad-title-read-scan-last-insert-cache-hits*)
+  )
+)
+
+(defun swcad-title-read-scan-stat (key / pair)
+  (setq pair
+    (assoc
+      key
+      (list
+        (cons "elapsed-ms" *swcad-title-read-scan-last-elapsed-ms*)
+        (cons "physical-insert-scans" *swcad-title-read-scan-last-physical-insert-scans*)
+        (cons "insert-cache-hits" *swcad-title-read-scan-last-insert-cache-hits*)
+      )
+    )
+  )
+  (if pair (cdr pair) 0)
+)
+
+(defun swcad-title-selection-set-enames (ss / result index total)
+  (setq result nil)
+  (setq total (if ss (sslength ss) 0))
+  (setq index 0)
+  (while (< index total)
+    (setq result (cons (ssname ss index) result))
+    (setq index (1+ index))
+  )
+  (reverse result)
+)
+
+(defun swcad-title-all-insert-enames (/ ss result)
+  (if
+    (and
+      *swcad-title-read-scan-cache-enabled*
+      *swcad-title-read-scan-cache-inserts-valid*
+    )
+    (progn
+      (setq *swcad-title-read-scan-insert-cache-hits* (1+ *swcad-title-read-scan-insert-cache-hits*))
+      (setq *swcad-title-total-insert-cache-hits* (1+ *swcad-title-total-insert-cache-hits*))
+      *swcad-title-read-scan-cache-inserts*
+    )
+    (progn
+      (setq ss (ssget "_X" '((0 . "INSERT"))))
+      (setq result (swcad-title-selection-set-enames ss))
+      (setq *swcad-title-read-scan-physical-insert-scans* (1+ *swcad-title-read-scan-physical-insert-scans*))
+      (setq *swcad-title-total-physical-insert-scans* (1+ *swcad-title-total-physical-insert-scans*))
+      (if *swcad-title-read-scan-cache-enabled*
+        (progn
+          (setq *swcad-title-read-scan-cache-inserts* result)
+          (setq *swcad-title-read-scan-cache-inserts-valid* T)
+        )
+      )
+      result
+    )
   )
 )
 
@@ -2606,6 +2719,48 @@
   )
 )
 
+(defun swcad-title-bound-block-leaf-name (block-name / value search-pos found-pos)
+  (setq value (swcad-title-string block-name))
+  (setq search-pos 0)
+  (setq found-pos nil)
+  (while (setq search-pos (vl-string-search "$" value search-pos))
+    (setq found-pos search-pos)
+    (setq search-pos (+ search-pos 1))
+  )
+  (if found-pos
+    (substr value (+ found-pos 2))
+    value
+  )
+)
+
+(defun swcad-title-source-frame-strong-name-p (block-name / upper)
+  (setq upper (strcase (swcad-title-string block-name)))
+  (if
+    (or
+      (wcmatch upper "*OUTLINE*")
+      (wcmatch upper "*FRAME*")
+      (wcmatch upper "*BORDER*")
+      (wcmatch upper "*FROM_HYUN*")
+    )
+    T
+    nil
+  )
+)
+
+(defun swcad-title-source-frame-bbox-plausible-p (sheet bbox strong-name / detected dims expected-area actual-area ratio)
+  (setq detected (swcad-title-sheet-size-from-frame-bbox bbox))
+  (cond
+    ((and detected (equal detected (swcad-title-normalized-sheet-size sheet))) T)
+    ((and strong-name (setq dims (swcad-title-sheet-dimensions sheet)) bbox)
+      (setq expected-area (* (car dims) (cadr dims)))
+      (setq actual-area (swcad-title-bbox-area bbox))
+      (setq ratio (if (> expected-area 0.0) (/ actual-area expected-area) 0.0))
+      (and (>= ratio 0.45) (<= ratio 1.75))
+    )
+    (T nil)
+  )
+)
+
 (defun swcad-title-values-with-sheet-size-override (values override-size / normalized)
   (setq normalized (swcad-title-normalized-sheet-size override-size))
   (if normalized
@@ -3371,13 +3526,9 @@
   )
 )
 
-(defun swcad-title-title-shell-insert-candidates (/ ss index total ename name bbox bbox-area result)
+(defun swcad-title-title-shell-insert-candidates (/ ename name bbox bbox-area result)
   (setq result nil)
-  (setq ss (ssget "_X" '((0 . "INSERT"))))
-  (setq total (if ss (sslength ss) 0))
-  (setq index 0)
-  (while (< index total)
-    (setq ename (ssname ss index))
+  (foreach ename (swcad-title-all-insert-enames)
     (setq name (swcad-title-effective-insert-name ename))
     (if
       (and
@@ -3392,7 +3543,6 @@
         )
       )
     )
-    (setq index (+ index 1))
   )
   result
 )
@@ -4702,9 +4852,11 @@
   (length (swcad-title-frame-only-source-candidates))
 )
 
-(defun swcad-title-fast-sheet-summary (/ sources sheet-frames source-count frame-total frame-sheet-counts title-sheet-counts frame-only-count title-with-frame-count title-without-frame-count source bbox title-frame title-frame-sheet sheet-frame sheet-frame-key)
-  (setq sources (swcad-title-source-title-candidates))
+(defun swcad-title-fast-sheet-summary (/ cache-owned sources sheet-frames source-count frame-total frame-sheet-counts title-sheet-counts frame-only-count title-with-frame-count title-without-frame-count source bbox title-frame title-frame-sheet sheet-frame sheet-frame-key result)
+  (setq cache-owned (not *swcad-title-read-scan-cache-enabled*))
+  (if cache-owned (swcad-title-read-scan-cache-begin))
   (setq sheet-frames (swcad-title-source-frame-candidates))
+  (setq sources (swcad-title-source-title-candidates-from-frames sheet-frames))
   (setq source-count (length sources))
   (setq frame-total (length sheet-frames))
   (setq frame-sheet-counts nil)
@@ -4734,15 +4886,19 @@
       )
     )
   )
-  (list
-    (cons "source-title-count" source-count)
-    (cons "source-frame-count" frame-total)
-    (cons "frame-only-count" frame-only-count)
-    (cons "title-with-frame-count" title-with-frame-count)
-    (cons "title-without-frame-count" title-without-frame-count)
-    (cons "frame-sheet-counts" frame-sheet-counts)
-    (cons "title-sheet-counts" title-sheet-counts)
+  (setq result
+    (list
+      (cons "source-title-count" source-count)
+      (cons "source-frame-count" frame-total)
+      (cons "frame-only-count" frame-only-count)
+      (cons "title-with-frame-count" title-with-frame-count)
+      (cons "title-without-frame-count" title-without-frame-count)
+      (cons "frame-sheet-counts" frame-sheet-counts)
+      (cons "title-sheet-counts" title-sheet-counts)
+    )
   )
+  (if cache-owned (swcad-title-read-scan-cache-end))
+  result
 )
 
 (defun swcad-title-fast-summary-value (summary key)
@@ -4792,6 +4948,26 @@
     (setq key (car pair))
     (setq value (+ (swcad-title-count-value key result) (cdr pair)))
     (setq result (swcad-title-count-set key value result))
+  )
+  result
+)
+
+(defun swcad-title-counts-total (counts / total pair)
+  (setq total 0)
+  (foreach pair counts
+    (if (numberp (cdr pair))
+      (setq total (+ total (cdr pair)))
+    )
+  )
+  total
+)
+
+(defun swcad-title-a2a3a4-counts-equal-p (first second / result sheet)
+  (setq result T)
+  (foreach sheet '("A2" "A3" "A4")
+    (if (/= (swcad-title-count-value sheet first) (swcad-title-count-value sheet second))
+      (setq result nil)
+    )
   )
   result
 )
@@ -4984,10 +5160,12 @@
 )
 
 (defun swcad-title-expected-title-counts-for-marker (/ stored summary)
-  (setq stored (swcad-title-stored-expected-title-counts))
-  (if stored
-    stored
-    (progn
+  (cond
+    (*swcad-title-expected-title-counts-override*
+      *swcad-title-expected-title-counts-override*
+    )
+    ((setq stored (swcad-title-stored-expected-title-counts)) stored)
+    (T
       (setq summary (swcad-title-fast-sheet-summary))
       (swcad-title-current-total-title-counts summary)
     )
@@ -4995,10 +5173,12 @@
 )
 
 (defun swcad-title-expected-sheet-counts-for-marker (/ stored summary)
-  (setq stored (swcad-title-stored-expected-sheet-counts))
-  (if stored
-    stored
-    (progn
+  (cond
+    (*swcad-title-expected-sheet-counts-override*
+      *swcad-title-expected-sheet-counts-override*
+    )
+    ((setq stored (swcad-title-stored-expected-sheet-counts)) stored)
+    (T
       (setq summary (swcad-title-fast-sheet-summary))
       (swcad-title-current-total-sheet-counts summary)
     )
@@ -5839,9 +6019,12 @@
   (setq target-sheet-counts (swcad-title-target-frame-sheet-counts))
   (setq stored-expected-sheet-counts (swcad-title-stored-expected-sheet-counts))
   (setq expected-sheet-counts
-    (if stored-expected-sheet-counts
-      stored-expected-sheet-counts
-      (swcad-title-current-total-sheet-counts summary)
+    (cond
+      (*swcad-title-expected-sheet-counts-override*
+        *swcad-title-expected-sheet-counts-override*
+      )
+      (stored-expected-sheet-counts stored-expected-sheet-counts)
+      (T (swcad-title-current-total-sheet-counts summary))
     )
   )
   (setq count-shortage-records (swcad-title-count-shortage-records expected-sheet-counts target-sheet-counts))
@@ -6244,66 +6427,46 @@
   )
 )
 
-(defun swcad-title-find-insert-by-effective-name (block-name / target ss index total ename found)
+(defun swcad-title-find-insert-by-effective-name (block-name / target ename found)
   (setq target (strcase (swcad-title-string block-name)))
-  (setq ss (ssget "_X" '((0 . "INSERT"))))
-  (setq total (if ss (sslength ss) 0))
-  (setq index 0)
   (setq found nil)
-  (while (and (< index total) (not found))
-    (setq ename (ssname ss index))
-    (if (equal (strcase (swcad-title-effective-insert-name ename)) target)
+  (foreach ename (swcad-title-all-insert-enames)
+    (if (and (not found) (equal (strcase (swcad-title-effective-insert-name ename)) target))
       (setq found ename)
     )
-    (setq index (+ index 1))
   )
   found
 )
 
-(defun swcad-title-count-inserts-by-effective-name (block-name / target ss index total ename count)
+(defun swcad-title-count-inserts-by-effective-name (block-name / target ename count)
   (setq target (strcase (swcad-title-string block-name)))
-  (setq ss (ssget "_X" '((0 . "INSERT"))))
-  (setq total (if ss (sslength ss) 0))
-  (setq index 0)
   (setq count 0)
-  (while (< index total)
-    (setq ename (ssname ss index))
+  (foreach ename (swcad-title-all-insert-enames)
     (if (equal (strcase (swcad-title-effective-insert-name ename)) target)
       (setq count (+ count 1))
     )
-    (setq index (+ index 1))
   )
   count
 )
 
-(defun swcad-title-inserts-by-effective-name (block-name / target ss index total ename result)
+(defun swcad-title-inserts-by-effective-name (block-name / target ename result)
   (setq target (strcase (swcad-title-string block-name)))
-  (setq ss (ssget "_X" '((0 . "INSERT"))))
-  (setq total (if ss (sslength ss) 0))
-  (setq index 0)
   (setq result nil)
-  (while (< index total)
-    (setq ename (ssname ss index))
+  (foreach ename (swcad-title-all-insert-enames)
     (if (equal (strcase (swcad-title-effective-insert-name ename)) target)
       (setq result (append result (list ename)))
     )
-    (setq index (+ index 1))
   )
   result
 )
 
-(defun swcad-title-all-insert-references-by-effective-name (block-name / target result ss index total ename blocks block item item-ename)
+(defun swcad-title-all-insert-references-by-effective-name (block-name / target result ename blocks block item item-ename)
   (setq target (strcase (swcad-title-string block-name)))
   (setq result nil)
-  (setq ss (ssget "_X" '((0 . "INSERT"))))
-  (setq total (if ss (sslength ss) 0))
-  (setq index 0)
-  (while (< index total)
-    (setq ename (ssname ss index))
+  (foreach ename (swcad-title-all-insert-enames)
     (if (equal (strcase (swcad-title-effective-insert-name ename)) target)
       (setq result (swcad-title-list-add-unique ename result))
     )
-    (setq index (+ index 1))
   )
   (setq blocks (vla-get-Blocks (swcad-title-doc)))
   (vlax-for block blocks
@@ -6559,6 +6722,12 @@
           )
         )
       )
+      (setq record
+        (append
+          record
+          (list (cons 1000 *swcad-title-count-classifier-marker*))
+        )
+      )
       (setq result
         (vl-catch-all-apply
           'entmod
@@ -6676,6 +6845,11 @@
 
 (defun swcad-title-exemplar-native-entity-p (ename)
   (swcad-title-exemplar-native-role-p (swcad-title-exemplar-role ename))
+)
+
+(defun swcad-title-exemplar-current-count-classifier-p (ename / values)
+  (setq values (swcad-title-exemplar-xdata-values ename))
+  (swcad-title-string-member-ci-p *swcad-title-count-classifier-marker* values)
 )
 
 (defun swcad-title-role-check-record (role expected-legacy expected-safe / legacy safe native clone moved ok)
@@ -7604,15 +7778,11 @@
   )
 )
 
-(defun swcad-title-other-title-like-inserts (target-name / target ss index total ename name data result seen shell-records shell-record shell-handle)
+(defun swcad-title-other-title-like-inserts (target-name / target ename name data result seen shell-records shell-record shell-handle)
   (setq target (strcase (swcad-title-string target-name)))
-  (setq ss (ssget "_X" '((0 . "INSERT"))))
-  (setq total (if ss (sslength ss) 0))
-  (setq index 0)
   (setq result nil)
   (setq seen nil)
-  (while (< index total)
-    (setq ename (ssname ss index))
+  (foreach ename (swcad-title-all-insert-enames)
     (setq name (swcad-title-effective-insert-name ename))
     (if
       (and
@@ -7641,7 +7811,6 @@
         )
       )
     )
-    (setq index (+ index 1))
   )
   (setq shell-records (swcad-title-target-title-shell-records))
   (foreach shell-record shell-records
@@ -7728,10 +7897,16 @@
   (if bbox (car bbox) 0.0)
 )
 
-(defun swcad-title-frame-records (/ result candidate frames frame frame-data frame-bbox)
+(defun swcad-title-frame-records (/ result candidate frames frame frame-data frame-bbox all-inserts)
   (setq result nil)
+  (setq all-inserts (swcad-title-all-insert-enames))
   (foreach candidate (swcad-title-target-frame-block-candidates)
-    (setq frames (swcad-title-inserts-by-effective-name candidate))
+    (setq frames nil)
+    (foreach frame all-inserts
+      (if (equal (strcase (swcad-title-effective-insert-name frame)) (strcase candidate))
+        (setq frames (append frames (list frame)))
+      )
+    )
     (foreach frame frames
       (setq frame-data (entget frame '("*")))
       (setq frame-bbox (swcad-title-frame-reference-effective-bbox frame candidate))
@@ -8396,10 +8571,10 @@
   )
 )
 
-(defun swcad-title-frame-style-outer-edge-p (bbox frame-bbox / tolerance frame-width frame-height width height near-left near-right near-bottom near-top)
+(defun swcad-title-frame-style-outer-edge-p (bbox frame-bbox / tolerance frame-width frame-height width height near-left near-right near-bottom near-top spans-width spans-height)
   (if (and bbox frame-bbox)
     (progn
-      (setq tolerance 2.5)
+      (setq tolerance *swcad-title-frame-style-structural-edge-band*)
       (setq frame-width (swcad-title-bbox-width frame-bbox))
       (setq frame-height (swcad-title-bbox-height frame-bbox))
       (setq width (swcad-title-bbox-width bbox))
@@ -8408,23 +8583,36 @@
       (setq near-right (and (swcad-title-near-p (car bbox) (caddr frame-bbox) tolerance) (swcad-title-near-p (caddr bbox) (caddr frame-bbox) tolerance)))
       (setq near-bottom (and (swcad-title-near-p (cadr bbox) (cadr frame-bbox) tolerance) (swcad-title-near-p (cadddr bbox) (cadr frame-bbox) tolerance)))
       (setq near-top (and (swcad-title-near-p (cadr bbox) (cadddr frame-bbox) tolerance) (swcad-title-near-p (cadddr bbox) (cadddr frame-bbox) tolerance)))
+      (setq spans-width
+        (and
+          (<= (car bbox) (+ (car frame-bbox) tolerance))
+          (>= (caddr bbox) (- (caddr frame-bbox) tolerance))
+        )
+      )
+      (setq spans-height
+        (and
+          (<= (cadr bbox) (+ (cadr frame-bbox) tolerance))
+          (>= (cadddr bbox) (- (cadddr frame-bbox) tolerance))
+        )
+      )
       (or
-        (and (>= width (* frame-width 0.80)) (or near-bottom near-top))
-        (and (>= height (* frame-height 0.80)) (or near-left near-right))
+        (and (>= width (* frame-width 0.80)) spans-width (or near-bottom near-top))
+        (and (>= height (* frame-height 0.80)) spans-height (or near-left near-right))
       )
     )
     nil
   )
 )
 
-(defun swcad-title-frame-style-coordinate-tick-p (etype bbox frame-bbox / upper width height near-bottom near-top near-left near-right)
+(defun swcad-title-frame-style-coordinate-tick-p (etype bbox frame-bbox / upper width height edge-band near-bottom near-top near-left near-right)
   (setq upper (strcase (swcad-title-string etype)))
   (setq width (swcad-title-bbox-width bbox))
   (setq height (swcad-title-bbox-height bbox))
-  (setq near-bottom (and bbox frame-bbox (<= (cadddr bbox) (+ (cadr frame-bbox) 16.0))))
-  (setq near-top (and bbox frame-bbox (>= (cadr bbox) (- (cadddr frame-bbox) 16.0))))
-  (setq near-left (and bbox frame-bbox (<= (caddr bbox) (+ (car frame-bbox) 16.0))))
-  (setq near-right (and bbox frame-bbox (>= (car bbox) (- (caddr frame-bbox) 16.0))))
+  (setq edge-band *swcad-title-frame-style-structural-edge-band*)
+  (setq near-bottom (and bbox frame-bbox (<= (cadddr bbox) (+ (cadr frame-bbox) edge-band))))
+  (setq near-top (and bbox frame-bbox (>= (cadr bbox) (- (cadddr frame-bbox) edge-band))))
+  (setq near-left (and bbox frame-bbox (<= (caddr bbox) (+ (car frame-bbox) edge-band))))
+  (setq near-right (and bbox frame-bbox (>= (car bbox) (- (caddr frame-bbox) edge-band))))
   (and
     (member upper '("LINE" "LWPOLYLINE" "POLYLINE" "2DPOLYLINE"))
     (or
@@ -8454,13 +8642,58 @@
   )
   (and
     (<= len 2)
-    (<= edge-distance 8.0)
+    (<= edge-distance *swcad-title-frame-style-structural-edge-band*)
     (or
       (wcmatch upper "#")
       (wcmatch upper "##")
       (wcmatch upper "[A-Z]")
       (wcmatch upper "[A-Z]#")
       (wcmatch upper "#[A-Z]")
+    )
+  )
+)
+
+(defun swcad-title-frame-style-sheet-coverage-p (bbox frame-bbox / expanded frame-width frame-height width height ratio)
+  (setq ratio *swcad-title-frame-style-sheet-coverage-ratio*)
+  (if (and bbox frame-bbox)
+    (progn
+      (setq expanded (swcad-title-expand-bbox frame-bbox 2.5))
+      (setq frame-width (swcad-title-bbox-width frame-bbox))
+      (setq frame-height (swcad-title-bbox-height frame-bbox))
+      (setq width (swcad-title-bbox-width bbox))
+      (setq height (swcad-title-bbox-height bbox))
+      (and
+        (swcad-title-bbox-contains-bbox-p expanded bbox 0.0)
+        (>= width (* frame-width ratio))
+        (>= height (* frame-height ratio))
+      )
+    )
+    nil
+  )
+)
+
+(defun swcad-title-frame-style-region-contained-p (bbox region)
+  (and
+    bbox
+    region
+    (swcad-title-bbox-contains-bbox-p
+      region
+      bbox
+      *swcad-title-frame-style-contained-margin*
+    )
+  )
+)
+
+(defun swcad-title-frame-style-title-text-evidence-p (raw-text / text upper)
+  (setq text (vl-string-trim " \t\r\n" (swcad-title-string raw-text)))
+  (setq upper (strcase text))
+  (and
+    (> (strlen upper) 0)
+    (or
+      (swcad-title-title-shell-label-text-p upper)
+      (wcmatch upper "*TITLE*")
+      (wcmatch upper "*DRAWING*NO*")
+      (wcmatch upper "*DRAWING*NUMBER*")
     )
   )
 )
@@ -8619,21 +8852,13 @@
   (list frame-matrix inverse title-world-bbox title-root-bbox root-region world-region frame-root-bbox path-records)
 )
 
-(defun swcad-title-frame-style-insert-contained-p (bbox region / overlap bbox-area overlap-area)
-  (setq overlap (swcad-title-bbox-overlap-box bbox region))
+(defun swcad-title-frame-style-insert-contained-p (bbox region / bbox-area)
   (setq bbox-area (swcad-title-bbox-area bbox))
-  (setq overlap-area (swcad-title-bbox-area overlap))
   (and
     bbox
     region
     (> bbox-area 0.01)
-    (or
-      (swcad-title-bbox-contains-bbox-p region bbox 1.0)
-      (and
-        (> (/ overlap-area bbox-area) 0.70)
-        (< bbox-area (* (swcad-title-bbox-area region) 1.50))
-      )
-    )
+    (swcad-title-frame-style-region-contained-p bbox region)
   )
 )
 
@@ -8651,6 +8876,12 @@
        (swcad-title-frame-style-coordinate-text-p raw-text bbox frame-bbox)
      )
       "frame-coordinate-text"
+    )
+    ((and
+       (swcad-title-frame-style-graphic-entity-type-p etype)
+       (swcad-title-frame-style-sheet-coverage-p bbox frame-bbox)
+     )
+      "full-sheet-coverage"
     )
     ((and
        (swcad-title-frame-style-graphic-entity-type-p etype)
@@ -8689,10 +8920,20 @@
       )
     )
     ((member etype '("TEXT" "MTEXT" "ATTDEF"))
-      (list "delete" "title-region-text-overlap")
+      (if
+        (or
+          (swcad-title-frame-style-title-text-evidence-p (nth 8 record))
+          (swcad-title-frame-style-region-contained-p bbox region)
+        )
+        (list "delete" "title-region-contained-or-semantic-text")
+        (list "protect" "ambiguous-partial-text-overlap")
+      )
     )
     ((swcad-title-frame-style-graphic-entity-type-p etype)
-      (list "delete" "title-region-geometry-overlap")
+      (if (swcad-title-frame-style-region-contained-p bbox region)
+        (list "delete" "title-region-contained-geometry")
+        (list "protect" "ambiguous-partial-geometry-overlap")
+      )
     )
     (T
       (list "protect" "unsupported-entity-type")
@@ -8700,24 +8941,25 @@
   )
 )
 
-(defun swcad-title-frame-style-independent-residue-reason (record region frame-bbox / etype item-name bbox raw-text)
+(defun swcad-title-frame-style-independent-residue-reason (record region frame-bbox / etype item-name bbox raw-text protection)
   (setq etype (nth 4 record))
   (setq item-name (nth 5 record))
   (setq bbox (nth 7 record))
   (setq raw-text (vl-string-trim " \t\r\n" (swcad-title-string (nth 8 record))))
   (cond
     ((or (not bbox) (not (swcad-title-bbox-intersects-p bbox region))) nil)
-    ((or
-       (swcad-title-native-target-title-name-p item-name)
-       (swcad-title-native-target-frame-name-p item-name)
-       (swcad-title-gentitle-marker-text-p raw-text)
-     )
-      nil
-    )
+    ((setq protection (swcad-title-frame-style-base-protection-reason record frame-bbox)) nil)
     ((member etype '("TEXT" "MTEXT" "ATTDEF"))
-      (if (or (= (strlen raw-text) 0) (swcad-title-frame-style-coordinate-text-p raw-text bbox frame-bbox))
+      (if (= (strlen raw-text) 0)
         nil
-        "visible-text-overlap"
+        (if
+          (or
+            (swcad-title-frame-style-title-text-evidence-p raw-text)
+            (swcad-title-frame-style-region-contained-p bbox region)
+          )
+          "visible-text-overlap"
+          "ambiguous-partial-text-overlap"
+        )
       )
     )
     ((equal etype "INSERT")
@@ -8727,13 +8969,9 @@
       )
     )
     ((swcad-title-frame-style-graphic-entity-type-p etype)
-      (if
-        (or
-          (swcad-title-frame-style-outer-edge-p bbox frame-bbox)
-          (swcad-title-frame-style-coordinate-tick-p etype bbox frame-bbox)
-        )
-        nil
+      (if (swcad-title-frame-style-region-contained-p bbox region)
         "visible-geometry-overlap"
+        "ambiguous-partial-geometry-overlap"
       )
     )
     (T nil)
@@ -13470,19 +13708,14 @@
   )
 )
 
-(defun swcad-title-insert-handle-list (/ ss total index ename data handle result)
+(defun swcad-title-insert-handle-list (/ ename data handle result)
   (setq result nil)
-  (setq ss (ssget "_X" '((0 . "INSERT"))))
-  (setq total (if ss (sslength ss) 0))
-  (setq index 0)
-  (while (< index total)
-    (setq ename (ssname ss index))
+  (foreach ename (swcad-title-all-insert-enames)
     (setq data (entget ename '("*")))
     (setq handle (strcase (swcad-title-string (swcad-title-dxf-value data 5))))
     (if (> (strlen handle) 0)
       (setq result (append result (list handle)))
     )
-    (setq index (+ index 1))
   )
   result
 )
@@ -13539,19 +13772,14 @@
   )
 )
 
-(defun swcad-title-new-insert-enames (before-handles / ss total index ename data handle result)
+(defun swcad-title-new-insert-enames (before-handles / ename data handle result)
   (setq result nil)
-  (setq ss (ssget "_X" '((0 . "INSERT"))))
-  (setq total (if ss (sslength ss) 0))
-  (setq index 0)
-  (while (< index total)
-    (setq ename (ssname ss index))
+  (foreach ename (swcad-title-all-insert-enames)
     (setq data (entget ename '("*")))
     (setq handle (strcase (swcad-title-string (swcad-title-dxf-value data 5))))
     (if (and (> (strlen handle) 0) (not (member handle before-handles)))
       (setq result (append result (list ename)))
     )
-    (setq index (+ index 1))
   )
   result
 )
@@ -14786,13 +15014,9 @@
   )
 )
 
-(defun swcad-title-source-title-insert-candidates (/ insert-ss insert-index insert-total ename data block bbox area result)
+(defun swcad-title-source-title-insert-candidates (/ ename data block bbox area result)
   (setq result nil)
-  (setq insert-ss (ssget "_X" '((0 . "INSERT"))))
-  (setq insert-total (if insert-ss (sslength insert-ss) 0))
-  (setq insert-index 0)
-  (while (< insert-index insert-total)
-    (setq ename (ssname insert-ss insert-index))
+  (foreach ename (swcad-title-all-insert-enames)
     (setq data (entget ename '("*")))
     (setq block (swcad-title-effective-insert-name ename))
     (if
@@ -14808,7 +15032,6 @@
         )
       )
     )
-    (setq insert-index (+ insert-index 1))
   )
   (vl-sort result 'swcad-title-source-title-candidate-less-p)
 )
@@ -14874,8 +15097,7 @@
   )
 )
 
-(defun swcad-title-loose-title-source-candidates (insert-sources / frames result frame frame-bbox title-bbox build)
-  (setq frames (swcad-title-source-frame-candidates))
+(defun swcad-title-loose-title-source-candidates-from-frames (insert-sources frames / result frame frame-bbox title-bbox build)
   (setq result nil)
   (foreach frame frames
     (setq frame-bbox (caddr frame))
@@ -14915,6 +15137,11 @@
   result
 )
 
+(defun swcad-title-loose-title-source-candidates (insert-sources / frames)
+  (setq frames (swcad-title-source-frame-candidates))
+  (swcad-title-loose-title-source-candidates-from-frames insert-sources frames)
+)
+
 (defun swcad-title-source-title-kind (source)
   (if (and source (nth 5 source))
     (swcad-title-string (nth 5 source))
@@ -14922,22 +15149,25 @@
   )
 )
 
-(defun swcad-title-source-title-candidates (/ insert-sources loose-sources)
+(defun swcad-title-source-title-candidates-from-frames (frames / insert-sources loose-sources)
   (setq insert-sources (swcad-title-source-title-insert-candidates))
-  (setq loose-sources (swcad-title-loose-title-source-candidates insert-sources))
+  (setq loose-sources (swcad-title-loose-title-source-candidates-from-frames insert-sources frames))
   (vl-sort (append insert-sources loose-sources) 'swcad-title-source-title-candidate-less-p)
 )
 
-(defun swcad-title-source-frame-candidates (/ insert-ss insert-index insert-total ename data block bbox area sheet result)
+(defun swcad-title-source-title-candidates (/ frames)
+  (setq frames (swcad-title-source-frame-candidates))
+  (swcad-title-source-title-candidates-from-frames frames)
+)
+
+(defun swcad-title-source-frame-candidates (/ ename data block leaf bbox area sheet strong-name result)
   (setq result nil)
-  (setq insert-ss (ssget "_X" '((0 . "INSERT"))))
-  (setq insert-total (if insert-ss (sslength insert-ss) 0))
-  (setq insert-index 0)
-  (while (< insert-index insert-total)
-    (setq ename (ssname insert-ss insert-index))
+  (foreach ename (swcad-title-all-insert-enames)
     (setq data (entget ename '("*")))
     (setq block (swcad-title-effective-insert-name ename))
-    (setq sheet (swcad-title-sheet-size-from-block-name block))
+    (setq leaf (swcad-title-bound-block-leaf-name block))
+    (setq sheet (swcad-title-sheet-size-from-block-name leaf))
+    (setq strong-name (swcad-title-source-frame-strong-name-p leaf))
     (if
       (and
         sheet
@@ -14947,12 +15177,16 @@
       (progn
         (setq bbox (swcad-title-safe-bbox ename))
         (setq area (swcad-title-bbox-area bbox))
-        (if (and bbox (> area 1000.0))
+        (if
+          (and
+            bbox
+            (> area 1000.0)
+            (swcad-title-source-frame-bbox-plausible-p sheet bbox strong-name)
+          )
           (setq result (append result (list (list ename data bbox block area sheet))))
         )
       )
     )
-    (setq insert-index (+ insert-index 1))
   )
   (vl-sort result 'swcad-title-source-frame-candidate-less-p)
 )
@@ -15179,7 +15413,12 @@
 )
 
 (defun swcad-title-transfer-source-bbox (/ source)
-  (setq source (car (swcad-title-source-title-candidates)))
+  (setq source
+    (if *swcad-title-batch-source-record*
+      *swcad-title-batch-source-record*
+      (car (swcad-title-source-title-candidates))
+    )
+  )
   (if source
     (list (car source) (cadr source) (caddr source))
     nil
@@ -15191,6 +15430,20 @@
     (list (car source) (cadr source) (caddr source))
     nil
   )
+)
+
+(defun swcad-title-transfer-batch-source-records (/ cache-owned frames sources result source frame)
+  (setq cache-owned (not *swcad-title-read-scan-cache-enabled*))
+  (if cache-owned (swcad-title-read-scan-cache-begin))
+  (setq frames (swcad-title-source-frame-candidates))
+  (setq sources (swcad-title-source-title-candidates-from-frames frames))
+  (setq result nil)
+  (foreach source sources
+    (setq frame (swcad-title-source-frame-from-candidates (caddr source) frames))
+    (setq result (append result (list (list source frame))))
+  )
+  (if cache-owned (swcad-title-read-scan-cache-end))
+  result
 )
 
 (defun swcad-title-source-record-frame-block (source / source-ename source-bbox source-block frame frame-bbox frame-block)
@@ -15222,47 +15475,52 @@
   )
 )
 
-(defun swcad-title-transfer-source-frame (source-bbox source-title-ename / insert-ss insert-index insert-total ename data block bbox area source-area priority best bestarea bestpriority)
-  (setq insert-ss (ssget "_X" '((0 . "INSERT"))))
-  (setq insert-total (if insert-ss (sslength insert-ss) 0))
-  (setq source-area (swcad-title-bbox-area source-bbox))
-  (setq best nil)
-  (setq bestarea nil)
-  (setq bestpriority nil)
-  (setq insert-index 0)
-  (while (< insert-index insert-total)
-    (setq ename (ssname insert-ss insert-index))
-    (if (not (eq ename source-title-ename))
-      (progn
-        (setq data (entget ename '("*")))
-        (setq block (swcad-title-effective-insert-name ename))
-        (if (not (swcad-title-native-target-frame-name-p block))
+(defun swcad-title-transfer-source-frame (source-bbox source-title-ename / ename data block bbox area source-area priority best bestarea bestpriority)
+  (if *swcad-title-batch-frame-record*
+    (list
+      (car *swcad-title-batch-frame-record*)
+      (cadr *swcad-title-batch-frame-record*)
+      (caddr *swcad-title-batch-frame-record*)
+    )
+    (progn
+      (setq source-area (swcad-title-bbox-area source-bbox))
+      (setq best nil)
+      (setq bestarea nil)
+      (setq bestpriority nil)
+      (foreach ename (swcad-title-all-insert-enames)
+        (if (not (eq ename source-title-ename))
           (progn
-            (setq bbox (swcad-title-safe-bbox ename))
-            (setq area (swcad-title-bbox-area bbox))
-            (if (and
-                  bbox
-                  (> area (* source-area 2.0))
-                  (swcad-title-bbox-contains-bbox-p bbox source-bbox 2.0)
-                )
+            (setq data (entget ename '("*")))
+            (setq block (swcad-title-effective-insert-name ename))
+            (if (not (swcad-title-native-target-frame-name-p block))
               (progn
-                (setq priority (swcad-title-frame-block-size-priority block))
-                (if
-                  (or
-                    (not best)
-                    (< priority bestpriority)
-                    (and
-                      (= priority bestpriority)
-                      (if (= priority 0)
-                        (< area bestarea)
-                        (> area bestarea)
+                (setq bbox (swcad-title-safe-bbox ename))
+                (setq area (swcad-title-bbox-area bbox))
+                (if (and
+                      bbox
+                      (> area (* source-area 2.0))
+                      (swcad-title-bbox-contains-bbox-p bbox source-bbox 2.0)
+                    )
+                  (progn
+                    (setq priority (swcad-title-frame-block-size-priority block))
+                    (if
+                      (or
+                        (not best)
+                        (< priority bestpriority)
+                        (and
+                          (= priority bestpriority)
+                          (if (= priority 0)
+                            (< area bestarea)
+                            (> area bestarea)
+                          )
+                        )
+                      )
+                      (progn
+                        (setq best (list ename data bbox))
+                        (setq bestarea area)
+                        (setq bestpriority priority)
                       )
                     )
-                  )
-                  (progn
-                    (setq best (list ename data bbox))
-                    (setq bestarea area)
-                    (setq bestpriority priority)
                   )
                 )
               )
@@ -15270,10 +15528,9 @@
           )
         )
       )
+      best
     )
-    (setq insert-index (+ insert-index 1))
   )
-  best
 )
 
 (defun swcad-title-transfer-text-records (bbox source-ename / ss index total ename data raw-text point records record block-records)
@@ -17215,22 +17472,45 @@
   (princ)
 )
 
-(defun swcad-title-transfer-batch-run (count / index source apply-result)
+(defun swcad-title-transfer-batch-run (records count / *error* old-source old-frame index total item source frame source-ename frame-ename apply-result)
+  (setq old-source *swcad-title-batch-source-record*)
+  (setq old-frame *swcad-title-batch-frame-record*)
+  (defun *error* (msg)
+    (setq *swcad-title-batch-source-record* old-source)
+    (setq *swcad-title-batch-frame-record* old-frame)
+    (setq *swcad-title-last-apply-status* "ERROR_BATCH_QUEUE_FATAL")
+    (if msg (princ (strcat "\nBatch queue error: " (swcad-title-string msg))))
+    (princ)
+  )
+  (setq total (min count (length records)))
   (setq index 1)
-  (while (<= index count)
-    (setq source (swcad-title-transfer-source-bbox))
-    (if source
+  (while (<= index total)
+    (setq item (nth (1- index) records))
+    (setq source (car item))
+    (setq frame (cadr item))
+    (setq source-ename (if source (car source) nil))
+    (setq frame-ename (if frame (car frame) nil))
+    (if
+      (and
+        source
+        (or (not source-ename) (entget source-ename))
+        (or (not frame-ename) (entget frame-ename))
+      )
       (progn
+        (setq *swcad-title-batch-source-record* source)
+        (setq *swcad-title-batch-frame-record* frame)
         (princ
           (strcat
             "\n--- SWTITLECONVERT 내부 표제란 시트 "
             (itoa index)
             " / "
-            (itoa count)
+            (itoa total)
             " ---"
           )
         )
         (setq apply-result (vl-catch-all-apply 'swcad-title-transfer-apply nil))
+        (setq *swcad-title-batch-source-record* nil)
+        (setq *swcad-title-batch-frame-record* nil)
         (if (vl-catch-all-error-p apply-result)
           (progn
             (setq *swcad-title-last-apply-status* "ERROR_BATCH_APPLY")
@@ -17257,22 +17537,26 @@
                 (swcad-title-string *swcad-title-last-apply-status*)
               )
             )
-            (setq index count)
+            (setq index total)
           )
         )
       )
       (progn
-        (setq *swcad-title-last-apply-status* "STOP_NO_MORE_SOLIDWORKS_TITLE_SOURCE")
-        (swcad-title-princ-line "Result: STOP_NO_MORE_SOLIDWORKS_TITLE_SOURCE")
-        (setq index count)
+        (setq *swcad-title-last-apply-status* "ERROR_BATCH_QUEUE_RECORD_STALE")
+        (swcad-title-princ-line "Result: ERROR_BATCH_QUEUE_RECORD_STALE")
+        (swcad-title-princ-line "안전을 위해 현재 시트부터 일괄 변환을 중지했습니다. 기존 시트는 추가로 삭제하지 않았습니다.")
+        (setq index total)
       )
     )
     (setq index (+ index 1))
   )
+  (setq *swcad-title-batch-source-record* old-source)
+  (setq *swcad-title-batch-frame-record* old-frame)
 )
 
-(defun swcad-title-transfer-native-autoselect-all (/ count old-batch-mode old-allow-interactive batch-result remaining)
-  (setq count (length (swcad-title-source-title-candidates)))
+(defun swcad-title-transfer-native-autoselect-all (/ records count old-batch-mode old-allow-interactive batch-result remaining)
+  (setq records (swcad-title-transfer-batch-source-records))
+  (setq count (length records))
   (cond
     ((= count 0)
       (swcad-title-apply-result "STOP_NO_MORE_SOLIDWORKS_TITLE_SOURCE")
@@ -17294,7 +17578,7 @@
       (setq *swcad-title-batch-mode* T)
       (setq *swcad-title-allow-batch-interactive-native-gmtitle* T)
       (setq batch-result
-        (vl-catch-all-apply 'swcad-title-transfer-batch-run (list count))
+        (vl-catch-all-apply 'swcad-title-transfer-batch-run (list records count))
       )
       (setq *swcad-title-batch-mode* old-batch-mode)
       (setq *swcad-title-allow-batch-interactive-native-gmtitle* old-allow-interactive)
@@ -17338,13 +17622,18 @@
   (princ)
 )
 
-(defun swcad-title-transfer-batch (/ count answer old-batch-mode batch-result)
+(defun swcad-title-transfer-batch (/ records available count answer old-batch-mode batch-result)
+  (setq records (swcad-title-transfer-batch-source-records))
+  (setq available (length records))
   (setq count (getint "\nNumber of SOLIDWORKS title blocks/sheets to process with native GMTITLE <1>: "))
   (if (not count)
     (setq count 1)
   )
   (if (< count 1)
     (setq count 1)
+  )
+  (if (> count available)
+    (setq count available)
   )
   (setq answer
     (getstring
@@ -17364,7 +17653,7 @@
     (progn
       (setq old-batch-mode *swcad-title-batch-mode*)
       (setq *swcad-title-batch-mode* T)
-      (setq batch-result (vl-catch-all-apply 'swcad-title-transfer-batch-run (list count)))
+      (setq batch-result (vl-catch-all-apply 'swcad-title-transfer-batch-run (list records count)))
       (setq *swcad-title-batch-mode* old-batch-mode)
       (if (vl-catch-all-error-p batch-result)
         (progn
@@ -18459,9 +18748,7 @@
   result
 )
 
-(defun swcad-title-target-gmtitle-pair-records (/ frame-records title-enames used-title-enames result frame-record frame-ename frame-block frame-bbox title-ename title-bbox title-role frame-role)
-  (setq frame-records (swcad-title-frame-records))
-  (setq title-enames (swcad-title-inserts-by-effective-name (swcad-title-target-title-block-name)))
+(defun swcad-title-target-gmtitle-pair-records-from (frame-records title-enames / used-title-enames result frame-record frame-ename frame-block frame-bbox title-ename title-bbox title-role frame-role)
   (setq used-title-enames nil)
   (setq result nil)
   (foreach frame-record frame-records
@@ -18502,6 +18789,12 @@
     )
   )
   result
+)
+
+(defun swcad-title-target-gmtitle-pair-records (/ frame-records title-enames)
+  (setq frame-records (swcad-title-frame-records))
+  (setq title-enames (swcad-title-inserts-by-effective-name (swcad-title-target-title-block-name)))
+  (swcad-title-target-gmtitle-pair-records-from frame-records title-enames)
 )
 
 (defun swcad-title-target-gmtitle-pair-record-for-ename (ename / insert-ename records result record)
@@ -19617,7 +19910,12 @@
                       )
                     )
                     (vl-catch-all-apply 'vla-EndUndoMark (list doc))
-                    (setq remaining-a3a4-count (length (swcad-title-a3a4-native-upgrade-candidate-records)))
+                    (setq remaining-a3a4-count
+                      (if (numberp *swcad-title-native-upgrade-batch-remaining-hint*)
+                        *swcad-title-native-upgrade-batch-remaining-hint*
+                        (length (swcad-title-a3a4-native-upgrade-candidate-records))
+                      )
+                    )
                     (swcad-title-princ-line
                       (strcat
                         "Native GMTITLE aligned to cloned frame location: moved="
@@ -19903,7 +20201,12 @@
               )
               (vl-catch-all-apply 'vla-EndUndoMark (list doc))
               (setq *swcad-title-pending-manual-native-upgrade* nil)
-              (setq remaining-a3a4-count (length (swcad-title-a3a4-native-upgrade-candidate-records)))
+              (setq remaining-a3a4-count
+                (if (numberp *swcad-title-native-upgrade-batch-remaining-hint*)
+                  *swcad-title-native-upgrade-batch-remaining-hint*
+                  (length (swcad-title-a3a4-native-upgrade-candidate-records))
+                )
+              )
               (swcad-title-princ-line
                 (strcat
                   "Native GMTITLE aligned to pending frame: moved="
@@ -20276,11 +20579,12 @@
   (princ)
 )
 
-(defun swcad-title-upgrade-native-a3a4-batch (/ *error* records total count default-count index result old-batch-mode old-allow-interactive remaining summary source-count frame-only-count missing-required command-text-count)
+(defun swcad-title-upgrade-native-a3a4-batch (/ *error* records current total count default-count index result old-batch-mode old-allow-interactive remaining summary source-count frame-only-count missing-required command-text-count)
   (defun *error* (msg)
     (setq *swcad-title-native-upgrade-batch-mode* old-batch-mode)
     (setq *swcad-title-allow-batch-interactive-native-gmtitle* old-allow-interactive)
     (setq *swcad-title-native-upgrade-selected-pair* nil)
+    (setq *swcad-title-native-upgrade-batch-remaining-hint* nil)
     (if msg
       (swcad-title-princ-line (strcat "SWTITLECONVERT A2/A3/A4 일괄 교체 오류: " (swcad-title-string msg)))
     )
@@ -20412,8 +20716,8 @@
           (setq *swcad-title-native-upgrade-batch-mode* T)
           (setq index 1)
           (while (<= index count)
-            (setq records (swcad-title-a3a4-native-upgrade-candidate-records))
-            (if (not records)
+            (setq current (nth (1- index) records))
+            (if (not current)
               (setq index (+ count 1))
               (progn
                 (swcad-title-princ-line
@@ -20425,8 +20729,10 @@
                     " ---"
                   )
                 )
-                (setq *swcad-title-native-upgrade-selected-pair* (car records))
+                (setq *swcad-title-native-upgrade-selected-pair* current)
+                (setq *swcad-title-native-upgrade-batch-remaining-hint* (- total index))
                 (setq result (vl-catch-all-apply 'swcad-title-upgrade-native-one nil))
+                (setq *swcad-title-native-upgrade-batch-remaining-hint* nil)
                 (if (vl-catch-all-error-p result)
                   (progn
                     (setq *swcad-title-last-apply-status* "ERROR_NATIVE_GMTITLE_UPGRADE_BATCH_APPLY")
@@ -20483,6 +20789,7 @@
   (setq *swcad-title-native-upgrade-batch-mode* old-batch-mode)
   (setq *swcad-title-allow-batch-interactive-native-gmtitle* old-allow-interactive)
   (setq *swcad-title-native-upgrade-selected-pair* nil)
+  (setq *swcad-title-native-upgrade-batch-remaining-hint* nil)
   (swcad-title-close-log)
   (princ)
 )
@@ -20601,9 +20908,12 @@
   (setq target-sheet-counts (swcad-title-target-frame-sheet-counts))
   (setq stored-expected-sheet-counts (swcad-title-stored-expected-sheet-counts))
   (setq expected-sheet-counts
-    (if stored-expected-sheet-counts
-      stored-expected-sheet-counts
-      (swcad-title-current-total-sheet-counts summary)
+    (cond
+      (*swcad-title-expected-sheet-counts-override*
+        *swcad-title-expected-sheet-counts-override*
+      )
+      (stored-expected-sheet-counts stored-expected-sheet-counts)
+      (T (swcad-title-current-total-sheet-counts summary))
     )
   )
   (setq count-shortage-records (swcad-title-count-shortage-records expected-sheet-counts target-sheet-counts))
@@ -20767,10 +21077,14 @@
   next-action
 )
 
-(defun swcad-title-integrated-status (/ cache-owned)
+(defun swcad-title-integrated-status (/ cache-owned read-cache-owned)
   (setq cache-owned (not *swcad-title-frame-style-analysis-cache-enabled*))
+  (setq read-cache-owned (not *swcad-title-read-scan-cache-enabled*))
   (if cache-owned
     (swcad-title-frame-style-analysis-cache-begin)
+  )
+  (if read-cache-owned
+    (swcad-title-read-scan-cache-begin)
   )
   (swcad-title-integrated-command-header "SWTITLESTATUS" "상태 진단")
   (swcad-title-princ-text "\n읽기 전용으로 현재 도면 상태, 도면틀 정의, native GMTITLE 준비 상태를 확인합니다.")
@@ -20782,6 +21096,9 @@
   (swcad-title-next-step)
   (if cache-owned
     (swcad-title-frame-style-analysis-cache-end)
+  )
+  (if read-cache-owned
+    (swcad-title-read-scan-cache-end)
   )
   (swcad-title-princ-text "\nSWTITLESTATUS 완료: 위 결과에서 다음 명령이 SWTITLEPREPARE인지 SWTITLECONVERTNEXT인지 확인하세요.")
   (princ)
@@ -21262,7 +21579,66 @@
   (princ)
 )
 
-(defun swcad-title-integrated-verify-final-summary (/ summary source-titles source-frames command-text-records embedded-title-records style-records style-residue-records style-residue-count frame-definition-records frame-definition-blockers definition-raw-risk-records definition-raw-risk-count orphan-records contaminated frame-records title-enames pair-records geometry-risk-count overlap-risk-count a3a4-count target-title-count target-frame-count pair-count title-missing-outline-count invalid-title-missing-records invalid-title-missing-count frame-only-source-count source-frame-with-title-count missing-title-count extra-title-count title-missing-tags-count title-empty-attrs-count non-native-like-count required-missing-count required-sheets missing-required-sheets target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records count-shortage-count count-excess-count target-title-sheet-counts stored-expected-title-counts expected-title-counts title-count-shortage-records title-count-excess-records title-count-shortage-count title-count-excess-count status result-code record title-ename attr-pairs)
+(defun swcad-title-legacy-expected-count-compatibility
+  (
+    / frame-counts title-counts stored-frame-counts stored-title-counts
+      pair-records frame-records title-enames total-counts classifier-current
+      mismatch record
+  )
+  (if (not *swcad-title-legacy-count-compatibility-enabled*)
+    nil
+    (progn
+      (setq frame-counts (swcad-title-target-frame-sheet-counts))
+      (setq title-counts (swcad-title-target-title-sheet-counts))
+      (setq stored-frame-counts (swcad-title-stored-expected-sheet-counts))
+      (setq stored-title-counts (swcad-title-stored-expected-title-counts))
+      (setq pair-records (swcad-title-target-gmtitle-pair-records))
+      (setq frame-records (swcad-title-frame-records))
+      (setq title-enames
+        (swcad-title-inserts-by-effective-name
+          (swcad-title-target-title-block-name)
+        )
+      )
+      (setq total-counts (swcad-title-counts-total frame-counts))
+      (setq classifier-current T)
+      (foreach record pair-records
+        (if
+          (or
+            (not (swcad-title-exemplar-current-count-classifier-p (car record)))
+            (not (swcad-title-exemplar-current-count-classifier-p (cadr record)))
+          )
+          (setq classifier-current nil)
+        )
+      )
+      (setq mismatch
+        (or
+          (not (swcad-title-a2a3a4-counts-equal-p stored-frame-counts frame-counts))
+          (not (swcad-title-a2a3a4-counts-equal-p stored-title-counts title-counts))
+        )
+      )
+      (if
+        (and
+          (not classifier-current)
+          mismatch
+          (> total-counts 0)
+          (= (length pair-records) total-counts)
+          (= (length frame-records) total-counts)
+          (= (length title-enames) total-counts)
+          (swcad-title-a2a3a4-counts-equal-p frame-counts title-counts)
+          (not (swcad-title-duplicate-target-pair-records))
+          stored-frame-counts
+          stored-title-counts
+          (>= (swcad-title-counts-total stored-frame-counts) total-counts)
+          (= (swcad-title-counts-total stored-title-counts) total-counts)
+        )
+        (list frame-counts title-counts)
+        nil
+      )
+    )
+  )
+)
+
+(defun swcad-title-integrated-verify-final-summary (/ summary source-titles source-frames command-text-records embedded-title-records style-records style-residue-records style-residue-count frame-definition-records frame-definition-blockers definition-raw-risk-records definition-raw-risk-count orphan-records contaminated frame-records title-enames pair-records geometry-risk-count overlap-risk-count a3a4-count target-title-count target-frame-count pair-count title-missing-outline-count invalid-title-missing-records invalid-title-missing-count frame-only-source-count source-frame-with-title-count missing-title-count extra-title-count title-missing-tags-count title-empty-attrs-count non-native-like-count required-missing-count required-sheets missing-required-sheets target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records count-shortage-count count-excess-count target-title-sheet-counts stored-expected-title-counts expected-title-counts title-count-shortage-records title-count-excess-records title-count-shortage-count title-count-excess-count legacy-compatible-counts status result-code record title-ename attr-pairs)
   (swcad-title-open-verify-summary-log)
   (setq summary (swcad-title-fast-sheet-summary))
   (setq source-titles (swcad-title-source-title-candidates))
@@ -21322,10 +21698,24 @@
   (setq required-sheets (swcad-title-active-required-sheets summary))
   (setq target-sheet-counts (swcad-title-target-frame-sheet-counts))
   (setq stored-expected-sheet-counts (swcad-title-stored-expected-sheet-counts))
+  (setq legacy-compatible-counts
+    (if
+      (and
+        (not *swcad-title-expected-sheet-counts-override*)
+        (not *swcad-title-expected-title-counts-override*)
+      )
+      (swcad-title-legacy-expected-count-compatibility)
+      nil
+    )
+  )
   (setq expected-sheet-counts
-    (if stored-expected-sheet-counts
-      stored-expected-sheet-counts
-      (swcad-title-current-total-sheet-counts summary)
+    (cond
+      (*swcad-title-expected-sheet-counts-override*
+        *swcad-title-expected-sheet-counts-override*
+      )
+      (legacy-compatible-counts (car legacy-compatible-counts))
+      (stored-expected-sheet-counts stored-expected-sheet-counts)
+      (T (swcad-title-current-total-sheet-counts summary))
     )
   )
   (setq count-shortage-records (swcad-title-count-shortage-records expected-sheet-counts target-sheet-counts))
@@ -21335,9 +21725,13 @@
   (setq target-title-sheet-counts (swcad-title-target-title-sheet-counts))
   (setq stored-expected-title-counts (swcad-title-stored-expected-title-counts))
   (setq expected-title-counts
-    (if stored-expected-title-counts
-      stored-expected-title-counts
-      (swcad-title-current-total-title-counts summary)
+    (cond
+      (*swcad-title-expected-title-counts-override*
+        *swcad-title-expected-title-counts-override*
+      )
+      (legacy-compatible-counts (cadr legacy-compatible-counts))
+      (stored-expected-title-counts stored-expected-title-counts)
+      (T (swcad-title-current-total-title-counts summary))
     )
   )
   (setq title-count-shortage-records (swcad-title-count-shortage-records expected-title-counts target-title-sheet-counts))
@@ -21426,9 +21820,11 @@
   (swcad-title-princ-line
     (strcat
       "변환 기준 수량 출처: "
-      (if stored-expected-sheet-counts
-        "도면 xdata 기록"
-        "현재 원본+대상 상태 추정"
+      (cond
+        (*swcad-title-expected-sheet-counts-override* "내부 안전 재검증 값")
+        (legacy-compatible-counts "legacy xdata 읽기 전용 안전 호환값")
+        (stored-expected-sheet-counts "도면 xdata 기록")
+        (T "현재 원본+대상 상태 추정")
       )
     )
   )
@@ -21439,9 +21835,11 @@
   (swcad-title-princ-line
     (strcat
       "제목 보유 수량 출처: "
-      (if stored-expected-title-counts
-        "도면 xdata 기록"
-        "현재 원본 제목+대상 제목 상태 추정"
+      (cond
+        (*swcad-title-expected-title-counts-override* "내부 안전 재검증 값")
+        (legacy-compatible-counts "legacy xdata 읽기 전용 안전 호환값")
+        (stored-expected-title-counts "도면 xdata 기록")
+        (T "현재 원본 제목+대상 제목 상태 추정")
       )
     )
   )
@@ -21506,10 +21904,188 @@
   status
 )
 
-(defun swcad-title-integrated-verify (/ cache-owned)
+(defun swcad-title-restore-entity-snapshots (snapshots / snapshot result ok)
+  (setq ok T)
+  (foreach snapshot snapshots
+    (if (and (car snapshot) (cadr snapshot))
+      (progn
+        (setq result (vl-catch-all-apply 'entmod (list (cadr snapshot))))
+        (if (vl-catch-all-error-p result)
+          (setq ok nil)
+          (entupd (car snapshot))
+        )
+      )
+    )
+  )
+  ok
+)
+
+(defun swcad-title-rebase-expected-counts-for-complete-targets
+  (
+    / frame-counts title-counts stored-frame-counts stored-title-counts
+      pair-records frame-records title-enames pair-count total-counts
+      classifier-current mismatch old-frame-override old-title-override
+      preflight-result snapshots record title-ename frame-ename frame-block
+      title-role frame-role write-result write-ok verify-ok rollback-ok
+  )
+  (setq frame-counts (swcad-title-target-frame-sheet-counts))
+  (setq title-counts (swcad-title-target-title-sheet-counts))
+  (setq stored-frame-counts (swcad-title-stored-expected-sheet-counts))
+  (setq stored-title-counts (swcad-title-stored-expected-title-counts))
+  (setq pair-records (swcad-title-target-gmtitle-pair-records))
+  (setq frame-records (swcad-title-frame-records))
+  (setq title-enames (swcad-title-inserts-by-effective-name (swcad-title-target-title-block-name)))
+  (setq pair-count (length pair-records))
+  (setq total-counts (swcad-title-counts-total frame-counts))
+  (setq classifier-current T)
+  (foreach record pair-records
+    (if
+      (or
+        (not (swcad-title-exemplar-current-count-classifier-p (car record)))
+        (not (swcad-title-exemplar-current-count-classifier-p (cadr record)))
+      )
+      (setq classifier-current nil)
+    )
+  )
+  (setq mismatch
+    (or
+      (not (swcad-title-a2a3a4-counts-equal-p stored-frame-counts frame-counts))
+      (not (swcad-title-a2a3a4-counts-equal-p stored-title-counts title-counts))
+    )
+  )
+  (cond
+    ((and classifier-current (not mismatch))
+      (setq *swcad-title-last-apply-status* "OK_EXPECTED_COUNTS_ALREADY_CURRENT")
+      T
+    )
+    ((and classifier-current mismatch)
+      (setq *swcad-title-last-apply-status* "ABORT_CURRENT_CLASSIFIER_COUNT_MISMATCH")
+      nil
+    )
+    ((or
+       (= total-counts 0)
+       (/= pair-count total-counts)
+       (/= (length frame-records) total-counts)
+       (/= (length title-enames) total-counts)
+       (not (swcad-title-a2a3a4-counts-equal-p frame-counts title-counts))
+       (swcad-title-duplicate-target-pair-records)
+       (not stored-frame-counts)
+       (not stored-title-counts)
+       (< (swcad-title-counts-total stored-frame-counts) total-counts)
+       (/= (swcad-title-counts-total stored-title-counts) total-counts)
+     )
+      (setq *swcad-title-last-apply-status* "ABORT_EXPECTED_COUNT_REBASE_STRUCTURE_NOT_COMPLETE")
+      nil
+    )
+    (T
+      (setq old-frame-override *swcad-title-expected-sheet-counts-override*)
+      (setq old-title-override *swcad-title-expected-title-counts-override*)
+      (setq *swcad-title-expected-sheet-counts-override* frame-counts)
+      (setq *swcad-title-expected-title-counts-override* title-counts)
+      (setq preflight-result
+        (vl-catch-all-apply 'swcad-title-integrated-verify-final-summary nil)
+      )
+      (setq *swcad-title-expected-sheet-counts-override* old-frame-override)
+      (setq *swcad-title-expected-title-counts-override* old-title-override)
+      (if
+        (or
+          (vl-catch-all-error-p preflight-result)
+          (not (equal preflight-result "OK"))
+        )
+        (progn
+          (setq *swcad-title-last-apply-status* "ABORT_EXPECTED_COUNT_REBASE_PREFLIGHT_NOT_OK")
+          nil
+        )
+        (progn
+          (setq snapshots nil)
+          (foreach record pair-records
+            (setq title-ename (car record))
+            (setq frame-ename (cadr record))
+            (setq snapshots (append snapshots (list (list title-ename (entget title-ename '("*"))))))
+            (setq snapshots (append snapshots (list (list frame-ename (entget frame-ename '("*"))))))
+          )
+          (setq *swcad-title-expected-sheet-counts-override* frame-counts)
+          (setq *swcad-title-expected-title-counts-override* title-counts)
+          (setq write-ok T)
+          (foreach record pair-records
+            (setq title-ename (car record))
+            (setq frame-ename (cadr record))
+            (setq frame-block (caddr record))
+            (setq title-role (nth 5 record))
+            (setq frame-role (nth 6 record))
+            (setq write-result
+              (vl-catch-all-apply
+                'swcad-title-set-exemplar-xdata
+                (list title-ename frame-block title-role)
+              )
+            )
+            (if (or (vl-catch-all-error-p write-result) (not write-result))
+              (setq write-ok nil)
+            )
+            (setq write-result
+              (vl-catch-all-apply
+                'swcad-title-set-exemplar-xdata
+                (list frame-ename frame-block frame-role)
+              )
+            )
+            (if (or (vl-catch-all-error-p write-result) (not write-result))
+              (setq write-ok nil)
+            )
+          )
+          (setq *swcad-title-expected-sheet-counts-override* old-frame-override)
+          (setq *swcad-title-expected-title-counts-override* old-title-override)
+          (setq verify-ok
+            (and
+              write-ok
+              (swcad-title-a2a3a4-counts-equal-p
+                (swcad-title-stored-expected-sheet-counts)
+                frame-counts
+              )
+              (swcad-title-a2a3a4-counts-equal-p
+                (swcad-title-stored-expected-title-counts)
+                title-counts
+              )
+            )
+          )
+          (foreach record pair-records
+            (if
+              (or
+                (not (swcad-title-exemplar-current-count-classifier-p (car record)))
+                (not (swcad-title-exemplar-current-count-classifier-p (cadr record)))
+              )
+              (setq verify-ok nil)
+            )
+          )
+          (if verify-ok
+            (progn
+              (setq *swcad-title-last-apply-status* "OK_EXPECTED_COUNTS_REBASED")
+              T
+            )
+            (progn
+              (setq rollback-ok (swcad-title-restore-entity-snapshots snapshots))
+              (setq *swcad-title-last-apply-status*
+                (if rollback-ok
+                  "ERROR_EXPECTED_COUNT_REBASE_ROLLED_BACK"
+                  "ERROR_EXPECTED_COUNT_REBASE_ROLLBACK_FAILED"
+                )
+              )
+              nil
+            )
+          )
+        )
+      )
+    )
+  )
+)
+
+(defun swcad-title-integrated-verify (/ cache-owned read-cache-owned)
   (setq cache-owned (not *swcad-title-frame-style-analysis-cache-enabled*))
+  (setq read-cache-owned (not *swcad-title-read-scan-cache-enabled*))
   (if cache-owned
     (swcad-title-frame-style-analysis-cache-begin)
+  )
+  (if read-cache-owned
+    (swcad-title-read-scan-cache-begin)
   )
   (swcad-title-integrated-command-header "SWTITLEVERIFY" "최종 검증")
   (swcad-title-princ-text "\n표제란 중복, 고아 도면틀, 현재 필요한 대상 용지 누락, native-like 상태를 읽기 전용으로 확인합니다.")
@@ -21519,6 +22095,9 @@
   (swcad-title-integrated-verify-final-summary)
   (if cache-owned
     (swcad-title-frame-style-analysis-cache-end)
+  )
+  (if read-cache-owned
+    (swcad-title-read-scan-cache-end)
   )
   (swcad-title-princ-text "\nSWTITLEVERIFY 완료: 최종 결과가 OK가 아니면 SWTITLESTATUS로 다음 조치를 확인하세요.")
   (princ)
