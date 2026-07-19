@@ -38,6 +38,7 @@ $files = @(
   "docs\swcad-workflow\test-results-2026-07-13.md",
   "docs\swcad-workflow\source-layout-cleanup-test-2026-07-14.md",
   "docs\swcad-workflow\full-unused-definition-cleanup-test-2026-07-14.md",
+  "docs\swcad-workflow\cleanup-performance-test-2026-07-19.md",
   "src\tools\gmtitle\swcad_title_scale.lsp",
   "src\tools\gmtitle\swtitle_gmtitle_dialog_autoselect.ps1",
   "src\tools\gstarcad-dimstyle\gstarcad_dimstyle_keep_tolerance.lsp",

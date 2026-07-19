@@ -68,6 +68,8 @@ XREF를 BIND하기 직전에 각 최상위 참조의 파일명 stem, 참조명, 
 
 30장 대표 파일에서는 시트 묶음 `10 → 0`, 최상위 치수 `0 → 254`, 원본 표제란/도면틀 `30/30`을 확인했습니다. 과거 도면틀 수 `41`은 중첩 블록의 상위 이름에 포함된 `_A3`/`_A4`와 기어·표 객체 11개를 용지로 잘못 센 값이었습니다. 현재는 결합 블록의 마지막 이름과 실제 도면틀 형상을 함께 검사합니다. 명령 단위 인벤토리와 대상 큐를 적용한 동일 30장 실측에서 `SWCADRUN`은 `124.9초 → 53.8초`, `SWCADSTATUS`는 `28.7초 → 0.84초`로 줄었습니다. 남은 시간의 대부분은 GstarCAD의 BIND, 다단계 EXPLODE, REGEN, bbox 보존 검사입니다.
 
+전체 미사용 이름 정의 정리 단계도 별도로 최적화했습니다. 정리 직전 상태의 같은 30장 복사본에서 `SWCADRUN` 3회 중앙값은 `286.2초 → 167.2초`로 41.6% 줄었습니다. 반복 중에는 객체 수, 치수 의미, GMTITLE 구조, Layout 구조와 workflow 상태를 확인하는 경량 무결성 지문을 사용하고, 저장 전과 정리 상태 기록 후에는 전체 bbox를 포함한 깊은 감사를 유지합니다. 독립 실행하는 `SWCADVERIFY`는 캐시를 신뢰하지 않고 항상 현재 DWG를 다시 읽어 전체 검증합니다.
+
 구버전으로 이미 완성된 도면에 `41` 같은 과거 기대 수량이 남아 있어도 `SWCADVERIFY`는 도면을 수정하지 않습니다. XREF·wrapper가 0이고 DIMSTYLE과 Layout 좌표 감사까지 정상이며, 모든 target frame/title이 1:1 native 쌍이고 원본 후보·중복 쌍·형상 경고가 없고 저장된 제목 보유 시트 총수와 실제 총수가 같을 때만 실제 `A2/A3/A4` 수량을 읽기 전용 호환값으로 사용합니다. GMTITLE 단독 검증은 이 호환을 기본 사용하지 않으며, 현재 분류기 표식이 있는 도면의 수량 불일치는 호환 처리하지 않고 실패합니다.
 
 첫 변경 전에 GMTITLE 모듈의 다른 이름으로 저장 창을 사용해 사용자가 지정한 독립 작업본을 만듭니다. 원본 DWG와 XREF 원본은 저장하지 않습니다.
@@ -80,7 +82,7 @@ Layout까지 만들어 실제 참조 관계가 확정된 뒤 GstarCAD의 native 
 - 길이 0 형상, 빈 문자 객체, 분리된 데이터는 명령 목록에 넣지 않으므로 가시 객체나 고아 데이터를 직접 삭제하지 않습니다.
 - 등록 응용프로그램도 GstarCAD가 XData와 extension dictionary 참조가 없다고 판정한 항목만 삭제됩니다.
 - 의존 정의가 뒤늦게 풀리는 경우를 위해 최대 32회 안에서 반복하고, 전체 정의 목록이 같은 삭제 0개 반복에 도달해야 완료합니다.
-- 각 반복 뒤 모델·종이공간 객체 수와 bbox, Layout·viewport, 치수값·공차·축척, 출처/작업 상태를 비교합니다.
+- 정의가 실제로 삭제된 반복 뒤에는 모델·종이공간 객체 수, Layout·viewport, 치수값·공차·축척, GMTITLE 구조, 출처/작업 상태를 경량 무결성 지문으로 비교합니다. 첫 저장 전과 정리 상태 기록 후에는 모델 bbox까지 다시 읽는 전체 감사를 수행합니다.
 - GMTITLE은 native 판정 결과만 보지 않습니다. frame/title/attribute의 원시 DXF와 XData, persistent reactor, extension dictionary, native 대상 handle을 저장·재열기에도 안정적인 handle 기준으로 비교합니다.
 - 명령 오류, 무결성 차이, 비수렴, 첫 저장 실패, 저장 직후 실제 정의의 종류·경로·이름 변화가 발생하면 전체 정리 UNDO를 한 번 실행하고 완료를 차단합니다.
 - 정리 반복 안에서는 handle까지 포함한 전체 목록이 고정돼야 합니다. 저장·재열기 감사에서는 종류·경로·이름 정체성을 기준으로 검사하고, GstarCAD가 같은 정의를 새 handle로 재등록한 경우는 별도 진단값으로 남깁니다.
@@ -118,4 +120,5 @@ docs\swcad-workflow\architecture.md
 docs\swcad-workflow\test-results-2026-07-13.md
 docs\swcad-workflow\source-layout-cleanup-test-2026-07-14.md
 docs\swcad-workflow\full-unused-definition-cleanup-test-2026-07-14.md
+docs\swcad-workflow\cleanup-performance-test-2026-07-19.md
 ```

@@ -21,10 +21,13 @@ $required = @(
   "diagnostics\swcad-workflow\cleanup_symbol_table_probe.lsp",
   "diagnostics\swcad-workflow\cleanup_identity_delta_probe.lsp",
   "diagnostics\swcad-workflow\cleanup_anonymous_block_probe.lsp",
+  "diagnostics\swcad-workflow\performance_phase_probe.lsp",
+  "diagnostics\swcad-workflow\cleanup_performance_runner.lsp",
   "diagnostics\swcad-workflow\analyze_cleanup_identity_delta.ps1",
   "docs\swcad-workflow\architecture.md",
   "docs\swcad-workflow\test-results-2026-07-13.md",
-  "docs\swcad-workflow\full-unused-definition-cleanup-test-2026-07-14.md"
+  "docs\swcad-workflow\full-unused-definition-cleanup-test-2026-07-14.md",
+  "docs\swcad-workflow\cleanup-performance-test-2026-07-19.md"
 )
 
 function Add-Failure {
@@ -127,7 +130,9 @@ foreach ($relative in @(
   "diagnostics\swcad-workflow\cleanup_state_probe.lsp",
   "diagnostics\swcad-workflow\cleanup_symbol_table_probe.lsp",
   "diagnostics\swcad-workflow\cleanup_identity_delta_probe.lsp",
-  "diagnostics\swcad-workflow\cleanup_anonymous_block_probe.lsp"
+  "diagnostics\swcad-workflow\cleanup_anonymous_block_probe.lsp",
+  "diagnostics\swcad-workflow\performance_phase_probe.lsp",
+  "diagnostics\swcad-workflow\cleanup_performance_runner.lsp"
 )) {
   Test-LispBalance (Join-Path $repoRoot $relative)
 }
@@ -239,6 +244,7 @@ foreach ($needle in @(
   "LAYOUT_OWNED_COUNT",
   "SOURCE_FILE_STEM_NO_PREFIX_NO_SEQUENCE",
   "swapp-run-resource-cleanup",
+  "swapp-resource-cleanup-verify-from-snapshots",
   "swapp-native-purge-named-pass",
   "swapp-native-purge-category",
   "swapp-named-definition-snapshot",
@@ -263,6 +269,11 @@ foreach ($needle in @(
   "alternating group 3 + 350/360 pairs",
   "<WORKFLOW-STATE-XRECORD>",
   "swapp-layout-integrity-snapshot",
+  "swapp-layout-integrity-sentinel-snapshot",
+  "swapp-workflow-integrity-sentinel-from-snapshot",
+  "swapp-workflow-integrity-sentinel-snapshot",
+  "swapp-workflow-integrity-sentinel-equal-p",
+  "swapp-workflow-integrity-snapshot-with-model-bbox",
   "swapp-entity-persistent-data-snapshot",
   "swapp-extension-dictionary-integrity-snapshot",
   "swapp-gmtitle-native-target-snapshot",
@@ -342,6 +353,7 @@ foreach ($needle in @(
 foreach ($needle in @(
   "swapp-read-cache-begin",
   "swapp-read-cache-end",
+  "swapp-read-cache-seed",
   "swapp-cached-title-evidence",
   "swapp-cached-resource-cleanup-verify",
   "swapp-command-performance-end",
@@ -354,6 +366,9 @@ foreach ($needle in @(
 )) {
   Assert-Contains $appText $needle "Command-scoped inventory performance contract"
 }
+Assert-Contains $appText '(swapp-read-cache-seed "RESOURCE_CLEANUP_VERIFY" T)' "Same-command cleanup audit handoff"
+Assert-Contains $appText 'state-save-after' "Persisted cleanup audit snapshot reuse"
+Assert-Contains $appText '(if (equal before-records after-records)' "Zero-pass full-audit handoff"
 $fullModelObjectScan = '(foreach object (swapp-collection-items (swapp-model))'
 $fullModelObjectScanCount = ([regex]::Matches($appText, [regex]::Escape($fullModelObjectScan))).Count
 if ($fullModelObjectScanCount -ne 1) {

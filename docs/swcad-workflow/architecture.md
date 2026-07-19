@@ -50,8 +50,11 @@ XREF → SHEET_WRAPPERS(필요한 경우) → TITLE → DIMSTYLE → LAYOUT → 
 - 같은 wrapper 블록 정의가 여러 번 삽입되면 내부 frame/title/dimension 증거는 정의별 한 번만 계산한다.
 - 중간 상태 판정도 현재 도면의 `INSERT`를 읽어 wrapper가 다시 생기지 않았는지 확인한다. 실제 변환 직후와 최종 `SWCADVERIFY`에서는 수량·치수·bbox 등 결과 안전 조건을 깊게 검사한다.
 - 모델 공간 전체 객체 순회는 bbox 보존 안전 감사에만 허용한다.
+- 전체 정리의 생산적인 PURGE 반복 사이에는 모델·Layout 객체 수, 치수 의미, GMTITLE 링크·속성, Layout 용지·viewport와 workflow 상태로 구성한 경량 무결성 지문을 사용한다. 삭제 0개 반복은 바로 이어지는 전체 저장 전 감사와 중복되므로 중간 지문을 생략한다.
+- 정리 단계가 만든 after/definition snapshot은 같은 명령의 최종 검증과 읽기 캐시에 넘긴다. 공개 `SWCADVERIFY`는 이 캐시를 사용하지 않고 현재 DB에서 새 snapshot을 만든다.
+- 모델 bbox를 포함한 전체 감사는 첫 저장 전 한 번, 정리 성공 상태를 기록한 뒤 한 번 실행한다. 따라서 반복당 전체 bbox 재스캔은 제거하지만 저장 경계의 형상 보존 계약은 유지한다.
 
-30장 기준 실측은 `SWCADRUN 124,921 → 53,833 ms`, `SWCADSTATUS 28,674 → 842 ms`다. 남은 시간의 대부분은 BIND/EXPLODE/REGEN과 bbox 보존 검사이며, 이는 결과 안전성과 연결된 별도 최적화 대상으로 취급한다.
+30장 기준 materialize 구간 실측은 `SWCADRUN 124,921 → 53,833 ms`, `SWCADSTATUS 28,674 → 842 ms`다. 정리 직전 동일 복사본의 정리 구간 `SWCADRUN` 3회 중앙값은 `286,247 → 167,202 ms`로 41.6% 줄었다. 자세한 측정 조건과 안전 검증은 `cleanup-performance-test-2026-07-19.md`에 기록한다.
 
 ## XREF materialize 결정
 
@@ -110,7 +113,8 @@ Layout 생성 뒤 실제 참조 관계가 확정되면 native `-PURGE`를 이름
 - 명령 수준 제외: 길이 0 형상, 빈 문자 객체, 분리된 데이터
 - 등록 응용프로그램: GstarCAD가 XData·extension dictionary에서 실참조되지 않는다고 판정한 정의만 삭제
 - 수렴: 최대 32회 안에 정렬된 symbol table/NOD 재귀 정의 목록이 같은 삭제 0개 반복 도달
-- 무결성: 모델·모든 paper layout 객체 수와 bbox, Layout 용지·탭 순서·viewport 설정, 치수 의미 다중집합, GMTITLE frame/title 링크·속성, 출처와 비정리 workflow 상태 일치
+- 반복 무결성 지문: 모델·모든 paper layout 객체 수, Layout 용지·탭 순서·viewport 설정, 치수 의미 다중집합, GMTITLE frame/title 링크·속성, 출처와 비정리 workflow 상태 일치
+- 저장 경계 전체 감사: 위 항목과 모델·모든 paper layout bbox를 첫 저장 전과 정리 상태 기록 후 다시 계산해 일치 확인
 - GMTITLE 내부 구조: frame/title/attribute의 전체 DXF·XData와 persistent reactor, extension dictionary 재귀 내용, `GENIUS_GENOREF_13` native 대상 handle·종류를 세션 종속 ENAME 대신 영구 handle로 정규화해 비교
 - 상태: `RESOURCE_CLEANUP=OK`, `RESOURCE_CLEANUP_ZERO_PASS=YES`, 정책 `ALL_UNUSED_NAMED_DEFINITIONS_V5`, 최종 정의 전체 지문과 종류·경로·이름 정체성 지문 저장
 

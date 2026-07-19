@@ -3,7 +3,7 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "260715-full-unused-purge-13")
+(setq *swapp-version* "260719-cleanup-zero-pass-fast-17")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-legacy-layout-prefix* "SWCAD-SHEET")
 (setq *swapp-layout-placement-mode* "XREF_SOURCE_FILENAME_COORDINATES")
@@ -349,6 +349,23 @@
       value
     )
   )
+)
+
+(defun swapp-read-cache-seed (key value / pair)
+  (if *swapp-read-cache-enabled*
+    (progn
+      (setq pair (assoc key *swapp-read-cache-values*))
+      (if pair
+        (setq *swapp-read-cache-values*
+          (subst (cons key value) pair *swapp-read-cache-values*)
+        )
+        (setq *swapp-read-cache-values*
+          (append *swapp-read-cache-values* (list (cons key value)))
+        )
+      )
+    )
+  )
+  value
 )
 
 (defun swapp-read-cache-end (/ now elapsed)
@@ -2706,6 +2723,101 @@
   )
 )
 
+(defun swapp-workflow-integrity-snapshot-with-model-bbox (model-bbox)
+  (list
+    (swapp-model-object-count)
+    model-bbox
+    (swapp-dimension-semantics)
+    (swapp-title-integrity-snapshot)
+    (swapp-layout-integrity-snapshot)
+    (swapp-state-integrity-snapshot)
+  )
+)
+
+(defun swapp-layout-integrity-sentinel-from-snapshot (layouts / result record)
+  (setq result nil)
+  (foreach record layouts
+    (setq result
+      (cons
+        (list
+          (nth 0 record)
+          (nth 1 record)
+          (nth 2 record)
+          (nth 3 record)
+          (nth 5 record)
+        )
+        result
+      )
+    )
+  )
+  (reverse result)
+)
+
+(defun swapp-layout-integrity-sentinel-snapshot (/ layouts layout name tab-order paper ss record result)
+  (setq layouts (vla-get-Layouts (swapp-doc)))
+  (setq result nil)
+  (vlax-for layout layouts
+    (setq name (vla-get-Name layout))
+    (if (not (equal (strcase name) "MODEL"))
+      (progn
+        (setq tab-order (swapp-safe 'vla-get-TabOrder (list layout)))
+        (if (not (numberp tab-order)) (setq tab-order 0))
+        (setq paper (gsla-layout-paper-size layout))
+        (setq ss (swapp-layout-selection-set name))
+        (setq record
+          (list
+            name
+            tab-order
+            paper
+            (if ss (sslength ss) 0)
+            (swapp-viewport-integrity-snapshot name)
+          )
+        )
+        (setq result (cons record result))
+      )
+    )
+  )
+  (vl-sort
+    result
+    '(lambda (first second)
+      (if (= (nth 1 first) (nth 1 second))
+        (< (strcase (car first)) (strcase (car second)))
+        (< (nth 1 first) (nth 1 second))
+      )
+    )
+  )
+)
+
+(defun swapp-workflow-integrity-sentinel-from-snapshot (snapshot)
+  (list
+    (nth 0 snapshot)
+    (nth 2 snapshot)
+    (nth 3 snapshot)
+    (swapp-layout-integrity-sentinel-from-snapshot (nth 4 snapshot))
+    (nth 5 snapshot)
+  )
+)
+
+(defun swapp-workflow-integrity-sentinel-snapshot ()
+  (list
+    (swapp-model-object-count)
+    (swapp-dimension-semantics)
+    (swapp-title-integrity-snapshot)
+    (swapp-layout-integrity-sentinel-snapshot)
+    (swapp-state-integrity-snapshot)
+  )
+)
+
+(defun swapp-workflow-integrity-sentinel-equal-p (before after)
+  (and
+    (= (nth 0 before) (nth 0 after))
+    (swapp-semantic-multiset-equal-p (nth 1 before) (nth 1 after))
+    (equal (nth 2 before) (nth 2 after))
+    (equal (nth 3 before) (nth 3 after))
+    (equal (nth 4 before) (nth 4 after))
+  )
+)
+
 (defun swapp-workflow-integrity-equal-p (before after)
   (and
     (= (nth 0 before) (nth 0 after))
@@ -3264,8 +3376,9 @@
   )
 )
 
-(defun swapp-resource-cleanup-verify (/ snapshot signature definitions definition-signature identity-signature stable-identity-signature)
-  (setq *swapp-last-resource-cleanup-marked-p* (swapp-resource-cleanup-marked-p))
+(defun swapp-resource-cleanup-verify-from-snapshots
+  (marked-p snapshot definitions / signature definition-signature identity-signature stable-identity-signature)
+  (setq *swapp-last-resource-cleanup-marked-p* marked-p)
   (setq *swapp-last-resource-cleanup-stored-integrity*
     (swapp-state-value "RESOURCE_CLEANUP_INTEGRITY")
   )
@@ -3291,9 +3404,7 @@
       nil
     )
     (progn
-      (setq snapshot (swapp-workflow-integrity-snapshot))
       (setq signature (swapp-workflow-integrity-signature snapshot))
-      (setq definitions (swapp-named-definition-snapshot))
       (setq definition-signature (swapp-named-definition-signature definitions))
       (setq identity-signature
         (swapp-named-definition-identity-signature definitions)
@@ -3323,6 +3434,17 @@
       )
     )
   )
+)
+
+(defun swapp-resource-cleanup-verify (/ marked-p snapshot definitions)
+  (setq marked-p (swapp-resource-cleanup-marked-p))
+  (if marked-p
+    (progn
+      (setq snapshot (swapp-workflow-integrity-snapshot))
+      (setq definitions (swapp-named-definition-snapshot))
+    )
+  )
+  (swapp-resource-cleanup-verify-from-snapshots marked-p snapshot definitions)
 )
 
 (defun swapp-resource-cleanup-success-state-items
@@ -3397,7 +3519,7 @@
   )
 )
 
-(defun swapp-run-resource-cleanup (/ doc undo-open before after pass passes-executed command-result command-ok definition-initial definition-before definition-after definition-presave initial-volatile-identities before-records after-records before-identities after-identities presave-records presave-identities postsave-records postsave-identities removed-records added-records removed-identities added-identities postsave-removed-records postsave-added-records postsave-removed-identities postsave-added-identities removed added record-removed record-added handle-reassigned postsave-handle-reassigned total-removed total-added total-added-records total-handle-reassigned removed-records-seen added-records-seen zero-pass integrity-ok definition-changed failure-status failure-detail rollback-needed undo-result undo-ok removed-sample stable-removed-sample added-sample presave-ok state-save-pass state-save-passes-executed state-save-rebase-count state-save-stable state-save-ok state-save-after state-save-definition state-save-baseline-records state-save-current-records state-save-baseline-identities state-save-current-identities state-save-removed-records state-save-added-records state-save-removed-identities state-save-added-identities state-save-removed-seen state-save-added-seen state-save-removed-sample state-save-added-sample state-save-handle-reregistered state-save-total-handle-reregistered final-verify-ok)
+(defun swapp-run-resource-cleanup (/ doc undo-open before after before-sentinel after-sentinel pass passes-executed command-result command-ok definition-initial definition-before definition-after definition-presave initial-volatile-identities before-records after-records before-identities after-identities presave-records presave-identities postsave-records postsave-identities removed-records added-records removed-identities added-identities postsave-removed-records postsave-added-records postsave-removed-identities postsave-added-identities removed added record-removed record-added handle-reassigned postsave-handle-reassigned total-removed total-added total-added-records total-handle-reassigned removed-records-seen added-records-seen zero-pass integrity-ok definition-changed failure-status failure-detail rollback-needed undo-result undo-ok removed-sample stable-removed-sample added-sample presave-ok state-save-pass state-save-passes-executed state-save-rebase-count state-save-stable state-save-ok state-save-after state-save-definition state-save-baseline-records state-save-current-records state-save-baseline-identities state-save-current-identities state-save-removed-records state-save-added-records state-save-removed-identities state-save-added-identities state-save-removed-seen state-save-added-seen state-save-removed-sample state-save-added-sample state-save-handle-reregistered state-save-total-handle-reregistered final-verify-ok)
   (swapp-activate-model)
   (if (not (swcad-title-ensure-work-copy-for-mutation))
     (progn
@@ -3409,6 +3531,9 @@
       (princ "\n대상: CAD가 미사용으로 판정한 블록/레이어/스타일/재질/등록 응용프로그램 등 14개 이름 정의 범주")
       (princ "\n명령 수준 제외: 길이 0 형상, 빈 문자 객체, 분리된 데이터. 모델/종이공간/GMTITLE/치수/Layout 무결성이 달라지면 전체 UNDO")
       (setq before (swapp-workflow-integrity-snapshot))
+      (setq before-sentinel
+        (swapp-workflow-integrity-sentinel-from-snapshot before)
+      )
       (setq doc (swapp-doc))
       (setq undo-open nil)
       (if (swapp-call-ok-p 'vla-StartUndoMark (list doc)) (setq undo-open T))
@@ -3475,8 +3600,19 @@
             (not (equal (nth 2 definition-initial) after-records))
           )
         )
-        (setq after (swapp-workflow-integrity-snapshot))
-        (setq integrity-ok (swapp-workflow-integrity-equal-p before after))
+        ;; A zero-definition-change pass is followed immediately by the full
+        ;; pre-save audit, so do not duplicate its intermediate sentinel.
+        (if (equal before-records after-records)
+          (setq integrity-ok T)
+          (progn
+            (setq after-sentinel (swapp-workflow-integrity-sentinel-snapshot))
+            (setq integrity-ok
+              (swapp-workflow-integrity-sentinel-equal-p
+                before-sentinel after-sentinel
+              )
+            )
+          )
+        )
         (if (not (car command-result))
           (progn
             (setq command-ok nil)
@@ -3518,6 +3654,20 @@
         (progn
           (setq failure-status "FAILED_NOT_CONVERGED")
           (setq failure-detail "제한 반복 안에 이름 정의 삭제 0개 고정점에 도달하지 못했습니다."))
+      )
+      ;; Retain one full geometry audit before the first save.  The sentinel
+      ;; replaces only the repeated bbox scans inside the purge loop.
+      (if (and command-ok integrity-ok zero-pass (not failure-status))
+        (progn
+          (setq after (swapp-workflow-integrity-snapshot))
+          (setq integrity-ok (swapp-workflow-integrity-equal-p before after))
+          (if (not integrity-ok)
+            (progn
+              (setq failure-status "FAILED_INTEGRITY")
+              (setq failure-detail "저장 전 전체 무결성 검사에서 도면 데이터 변경이 감지되었습니다.")
+            )
+          )
+        )
       )
       (setq rollback-needed
         (and
@@ -3606,7 +3756,12 @@
             (swapp-definition-record-identities presave-records)
           )
           (setq presave-ok (swapp-save-current))
-          (setq after (swapp-workflow-integrity-snapshot))
+          ;; A full bbox audit ran immediately before this save and another
+          ;; runs after the cleanup state is persisted.  Defer only this
+          ;; middle model-bbox rescan while retaining every other invariant.
+          (setq after
+            (swapp-workflow-integrity-snapshot-with-model-bbox (nth 1 before))
+          )
           (setq definition-after (swapp-named-definition-snapshot))
           (setq postsave-records (nth 2 definition-after))
           (setq postsave-identities
@@ -3858,7 +4013,15 @@
               )
               (if (not failure-status)
                 (progn
-                  (setq final-verify-ok (swapp-resource-cleanup-verify))
+                  ;; The state-save pass already captured the persisted database.
+                  ;; Reuse it here instead of immediately repeating the full audit.
+                  (setq final-verify-ok
+                    (swapp-resource-cleanup-verify-from-snapshots
+                      (swapp-resource-cleanup-marked-p)
+                      state-save-after
+                      state-save-definition
+                    )
+                  )
                   (if (not final-verify-ok)
                     (progn
                       (setq failure-status "FAILED_STATE_SAVE_AUDIT")
@@ -4367,6 +4530,11 @@
     (T (princ "\n처리할 도면틀/XREF를 찾지 못했습니다. 새 호스트 도면의 XREF 상태를 확인하세요."))
   )
   (if mutating-stage (swapp-read-cache-begin))
+  ;; A successful cleanup just completed a persisted full audit.  Hand that
+  ;; result to the immediate stage/status reads in this same command only.
+  (if (and (equal stage "CLEANUP") run-result)
+    (swapp-read-cache-seed "RESOURCE_CLEANUP_VERIFY" T)
+  )
   (setq after-stage (swapp-workflow-stage))
   (princ (strcat "\n실행 후 단계: " (swapp-stage-label after-stage) " [" after-stage "]"))
   (if (and (equal stage after-stage) (not run-result))

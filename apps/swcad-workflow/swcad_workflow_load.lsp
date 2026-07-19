@@ -2,7 +2,7 @@
 
 (vl-load-com)
 
-(setq *swapp-loader-version* "260715-full-unused-purge-13")
+(setq *swapp-loader-version* "260719-cleanup-zero-pass-fast-17")
 
 (defun swapp-loader-source (/ source)
   (setq source nil)
