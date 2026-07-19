@@ -1,5 +1,7 @@
 # SWCAD 출처 기반 Layout·자동 정리 검증 (2026-07-14)
 
+> 이 문서는 `XREF_BOUND_UNUSED_V1` 제한 정리의 당시 검증 기록이다. 현재 `ALL_UNUSED_NAMED_DEFINITIONS_V5` 설계와 최종 결과는 `full-unused-definition-cleanup-test-2026-07-14.md`를 기준으로 본다.
+
 ## 목표
 
 - 수동 `PURGE`를 없앤다.

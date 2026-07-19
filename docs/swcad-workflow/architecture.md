@@ -8,8 +8,8 @@ SolidWorks DWG를 XREF로 모은 새 호스트 도면에서 기존 세 도구를
 XREF 독립 작업본 생성 및 materialize
 → native GMTITLE 변환
 → 치수/공차 정규화
-→ 미사용 XREF 리소스 정리
 → 원본 파일명 A4 Layout 생성
+→ 전체 미사용 이름 정의 정리
 → 통합 검증
 ```
 
@@ -37,7 +37,7 @@ SWCADVERIFY
 `SWCADRUN`은 현재 상태에서 다음 안전 단계 하나만 실행한다. 중간에 종료해도 DWG의 `SWCAD_WORKFLOW_STATE` XRecord를 읽어 재개한다. 단계는 사용자에게 1/6부터 6/6까지 표시하며, GMTITLE 결과가 `ABORT_`, `ERROR_`, `WARN_`이면 같은 명령의 반복을 권장하지 않는다.
 
 ```text
-XREF → SHEET_WRAPPERS(필요한 경우) → TITLE → DIMSTYLE → CLEANUP → LAYOUT → COMPLETE
+XREF → SHEET_WRAPPERS(필요한 경우) → TITLE → DIMSTYLE → LAYOUT → CLEANUP → COMPLETE
 ```
 
 ## 성능 구조
@@ -102,17 +102,21 @@ DIMENSION_SEMANTICS=PRESERVED
 
 복원 후에도 기존 스타일 감사와 Mechanical fit 감사가 모두 통과해야 한다.
 
-## 미사용 리소스 정리 계약
+## 전체 미사용 이름 정의 정리 계약
 
-DIMSTYLE 이후 Layout 전에 `$0$` 결합 흔적과 미사용 SLD 정의를 제한 반복으로 정리한다.
+Layout 생성 뒤 실제 참조 관계가 확정되면 native `-PURGE`를 이름 정의 범주별로 반복한다. `-PURGE All`은 사용하지 않는다.
 
-- 범위: 블록, 치수 스타일, 문자 스타일, 선종류
-- 보호: 기본/현재/실참조 정의, `AM_ISO`, `DR_A*_Outline`, `DR_titlea_3rd`, `GENIUS_`, `GMTITLE`
-- 수렴: 최대 6회 안에 삭제 0개 반복 도달
-- 무결성: 모델 객체 수, 모델 bbox, 치수 의미 다중집합, GMTITLE frame/title 링크·속성·bbox 일치
-- 상태: `RESOURCE_CLEANUP=OK`, `RESOURCE_CLEANUP_ZERO_PASS=YES`, 정책 `XREF_BOUND_UNUSED_V1`
+- 범위: 블록, 치수 스타일, 그룹, 도면층, 선종류, 재질, 다중 지시선 스타일, 플롯 스타일, 쉐이프, 문자 스타일, 여러 줄 스타일, 테이블 스타일, 비주얼 스타일, 등록 응용프로그램
+- 명령 수준 제외: 길이 0 형상, 빈 문자 객체, 분리된 데이터
+- 등록 응용프로그램: GstarCAD가 XData·extension dictionary에서 실참조되지 않는다고 판정한 정의만 삭제
+- 수렴: 최대 32회 안에 정렬된 symbol table/NOD 재귀 정의 목록이 같은 삭제 0개 반복 도달
+- 무결성: 모델·모든 paper layout 객체 수와 bbox, Layout 용지·탭 순서·viewport 설정, 치수 의미 다중집합, GMTITLE frame/title 링크·속성, 출처와 비정리 workflow 상태 일치
+- GMTITLE 내부 구조: frame/title/attribute의 전체 DXF·XData와 persistent reactor, extension dictionary 재귀 내용, `GENIUS_GENOREF_13` native 대상 handle·종류를 세션 종속 ENAME 대신 영구 handle로 정규화해 비교
+- 상태: `RESOURCE_CLEANUP=OK`, `RESOURCE_CLEANUP_ZERO_PASS=YES`, 정책 `ALL_UNUSED_NAMED_DEFINITIONS_V5`, 최종 정의 전체 지문과 종류·경로·이름 정체성 지문 저장
 
-삭제 중 무결성이 달라지면 UNDO를 시도하고 실패 상태를 기록한다. 같은 `SWCADRUN`을 반복하지 않으며 Layout 생성도 차단한다.
+GstarCAD Mechanical은 재열기 과정에서 native XData용 APPID, 세션의 `*ACTIVE` VPORT, 내부 객체가 없는 익명 `*U숫자` 블록 정의를 다시 등록할 수 있다. 이 항목들도 PURGE 반복과 전체 정의 지문에는 포함한다. 다만 저장·재열기 완료 게이트에 사용하는 안정 정체성 지문에서만 제외하고 APPID, VPORT, 빈 익명 블록의 개별 지문을 별도로 저장한다. 익명 플래그가 없거나 내부 객체가 하나라도 있는 블록은 이 예외에 포함하지 않는다.
+
+전체 정리와 성공 감사 상태 기록을 하나의 UNDO mark에 묶는다. 명령 오류, 무결성 차이, 제한 반복 비수렴, 첫 저장 실패, 저장 고정점 실패가 있으면 UNDO 1회를 실행한 뒤 초기 정의 목록과 무결성까지 복구됐는지 확인한다. PURGE 반복 안에서는 handle을 포함한 전체 목록이 고정돼야 한다. 저장·재열기 감사에서는 정의의 종류·경로·이름 정체성 지문을 완료 게이트로 사용하고, 같은 정의가 새 handle로 재등록된 차이는 진단값으로 남긴다. 성공 상태 XRecord를 쓴 뒤 저장이 내부 정의 정체성을 정규화하면 저장된 현재 DB로 기준을 바꾸고 최대 4회 안에서 다시 상태를 기록한다. 마지막 저장 직후 같은 세션 자체 감사까지 통과해야 성공이다. GstarCAD의 `DICTNEXT`가 부모 항목의 그룹 3 이름을 생략하는 경우가 있으므로 사전 경로는 부모 `DICTIONARY`의 `(3 . 이름)`과 `(350/360 . 객체)` 쌍을 우선 파싱한다. 성공·실패 상태를 다시 쓸 때 자체적으로 교체되는 `SWCAD_WORKFLOW_STATE` XRecord는 이 실제 이름 경로에서 항목의 존재와 종류를 검사하면서 handle만 고정 토큰으로 정규화한다. 같은 LSP 버전의 실패 상태에서는 `SWCADRUN` 반복을 막고 최종 완료로 이동하지 않는다. 코드 수정으로 LSP 버전이 달라졌을 때만 저장된 실패 버전과 비교해 현재 버전에서 1회 재시도를 허용한다.
 
 ## Layout 계약
 
@@ -139,7 +143,7 @@ DIMSTYLE 이후 Layout 전에 `$0$` 결합 흔적과 미사용 SLD 정의를 제
 - GMTITLE 최종 상태 `OK`
 - 치수 스타일/Mechanical fit 감사 통과
 - `DIMENSION_SEMANTICS=PRESERVED`
-- 미사용 XREF 리소스 정리 상태와 저장된 무결성 지문 일치
+- 전체 미사용 이름 정의 정리 상태, 삭제 0개 반복, 저장된 무결성 지문 일치
 - GMTITLE 도면틀 수와 SWCAD Layout 수 일치
 - 출처 기반 좌표 모드, Layout 이름·소유권, 계획 수량·지문 유지
 - 각 Layout의 A4 용지와 단일 뷰포트 확인

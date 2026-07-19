@@ -88,7 +88,26 @@
   (not (vl-catch-all-error-p result))
 )
 
-(defun swapp-int-main (/ root mode source output log-path handle load-result load-ok attached command-ok status-command-ok status-dbmod-before status-dbmod-after summary xrefs dimensions source-titles source-frames source-records source-metadata-ok evidence native-targets native-target-frames native-target-titles stage dim-state cleanup-state layouts title-status dim-ok cleanup-ok layout-ok verify-command-ok pass unmatched-before unmatched-after unmatched-handle same-handle-after same-handle-before layout-plan wrappers wrapper-index wrapper-record wrappers-before wrappers-after dimensions-before dimensions-after expected-dimensions-after bbox-before bbox-after)
+(defun swapp-int-definition-path-audit (/ records record workflow-record no-key-count)
+  (setq records (nth 2 (swapp-named-definition-snapshot)))
+  (setq workflow-record "<missing>")
+  (setq no-key-count 0)
+  (foreach record records
+    (if
+      (vl-string-search
+        "DICT|NOD/SWCAD_WORKFLOW_STATE|XRECORD|"
+        record
+      )
+      (setq workflow-record record)
+    )
+    (if (vl-string-search "<NO-KEY>" record)
+      (setq no-key-count (1+ no-key-count))
+    )
+  )
+  (list workflow-record no-key-count)
+)
+
+(defun swapp-int-main (/ root mode source output log-path handle load-result load-ok attached command-ok status-command-ok status-dbmod-before status-dbmod-after summary xrefs dimensions source-titles source-frames source-records source-metadata-ok evidence native-targets native-target-frames native-target-titles stage dim-state cleanup-state layouts title-status dim-ok cleanup-ok layout-ok verify-command-ok pass unmatched-before unmatched-after unmatched-handle same-handle-after same-handle-before layout-plan wrappers wrapper-index wrapper-record wrappers-before wrappers-after dimensions-before dimensions-after expected-dimensions-after bbox-before bbox-after definition-path-audit)
   (setq root (vl-string-translate "\\" "/" (swapp-int-env "SWCAD_WORKFLOW_ROOT" "C:/Users/DR-DESIGN/Documents/CAD tool")))
   (setq mode (strcase (swapp-int-env "SWCAD_WORKFLOW_MODE" "MATERIALIZE_RAW")))
   (setq source (vl-string-translate "\\" "/" (swapp-int-env "SWCAD_WORKFLOW_SOURCE" "")))
@@ -318,12 +337,13 @@
             (setq command-ok (and (swapp-title-complete-p evidence) (swapp-int-command-ok 'c:SWCADRUN)))
             (setq dim-state (swapp-state-value "DIMSTYLE"))
             (setq stage (swapp-workflow-stage))
+            (setq layout-plan (if (equal stage "LAYOUT") (swapp-layout-plan) nil))
+            (setq command-ok (and command-ok (equal stage "LAYOUT") (swapp-int-command-ok 'c:SWCADRUN)))
+            (setq stage (swapp-workflow-stage))
             (setq command-ok (and command-ok (equal stage "CLEANUP") (swapp-int-command-ok 'c:SWCADRUN)))
             (setq cleanup-state (swapp-state-value "RESOURCE_CLEANUP"))
             (setq cleanup-ok (swapp-resource-cleanup-verify))
-            (setq stage (swapp-workflow-stage))
-            (setq layout-plan (if (equal stage "LAYOUT") (swapp-layout-plan) nil))
-            (setq command-ok (and command-ok (equal stage "LAYOUT") (swapp-int-command-ok 'c:SWCADRUN)))
+            (setq definition-path-audit (swapp-int-definition-path-audit))
             (setq stage (swapp-workflow-stage))
             (setq layouts (length (swapp-layout-owned-names)))
             (if command-ok
@@ -345,7 +365,17 @@
             (swapp-int-write handle (strcat "Dimension restore count: " (if (swapp-state-value "DIMENSION_RESTORE_COUNT") (swapp-state-value "DIMENSION_RESTORE_COUNT") "<none>")))
             (swapp-int-write handle (strcat "Resource cleanup state: " (if cleanup-state cleanup-state "<none>")))
             (swapp-int-write handle (strcat "Resource cleanup zero pass: " (if (swapp-state-value "RESOURCE_CLEANUP_ZERO_PASS") (swapp-state-value "RESOURCE_CLEANUP_ZERO_PASS") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup definition signature: " (if (swapp-state-value "RESOURCE_CLEANUP_DEFINITION_SIGNATURE") (swapp-state-value "RESOURCE_CLEANUP_DEFINITION_SIGNATURE") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup definition identity signature: " (if (swapp-state-value "RESOURCE_CLEANUP_DEFINITION_IDENTITY_SIGNATURE") (swapp-state-value "RESOURCE_CLEANUP_DEFINITION_IDENTITY_SIGNATURE") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup stable definition identity signature: " (if (swapp-state-value "RESOURCE_CLEANUP_STABLE_DEFINITION_IDENTITY_SIGNATURE") (swapp-state-value "RESOURCE_CLEANUP_STABLE_DEFINITION_IDENTITY_SIGNATURE") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup APPID identity signature: " (if (swapp-state-value "RESOURCE_CLEANUP_APPID_IDENTITY_SIGNATURE") (swapp-state-value "RESOURCE_CLEANUP_APPID_IDENTITY_SIGNATURE") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup VPORT identity signature: " (if (swapp-state-value "RESOURCE_CLEANUP_VPORT_IDENTITY_SIGNATURE") (swapp-state-value "RESOURCE_CLEANUP_VPORT_IDENTITY_SIGNATURE") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup session anonymous block identity signature: " (if (swapp-state-value "RESOURCE_CLEANUP_SESSION_ANON_BLOCK_IDENTITY_SIGNATURE") (swapp-state-value "RESOURCE_CLEANUP_SESSION_ANON_BLOCK_IDENTITY_SIGNATURE") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup state-save stabilization passes: " (if (swapp-state-value "RESOURCE_CLEANUP_STATE_SAVE_STABILIZATION_PASSES") (swapp-state-value "RESOURCE_CLEANUP_STATE_SAVE_STABILIZATION_PASSES") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup state-save rebase count: " (if (swapp-state-value "RESOURCE_CLEANUP_STATE_SAVE_REBASE_COUNT") (swapp-state-value "RESOURCE_CLEANUP_STATE_SAVE_REBASE_COUNT") "<none>")))
             (swapp-int-write handle (strcat "Resource cleanup audit: " (swapp-int-bool cleanup-ok)))
+            (swapp-int-write handle (strcat "Workflow state definition record: " (car definition-path-audit)))
+            (swapp-int-write handle (strcat "Definition <NO-KEY> count: " (itoa (cadr definition-path-audit))))
             (swapp-int-write handle (strcat "Layout plan count before create: " (itoa (length layout-plan))))
             (if layout-plan
               (progn
@@ -385,6 +415,11 @@
                 (equal (swapp-state-value "DIMENSION_SEMANTICS") "PRESERVED")
                 (equal cleanup-state "OK")
                 cleanup-ok
+                (equal
+                  (car definition-path-audit)
+                  "DICT|NOD/SWCAD_WORKFLOW_STATE|XRECORD|<WORKFLOW-STATE-XRECORD>"
+                )
+                (= (cadr definition-path-audit) 0)
                 (= (length layout-plan) 15)
                 (= layouts 15)
                 (equal (swapp-state-value "LAYOUT_PLACEMENT_MODE") *swapp-layout-placement-mode*)
@@ -402,6 +437,7 @@
             (setq title-status (swcad-title-integrated-verify-final-summary))
             (setq dim-ok (swapp-dimstyle-verify))
             (setq cleanup-ok (swapp-resource-cleanup-verify))
+            (setq definition-path-audit (swapp-int-definition-path-audit))
             (setq layout-ok (swapp-layout-state-valid-p (length (swcad-title-frame-records))))
             (setq verify-command-ok (swapp-int-command-ok 'c:SWCADVERIFY))
             (swapp-int-write handle (strcat "DIMSTYLE state: " (if (swapp-state-value "DIMSTYLE") (swapp-state-value "DIMSTYLE") "<none>")))
@@ -409,6 +445,14 @@
             (swapp-int-write handle (strcat "Dimension restore count: " (if (swapp-state-value "DIMENSION_RESTORE_COUNT") (swapp-state-value "DIMENSION_RESTORE_COUNT") "<none>")))
             (swapp-int-write handle (strcat "Resource cleanup state: " (if (swapp-state-value "RESOURCE_CLEANUP") (swapp-state-value "RESOURCE_CLEANUP") "<none>")))
             (swapp-int-write handle (strcat "Resource cleanup zero pass: " (if (swapp-state-value "RESOURCE_CLEANUP_ZERO_PASS") (swapp-state-value "RESOURCE_CLEANUP_ZERO_PASS") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup definition signature: " (if (swapp-state-value "RESOURCE_CLEANUP_DEFINITION_SIGNATURE") (swapp-state-value "RESOURCE_CLEANUP_DEFINITION_SIGNATURE") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup definition identity signature: " (if (swapp-state-value "RESOURCE_CLEANUP_DEFINITION_IDENTITY_SIGNATURE") (swapp-state-value "RESOURCE_CLEANUP_DEFINITION_IDENTITY_SIGNATURE") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup stable definition identity signature: " (if (swapp-state-value "RESOURCE_CLEANUP_STABLE_DEFINITION_IDENTITY_SIGNATURE") (swapp-state-value "RESOURCE_CLEANUP_STABLE_DEFINITION_IDENTITY_SIGNATURE") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup APPID identity signature: " (if (swapp-state-value "RESOURCE_CLEANUP_APPID_IDENTITY_SIGNATURE") (swapp-state-value "RESOURCE_CLEANUP_APPID_IDENTITY_SIGNATURE") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup VPORT identity signature: " (if (swapp-state-value "RESOURCE_CLEANUP_VPORT_IDENTITY_SIGNATURE") (swapp-state-value "RESOURCE_CLEANUP_VPORT_IDENTITY_SIGNATURE") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup session anonymous block identity signature: " (if (swapp-state-value "RESOURCE_CLEANUP_SESSION_ANON_BLOCK_IDENTITY_SIGNATURE") (swapp-state-value "RESOURCE_CLEANUP_SESSION_ANON_BLOCK_IDENTITY_SIGNATURE") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup state-save stabilization passes: " (if (swapp-state-value "RESOURCE_CLEANUP_STATE_SAVE_STABILIZATION_PASSES") (swapp-state-value "RESOURCE_CLEANUP_STATE_SAVE_STABILIZATION_PASSES") "<none>")))
+            (swapp-int-write handle (strcat "Resource cleanup state-save rebase count: " (if (swapp-state-value "RESOURCE_CLEANUP_STATE_SAVE_REBASE_COUNT") (swapp-state-value "RESOURCE_CLEANUP_STATE_SAVE_REBASE_COUNT") "<none>")))
             (swapp-int-write handle (strcat "LAYOUT state: " (if (swapp-state-value "LAYOUT") (swapp-state-value "LAYOUT") "<none>")))
             (swapp-int-write handle (strcat "Layout placement mode: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "<none>")))
             (swapp-int-write handle (strcat "Layout name policy: " (if (swapp-state-value "LAYOUT_NAME_POLICY") (swapp-state-value "LAYOUT_NAME_POLICY") "<none>")))
@@ -419,6 +463,8 @@
             (swapp-int-write handle (strcat "Title verify status: " title-status))
             (swapp-int-write handle (strcat "DIMSTYLE audit: " (swapp-int-bool dim-ok)))
             (swapp-int-write handle (strcat "Resource cleanup audit: " (swapp-int-bool cleanup-ok)))
+            (swapp-int-write handle (strcat "Workflow state definition record: " (car definition-path-audit)))
+            (swapp-int-write handle (strcat "Definition <NO-KEY> count: " (itoa (cadr definition-path-audit))))
             (swapp-int-write handle (strcat "Layout audit: " (swapp-int-bool layout-ok)))
             (swapp-int-write handle (strcat "Public SWCADVERIFY returned without error: " (swapp-int-bool verify-command-ok)))
             (swapp-int-write handle (strcat "Workflow stage: " stage))
@@ -429,6 +475,11 @@
                 (equal (swapp-state-value "DIMENSION_SEMANTICS") "PRESERVED")
                 (equal (swapp-state-value "RESOURCE_CLEANUP") "OK")
                 cleanup-ok
+                (equal
+                  (car definition-path-audit)
+                  "DICT|NOD/SWCAD_WORKFLOW_STATE|XRECORD|<WORKFLOW-STATE-XRECORD>"
+                )
+                (= (cadr definition-path-audit) 0)
                 (equal (swapp-state-value "LAYOUT") "OK")
                 (equal (swapp-state-value "LAYOUT_PLACEMENT_MODE") *swapp-layout-placement-mode*)
                 (equal (swapp-state-value "LAYOUT_PLAN_COUNT") "15")

@@ -9,6 +9,7 @@ $distRoot = Join-Path $repoRoot "dist"
 $packageName = "SWCAD-Workflow-$Version"
 $packageRoot = Join-Path $distRoot $packageName
 $zipPath = Join-Path $distRoot "$packageName.zip"
+$checksumPath = "$zipPath.sha256"
 
 if ($Version -notmatch '^[0-9A-Za-z][0-9A-Za-z._-]*$') {
   throw "Invalid package version: $Version"
@@ -17,12 +18,16 @@ if ($Version -notmatch '^[0-9A-Za-z][0-9A-Za-z._-]*$') {
 $distFull = [IO.Path]::GetFullPath($distRoot).TrimEnd([IO.Path]::DirectorySeparatorChar)
 $packageFull = [IO.Path]::GetFullPath($packageRoot)
 $zipFull = [IO.Path]::GetFullPath($zipPath)
+$checksumFull = [IO.Path]::GetFullPath($checksumPath)
 $distPrefix = $distFull + [IO.Path]::DirectorySeparatorChar
 if (-not $packageFull.StartsWith($distPrefix, [StringComparison]::OrdinalIgnoreCase)) {
   throw "Package directory escaped dist: $packageFull"
 }
 if (-not $zipFull.StartsWith($distPrefix, [StringComparison]::OrdinalIgnoreCase)) {
   throw "Package archive escaped dist: $zipFull"
+}
+if (-not $checksumFull.StartsWith($distPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+  throw "Package checksum escaped dist: $checksumFull"
 }
 
 $files = @(
@@ -32,6 +37,7 @@ $files = @(
   "docs\swcad-workflow\architecture.md",
   "docs\swcad-workflow\test-results-2026-07-13.md",
   "docs\swcad-workflow\source-layout-cleanup-test-2026-07-14.md",
+  "docs\swcad-workflow\full-unused-definition-cleanup-test-2026-07-14.md",
   "src\tools\gmtitle\swcad_title_scale.lsp",
   "src\tools\gmtitle\swtitle_gmtitle_dialog_autoselect.ps1",
   "src\tools\gstarcad-dimstyle\gstarcad_dimstyle_keep_tolerance.lsp",
@@ -41,6 +47,7 @@ $files = @(
 [void](New-Item -ItemType Directory -Path $distFull -Force)
 Remove-Item -LiteralPath $packageFull -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $zipFull -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $checksumFull -Force -ErrorAction SilentlyContinue
 [void](New-Item -ItemType Directory -Path $packageRoot -Force)
 
 foreach ($relative in $files) {
@@ -83,4 +90,11 @@ pause
 [IO.File]::WriteAllText((Join-Path $packageFull "Install_SWCAD_Workflow.cmd"), $installerBatch, [Text.Encoding]::ASCII)
 
 Compress-Archive -LiteralPath $packageRoot -DestinationPath $zipPath -CompressionLevel Optimal
+$zipHash = (Get-FileHash -LiteralPath $zipFull -Algorithm SHA256).Hash
+[IO.File]::WriteAllText(
+  $checksumFull,
+  "$zipHash *$([IO.Path]::GetFileName($zipFull))`r`n",
+  [Text.Encoding]::ASCII
+)
 Write-Output "SWCAD Workflow package created: $zipPath"
+Write-Output "SWCAD Workflow checksum created: $checksumPath"

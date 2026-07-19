@@ -17,8 +17,14 @@ $required = @(
   "diagnostics\swcad-workflow\run_workflow_integration_probe.ps1",
   "diagnostics\swcad-workflow\legacy_count_rebase_probe.lsp",
   "diagnostics\swcad-workflow\run_legacy_count_rebase_probe.ps1",
+  "diagnostics\swcad-workflow\cleanup_state_probe.lsp",
+  "diagnostics\swcad-workflow\cleanup_symbol_table_probe.lsp",
+  "diagnostics\swcad-workflow\cleanup_identity_delta_probe.lsp",
+  "diagnostics\swcad-workflow\cleanup_anonymous_block_probe.lsp",
+  "diagnostics\swcad-workflow\analyze_cleanup_identity_delta.ps1",
   "docs\swcad-workflow\architecture.md",
-  "docs\swcad-workflow\test-results-2026-07-13.md"
+  "docs\swcad-workflow\test-results-2026-07-13.md",
+  "docs\swcad-workflow\full-unused-definition-cleanup-test-2026-07-14.md"
 )
 
 function Add-Failure {
@@ -117,7 +123,11 @@ foreach ($relative in @(
   "diagnostics\swcad-workflow\xref_materialize_probe.lsp",
   "diagnostics\swcad-workflow\workflow_loader_probe.lsp",
   "diagnostics\swcad-workflow\workflow_integration_probe.lsp",
-  "diagnostics\swcad-workflow\legacy_count_rebase_probe.lsp"
+  "diagnostics\swcad-workflow\legacy_count_rebase_probe.lsp",
+  "diagnostics\swcad-workflow\cleanup_state_probe.lsp",
+  "diagnostics\swcad-workflow\cleanup_symbol_table_probe.lsp",
+  "diagnostics\swcad-workflow\cleanup_identity_delta_probe.lsp",
+  "diagnostics\swcad-workflow\cleanup_anonymous_block_probe.lsp"
 )) {
   Test-LispBalance (Join-Path $repoRoot $relative)
 }
@@ -128,7 +138,8 @@ foreach ($relative in @(
   "diagnostics\swcad-workflow\run_xref_materialize_matrix.ps1",
   "diagnostics\swcad-workflow\run_workflow_loader_probe.ps1",
   "diagnostics\swcad-workflow\run_workflow_integration_probe.ps1",
-  "diagnostics\swcad-workflow\run_legacy_count_rebase_probe.ps1"
+  "diagnostics\swcad-workflow\run_legacy_count_rebase_probe.ps1",
+  "diagnostics\swcad-workflow\analyze_cleanup_identity_delta.ps1"
 )) {
   Test-PowerShellSyntax (Join-Path $repoRoot $relative)
 }
@@ -215,6 +226,8 @@ foreach ($needle in @(
   '"WARN_"',
   '"SWTITLEVERIFY_FINAL_FAIL"',
   "swapp-recommended-next-action",
+  "swapp-resource-cleanup-retry-allowed-p",
+  "cleanup-retry-blocked",
   "DIMENSION_SEMANTICS",
   "swapp-restore-dimension-semantic-snapshots",
   "SWCAD_DIMENSION_SEMANTICS_CHANGED",
@@ -226,8 +239,59 @@ foreach ($needle in @(
   "LAYOUT_OWNED_COUNT",
   "SOURCE_FILE_STEM_NO_PREFIX_NO_SEQUENCE",
   "swapp-run-resource-cleanup",
+  "swapp-native-purge-named-pass",
+  "swapp-native-purge-category",
+  "swapp-named-definition-snapshot",
+  "swapp-named-definition-signature",
+  "swapp-named-definition-identity-signature",
+  "swapp-named-definition-stable-identity-signature",
+  "swapp-named-definition-appid-identity-signature",
+  "swapp-appid-definition-record-p",
+  "swapp-named-definition-vport-identity-signature",
+  "swapp-vport-definition-record-p",
+  "swapp-session-empty-anonymous-block-definition-record-p",
+  "swapp-named-definition-session-anonymous-block-identity-signature",
+  "swapp-volatile-definition-record-p",
+  "swapp-definition-records-exclude-identities",
+  "swapp-definition-record-identity",
+  "swapp-definition-record-identities",
+  "swapp-print-definition-record-sample",
+  "swapp-dictionary-definition-handle-token",
+  "swapp-dictionary-entry-record",
+  "swapp-dictionary-entries-from-entget",
+  "swapp-dictionary-entries-from-dictnext",
+  "alternating group 3 + 350/360 pairs",
+  "<WORKFLOW-STATE-XRECORD>",
+  "swapp-layout-integrity-snapshot",
+  "swapp-entity-persistent-data-snapshot",
+  "swapp-extension-dictionary-integrity-snapshot",
+  "swapp-gmtitle-native-target-snapshot",
+  "swapp-title-attribute-structure-snapshot",
+  "RESOURCE_CLEANUP_DEFINITION_SIGNATURE",
+  "RESOURCE_CLEANUP_DEFINITION_IDENTITY_SIGNATURE",
+  "RESOURCE_CLEANUP_STABLE_DEFINITION_IDENTITY_SIGNATURE",
+  "RESOURCE_CLEANUP_APPID_IDENTITY_SIGNATURE",
+  "RESOURCE_CLEANUP_VPORT_IDENTITY_SIGNATURE",
+  "RESOURCE_CLEANUP_SESSION_ANON_BLOCK_IDENTITY_SIGNATURE",
+  "RESOURCE_CLEANUP_STABLE_IDENTITY_EXCLUDED",
   "RESOURCE_CLEANUP_ZERO_PASS",
-  "XREF_BOUND_UNUSED_V1",
+  "RESOURCE_CLEANUP_ADDED_IDENTITIES",
+  "RESOURCE_CLEANUP_ADDED_RECORDS",
+  "RESOURCE_CLEANUP_HANDLE_REREGISTERED",
+  "RESOURCE_CLEANUP_POST_SAVE_HANDLE_REREGISTERED",
+  "RESOURCE_CLEANUP_STATE_SAVE_STABILIZATION_PASSES",
+  "RESOURCE_CLEANUP_STATE_SAVE_REBASE_COUNT",
+  "RESOURCE_CLEANUP_STATE_SAVE_REMOVED_SAMPLE",
+  "RESOURCE_CLEANUP_STATE_SAVE_ADDED_SAMPLE",
+  "RESOURCE_CLEANUP_STATE_SAVE_HANDLE_REREGISTERED",
+  "FAILED_POST_SAVE_CHANGE",
+  "FAILED_PRE_SAVE",
+  "FAILED_STATE_SAVE_NOT_CONVERGED",
+  "FAILED_STATE_SAVE_AUDIT",
+  "swapp-resource-cleanup-success-state-items",
+  "*swapp-resource-cleanup-state-save-max-passes*",
+  "ALL_UNUSED_NAMED_DEFINITIONS_V5",
+  "ZERO_LENGTH|EMPTY_TEXT|ORPHANED_DATA",
   "swapp-layout-plan",
   "swapp-print-layout-plan-items",
   "LAYOUT_PLAN_COUNT",
@@ -240,11 +304,46 @@ foreach ($needle in @(
 Assert-NotContains $appText "vla-Move" "Manual placement policy"
 Assert-NotContains $appText "_.MOVE" "Manual placement policy"
 Assert-NotContains $appText "*swapp-layout-prefix*" "Prefix-free Layout ownership policy"
+Assert-NotContains $appText '"_All"' "Named-definition-only purge policy"
+Assert-NotContains $appText '"_Zero-length' "Named-definition-only purge policy"
+Assert-NotContains $appText '"_Empty text' "Named-definition-only purge policy"
+Assert-NotContains $appText '"_Orphaned' "Named-definition-only purge policy"
+Assert-NotContains $appText "FAILED_DEFINITION_ADDED" "PURGE auto-created definition convergence policy"
+Assert-NotContains $appText "strcmp" "GstarCAD AutoLISP compatibility"
+Assert-Contains $appText '(equal (nth 2 fields) "*ACTIVE")' "Session-only VPORT policy"
+Assert-Contains $appText '"APPID|VPORT|EMPTY_ANONYMOUS_BLOCK"' "Cross-session volatile definition disclosure"
+Assert-Contains $appText "initial-volatile-identities" "Stable removed-definition diagnostic policy"
+
+$dimStageIndex = $appText.IndexOf('((not (swapp-dimstyle-marked-p)) "DIMSTYLE")')
+$layoutStageIndex = $appText.IndexOf('((not (swapp-layout-state-valid-p frames)) "LAYOUT")')
+$cleanupStageIndex = $appText.IndexOf('((not (swapp-cached-resource-cleanup-verify)) "CLEANUP")')
+if (($dimStageIndex -lt 0) -or ($layoutStageIndex -le $dimStageIndex) -or ($cleanupStageIndex -le $layoutStageIndex)) {
+  Add-Failure "Workflow stage order must remain DIMSTYLE -> LAYOUT -> CLEANUP"
+}
+foreach ($needle in @(
+  '("BLOCK" "_Block")',
+  '("DIMSTYLE" "D")',
+  '("GROUP" "_Groups")',
+  '("LAYER" "_Layers")',
+  '("LINETYPE" "_LTypes")',
+  '("MATERIAL" "_Materials")',
+  '("MLEADERSTYLE" "MU")',
+  '("PLOTSTYLE" "_Plotstyles")',
+  '("SHAPE" "_SHapes")',
+  '("TEXTSTYLE" "_STyles")',
+  '("MLINESTYLE" "_Mlinestyles")',
+  '("TABLESTYLE" "_Tablestyles")',
+  '("VISUALSTYLE" "_Visualstyles")',
+  '("REGAPP" "R")'
+)) {
+  Assert-Contains $appText $needle "Named-definition purge category contract"
+}
 
 foreach ($needle in @(
   "swapp-read-cache-begin",
   "swapp-read-cache-end",
   "swapp-cached-title-evidence",
+  "swapp-cached-resource-cleanup-verify",
   "swapp-command-performance-end",
   "*swapp-last-command-title-insert-scans*",
   "swcad-title-target-gmtitle-pair-records-from",
@@ -290,6 +389,9 @@ foreach ($needle in @(
   "Remove-Item -LiteralPath `$packageFull -Recurse",
   "Install_SWCAD_Workflow.cmd",
   "SWCAD_Workflow_Load.lsp",
+  '$checksumPath = "$zipPath.sha256"',
+  "Get-FileHash -LiteralPath `$zipFull -Algorithm SHA256",
+  "WriteAllText(",
   "docs\swcad-workflow\architecture.md",
   "docs\swcad-workflow\test-results-2026-07-13.md"
 )) {

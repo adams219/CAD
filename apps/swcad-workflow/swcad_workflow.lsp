@@ -3,15 +3,48 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "260714-source-layout-cleanup-1")
+(setq *swapp-version* "260715-full-unused-purge-13")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-legacy-layout-prefix* "SWCAD-SHEET")
 (setq *swapp-layout-placement-mode* "XREF_SOURCE_FILENAME_COORDINATES")
 (setq *swapp-source-state-prefix* "SOURCE_SHEET_")
 (setq *swapp-final-sheet-state-prefix* "FINAL_SHEET_")
 (setq *swapp-layout-owned-state-prefix* "LAYOUT_OWNED_")
-(setq *swapp-resource-cleanup-policy* "XREF_BOUND_UNUSED_V1")
-(setq *swapp-resource-cleanup-max-passes* 6)
+(setq *swapp-resource-cleanup-policy* "ALL_UNUSED_NAMED_DEFINITIONS_V5")
+(setq *swapp-resource-cleanup-max-passes* 32)
+(setq *swapp-resource-cleanup-state-save-max-passes* 4)
+(setq *swapp-last-resource-cleanup-marked-p* nil)
+(setq *swapp-last-resource-cleanup-integrity-ok* nil)
+(setq *swapp-last-resource-cleanup-identity-ok* nil)
+(setq *swapp-last-resource-cleanup-full-record-ok* nil)
+(setq *swapp-last-resource-cleanup-stored-integrity* nil)
+(setq *swapp-last-resource-cleanup-current-integrity* nil)
+(setq *swapp-last-resource-cleanup-stored-identity* nil)
+(setq *swapp-last-resource-cleanup-current-identity* nil)
+(setq *swapp-last-resource-cleanup-full-identity-ok* nil)
+(setq *swapp-last-resource-cleanup-stored-full-identity* nil)
+(setq *swapp-last-resource-cleanup-current-full-identity* nil)
+(setq *swapp-last-resource-cleanup-stored-full-record* nil)
+(setq *swapp-last-resource-cleanup-current-full-record* nil)
+(setq *swapp-purge-symbol-tables* '("APPID" "BLOCK" "DIMSTYLE" "LAYER" "LTYPE" "STYLE" "UCS" "VIEW" "VPORT"))
+(setq *swapp-purge-command-categories*
+  '(
+    ("BLOCK" "_Block")
+    ("DIMSTYLE" "D")
+    ("GROUP" "_Groups")
+    ("LAYER" "_Layers")
+    ("LINETYPE" "_LTypes")
+    ("MATERIAL" "_Materials")
+    ("MLEADERSTYLE" "MU")
+    ("PLOTSTYLE" "_Plotstyles")
+    ("SHAPE" "_SHapes")
+    ("TEXTSTYLE" "_STyles")
+    ("MLINESTYLE" "_Mlinestyles")
+    ("TABLESTYLE" "_Tablestyles")
+    ("VISUALSTYLE" "_Visualstyles")
+    ("REGAPP" "R")
+  )
+)
 (setq *swapp-layout-preview-limit* 12)
 (setq *swapp-transform-tolerance* 1e-8)
 (setq *swapp-geometry-tolerance* 0.001)
@@ -412,6 +445,10 @@
 
 (defun swapp-cached-layout-names ()
   (swapp-read-cache-fetch "LAYOUT_NAMES" 'swapp-layout-owned-names nil)
+)
+
+(defun swapp-cached-resource-cleanup-verify ()
+  (swapp-read-cache-fetch "RESOURCE_CLEANUP_VERIFY" 'swapp-resource-cleanup-verify nil)
 )
 
 ;;; ---------------------------
@@ -1981,8 +2018,8 @@
         ((swapp-title-complete-p evidence)
           (cond
             ((not (swapp-dimstyle-marked-p)) "DIMSTYLE")
-            ((not (swapp-resource-cleanup-marked-p)) "CLEANUP")
             ((not (swapp-layout-state-valid-p frames)) "LAYOUT")
+            ((not (swapp-cached-resource-cleanup-verify)) "CLEANUP")
             (T "COMPLETE")
           )
         )
@@ -2040,7 +2077,7 @@
     (setq record (swapp-dim-semantic-record object))
     (if record (setq result (cons record result)))
   )
-  (reverse result)
+  (swapp-sort-strings result)
 )
 
 (defun swapp-dim-semantic-snapshot (object / ename data values handle result code pair)
@@ -2302,14 +2339,331 @@
   (vla-get-Count (swapp-model))
 )
 
-(defun swapp-title-integrity-snapshot (/ pairs result pair title frame title-object attrs)
+(defun swapp-bbox4-union (first second)
+  (cond
+    ((not first) second)
+    ((not second) first)
+    (T
+      (list
+        (min (nth 0 first) (nth 0 second))
+        (min (nth 1 first) (nth 1 second))
+        (max (nth 2 first) (nth 2 second))
+        (max (nth 3 first) (nth 3 second))
+      )
+    )
+  )
+)
+
+(defun swapp-layout-selection-set (layout-name / result)
+  (setq result
+    (vl-catch-all-apply
+      'ssget
+      (list "_X" (list (cons 410 layout-name)))
+    )
+  )
+  (if (vl-catch-all-error-p result) nil result)
+)
+
+(defun swapp-selection-set-bbox4 (ss / index ename object bbox result)
+  (setq result nil)
+  (if ss
+    (progn
+      (setq index 0)
+      (while (< index (sslength ss))
+        (setq ename (ssname ss index))
+        (setq object (swapp-safe 'vlax-ename->vla-object (list ename)))
+        (setq bbox (if object (swapp-object-bbox4 object) nil))
+        (if bbox (setq result (swapp-bbox4-union result bbox)))
+        (setq index (1+ index))
+      )
+    )
+  )
+  result
+)
+
+(defun swapp-viewport-integrity-record (ename / data)
+  (setq data (entget ename))
+  (list
+    (cdr (assoc 5 data))
+    (cdr (assoc 10 data))
+    (cdr (assoc 40 data))
+    (cdr (assoc 41 data))
+    (cdr (assoc 12 data))
+    (cdr (assoc 45 data))
+    (cdr (assoc 51 data))
+    (cdr (assoc 68 data))
+    (cdr (assoc 69 data))
+    (cdr (assoc 90 data))
+  )
+)
+
+(defun swapp-viewport-integrity-snapshot (layout-name / result ename)
+  (setq result nil)
+  (foreach ename (gsla-viewport-entities-for-layout layout-name)
+    (setq result (cons (swapp-viewport-integrity-record ename) result))
+  )
+  (vl-sort
+    result
+    '(lambda (first second)
+      (< (if (car first) (car first) "") (if (car second) (car second) ""))
+    )
+  )
+)
+
+(defun swapp-layout-integrity-snapshot (/ layouts layout name tab-order paper ss record result)
+  (setq layouts (vla-get-Layouts (swapp-doc)))
+  (setq result nil)
+  (vlax-for layout layouts
+    (setq name (vla-get-Name layout))
+    (if (not (equal (strcase name) "MODEL"))
+      (progn
+        (setq tab-order (swapp-safe 'vla-get-TabOrder (list layout)))
+        (if (not (numberp tab-order)) (setq tab-order 0))
+        (setq paper (gsla-layout-paper-size layout))
+        (setq ss (swapp-layout-selection-set name))
+        (setq record
+          (list
+            name
+            tab-order
+            paper
+            (if ss (sslength ss) 0)
+            (swapp-selection-set-bbox4 ss)
+            (swapp-viewport-integrity-snapshot name)
+          )
+        )
+        (setq result (cons record result))
+      )
+    )
+  )
+  (vl-sort
+    result
+    '(lambda (first second)
+      (if (= (nth 1 first) (nth 1 second))
+        (< (strcase (car first)) (strcase (car second)))
+        (< (nth 1 first) (nth 1 second))
+      )
+    )
+  )
+)
+
+(defun swapp-state-integrity-snapshot (/ result pair key)
+  (setq result nil)
+  (foreach pair (swapp-state-read)
+    (setq key (strcase (car pair)))
+    (if
+      (and
+        (not (equal key "VERSION"))
+        (not (swapp-string-starts-ci-p key "RESOURCE_CLEANUP"))
+      )
+      (setq result (cons pair result))
+    )
+  )
+  (vl-sort
+    result
+    '(lambda (first second)
+      (< (strcase (car first)) (strcase (car second)))
+    )
+  )
+)
+
+(defun swapp-entity-handle-token (ename / data handle object)
+  (setq data (if ename (entget ename) nil))
+  (setq handle (if data (cdr (assoc 5 data)) nil))
+  (if (not (= (type handle) 'STR))
+    (progn
+      (setq object (if ename (swapp-safe 'vlax-ename->vla-object (list ename)) nil))
+      (setq handle (if object (swapp-object-handle object) nil))
+    )
+  )
+  (if (and (= (type handle) 'STR) (> (strlen handle) 0))
+    (strcase handle)
+    "<NO-HANDLE>"
+  )
+)
+
+;;; ENAME values are session-local. Convert them to persistent handles before
+;;; comparing cleanup snapshots across save/close/reopen.
+(defun swapp-persistent-data-value (value)
+  (cond
+    ((= (type value) 'ENAME)
+      (list "HANDLE" (swapp-entity-handle-token value))
+    )
+    ((listp value)
+      (if value
+        (cons
+          (swapp-persistent-data-value (car value))
+          (swapp-persistent-data-value (cdr value))
+        )
+        nil
+      )
+    )
+    (T value)
+  )
+)
+
+(defun swapp-entity-persistent-data-snapshot (ename / data result pair)
+  (setq data (if ename (entget ename '("*")) nil))
+  (setq result nil)
+  (foreach pair data
+    (if (not (= (car pair) -1))
+      (setq result (cons (swapp-persistent-data-value pair) result))
+    )
+  )
+  (reverse result)
+)
+
+(defun swapp-entity-extension-dictionary (ename / data inside result pair code value)
+  (setq data (if ename (entget ename '("*")) nil))
+  (setq inside nil)
+  (setq result nil)
+  (foreach pair data
+    (setq code (car pair))
+    (setq value (cdr pair))
+    (cond
+      ((and (= code 102) (= (type value) 'STR) (equal (strcase value) "{ACAD_XDICTIONARY"))
+        (setq inside T)
+      )
+      ((and inside (= code 360) (= (type value) 'ENAME) (not result))
+        (setq result value)
+      )
+      ((and inside (= code 102) (= (type value) 'STR) (equal value "}"))
+        (setq inside nil)
+      )
+    )
+  )
+  result
+)
+
+(defun swapp-extension-dictionary-integrity-snapshot (dict visited / handle entries result entry key ename type child)
+  (if (not dict)
+    nil
+    (progn
+      (setq handle (swapp-entity-handle-token dict))
+      (if (member handle visited)
+        (list "CYCLE" handle)
+        (progn
+          (setq visited (cons handle visited))
+          (setq entries
+            (vl-sort
+              (swapp-dictionary-entries dict)
+              '(lambda (first second)
+                (< (strcase (car first)) (strcase (car second)))
+              )
+            )
+          )
+          (setq result nil)
+          (foreach entry entries
+            (setq key (nth 0 entry))
+            (setq ename (nth 1 entry))
+            (setq type (nth 2 entry))
+            (setq child
+              (if (and ename (wcmatch (strcase type) "*DICTIONARY*"))
+                (swapp-extension-dictionary-integrity-snapshot ename visited)
+                nil
+              )
+            )
+            (setq result
+              (cons
+                (list
+                  key
+                  type
+                  (nth 3 entry)
+                  (swapp-entity-persistent-data-snapshot ename)
+                  child
+                )
+                result
+              )
+            )
+          )
+          (list
+            handle
+            (swapp-entity-persistent-data-snapshot dict)
+            (reverse result)
+          )
+        )
+      )
+    )
+  )
+)
+
+(defun swapp-gmtitle-native-target-snapshot (ename / handles normalized result handle target object object-name extension)
+  (setq normalized nil)
+  (foreach handle (if ename (swcad-title-gmtitle-native-xdata-info ename) nil)
+    (setq normalized (cons (strcase handle) normalized))
+  )
+  (setq handles (swapp-sort-strings normalized))
+  (setq result nil)
+  (foreach handle handles
+    (setq target (handent handle))
+    (setq object (if target (swapp-safe 'vlax-ename->vla-object (list target)) nil))
+    (setq object-name (if object (swapp-safe 'vla-get-ObjectName (list object)) nil))
+    (setq extension (if target (swapp-entity-extension-dictionary target) nil))
+    (setq result
+      (cons
+        (list
+          handle
+          (swcad-title-native-link-target-kind handle)
+          (if (= (type object-name) 'STR) object-name "<NO-VLA>")
+          (swapp-entity-persistent-data-snapshot target)
+          (swapp-extension-dictionary-integrity-snapshot extension nil)
+        )
+        result
+      )
+    )
+  )
+  (reverse result)
+)
+
+(defun swapp-entity-native-structure-snapshot (ename / extension)
+  (setq extension (if ename (swapp-entity-extension-dictionary ename) nil))
+  (list
+    (swapp-entity-persistent-data-snapshot ename)
+    (swapp-extension-dictionary-integrity-snapshot extension nil)
+    (swapp-gmtitle-native-target-snapshot ename)
+  )
+)
+
+(defun swapp-title-attribute-structure-snapshot (title-object / attrs result attr ename handle tag)
+  (setq attrs (if title-object (swcad-title-get-insert-attributes title-object) nil))
+  (setq result nil)
+  (foreach attr attrs
+    (setq ename (swapp-safe 'vlax-vla-object->ename (list attr)))
+    (setq handle (if ename (swapp-entity-handle-token ename) "<NO-HANDLE>"))
+    (setq tag (swcad-title-attribute-tag attr))
+    (setq result
+      (cons
+        (list handle tag (swapp-entity-native-structure-snapshot ename))
+        result
+      )
+    )
+  )
+  (vl-sort
+    result
+    '(lambda (first second)
+      (if (equal (car first) (car second))
+        (< (strcase (cadr first)) (strcase (cadr second)))
+        (< (car first) (car second))
+      )
+    )
+  )
+)
+
+(defun swapp-title-integrity-snapshot (/ pairs result pair title frame title-object attrs attribute-structures)
   (setq pairs (swcad-title-target-gmtitle-pair-records))
   (setq result nil)
   (foreach pair pairs
     (setq title (car pair))
     (setq frame (cadr pair))
     (setq title-object (swcad-title-safe-vla-object title))
-    (setq attrs (if title-object (swcad-title-title-attribute-pairs title-object) nil))
+    (setq attrs
+      (vl-sort
+        (if title-object (swcad-title-title-attribute-pairs title-object) nil)
+        '(lambda (first second)
+          (< (strcase (car first)) (strcase (car second)))
+        )
+      )
+    )
+    (setq attribute-structures (swapp-title-attribute-structure-snapshot title-object))
     (setq result
       (append
         result
@@ -2322,12 +2676,23 @@
             (nth 4 pair)
             (if (swcad-title-target-pair-native-like-p pair) "NATIVE" "NOT_NATIVE")
             attrs
+            (swapp-entity-native-structure-snapshot title)
+            (swapp-entity-native-structure-snapshot frame)
+            attribute-structures
           )
         )
       )
     )
   )
-  result
+  (vl-sort
+    result
+    '(lambda (first second)
+      (if (equal (car first) (car second))
+        (< (cadr first) (cadr second))
+        (< (car first) (car second))
+      )
+    )
+  )
 )
 
 (defun swapp-workflow-integrity-snapshot ()
@@ -2336,6 +2701,8 @@
     (swapp-model-bbox)
     (swapp-dimension-semantics)
     (swapp-title-integrity-snapshot)
+    (swapp-layout-integrity-snapshot)
+    (swapp-state-integrity-snapshot)
   )
 )
 
@@ -2348,6 +2715,8 @@
     )
     (swapp-semantic-multiset-equal-p (nth 2 before) (nth 2 after))
     (equal (nth 3 before) (nth 3 after))
+    (equal (nth 4 before) (nth 4 after))
+    (equal (nth 5 before) (nth 5 after))
   )
 )
 
@@ -2360,129 +2729,523 @@
   )
 )
 
-(defun swapp-resource-collection (category / doc)
-  (setq doc (swapp-doc))
-  (cond
-    ((equal category "BLOCKS") (swapp-safe 'vla-get-Blocks (list doc)))
-    ((equal category "DIMSTYLES") (swapp-safe 'vla-get-DimStyles (list doc)))
-    ((equal category "TEXTSTYLES") (swapp-safe 'vla-get-TextStyles (list doc)))
-    ((equal category "LINETYPES") (swapp-safe 'vla-get-Linetypes (list doc)))
-    (T nil)
-  )
-)
-
-(defun swapp-source-reference-names (/ result record name)
-  (setq result nil)
-  (foreach record (swapp-source-sheet-records-read)
-    (setq name (strcase (nth 2 record)))
-    (if (and (> (strlen name) 0) (not (member name result)))
-      (setq result (append result (list name)))
+(defun swapp-sort-strings (values)
+  (vl-sort
+    values
+    '(lambda (first second)
+      (< first second)
     )
   )
-  result
 )
 
-(defun swapp-source-reference-name-p (name)
-  (if (member (strcase name) *swapp-resource-source-reference-names*) T nil)
+(defun swapp-safe-tblnext (table reset / result)
+  (setq result
+    (if reset
+      (vl-catch-all-apply 'tblnext (list table T))
+      (vl-catch-all-apply 'tblnext (list table))
+    )
+  )
+  (if (vl-catch-all-error-p result) nil result)
 )
 
-;;; Kept command-scoped so thousands of table records do not reread the XRecord.
-(defun swapp-resource-source-name-cache-begin ()
-  (setq *swapp-resource-source-reference-names* (swapp-source-reference-names))
-  *swapp-resource-source-reference-names*
+(defun swapp-symbol-table-definition-snapshot (/ result table item name handle)
+  (setq result nil)
+  (foreach table *swapp-purge-symbol-tables*
+    (setq item (swapp-safe-tblnext table T))
+    (while item
+      (setq name (cdr (assoc 2 item)))
+      (setq handle (cdr (assoc 5 item)))
+      (if name
+        (setq result
+          (cons
+            (strcase
+              (strcat
+                "TABLE|" table "|" name "|" (if handle handle "<NO-HANDLE>")
+              )
+            )
+            result
+          )
+        )
+      )
+      (setq item (swapp-safe-tblnext table nil))
+    )
+  )
+  (swapp-sort-strings result)
 )
 
-(defun swapp-resource-source-name-cache-end ()
-  (setq *swapp-resource-source-reference-names* nil)
-  T
+(defun swapp-safe-dictnext (dict reset / result)
+  (setq result
+    (if reset
+      (vl-catch-all-apply 'dictnext (list dict T))
+      (vl-catch-all-apply 'dictnext (list dict))
+    )
+  )
+  (if (vl-catch-all-error-p result) nil result)
 )
 
-(defun swapp-resource-protected-p (name / upper)
-  (setq upper (strcase (if name name "")))
-  (or
-    (member upper '("" "0" "STANDARD" "BYLAYER" "BYBLOCK" "CONTINUOUS" "DEFPOINTS"))
-    (swapp-string-starts-ci-p upper "*MODEL_SPACE")
-    (swapp-string-starts-ci-p upper "*PAPER_SPACE")
-    (vl-string-search "AM_ISO" upper)
-    (vl-string-search "DR_A1_OUTLINE" upper)
-    (vl-string-search "DR_A2_OUTLINE" upper)
-    (vl-string-search "DR_A3_OUTLINE" upper)
-    (vl-string-search "DR_A4_OUTLINE" upper)
-    (vl-string-search "DR_TITLEA_3RD" upper)
-    (vl-string-search "GENIUS_" upper)
-    (vl-string-search "GMTITLE" upper)
+;;; Returns one normalized (key ename dxf-type handle) dictionary entry.
+(defun swapp-dictionary-entry-record (key ename / data type handle)
+  (setq data (if ename (entget ename) nil))
+  (setq type (if data (cdr (assoc 0 data)) "<UNKNOWN>"))
+  (setq handle (if data (cdr (assoc 5 data)) nil))
+  (list
+    (if key key (if handle handle "<NO-KEY>"))
+    ename
+    (if type type "<UNKNOWN>")
+    (if handle handle "<NO-HANDLE>")
   )
 )
 
-(defun swapp-resource-xref-candidate-p (category name / upper)
-  (setq upper (strcase (if name name "")))
+;;; GstarCAD DICTNEXT omits group 3 entry names.  Read the owning dictionary's
+;;; alternating group 3 + 350/360 pairs so paths keep their real stable keys.
+(defun swapp-dictionary-entries-from-entget (dict / result data pair code key)
+  (setq result nil)
+  (setq key nil)
+  (setq data (if dict (entget dict) nil))
+  (foreach pair data
+    (setq code (car pair))
+    (cond
+      ((= code 3)
+        (setq key (cdr pair))
+      )
+      ((and key (or (= code 350) (= code 360)))
+        (setq result
+          (cons
+            (swapp-dictionary-entry-record key (cdr pair))
+            result
+          )
+        )
+        (setq key nil)
+      )
+    )
+  )
+  (reverse result)
+)
+
+;;; Compatibility fallback for CAD engines that expose keys only through DICTNEXT.
+(defun swapp-dictionary-entries-from-dictnext (dict / result item key ename data type handle)
+  (setq result nil)
+  (setq item (swapp-safe-dictnext dict T))
+  (while item
+    (setq key (cdr (assoc 3 item)))
+    (setq ename (cdr (assoc -1 item)))
+    (if (not ename) (setq ename (cdr (assoc 350 item))))
+    (if (not ename) (setq ename (cdr (assoc 360 item))))
+    (setq data (if ename (entget ename) nil))
+    (setq type (if data (cdr (assoc 0 data)) "<UNKNOWN>"))
+    (setq handle (if data (cdr (assoc 5 data)) nil))
+    (setq result
+      (cons
+        (list
+          (if key key (if handle handle "<NO-KEY>"))
+          ename
+          (if type type "<UNKNOWN>")
+          (if handle handle "<NO-HANDLE>")
+        )
+        result
+      )
+    )
+    (setq item (swapp-safe-dictnext dict nil))
+  )
+  (reverse result)
+)
+
+(defun swapp-dictionary-entries (dict / result)
+  (setq result (swapp-dictionary-entries-from-entget dict))
+  (if result
+    result
+    (swapp-dictionary-entries-from-dictnext dict)
+  )
+)
+
+(defun swapp-dictionary-definition-handle-token (path handle)
+  (if
+    (equal
+      (strcase path)
+      (strcase (strcat "NOD/" *swapp-state-dictionary-key*))
+    )
+    "<WORKFLOW-STATE-XRECORD>"
+    handle
+  )
+)
+
+(defun swapp-dictionary-definition-snapshot-rec (dict path visited / data handle result entry key ename type child-path entry-handle)
+  (setq data (if dict (entget dict) nil))
+  (setq handle (if data (cdr (assoc 5 data)) nil))
+  (if (and handle (member handle visited))
+    nil
+    (progn
+      (if handle (setq visited (cons handle visited)))
+      (setq result nil)
+      (foreach entry (swapp-dictionary-entries dict)
+        (setq key (nth 0 entry))
+        (setq ename (nth 1 entry))
+        (setq type (nth 2 entry))
+        (setq child-path (strcat path "/" key))
+        (setq entry-handle
+          (swapp-dictionary-definition-handle-token child-path (nth 3 entry))
+        )
+        (setq result
+          (cons
+            (strcase
+              (strcat
+                "DICT|" child-path "|" type "|" entry-handle
+              )
+            )
+            result
+          )
+        )
+        (if (and ename (wcmatch (strcase type) "*DICTIONARY*"))
+          (setq result
+            (append
+              (swapp-dictionary-definition-snapshot-rec ename child-path visited)
+              result
+            )
+          )
+        )
+      )
+      result
+    )
+  )
+)
+
+(defun swapp-named-definition-snapshot (/ tables dictionaries all)
+  (setq tables (swapp-symbol-table-definition-snapshot))
+  (setq dictionaries
+    (swapp-sort-strings
+      (swapp-dictionary-definition-snapshot-rec (namedobjdict) "NOD" nil)
+    )
+  )
+  (setq all (swapp-sort-strings (append tables dictionaries)))
+  (list (length tables) (length dictionaries) all)
+)
+
+(defun swapp-named-definition-signature (snapshot / records text)
+  (setq records (nth 2 snapshot))
+  (setq text (vl-princ-to-string records))
+  (strcat
+    (itoa (length records)) ":"
+    (itoa (swapp-text-rolling-hash text 1000003 43)) ":"
+    (itoa (swapp-text-rolling-hash text 1000033 71))
+  )
+)
+
+(defun swapp-named-definition-identity-signature (snapshot / identities text)
+  (setq identities
+    (swapp-definition-record-identities (nth 2 snapshot))
+  )
+  (setq text (vl-princ-to-string identities))
+  (strcat
+    (itoa (length identities)) ":"
+    (itoa (swapp-text-rolling-hash text 1000003 47)) ":"
+    (itoa (swapp-text-rolling-hash text 1000033 73))
+  )
+)
+
+;;; GstarCAD Mechanical lazily re-registers APPID rows when native XData is
+;;; inspected, rebuilds the session-local *ACTIVE VPORT row, and may recreate an
+;;; empty anonymous *U block table row after reopen. Keep all three kinds in the
+;;; purge pass and diagnostics, but exclude them from the cross-session identity
+;;; gate. Actual layout viewport objects, geometry, and native XData remain
+;;; protected by the workflow snapshot.
+(defun swapp-appid-definition-record-p (record)
+  (= 0 (vl-string-search "TABLE|APPID|" (strcase record)))
+)
+
+(defun swapp-vport-definition-record-p (record / fields)
+  (setq fields (swapp-string-split (strcase record) "|"))
   (and
-    (not (swapp-resource-protected-p name))
-    (or
-      (vl-string-search "$0$" upper)
-      (and (equal category "DIMSTYLES") (wcmatch upper "*SLDDIMSTYLE*"))
-      (and (equal category "BLOCKS") (swapp-source-reference-name-p name))
-    )
+    (>= (length fields) 4)
+    (equal (nth 0 fields) "TABLE")
+    (equal (nth 1 fields) "VPORT")
+    (equal (nth 2 fields) "*ACTIVE")
   )
 )
 
-(defun swapp-resource-candidate-objects (category / collection object name result)
-  (setq collection (swapp-resource-collection category))
+(defun swapp-session-anonymous-block-name-p (name / suffix)
+  (setq suffix
+    (if
+      (and (= (type name) 'STR) (> (strlen name) 2))
+      (substr name 3)
+      nil
+    )
+  )
+  (and
+    suffix
+    (equal (strcase (substr name 1 2)) "*U")
+    (equal suffix (itoa (atoi suffix)))
+  )
+)
+
+;;; This predicate is intentionally narrow. A populated anonymous definition is
+;;; never volatile, and neither is an ordinary named block. The GstarCAD reopen
+;;; artifact proved in the representative DWG is anonymous (DXF flag 1), empty,
+;;; and has a *U<number> name.
+(defun swapp-session-empty-anonymous-block-definition-record-p
+  (record / fields name ename data flags block count)
+  (setq fields (swapp-string-split (strcase record) "|"))
+  (if
+    (and
+      (>= (length fields) 4)
+      (equal (nth 0 fields) "TABLE")
+      (equal (nth 1 fields) "BLOCK")
+      (swapp-session-anonymous-block-name-p (nth 2 fields))
+    )
+    (progn
+      (setq name (nth 2 fields))
+      (setq ename (tblobjname "BLOCK" name))
+      (setq data (if ename (entget ename) nil))
+      (setq flags (if data (cdr (assoc 70 data)) nil))
+      (setq block (swapp-block-definition name))
+      (setq count (if block (swapp-safe 'vla-get-Count (list block)) nil))
+      (and
+        (numberp flags)
+        (= 1 (logand flags 1))
+        (numberp count)
+        (= count 0)
+      )
+    )
+    nil
+  )
+)
+
+(defun swapp-volatile-definition-record-p (record)
+  (or
+    (swapp-appid-definition-record-p record)
+    (swapp-vport-definition-record-p record)
+    (swapp-session-empty-anonymous-block-definition-record-p record)
+  )
+)
+
+(defun swapp-definition-records-filter-appid (records keep-appid / result record)
   (setq result nil)
-  (if collection
-    (foreach object (swapp-collection-items collection)
-      (setq name (swapp-safe 'vla-get-Name (list object)))
-      (if (and name (swapp-resource-xref-candidate-p category name))
-        (setq result (append result (list object)))
+  (foreach record records
+    (if (equal (if (swapp-appid-definition-record-p record) T nil) keep-appid)
+      (setq result (cons record result))
+    )
+  )
+  (swapp-sort-strings result)
+)
+
+(defun swapp-definition-records-filter-volatile (records keep-volatile / result record)
+  (setq result nil)
+  (foreach record records
+    (if
+      (equal
+        (if (swapp-volatile-definition-record-p record) T nil)
+        keep-volatile
+      )
+      (setq result (cons record result))
+    )
+  )
+  (swapp-sort-strings result)
+)
+
+(defun swapp-definition-records-exclude-identities (records excluded / result record identity)
+  (setq result nil)
+  (foreach record records
+    (setq identity (swapp-definition-record-identity record))
+    (if (not (member identity excluded))
+      (setq result (cons record result))
+    )
+  )
+  (swapp-sort-strings result)
+)
+
+(defun swapp-named-definition-stable-identity-signature (snapshot / identities text)
+  (setq identities
+    (swapp-definition-record-identities
+      (swapp-definition-records-filter-volatile (nth 2 snapshot) nil)
+    )
+  )
+  (setq text (vl-princ-to-string identities))
+  (strcat
+    (itoa (length identities)) ":"
+    (itoa (swapp-text-rolling-hash text 1000003 53)) ":"
+    (itoa (swapp-text-rolling-hash text 1000033 79))
+  )
+)
+
+(defun swapp-named-definition-vport-identity-signature (snapshot / identities text)
+  (setq identities
+    (swapp-definition-record-identities
+      (vl-remove-if-not
+        'swapp-vport-definition-record-p
+        (nth 2 snapshot)
       )
     )
   )
-  result
-)
-
-(defun swapp-delete-unused-resource-category (category / before deleted object after)
-  (setq before (swapp-resource-candidate-objects category))
-  (setq deleted 0)
-  (foreach object before
-    (if (swapp-call-ok-p 'vla-Delete (list object)) (setq deleted (1+ deleted)))
+  (setq text (vl-princ-to-string identities))
+  (strcat
+    (itoa (length identities)) ":"
+    (itoa (swapp-text-rolling-hash text 1000003 61)) ":"
+    (itoa (swapp-text-rolling-hash text 1000033 89))
   )
-  (setq after (swapp-resource-candidate-objects category))
-  (list category (length before) deleted (length after))
 )
 
-(defun swapp-delete-unused-resource-pass (/ categories result category record total)
-  (setq categories '("BLOCKS" "DIMSTYLES" "TEXTSTYLES" "LINETYPES"))
-  (setq result nil)
-  (setq total 0)
-  (foreach category categories
-    (setq record (swapp-delete-unused-resource-category category))
-    (setq result (append result (list record)))
-    (setq total (+ total (nth 2 record)))
-  )
-  (cons total result)
-)
-
-(defun swapp-print-resource-pass (pass result / record)
-  (princ (strcat "\n정리 반복 #" (itoa pass) ": 삭제 " (itoa (car result)) "개"))
-  (foreach record (cdr result)
-    (princ
-      (strcat
-        "\n  " (nth 0 record)
-        ": 후보 " (itoa (nth 1 record))
-        ", 삭제 " (itoa (nth 2 record))
-        ", 남음(사용 중 포함) " (itoa (nth 3 record))
+(defun swapp-named-definition-session-anonymous-block-identity-signature
+  (snapshot / identities text)
+  (setq identities
+    (swapp-definition-record-identities
+      (vl-remove-if-not
+        'swapp-session-empty-anonymous-block-definition-record-p
+        (nth 2 snapshot)
       )
     )
   )
-  result
+  (setq text (vl-princ-to-string identities))
+  (strcat
+    (itoa (length identities)) ":"
+    (itoa (swapp-text-rolling-hash text 1000003 67)) ":"
+    (itoa (swapp-text-rolling-hash text 1000033 97))
+  )
 )
 
-(defun swapp-resource-candidate-count (/ category total)
-  (setq total 0)
-  (foreach category '("BLOCKS" "DIMSTYLES" "TEXTSTYLES" "LINETYPES")
-    (setq total (+ total (length (swapp-resource-candidate-objects category))))
+(defun swapp-named-definition-appid-identity-signature (snapshot / identities text)
+  (setq identities
+    (swapp-definition-record-identities
+      (swapp-definition-records-filter-appid (nth 2 snapshot) T)
+    )
   )
-  total
+  (setq text (vl-princ-to-string identities))
+  (strcat
+    (itoa (length identities)) ":"
+    (itoa (swapp-text-rolling-hash text 1000003 59)) ":"
+    (itoa (swapp-text-rolling-hash text 1000033 83))
+  )
+)
+
+(defun swapp-string-list-difference (first second / result)
+  (setq result nil)
+  (while (and first second)
+    (cond
+      ((equal (car first) (car second))
+        (setq first (cdr first))
+        (setq second (cdr second))
+      )
+      ((< (car first) (car second))
+        (setq result (cons (car first) result))
+        (setq first (cdr first))
+      )
+      (T (setq second (cdr second)))
+    )
+  )
+  (while first
+    (setq result (cons (car first) result))
+    (setq first (cdr first))
+  )
+  (reverse result)
+)
+
+(defun swapp-definition-record-identity (record / index)
+  (setq index (strlen record))
+  (while
+    (and
+      (> index 0)
+      (not (equal (substr record index 1) "|"))
+    )
+    (setq index (1- index))
+  )
+  (if (> index 0)
+    (substr record 1 (1- index))
+    record
+  )
+)
+
+(defun swapp-definition-record-identities (records / result record)
+  (setq result nil)
+  (foreach record records
+    (setq result (cons (swapp-definition-record-identity record) result))
+  )
+  (swapp-sort-strings result)
+)
+
+(defun swapp-string-list-union (first second / result value)
+  (setq result first)
+  (foreach value second
+    (if (not (member value result))
+      (setq result (cons value result))
+    )
+  )
+  (swapp-sort-strings result)
+)
+
+(defun swapp-definition-record-sample-text (records max-items max-length / text candidate count)
+  (setq text "")
+  (setq count 0)
+  (while (and records (< count max-items) (< (strlen text) max-length))
+    (setq candidate
+      (if (equal text "")
+        (car records)
+        (strcat text " || " (car records))
+      )
+    )
+    (if (> (strlen candidate) max-length)
+      (setq records nil)
+      (progn
+        (setq text candidate)
+        (setq records (cdr records))
+        (setq count (1+ count))
+      )
+    )
+  )
+  text
+)
+
+(defun swapp-print-definition-record-sample (label records max-items / count remaining)
+  (if records
+    (progn
+      (princ (strcat "\n" label))
+      (setq count 0)
+      (setq remaining records)
+      (while (and remaining (< count max-items))
+        (princ (strcat "\n  - " (car remaining)))
+        (setq remaining (cdr remaining))
+        (setq count (1+ count))
+      )
+      (if remaining
+        (princ (strcat "\n  - ... 외 " (itoa (length remaining)) "개"))
+      )
+    )
+  )
+)
+
+(defun swapp-native-purge-category (category / label option old-cmdecho command-result active-after)
+  (setq label (car category))
+  (setq option (cadr category))
+  (setq old-cmdecho (getvar "CMDECHO"))
+  (setvar "CMDECHO" 0)
+  (setq command-result
+    (vl-catch-all-apply
+      'vl-cmdf
+      (list "_.-PURGE" option "*" "_No")
+    )
+  )
+  (setq active-after (> (getvar "CMDACTIVE") 0))
+  (if active-after (swcad-title-cancel-active-command))
+  (setvar "CMDECHO" old-cmdecho)
+  (if (or (vl-catch-all-error-p command-result) active-after (> (getvar "CMDACTIVE") 0))
+    (list nil (strcat label ": " (if (vl-catch-all-error-p command-result) (vl-catch-all-error-message command-result) "PURGE 명령이 모든 입력을 소비하지 못해 취소했습니다.")))
+    (list T label)
+  )
+)
+
+(defun swapp-native-purge-named-pass (/ categories category result ok detail)
+  (setq categories *swapp-purge-command-categories*)
+  (setq ok T)
+  (setq detail "OK")
+  (while (and ok categories)
+    (setq category (car categories))
+    (setq result (swapp-native-purge-category category))
+    (if (not (car result))
+      (progn
+        (setq ok nil)
+        (setq detail (cadr result))
+      )
+    )
+    (setq categories (cdr categories))
+  )
+  (list ok detail)
 )
 
 (defun swapp-resource-cleanup-marked-p ()
@@ -2490,19 +3253,151 @@
     (equal (swapp-state-value "RESOURCE_CLEANUP") "OK")
     (equal (swapp-state-value "RESOURCE_CLEANUP_POLICY") *swapp-resource-cleanup-policy*)
     (equal (swapp-state-value "RESOURCE_CLEANUP_ZERO_PASS") "YES")
+    (swapp-state-value "RESOURCE_CLEANUP_STATE_SAVE_STABILIZATION_PASSES")
+    (swapp-state-value "RESOURCE_CLEANUP_STATE_SAVE_REBASE_COUNT")
+    (swapp-state-value "RESOURCE_CLEANUP_DEFINITION_IDENTITY_SIGNATURE")
+    (swapp-state-value "RESOURCE_CLEANUP_STABLE_DEFINITION_IDENTITY_SIGNATURE")
+    (swapp-state-value "RESOURCE_CLEANUP_APPID_IDENTITY_SIGNATURE")
+    (swapp-state-value "RESOURCE_CLEANUP_VPORT_IDENTITY_SIGNATURE")
+    (swapp-state-value "RESOURCE_CLEANUP_SESSION_ANON_BLOCK_IDENTITY_SIGNATURE")
+    (swapp-state-value "RESOURCE_CLEANUP_DEFINITION_SIGNATURE")
   )
 )
 
-(defun swapp-resource-cleanup-verify (/ snapshot signature)
-  (setq snapshot (swapp-workflow-integrity-snapshot))
-  (setq signature (swapp-workflow-integrity-signature snapshot))
-  (and
-    (swapp-resource-cleanup-marked-p)
-    (equal signature (swapp-state-value "RESOURCE_CLEANUP_INTEGRITY"))
+(defun swapp-resource-cleanup-verify (/ snapshot signature definitions definition-signature identity-signature stable-identity-signature)
+  (setq *swapp-last-resource-cleanup-marked-p* (swapp-resource-cleanup-marked-p))
+  (setq *swapp-last-resource-cleanup-stored-integrity*
+    (swapp-state-value "RESOURCE_CLEANUP_INTEGRITY")
+  )
+  (setq *swapp-last-resource-cleanup-stored-identity*
+    (swapp-state-value "RESOURCE_CLEANUP_STABLE_DEFINITION_IDENTITY_SIGNATURE")
+  )
+  (setq *swapp-last-resource-cleanup-stored-full-identity*
+    (swapp-state-value "RESOURCE_CLEANUP_DEFINITION_IDENTITY_SIGNATURE")
+  )
+  (setq *swapp-last-resource-cleanup-stored-full-record*
+    (swapp-state-value "RESOURCE_CLEANUP_DEFINITION_SIGNATURE")
+  )
+  (if (not *swapp-last-resource-cleanup-marked-p*)
+    (progn
+      (setq *swapp-last-resource-cleanup-integrity-ok* nil)
+      (setq *swapp-last-resource-cleanup-identity-ok* nil)
+      (setq *swapp-last-resource-cleanup-full-identity-ok* nil)
+      (setq *swapp-last-resource-cleanup-full-record-ok* nil)
+      (setq *swapp-last-resource-cleanup-current-integrity* nil)
+      (setq *swapp-last-resource-cleanup-current-identity* nil)
+      (setq *swapp-last-resource-cleanup-current-full-identity* nil)
+      (setq *swapp-last-resource-cleanup-current-full-record* nil)
+      nil
+    )
+    (progn
+      (setq snapshot (swapp-workflow-integrity-snapshot))
+      (setq signature (swapp-workflow-integrity-signature snapshot))
+      (setq definitions (swapp-named-definition-snapshot))
+      (setq definition-signature (swapp-named-definition-signature definitions))
+      (setq identity-signature
+        (swapp-named-definition-identity-signature definitions)
+      )
+      (setq stable-identity-signature
+        (swapp-named-definition-stable-identity-signature definitions)
+      )
+      (setq *swapp-last-resource-cleanup-current-integrity* signature)
+      (setq *swapp-last-resource-cleanup-current-identity* stable-identity-signature)
+      (setq *swapp-last-resource-cleanup-current-full-identity* identity-signature)
+      (setq *swapp-last-resource-cleanup-current-full-record* definition-signature)
+      (setq *swapp-last-resource-cleanup-integrity-ok*
+        (equal signature *swapp-last-resource-cleanup-stored-integrity*)
+      )
+      (setq *swapp-last-resource-cleanup-identity-ok*
+        (equal stable-identity-signature *swapp-last-resource-cleanup-stored-identity*)
+      )
+      (setq *swapp-last-resource-cleanup-full-identity-ok*
+        (equal identity-signature *swapp-last-resource-cleanup-stored-full-identity*)
+      )
+      (setq *swapp-last-resource-cleanup-full-record-ok*
+        (equal definition-signature *swapp-last-resource-cleanup-stored-full-record*)
+      )
+      (and
+        *swapp-last-resource-cleanup-integrity-ok*
+        *swapp-last-resource-cleanup-identity-ok*
+      )
+    )
   )
 )
 
-(defun swapp-run-resource-cleanup (/ doc undo-open before after pass result removed total-removed remaining zero-pass integrity-ok snapshot-signature undo-result)
+(defun swapp-resource-cleanup-success-state-items
+  (
+    passes-executed total-removed total-added total-added-records
+    total-handle-reassigned removed-sample stable-removed-sample
+    added-sample definition snapshot
+    postsave-handle-reassigned state-save-passes state-save-rebases
+    state-save-removed-sample state-save-added-sample
+    state-save-handle-reregistered
+    / definition-signature definition-identity-signature
+      definition-stable-identity-signature appid-identity-signature
+      vport-identity-signature session-anonymous-block-identity-signature
+      final-table-count final-dictionary-count final-definition-count
+  )
+  (setq definition-signature (swapp-named-definition-signature definition))
+  (setq definition-identity-signature
+    (swapp-named-definition-identity-signature definition)
+  )
+  (setq definition-stable-identity-signature
+    (swapp-named-definition-stable-identity-signature definition)
+  )
+  (setq appid-identity-signature
+    (swapp-named-definition-appid-identity-signature definition)
+  )
+  (setq vport-identity-signature
+    (swapp-named-definition-vport-identity-signature definition)
+  )
+  (setq session-anonymous-block-identity-signature
+    (swapp-named-definition-session-anonymous-block-identity-signature
+      definition
+    )
+  )
+  (setq final-table-count (nth 0 definition))
+  (setq final-dictionary-count (nth 1 definition))
+  (setq final-definition-count (length (nth 2 definition)))
+  (list
+    (cons "RESOURCE_CLEANUP" "OK")
+    (cons "RESOURCE_CLEANUP_POLICY" *swapp-resource-cleanup-policy*)
+    (cons "RESOURCE_CLEANUP_SCOPE" "ALL_UNUSED_NAMED_DEFINITIONS")
+    (cons "RESOURCE_CLEANUP_NATIVE_COMMAND" "-PURGE_NAMED_CATEGORIES")
+    (cons "RESOURCE_CLEANUP_STABLE_IDENTITY_EXCLUDED" "APPID|VPORT|EMPTY_ANONYMOUS_BLOCK")
+    (cons "RESOURCE_CLEANUP_CATEGORY_COUNT" (itoa (length *swapp-purge-command-categories*)))
+    (cons "RESOURCE_CLEANUP_EXCLUDED" "ZERO_LENGTH|EMPTY_TEXT|ORPHANED_DATA")
+    (cons "RESOURCE_CLEANUP_ZERO_PASS" "YES")
+    (cons "RESOURCE_CLEANUP_REMOVED" (itoa total-removed))
+    (cons "RESOURCE_CLEANUP_REMOVED_SAMPLE" removed-sample)
+    (cons "RESOURCE_CLEANUP_STABLE_REMOVED_SAMPLE" stable-removed-sample)
+    (cons "RESOURCE_CLEANUP_ADDED_IDENTITIES" (itoa total-added))
+    (cons "RESOURCE_CLEANUP_ADDED_RECORDS" (itoa total-added-records))
+    (cons "RESOURCE_CLEANUP_HANDLE_REREGISTERED" (itoa total-handle-reassigned))
+    (cons "RESOURCE_CLEANUP_ADDED_SAMPLE" added-sample)
+    (cons "RESOURCE_CLEANUP_PASSES" (itoa passes-executed))
+    (cons "RESOURCE_CLEANUP_TABLE_COUNT" (itoa final-table-count))
+    (cons "RESOURCE_CLEANUP_DICTIONARY_COUNT" (itoa final-dictionary-count))
+    (cons "RESOURCE_CLEANUP_DEFINITION_COUNT" (itoa final-definition-count))
+    (cons "RESOURCE_CLEANUP_DEFINITION_IDENTITY_SIGNATURE" definition-identity-signature)
+    (cons "RESOURCE_CLEANUP_STABLE_DEFINITION_IDENTITY_SIGNATURE" definition-stable-identity-signature)
+    (cons "RESOURCE_CLEANUP_APPID_IDENTITY_SIGNATURE" appid-identity-signature)
+    (cons "RESOURCE_CLEANUP_VPORT_IDENTITY_SIGNATURE" vport-identity-signature)
+    (cons "RESOURCE_CLEANUP_SESSION_ANON_BLOCK_IDENTITY_SIGNATURE" session-anonymous-block-identity-signature)
+    (cons "RESOURCE_CLEANUP_DEFINITION_SIGNATURE" definition-signature)
+    (cons "RESOURCE_CLEANUP_POST_SAVE_REMOVED_IDENTITIES" "0")
+    (cons "RESOURCE_CLEANUP_POST_SAVE_ADDED_IDENTITIES" "0")
+    (cons "RESOURCE_CLEANUP_POST_SAVE_HANDLE_REREGISTERED" (itoa postsave-handle-reassigned))
+    (cons "RESOURCE_CLEANUP_STATE_SAVE_STABILIZATION_PASSES" (itoa state-save-passes))
+    (cons "RESOURCE_CLEANUP_STATE_SAVE_REBASE_COUNT" (itoa state-save-rebases))
+    (cons "RESOURCE_CLEANUP_STATE_SAVE_REMOVED_SAMPLE" state-save-removed-sample)
+    (cons "RESOURCE_CLEANUP_STATE_SAVE_ADDED_SAMPLE" state-save-added-sample)
+    (cons "RESOURCE_CLEANUP_STATE_SAVE_HANDLE_REREGISTERED" (itoa state-save-handle-reregistered))
+    (cons "RESOURCE_CLEANUP_INTEGRITY" (swapp-workflow-integrity-signature snapshot))
+  )
+)
+
+(defun swapp-run-resource-cleanup (/ doc undo-open before after pass passes-executed command-result command-ok definition-initial definition-before definition-after definition-presave initial-volatile-identities before-records after-records before-identities after-identities presave-records presave-identities postsave-records postsave-identities removed-records added-records removed-identities added-identities postsave-removed-records postsave-added-records postsave-removed-identities postsave-added-identities removed added record-removed record-added handle-reassigned postsave-handle-reassigned total-removed total-added total-added-records total-handle-reassigned removed-records-seen added-records-seen zero-pass integrity-ok definition-changed failure-status failure-detail rollback-needed undo-result undo-ok removed-sample stable-removed-sample added-sample presave-ok state-save-pass state-save-passes-executed state-save-rebase-count state-save-stable state-save-ok state-save-after state-save-definition state-save-baseline-records state-save-current-records state-save-baseline-identities state-save-current-identities state-save-removed-records state-save-added-records state-save-removed-identities state-save-added-identities state-save-removed-seen state-save-added-seen state-save-removed-sample state-save-added-sample state-save-handle-reregistered state-save-total-handle-reregistered final-verify-ok)
   (swapp-activate-model)
   (if (not (swcad-title-ensure-work-copy-for-mutation))
     (progn
@@ -2510,63 +3405,556 @@
       nil
     )
     (progn
-      (princ "\n----- SWCAD 미사용 XREF 리소스 안전 정리 -----")
-      (princ "\n대상: $0$ 결합 흔적 블록/치수스타일/문자스타일/선종류와 미사용 SLD 치수스타일")
-      (princ "\n보호: 현재 사용 중인 정의, 기본값, AM_ISO, GMTITLE 관련 정의")
+      (princ "\n----- SWCAD 전체 미사용 이름 정의 정리 -----")
+      (princ "\n대상: CAD가 미사용으로 판정한 블록/레이어/스타일/재질/등록 응용프로그램 등 14개 이름 정의 범주")
+      (princ "\n명령 수준 제외: 길이 0 형상, 빈 문자 객체, 분리된 데이터. 모델/종이공간/GMTITLE/치수/Layout 무결성이 달라지면 전체 UNDO")
       (setq before (swapp-workflow-integrity-snapshot))
-      (swapp-resource-source-name-cache-begin)
       (setq doc (swapp-doc))
       (setq undo-open nil)
       (if (swapp-call-ok-p 'vla-StartUndoMark (list doc)) (setq undo-open T))
       (setq pass 1)
+      (setq passes-executed 0)
       (setq total-removed 0)
+      (setq total-added 0)
+      (setq total-added-records 0)
+      (setq total-handle-reassigned 0)
+      (setq removed-records-seen nil)
+      (setq added-records-seen nil)
       (setq zero-pass nil)
       (setq integrity-ok T)
-      (while (and integrity-ok (not zero-pass) (<= pass *swapp-resource-cleanup-max-passes*))
-        (setq result (swapp-delete-unused-resource-pass))
-        (setq removed (car result))
+      (setq command-ok undo-open)
+      (setq failure-status (if undo-open nil "FAILED_UNDO_MARK"))
+      (setq failure-detail (if undo-open "" "정리 전체를 한 번에 되돌릴 UNDO mark를 시작하지 못했습니다."))
+      (setq definition-after (swapp-named-definition-snapshot))
+      (setq definition-initial definition-after)
+      (setq initial-volatile-identities
+        (swapp-definition-record-identities
+          (swapp-definition-records-filter-volatile (nth 2 definition-initial) T)
+        )
+      )
+      (setq definition-changed nil)
+      (while
+        (and
+          command-ok integrity-ok (not zero-pass)
+          (<= pass *swapp-resource-cleanup-max-passes*)
+        )
+        (setq definition-before definition-after)
+        (setq before-records (nth 2 definition-before))
+        (setq command-result (swapp-native-purge-named-pass))
+        (setq passes-executed (1+ passes-executed))
+        (setq definition-after (swapp-named-definition-snapshot))
+        (setq after-records (nth 2 definition-after))
+        (setq before-identities (swapp-definition-record-identities before-records))
+        (setq after-identities (swapp-definition-record-identities after-records))
+        (setq removed-records (swapp-string-list-difference before-records after-records))
+        (setq added-records (swapp-string-list-difference after-records before-records))
+        (setq removed-identities (swapp-string-list-difference before-identities after-identities))
+        (setq added-identities (swapp-string-list-difference after-identities before-identities))
+        (setq removed (length removed-identities))
+        (setq added (length added-identities))
+        (setq record-removed (length removed-records))
+        (setq record-added (length added-records))
+        (setq handle-reassigned (max 0 (- record-added added)))
         (setq total-removed (+ total-removed removed))
-        (swapp-print-resource-pass pass result)
+        (setq total-added (+ total-added added))
+        (setq total-added-records (+ total-added-records record-added))
+        (setq total-handle-reassigned (+ total-handle-reassigned handle-reassigned))
+        (if removed-records
+          (setq removed-records-seen
+            (swapp-string-list-union removed-records-seen removed-records)
+          )
+        )
+        (if added-records
+          (setq added-records-seen
+            (swapp-string-list-union added-records-seen added-records)
+          )
+        )
+        (setq definition-changed
+          (or
+            definition-changed
+            (not (equal (nth 2 definition-initial) after-records))
+          )
+        )
         (setq after (swapp-workflow-integrity-snapshot))
         (setq integrity-ok (swapp-workflow-integrity-equal-p before after))
-        (if (= removed 0) (setq zero-pass T))
+        (if (not (car command-result))
+          (progn
+            (setq command-ok nil)
+            (setq failure-status "FAILED_COMMAND")
+            (setq failure-detail (cadr command-result))
+          )
+          (progn
+            (princ
+              (strcat
+                "\n정리 반복 #" (itoa pass)
+                ": 이름 정의 " (itoa (length before-records))
+                " -> " (itoa (length after-records))
+                ", 실제 삭제 " (itoa removed) "개"
+                ", 자동 생성 " (itoa added) "개"
+                ", handle 재등록 " (itoa handle-reassigned) "개"
+              )
+            )
+            (if added-records
+              (progn
+                (swapp-print-definition-record-sample
+                  "GstarCAD가 이번 반복에서 생성하거나 새 handle로 등록한 정의:"
+                  added-records
+                  12
+                )
+                (princ "\n이 항목은 즉시 실패로 보지 않고 다음 반복에서 고정점 수렴 여부를 확인합니다.")
+              )
+            )
+            (if (equal before-records after-records) (setq zero-pass T))
+          )
+        )
+        (if (not integrity-ok)
+          (progn
+            (setq failure-status "FAILED_INTEGRITY")
+            (setq failure-detail "정리 전후 모델/종이공간/GMTITLE/치수/Layout/출처 메타데이터가 달라졌습니다."))
+        )
         (setq pass (1+ pass))
       )
-      (if undo-open
+      (if (and command-ok integrity-ok (not zero-pass))
         (progn
-          (swapp-safe 'vla-EndUndoMark (list doc))
-          (setq undo-open nil)
+          (setq failure-status "FAILED_NOT_CONVERGED")
+          (setq failure-detail "제한 반복 안에 이름 정의 삭제 0개 고정점에 도달하지 못했습니다."))
+      )
+      (setq rollback-needed
+        (and
+          failure-status
+          (or definition-changed (not integrity-ok))
         )
       )
-      (setq remaining (swapp-resource-candidate-count))
-      (swapp-resource-source-name-cache-end)
-      (cond
-        ((not integrity-ok)
-          (setq undo-result (vl-catch-all-apply 'vl-cmdf (list "_.UNDO" "1")))
-          (swapp-state-set "RESOURCE_CLEANUP" "FAILED_INTEGRITY")
-          (princ "\n결과: SWCAD_RESOURCE_CLEANUP_INTEGRITY_CHANGED")
-          (princ "\n정리 전 상태로 UNDO를 시도했습니다. 현재 도면을 저장하지 말고 SWCADVERIFY로 확인하세요.")
-          nil
+      (setq undo-ok T)
+      (setq removed-sample
+        (swapp-definition-record-sample-text removed-records-seen 12 1800)
+      )
+      (setq stable-removed-sample
+        (swapp-definition-record-sample-text
+          (swapp-definition-record-identities
+            (swapp-definition-records-exclude-identities
+              removed-records-seen
+              initial-volatile-identities
+            )
+          )
+          12
+          1800
         )
-        ((not zero-pass)
-          (swapp-state-set "RESOURCE_CLEANUP" "FAILED_NOT_CONVERGED")
-          (princ "\n결과: SWCAD_RESOURCE_CLEANUP_NOT_CONVERGED")
-          (princ "\n제한 반복 안에 삭제 0개 확인에 도달하지 못했습니다. 같은 명령을 반복하지 말고 로그를 확인하세요.")
+      )
+      (setq added-sample
+        (swapp-definition-record-sample-text added-records-seen 6 900)
+      )
+      (if rollback-needed
+        (progn
+          (if undo-open
+            (progn
+              (swapp-safe 'vla-EndUndoMark (list doc))
+              (setq undo-open nil)
+            )
+          )
+          (setq undo-result (vl-catch-all-apply 'vl-cmdf (list "_.UNDO" "1")))
+          (setq undo-ok
+            (and
+              (not (vl-catch-all-error-p undo-result))
+              (= (getvar "CMDACTIVE") 0)
+              (swapp-workflow-integrity-equal-p before (swapp-workflow-integrity-snapshot))
+              (equal (nth 2 definition-initial) (nth 2 (swapp-named-definition-snapshot)))
+            )
+          )
+        )
+      )
+      (cond
+        (failure-status
+          (if undo-open
+            (progn
+              (swapp-safe 'vla-EndUndoMark (list doc))
+              (setq undo-open nil)
+            )
+          )
+          (swapp-state-replace-prefix
+            "RESOURCE_CLEANUP"
+            (list
+              (cons "RESOURCE_CLEANUP" (if undo-ok failure-status (strcat failure-status "_UNDO_FAILED")))
+              (cons "RESOURCE_CLEANUP_POLICY" *swapp-resource-cleanup-policy*)
+              (cons "RESOURCE_CLEANUP_DETAIL" failure-detail)
+              (cons "RESOURCE_CLEANUP_ROLLBACK" (if rollback-needed (if undo-ok "OK" "FAILED") "NOT_NEEDED"))
+              (cons "RESOURCE_CLEANUP_PASSES" (itoa passes-executed))
+              (cons "RESOURCE_CLEANUP_REMOVED" (itoa total-removed))
+              (cons "RESOURCE_CLEANUP_REMOVED_SAMPLE" removed-sample)
+              (cons "RESOURCE_CLEANUP_STABLE_REMOVED_SAMPLE" stable-removed-sample)
+              (cons "RESOURCE_CLEANUP_ADDED_IDENTITIES" (itoa total-added))
+              (cons "RESOURCE_CLEANUP_ADDED_RECORDS" (itoa total-added-records))
+              (cons "RESOURCE_CLEANUP_HANDLE_REREGISTERED" (itoa total-handle-reassigned))
+              (cons "RESOURCE_CLEANUP_ADDED_SAMPLE" added-sample)
+            )
+          )
+          (princ (strcat "\n결과: SWCAD_RESOURCE_CLEANUP_" failure-status))
+          (princ (strcat "\n원인: " failure-detail))
+          (if rollback-needed
+            (princ (strcat "\n정리 전체 UNDO: " (if undo-ok "성공" "실패")))
+          )
+          (princ "\n같은 명령을 반복하지 말고 현재 상태를 SWCADVERIFY와 로그로 확인하세요.")
           nil
         )
         (T
+          ;; Saving can legitimately re-register dictionary/table handles.  Capture
+          ;; the persisted database before writing the final cleanup audit state,
+          ;; and reject only real definition identities or workflow data changes.
+          (setq definition-presave definition-after)
+          (setq presave-records (nth 2 definition-presave))
+          (setq presave-identities
+            (swapp-definition-record-identities presave-records)
+          )
+          (setq presave-ok (swapp-save-current))
           (setq after (swapp-workflow-integrity-snapshot))
-          (setq snapshot-signature (swapp-workflow-integrity-signature after))
-          (swapp-state-set "RESOURCE_CLEANUP" "OK")
-          (swapp-state-set "RESOURCE_CLEANUP_POLICY" *swapp-resource-cleanup-policy*)
-          (swapp-state-set "RESOURCE_CLEANUP_ZERO_PASS" "YES")
-          (swapp-state-set "RESOURCE_CLEANUP_REMOVED" (itoa total-removed))
-          (swapp-state-set "RESOURCE_CLEANUP_PASSES" (itoa (1- pass)))
-          (swapp-state-set "RESOURCE_CLEANUP_REMAINING_REFERENCED" (itoa remaining))
-          (swapp-state-set "RESOURCE_CLEANUP_INTEGRITY" snapshot-signature)
-          (swapp-save-current)
-          (princ (strcat "\n결과: SWCAD_RESOURCE_CLEANUP_OK, 삭제 " (itoa total-removed) "개, 마지막 반복 삭제 0개"))
-          T
+          (setq definition-after (swapp-named-definition-snapshot))
+          (setq postsave-records (nth 2 definition-after))
+          (setq postsave-identities
+            (swapp-definition-record-identities postsave-records)
+          )
+          (setq postsave-removed-records
+            (swapp-string-list-difference presave-records postsave-records)
+          )
+          (setq postsave-added-records
+            (swapp-string-list-difference postsave-records presave-records)
+          )
+          (setq postsave-removed-identities
+            (swapp-string-list-difference presave-identities postsave-identities)
+          )
+          (setq postsave-added-identities
+            (swapp-string-list-difference postsave-identities presave-identities)
+          )
+          (setq postsave-handle-reassigned
+            (max
+              0
+              (-
+                (length postsave-added-records)
+                (length postsave-added-identities)
+              )
+            )
+          )
+          (setq integrity-ok (swapp-workflow-integrity-equal-p before after))
+          (if
+            (or
+              (not presave-ok)
+              (not integrity-ok)
+              postsave-removed-identities
+              postsave-added-identities
+            )
+            (progn
+              (setq failure-status
+                (if presave-ok "FAILED_POST_SAVE_CHANGE" "FAILED_PRE_SAVE")
+              )
+              (setq failure-detail
+                (if presave-ok
+                  (strcat
+                    "저장 직후 도면 무결성 또는 실제 이름 정의가 달라졌습니다. 무결성="
+                    (if integrity-ok "OK" "CHANGED")
+                    ", 정의 삭제=" (itoa (length postsave-removed-identities))
+                    ", 정의 생성=" (itoa (length postsave-added-identities))
+                  )
+                  "정리 결과를 첫 저장 단계에서 DWG에 저장하지 못했습니다."
+                )
+              )
+              (if undo-open
+                (progn
+                  (swapp-safe 'vla-EndUndoMark (list doc))
+                  (setq undo-open nil)
+                )
+              )
+              (setq undo-result
+                (vl-catch-all-apply 'vl-cmdf (list "_.UNDO" "1"))
+              )
+              (setq undo-ok
+                (and
+                  (not (vl-catch-all-error-p undo-result))
+                  (= (getvar "CMDACTIVE") 0)
+                  (swapp-workflow-integrity-equal-p
+                    before
+                    (swapp-workflow-integrity-snapshot)
+                  )
+                  (equal
+                    (swapp-definition-record-identities (nth 2 definition-initial))
+                    (swapp-definition-record-identities
+                      (nth 2 (swapp-named-definition-snapshot))
+                    )
+                  )
+                )
+              )
+              (swapp-state-replace-prefix
+                "RESOURCE_CLEANUP"
+                (list
+                  (cons "RESOURCE_CLEANUP" (if undo-ok failure-status (strcat failure-status "_UNDO_FAILED")))
+                  (cons "RESOURCE_CLEANUP_POLICY" *swapp-resource-cleanup-policy*)
+                  (cons "RESOURCE_CLEANUP_DETAIL" failure-detail)
+                  (cons "RESOURCE_CLEANUP_ROLLBACK" (if undo-ok "OK" "FAILED"))
+                  (cons "RESOURCE_CLEANUP_PASSES" (itoa passes-executed))
+                  (cons "RESOURCE_CLEANUP_REMOVED" (itoa total-removed))
+                  (cons "RESOURCE_CLEANUP_POST_SAVE_REMOVED_IDENTITIES" (itoa (length postsave-removed-identities)))
+                  (cons "RESOURCE_CLEANUP_POST_SAVE_ADDED_IDENTITIES" (itoa (length postsave-added-identities)))
+                  (cons "RESOURCE_CLEANUP_POST_SAVE_HANDLE_REREGISTERED" (itoa postsave-handle-reassigned))
+                )
+              )
+              (swapp-save-current)
+              (princ (strcat "\n결과: SWCAD_RESOURCE_CLEANUP_" failure-status))
+              (princ (strcat "\n원인: " failure-detail))
+              (princ (strcat "\n정리 전체 UNDO: " (if undo-ok "성공" "실패")))
+              nil
+            )
+            (progn
+              (setq state-save-pass 1)
+              (setq state-save-passes-executed 0)
+              (setq state-save-rebase-count 0)
+              (setq state-save-stable nil)
+              (setq state-save-ok T)
+              (setq state-save-removed-seen nil)
+              (setq state-save-added-seen nil)
+              (setq state-save-total-handle-reregistered 0)
+              (while
+                (and
+                  state-save-ok integrity-ok (not state-save-stable)
+                  (<= state-save-pass *swapp-resource-cleanup-state-save-max-passes*)
+                )
+                (setq state-save-passes-executed state-save-pass)
+                (setq state-save-removed-sample
+                  (swapp-definition-record-sample-text state-save-removed-seen 6 900)
+                )
+                (setq state-save-added-sample
+                  (swapp-definition-record-sample-text state-save-added-seen 6 900)
+                )
+                (swapp-state-replace-prefix
+                  "RESOURCE_CLEANUP"
+                  (swapp-resource-cleanup-success-state-items
+                    passes-executed total-removed total-added total-added-records
+                    total-handle-reassigned removed-sample stable-removed-sample
+                    added-sample definition-after after
+                    postsave-handle-reassigned state-save-passes-executed
+                    state-save-rebase-count state-save-removed-sample
+                    state-save-added-sample state-save-total-handle-reregistered
+                  )
+                )
+                (setq state-save-ok (swapp-save-current))
+                (if state-save-ok
+                  (progn
+                    (setq state-save-after (swapp-workflow-integrity-snapshot))
+                    (setq state-save-definition (swapp-named-definition-snapshot))
+                    (setq state-save-baseline-records (nth 2 definition-after))
+                    (setq state-save-current-records (nth 2 state-save-definition))
+                    (setq state-save-baseline-identities
+                      (swapp-definition-record-identities state-save-baseline-records)
+                    )
+                    (setq state-save-current-identities
+                      (swapp-definition-record-identities state-save-current-records)
+                    )
+                    (setq state-save-removed-records
+                      (swapp-string-list-difference
+                        state-save-baseline-records state-save-current-records
+                      )
+                    )
+                    (setq state-save-added-records
+                      (swapp-string-list-difference
+                        state-save-current-records state-save-baseline-records
+                      )
+                    )
+                    (setq state-save-removed-identities
+                      (swapp-string-list-difference
+                        state-save-baseline-identities state-save-current-identities
+                      )
+                    )
+                    (setq state-save-added-identities
+                      (swapp-string-list-difference
+                        state-save-current-identities state-save-baseline-identities
+                      )
+                    )
+                    (setq state-save-handle-reregistered
+                      (max
+                        0
+                        (-
+                          (length state-save-added-records)
+                          (length state-save-added-identities)
+                        )
+                      )
+                    )
+                    (setq state-save-total-handle-reregistered
+                      (+
+                        state-save-total-handle-reregistered
+                        state-save-handle-reregistered
+                      )
+                    )
+                    (setq integrity-ok
+                      (swapp-workflow-integrity-equal-p before state-save-after)
+                    )
+                    (setq state-save-stable
+                      (and
+                        integrity-ok
+                        (not state-save-removed-identities)
+                        (not state-save-added-identities)
+                      )
+                    )
+                    (if state-save-stable
+                      (progn
+                        (setq after state-save-after)
+                        (setq definition-after state-save-definition)
+                      )
+                      (if integrity-ok
+                        (progn
+                          (princ
+                            (strcat
+                              "\n감사 상태 저장 고정점 #" (itoa state-save-pass)
+                              ": 실제 정의 삭제 " (itoa (length state-save-removed-identities))
+                              "개, 생성 " (itoa (length state-save-added-identities))
+                              "개. 저장된 현재 상태로 다시 기준을 맞춥니다."
+                            )
+                          )
+                          (swapp-print-definition-record-sample
+                            "저장 중 사라진 정의 정체성 표본:"
+                            state-save-removed-identities
+                            8
+                          )
+                          (swapp-print-definition-record-sample
+                            "저장 중 생긴 정의 정체성 표본:"
+                            state-save-added-identities
+                            8
+                          )
+                          (setq state-save-removed-seen
+                            (swapp-string-list-union
+                              state-save-removed-seen state-save-removed-identities
+                            )
+                          )
+                          (setq state-save-added-seen
+                            (swapp-string-list-union
+                              state-save-added-seen state-save-added-identities
+                            )
+                          )
+                          (setq state-save-rebase-count (1+ state-save-rebase-count))
+                          (setq after state-save-after)
+                          (setq definition-after state-save-definition)
+                        )
+                      )
+                    )
+                  )
+                )
+                (setq state-save-pass (1+ state-save-pass))
+              )
+              (cond
+                ((not state-save-ok)
+                  (setq failure-status "FAILED_STATE_SAVE")
+                  (setq failure-detail "감사 상태를 DWG에 저장하지 못했습니다.")
+                )
+                ((not integrity-ok)
+                  (setq failure-status "FAILED_STATE_SAVE_INTEGRITY")
+                  (setq failure-detail "감사 상태 저장 중 도면 무결성 지문이 달라졌습니다.")
+                )
+                ((not state-save-stable)
+                  (setq failure-status "FAILED_STATE_SAVE_NOT_CONVERGED")
+                  (setq failure-detail
+                    (strcat
+                      "감사 상태 저장과 정의 정체성 지문이 "
+                      (itoa *swapp-resource-cleanup-state-save-max-passes*)
+                      "회 안에 고정되지 않았습니다."
+                    )
+                  )
+                )
+              )
+              (if (not failure-status)
+                (progn
+                  (setq final-verify-ok (swapp-resource-cleanup-verify))
+                  (if (not final-verify-ok)
+                    (progn
+                      (setq failure-status "FAILED_STATE_SAVE_AUDIT")
+                      (setq failure-detail "저장 고정점 직후 자체 감사 지문이 일치하지 않았습니다.")
+                    )
+                  )
+                )
+              )
+              (if failure-status
+                (progn
+                  (if undo-open
+                    (progn
+                      (swapp-safe 'vla-EndUndoMark (list doc))
+                      (setq undo-open nil)
+                    )
+                  )
+                  (setq undo-result
+                    (vl-catch-all-apply 'vl-cmdf (list "_.UNDO" "1"))
+                  )
+                  (setq undo-ok
+                    (and
+                      (not (vl-catch-all-error-p undo-result))
+                      (= (getvar "CMDACTIVE") 0)
+                      (swapp-workflow-integrity-equal-p
+                        before
+                        (swapp-workflow-integrity-snapshot)
+                      )
+                      (equal
+                        (swapp-definition-record-identities (nth 2 definition-initial))
+                        (swapp-definition-record-identities
+                          (nth 2 (swapp-named-definition-snapshot))
+                        )
+                      )
+                    )
+                  )
+                  (setq state-save-removed-sample
+                    (swapp-definition-record-sample-text state-save-removed-seen 6 900)
+                  )
+                  (setq state-save-added-sample
+                    (swapp-definition-record-sample-text state-save-added-seen 6 900)
+                  )
+                  (swapp-state-replace-prefix
+                    "RESOURCE_CLEANUP"
+                    (list
+                      (cons "RESOURCE_CLEANUP" (if undo-ok failure-status (strcat failure-status "_UNDO_FAILED")))
+                      (cons "RESOURCE_CLEANUP_POLICY" *swapp-resource-cleanup-policy*)
+                      (cons "RESOURCE_CLEANUP_DETAIL" failure-detail)
+                      (cons "RESOURCE_CLEANUP_ROLLBACK" (if undo-ok "OK" "FAILED"))
+                      (cons "RESOURCE_CLEANUP_PASSES" (itoa passes-executed))
+                      (cons "RESOURCE_CLEANUP_REMOVED" (itoa total-removed))
+                      (cons "RESOURCE_CLEANUP_STATE_SAVE_STABILIZATION_PASSES" (itoa state-save-passes-executed))
+                      (cons "RESOURCE_CLEANUP_STATE_SAVE_REBASE_COUNT" (itoa state-save-rebase-count))
+                      (cons "RESOURCE_CLEANUP_STATE_SAVE_REMOVED_SAMPLE" state-save-removed-sample)
+                      (cons "RESOURCE_CLEANUP_STATE_SAVE_ADDED_SAMPLE" state-save-added-sample)
+                      (cons "RESOURCE_CLEANUP_STATE_SAVE_HANDLE_REREGISTERED" (itoa state-save-total-handle-reregistered))
+                    )
+                  )
+                  (swapp-save-current)
+                  (princ (strcat "\n결과: SWCAD_RESOURCE_CLEANUP_" failure-status))
+                  (princ (strcat "\n원인: " failure-detail))
+                  (princ (strcat "\n정리 전체 UNDO: " (if undo-ok "성공" "실패")))
+                  nil
+                )
+                (progn
+                  (if undo-open
+                    (progn
+                      (swapp-safe 'vla-EndUndoMark (list doc))
+                      (setq undo-open nil)
+                    )
+                  )
+                  (if (> postsave-handle-reassigned 0)
+                    (princ
+                      (strcat
+                        "\n첫 저장 과정의 안전한 handle 재등록: "
+                        (itoa postsave-handle-reassigned) "개"
+                      )
+                    )
+                  )
+                  (princ
+                    (strcat
+                      "\n감사 상태 저장 고정점: "
+                      (itoa state-save-passes-executed) "회, 재기준화 "
+                      (itoa state-save-rebase-count) "회"
+                    )
+                  )
+                  (princ
+                    (strcat
+                      "\n결과: SWCAD_RESOURCE_CLEANUP_OK, 전체 미사용 이름 정의 삭제 "
+                      (itoa total-removed) "개, 마지막 반복 변경 0개"
+                    )
+                  )
+                  T
+                )
+              )
+            )
+          )
         )
       )
     )
@@ -2755,8 +4143,8 @@
     ((equal stage "SHEET_WRAPPERS") "1/6 입력 도면 준비 - 시트 묶음 분해")
     ((equal stage "TITLE") "2/6 GMTITLE 변환")
     ((equal stage "DIMSTYLE") "3/6 치수 스타일 통일")
-    ((equal stage "CLEANUP") "4/6 미사용 XREF 리소스 정리")
-    ((equal stage "LAYOUT") "5/6 원본 파일명 Layout 생성")
+    ((equal stage "LAYOUT") "4/6 원본 파일명 Layout 생성")
+    ((equal stage "CLEANUP") "5/6 전체 미사용 이름 정의 정리")
     ((equal stage "COMPLETE") "6/6 최종 검증 준비 완료")
     ((equal stage "BLOCKED_NO_SHEETS") "중단 - 처리할 시트를 찾지 못함")
     (T stage)
@@ -2810,12 +4198,26 @@
       "SWCADRUN 반복 금지 - DIMSTYLE 실패 원인을 확인하세요"
     )
     ((and (equal stage "CLEANUP") (swapp-string-starts-ci-p (if (swapp-state-value "RESOURCE_CLEANUP") (swapp-state-value "RESOURCE_CLEANUP") "") "FAILED"))
-      "SWCADRUN 반복 금지 - 리소스 정리 실패 원인과 무결성 로그를 확인하세요"
+      (if (swapp-resource-cleanup-retry-allowed-p)
+        "SWCADRUN - 이전 LSP 버전의 정리 실패이므로 현재 버전에서 1회 재시도"
+        "SWCADRUN 반복 금지 - 현재 LSP 버전의 리소스 정리 실패 원인과 무결성 로그를 확인하세요"
+      )
     )
     ((and (equal stage "LAYOUT") (equal (swapp-state-value "LAYOUT") "FAILED"))
       "SWCADRUN 반복 금지 - Layout 생성 실패 원인을 확인하세요"
     )
     (T "SWCADRUN")
+  )
+)
+
+(defun swapp-resource-cleanup-retry-allowed-p (/ cleanup-state stored-version)
+  (setq cleanup-state (swapp-state-value "RESOURCE_CLEANUP"))
+  (setq stored-version (swapp-state-value "VERSION"))
+  (and
+    (swapp-string-starts-ci-p (if cleanup-state cleanup-state "") "FAILED")
+    stored-version
+    (> (strlen stored-version) 0)
+    (not (equal stored-version *swapp-version*))
   )
 )
 
@@ -2856,12 +4258,12 @@
     )
   )
   (princ (strcat "\nDIMSTYLE 상태: " (if (swapp-state-value "DIMSTYLE") (swapp-state-value "DIMSTYLE") "미실행")))
-  (princ (strcat "\nXREF 리소스 정리: " (if (swapp-state-value "RESOURCE_CLEANUP") (swapp-state-value "RESOURCE_CLEANUP") "미실행")))
+  (princ (strcat "\n전체 미사용 이름 정의 정리: " (if (swapp-state-value "RESOURCE_CLEANUP") (swapp-state-value "RESOURCE_CLEANUP") "미실행")))
   (princ (strcat "\n원본 파일명 메타데이터: " (if (swapp-state-value "SOURCE_SHEET_COUNT") (swapp-state-value "SOURCE_SHEET_COUNT") "0") "개"))
   (princ (strcat "\nSWCAD Layout: " (itoa (length layouts)) " / 기대 " (itoa frames)))
   (princ (strcat "\nLayout 좌표 모드: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "미생성")))
   (princ (strcat "\nLayout 이름 정책: " (if (swapp-state-value "LAYOUT_NAME_POLICY") (swapp-state-value "LAYOUT_NAME_POLICY") "원본 파일명 stem 예정")))
-  (if (member stage '("DIMSTYLE" "CLEANUP" "LAYOUT" "COMPLETE"))
+  (if (member stage '("DIMSTYLE" "LAYOUT" "CLEANUP" "COMPLETE"))
     (progn
       (setq plan (swapp-layout-plan))
       (swapp-print-layout-plan-items plan *swapp-layout-preview-limit*)
@@ -2926,16 +4328,35 @@
   (princ)
 )
 
-(defun c:SWCADRUN (/ stage after-stage run-result mutating-stage)
+(defun c:SWCADRUN (/ stage after-stage run-result mutating-stage cleanup-retry-blocked)
   (swapp-command-performance-begin)
   (swapp-read-cache-begin)
   (setq stage (swapp-workflow-stage))
-  (setq mutating-stage (if (member stage '("XREF" "SHEET_WRAPPERS" "TITLE" "DIMSTYLE" "CLEANUP" "LAYOUT")) T nil))
+  (setq cleanup-retry-blocked
+    (and
+      (equal stage "CLEANUP")
+      (swapp-string-starts-ci-p
+        (if (swapp-state-value "RESOURCE_CLEANUP") (swapp-state-value "RESOURCE_CLEANUP") "")
+        "FAILED"
+      )
+      (not (swapp-resource-cleanup-retry-allowed-p))
+    )
+  )
+  (setq mutating-stage
+    (and
+      (if (member stage '("XREF" "SHEET_WRAPPERS" "TITLE" "DIMSTYLE" "CLEANUP" "LAYOUT")) T nil)
+      (not cleanup-retry-blocked)
+    )
+  )
   (princ "\n===== SWCADRUN 다음 안전 단계 실행 =====")
   (princ (strcat "\n실행 전 단계: " (swapp-stage-label stage) " [" stage "]"))
   (setq run-result nil)
   (if mutating-stage (swapp-read-cache-end))
   (cond
+    (cleanup-retry-blocked
+      (princ "\n현재 LSP 버전에서 실패한 리소스 정리는 자동 재실행하지 않습니다.")
+      (princ "\nRESOURCE_CLEANUP_DETAIL과 무결성 로그를 확인하거나 수정된 새 버전을 로드하세요.")
+    )
     ((equal stage "XREF") (setq run-result (swapp-materialize-xrefs)))
     ((equal stage "SHEET_WRAPPERS") (setq run-result (swapp-materialize-sheet-wrappers)))
     ((equal stage "TITLE") (setq run-result (swapp-run-title-next)))
@@ -3018,7 +4439,55 @@
   (princ (strcat "\n남은 중첩 시트 묶음: " (itoa wrappers)))
   (princ (strcat "\nGMTITLE 최종 상태: " title-status))
   (princ (strcat "\nDIMSTYLE 감사: " (if dim-ok "OK" "CHECK_NEEDED")))
-  (princ (strcat "\n미사용 XREF 리소스 정리 감사: " (if cleanup-ok "OK" "CHECK_NEEDED")))
+  (princ (strcat "\n전체 미사용 이름 정의 정리 감사: " (if cleanup-ok "OK" "CHECK_NEEDED")))
+  (cond
+    ((not *swapp-last-resource-cleanup-marked-p*)
+      (princ "\n  정리 감사 상세: 현재 버전의 저장 후 정의 정체성 지문이 없습니다. SWCADRUN으로 정리 단계를 한 번 실행하세요.")
+    )
+    ((not cleanup-ok)
+      (princ
+        (strcat
+          "\n  도면 무결성 지문: "
+          (if *swapp-last-resource-cleanup-integrity-ok* "OK" "CHANGED")
+        )
+      )
+      (princ
+        (strcat
+          "\n  이름 정의 정체성 지문: "
+          (if *swapp-last-resource-cleanup-identity-ok* "OK" "CHANGED")
+        )
+      )
+      (if (not *swapp-last-resource-cleanup-integrity-ok*)
+        (progn
+          (princ (strcat "\n    저장값=" (if *swapp-last-resource-cleanup-stored-integrity* *swapp-last-resource-cleanup-stored-integrity* "<없음>")))
+          (princ (strcat "\n    현재값=" (if *swapp-last-resource-cleanup-current-integrity* *swapp-last-resource-cleanup-current-integrity* "<없음>")))
+        )
+      )
+      (if (not *swapp-last-resource-cleanup-identity-ok*)
+        (progn
+          (princ (strcat "\n    저장값=" (if *swapp-last-resource-cleanup-stored-identity* *swapp-last-resource-cleanup-stored-identity* "<없음>")))
+          (princ (strcat "\n    현재값=" (if *swapp-last-resource-cleanup-current-identity* *swapp-last-resource-cleanup-current-identity* "<없음>")))
+        )
+      )
+    )
+    ((not *swapp-last-resource-cleanup-full-identity-ok*)
+      (princ "\n  참고: GstarCAD Mechanical이 저장/재열기 과정에서 native XData APPID, 세션용 *ACTIVE VPORT 또는 비어 있는 세션 익명 *U 블록을 재등록했습니다. 이 세션성 정의를 제외한 블록/레이어/스타일/사전 정체성과 실제 Layout viewport 무결성은 같습니다.")
+    )
+    ((not *swapp-last-resource-cleanup-full-record-ok*)
+      (princ "\n  참고: 정의의 종류/경로/이름은 같고 내부 handle만 저장 과정에서 재등록되었습니다.")
+    )
+  )
+  (if cleanup-ok
+    (princ
+      (strcat
+        "\n  감사 상태 저장 고정점: "
+        (swapp-state-value "RESOURCE_CLEANUP_STATE_SAVE_STABILIZATION_PASSES")
+        "회, 재기준화 "
+        (swapp-state-value "RESOURCE_CLEANUP_STATE_SAVE_REBASE_COUNT")
+        "회"
+      )
+    )
+  )
   (princ (strcat "\nLayout 좌표 모드: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "<없음>")))
   (princ (strcat "\nLayout 좌표 계획 수: " (if (swapp-state-value "LAYOUT_PLAN_COUNT") (swapp-state-value "LAYOUT_PLAN_COUNT") "<없음>")))
   (princ (strcat "\nLayout 좌표 지문: " (if (swapp-state-value "LAYOUT_PLAN_SIGNATURE") (swapp-state-value "LAYOUT_PLAN_SIGNATURE") "<없음>")))
