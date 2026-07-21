@@ -25,6 +25,8 @@ $required = @(
   "diagnostics\swcad-workflow\cleanup_performance_runner.lsp",
   "diagnostics\swcad-workflow\analyze_cleanup_identity_delta.ps1",
   "docs\swcad-workflow\architecture.md",
+  "docs\swcad-workflow\user-guide-ko.md",
+  "docs\swcad-workflow\quick-start-ko.txt",
   "docs\swcad-workflow\test-results-2026-07-13.md",
   "docs\swcad-workflow\full-unused-definition-cleanup-test-2026-07-14.md",
   "docs\swcad-workflow\cleanup-performance-test-2026-07-19.md"
@@ -403,6 +405,8 @@ foreach ($needle in @(
   "[StringComparison]::OrdinalIgnoreCase",
   "Remove-Item -LiteralPath `$packageFull -Recurse",
   "Install_SWCAD_Workflow.cmd",
+  "quickStartDestination",
+  "quick-start-ko.txt",
   "SWCAD_Workflow_Load.lsp",
   '$checksumPath = "$zipPath.sha256"',
   "Get-FileHash -LiteralPath `$zipFull -Algorithm SHA256",

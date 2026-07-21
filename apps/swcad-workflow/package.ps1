@@ -1,4 +1,4 @@
-param(
+﻿param(
   [string]$Version = "0.1.0"
 )
 
@@ -35,6 +35,8 @@ $files = @(
   "apps\swcad-workflow\swcad_workflow.lsp",
   "apps\swcad-workflow\README.md",
   "docs\swcad-workflow\architecture.md",
+  "docs\swcad-workflow\user-guide-ko.md",
+  "docs\swcad-workflow\quick-start-ko.txt",
   "docs\swcad-workflow\test-results-2026-07-13.md",
   "docs\swcad-workflow\source-layout-cleanup-test-2026-07-14.md",
   "docs\swcad-workflow\full-unused-definition-cleanup-test-2026-07-14.md",
@@ -61,6 +63,10 @@ foreach ($relative in $files) {
   Copy-Item -LiteralPath $source -Destination $destination -Force
 }
 
+$quickStartSource = Join-Path $repoRoot "docs\swcad-workflow\quick-start-ko.txt"
+$quickStartDestination = Join-Path $packageRoot "0_처음_사용하기.txt"
+Copy-Item -LiteralPath $quickStartSource -Destination $quickStartDestination -Force
+
 $installerPowerShell = @'
 $ErrorActionPreference = "Stop"
 
@@ -75,20 +81,30 @@ $lines = @(
   "(princ)"
 )
 [IO.File]::WriteAllLines($loaderPath, $lines, [Text.UTF8Encoding]::new($false))
-Write-Output "SWCAD Workflow loader created: $loaderPath"
+Write-Output "SWCAD Workflow 로더 생성 완료: $loaderPath"
+Write-Output "다음 단계: GstarCAD Mechanical에서 APPLOAD를 입력한 뒤 위 LSP 파일을 선택하세요."
 '@
 $installerBatch = @'
 @echo off
+chcp 65001 > nul
+echo.
+echo [SWCAD Workflow] GstarCAD용 로더를 만드는 중입니다.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install.ps1"
 if errorlevel 1 (
-  echo SWCAD Workflow installation failed.
+  echo.
+  echo 설치에 실패했습니다. ZIP을 모두 압축 풀었는지 확인하세요.
 ) else (
-  echo APPLOAD the generated SWCAD_Workflow_Load.lsp file in GstarCAD Mechanical.
+  echo.
+  echo 설치 준비 완료
+  echo 1. GstarCAD Mechanical을 실행하세요.
+  echo 2. 명령창에 APPLOAD를 입력하세요.
+  echo 3. 이 폴더의 SWCAD_Workflow_Load.lsp를 선택하세요.
 )
+echo.
 pause
 '@
-[IO.File]::WriteAllText((Join-Path $packageFull "install.ps1"), $installerPowerShell, [Text.UTF8Encoding]::new($false))
-[IO.File]::WriteAllText((Join-Path $packageFull "Install_SWCAD_Workflow.cmd"), $installerBatch, [Text.Encoding]::ASCII)
+[IO.File]::WriteAllText((Join-Path $packageFull "install.ps1"), $installerPowerShell, [Text.UTF8Encoding]::new($true))
+[IO.File]::WriteAllText((Join-Path $packageFull "Install_SWCAD_Workflow.cmd"), $installerBatch, [Text.UTF8Encoding]::new($false))
 
 Compress-Archive -LiteralPath $packageRoot -DestinationPath $zipPath -CompressionLevel Optimal
 $zipHash = (Get-FileHash -LiteralPath $zipFull -Algorithm SHA256).Hash

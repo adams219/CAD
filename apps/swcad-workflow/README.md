@@ -28,6 +28,12 @@ SWCADRUN
 SWCADVERIFY
 ```
 
+XREF 준비부터 처음 사용하는 순서는 다음 쉬운 사용자 설명서를 참고합니다.
+
+```text
+docs\swcad-workflow\user-guide-ko.md
+```
+
 `SWCADRUN`은 현재 상태에서 안전한 다음 단계 하나만 실행합니다. 출력에는 `1/6 입력 준비 → 2/6 GMTITLE → 3/6 치수 → 4/6 Layout → 5/6 전체 정리 → 6/6 검증` 중 현재 위치와 실행 전후 단계가 표시됩니다. `ABORT_`, `ERROR_`, `WARN_` 결과에서는 반복 실행을 중지하고 원인을 확인해야 하며, `SWCADSTATUS`가 다시 `SWCADRUN`을 권장할 때만 계속합니다.
 
 DIMSTYLE 단계는 실행 전후의 치수 측정값, `DIMLFAC`, 상·하 공차 의미를 핸들별로 비교합니다. 기존 SWAUTO가 native Mechanical fit을 붙이며 오버라이드를 바꾸는 경우 달라진 치수만 복원하고, 완전히 일치할 때만 다음 단계로 이동합니다.
@@ -105,7 +111,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File apps\swcad-workflow\package.
 
 결과 ZIP과 같은 이름의 `.zip.sha256` 체크섬 파일이 로컬 `dist` 폴더에 생성됩니다. 체크섬은 ZIP 밖에 두므로 패키지 문서를 갱신해도 자기 자신을 참조하는 해시 순환이 생기지 않습니다.
 
-다른 PC에서는 ZIP을 푼 뒤 패키지 루트의 `Install_SWCAD_Workflow.cmd`를 한 번 실행합니다. 생성된 아래 파일을 GstarCAD Mechanical에서 `APPLOAD`합니다.
+다른 PC에서는 ZIP 안에서 바로 실행하지 않고 `모두 압축 풀기`로 전체 폴더를 먼저 풉니다. 패키지 루트의 `0_처음_사용하기.txt`를 읽은 뒤 `Install_SWCAD_Workflow.cmd`를 한 번 실행합니다. 생성된 아래 파일을 GstarCAD Mechanical에서 `APPLOAD`합니다.
 
 ```text
 SWCAD_Workflow_Load.lsp
@@ -117,6 +123,8 @@ SWCAD_Workflow_Load.lsp
 
 ```text
 docs\swcad-workflow\architecture.md
+docs\swcad-workflow\user-guide-ko.md
+docs\swcad-workflow\quick-start-ko.txt
 docs\swcad-workflow\test-results-2026-07-13.md
 docs\swcad-workflow\source-layout-cleanup-test-2026-07-14.md
 docs\swcad-workflow\full-unused-definition-cleanup-test-2026-07-14.md
