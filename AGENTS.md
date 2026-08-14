@@ -3,15 +3,24 @@
 ## Cursor Cloud specific instructions
 
 ### What this repository is
-This repo is a collection of **AutoLISP (`.lsp`) automation tools** for **GstarCAD / GstarCAD Mechanical / SolidWorks DWG** workflows (dimension-style migration, fit-tolerance xdata, and GMTITLE title-block conversion). See `README.md` and `docs/guide/` (mostly Korean) for the command surface, and `docs/guide/commands.md` for the public command list.
+This repo is a collection of **AutoLISP (`.lsp`) automation tools** for **GstarCAD / GstarCAD Mechanical / SolidWorks DWG** workflows (XREF-driven sheet conversion, GMTITLE title-block conversion, dimension-style migration, fit-tolerance xdata). See `README.md`, `docs/swcad-workflow/` (integrated workflow), and `docs/guide/` (mostly Korean) for the command surface.
 
-It is **not** a compiled/packaged project: there is no package manager, build system, automated test suite, or linter. Source files are plain UTF-8 text with LF endings (enforced by `.gitattributes`). The "dependencies" are effectively none — there is nothing to `npm install` / `pip install`.
+It is **not** a compiled/packaged project: there is no package manager, build system, automated test suite, or linter. Source files are plain UTF-8 text with LF endings (enforced by `.gitattributes`). The "dependencies" are effectively none — there is nothing to `npm install` / `pip install`. Packaging for Windows distribution uses `apps/swcad-workflow/package.ps1` + `Install_SWCAD_Workflow.cmd` (PowerShell/cmd; Windows-only).
 
 ### Running the product (important caveat)
-The tools run **inside GstarCAD/GstarCAD Mechanical (or SolidWorks DWG) on Windows**, loaded via `APPLOAD` of `swcad_load.lsp`, then invoked with commands like `SWAUTO`, `SWHELP`, or the `SWTITLE*` set. **This runtime is Windows-only proprietary CAD software and cannot be executed in the Linux Cloud Agent VM.** Do not attempt to "start a server" or run the app here — there is no runnable service. End-to-end behavioral testing requires a Windows CAD host and is out of scope for the cloud VM.
+The tools run **inside GstarCAD/GstarCAD Mechanical on Windows**. **This runtime is Windows-only proprietary CAD software and cannot be executed in the Linux Cloud Agent VM.** Do not attempt to "start a server" or run the app here — there is no runnable service. End-to-end behavioral testing requires a Windows CAD host and is out of scope for the cloud VM.
 
-### Entry point & load behavior
-`swcad_load.lsp` is the single `APPLOAD` entry point. It loads modules from `src/lsp/` and `src/tools/` and wraps each `load` in `vl-catch-all-apply`, printing `SWCAD load failed: <module>` if a module is malformed. A malformed `.lsp` (unbalanced parens/strings) is the main thing that breaks loading.
+### Entry points & load behavior
+Two loaders exist; pick one based on the workflow:
+
+| Loader | Purpose | Main commands |
+| --- | --- | --- |
+| `apps/swcad-workflow/swcad_workflow_load.lsp` | Integrated XREF → GMTITLE → dim/fit → Layout workflow (preferred for new work). | `SWCADSTATUS`, `SWCADRUN`, `SWCADVERIFY` |
+| `swcad_load.lsp` | Legacy/tool-level loader (`src/lsp/` + `src/tools/`). | `SWAUTO`, `SWHELP`, `SWTITLE*` |
+
+Both resolve the repo root by probing for known module paths and wrap each `load` in `vl-catch-all-apply`. A malformed `.lsp` (unbalanced parens/strings) is the main thing that breaks loading. GMTITLE dialog auto-select also ships `src/tools/gmtitle/swtitle_gmtitle_dialog_autoselect.ps1` next to the LSP (Windows PowerShell helper).
+
+Diagnostic / regression probes live under `diagnostics/gmtitle-main45/` and `diagnostics/swcad-workflow/` — they are CAD-host probes, not CI tests.
 
 ### Practical validation in the cloud VM
 Since the CAD runtime is unavailable, the meaningful local check is **structural validation of the AutoLISP source** (balanced parentheses/strings, honoring `;` line comments, `;| ... |;` block comments, and `\"` string escapes). This mirrors the loader's per-module `load` step. There is no committed lint/test script; validate structurally (e.g. a small paren/quote-balance pass over every `.lsp`) before considering an edit "loadable". Do not claim behavioral correctness from this alone — it only proves the files will parse/load.
