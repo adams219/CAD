@@ -6,7 +6,9 @@
 ;;; swcad-title-* functions and *swcad-title-* globals would collide.
 ;;;
 ;;; Public commands in this copy:
-;;;   CURSORSWTITLEUXSTATUS
+;;;   CURSORSWTITLEUXSTATUS         ; compact next-action card
+;;;   CURSORSWTITLEUXSTATUSDETAIL   ; original long diagnosis dump
+;;;   CURSORSWTITLEUXSTEP           ; run the compact card's next command
 ;;;   CURSORSWTITLEUXPREPARE
 ;;;   CURSORSWTITLEUXCONVERTNEXT
 ;;;   CURSORSWTITLEUXVERIFY
@@ -58,7 +60,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260815-cursor-ux-copy-1")
+(setq *swcad-title-scale-version* "260815-cursor-ux-copy-2")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -67,6 +69,8 @@
 (setq *swcad-title-debug-log-handle* nil)
 (setq *swcad-title-batch-mode* nil)
 (setq *swcad-title-convert-next-mode* nil)
+(setq *swcad-title-status-quiet* nil)
+(setq *swcad-title-last-next-action* nil)
 (setq *swcad-title-last-apply-status* nil)
 (setq *swcad-title-last-clone-failure* nil)
 (setq *swcad-title-last-native-gmtitle-abort-reason* nil)
@@ -1009,7 +1013,9 @@
 
 (defun swcad-title-princ-line (text)
   (setq text (swcad-title-korean-line text))
-  (princ (strcat "\n" text))
+  (if (not *swcad-title-status-quiet*)
+    (princ (strcat "\n" text))
+  )
   (if *swcad-title-debug-log-handle*
     (write-line text *swcad-title-debug-log-handle*)
   )
@@ -1017,14 +1023,18 @@
 
 (defun swcad-title-princ-raw-line (text)
   (setq text (swcad-title-string text))
-  (princ (strcat "\n" text))
+  (if (not *swcad-title-status-quiet*)
+    (princ (strcat "\n" text))
+  )
   (if *swcad-title-debug-log-handle*
     (write-line text *swcad-title-debug-log-handle*)
   )
 )
 
 (defun swcad-title-princ-text (text)
-  (princ (swcad-title-korean-line text))
+  (if (not *swcad-title-status-quiet*)
+    (princ (swcad-title-korean-line text))
+  )
 )
 
 (defun swcad-title-auto-next-answer (answer message)
@@ -21095,6 +21105,123 @@
   next-action
 )
 
+(defun swcad-title-status-next-command (next-action / text pos)
+  (setq text (swcad-title-string next-action))
+  (setq pos (vl-string-search " - " text))
+  (if pos
+    (vl-string-right-trim " " (substr text 1 pos))
+    text
+  )
+)
+
+(defun swcad-title-status-next-reason (next-action / text pos)
+  (setq text (swcad-title-string next-action))
+  (setq pos (vl-string-search " - " text))
+  (if pos
+    (vl-string-left-trim " " (substr text (+ pos 4)))
+    ""
+  )
+)
+
+(defun swcad-title-status-stop-p (next-action last-status / text status)
+  (setq text (strcase (swcad-title-string next-action)))
+  (setq status (strcase (swcad-title-string last-status)))
+  (or
+    (wcmatch status "*ABORT*")
+    (wcmatch status "*ERROR*")
+    (wcmatch status "NEXT_REVIEW*")
+    (wcmatch text "*위험*")
+    (wcmatch text "*복구*")
+    (wcmatch text "*점검*")
+  )
+)
+
+(defun swcad-title-run-status-collectors (/ next-action)
+  (swcad-title-fast-status)
+  (swcad-title-frame-def-check)
+  (swcad-title-print-frame-embedded-title-records (swcad-title-frame-embedded-title-records))
+  (swcad-title-native-frame-completion-check)
+  (setq next-action (swcad-title-integrated-structure-diagnosis))
+  (swcad-title-next-step)
+  next-action
+)
+
+(defun swcad-title-print-compact-status-card (next-action / summary source-count source-frame-count frame-only-count command reason)
+  (setq summary (swcad-title-fast-sheet-summary))
+  (setq source-count (swcad-title-fast-summary-value summary "source-title-count"))
+  (setq source-frame-count (swcad-title-fast-summary-value summary "source-frame-count"))
+  (setq frame-only-count (swcad-title-fast-summary-value summary "frame-only-count"))
+  (setq command (swcad-title-status-next-command next-action))
+  (setq reason (swcad-title-status-next-reason next-action))
+  (swcad-title-princ-text "\n===== CURSORSWTITLEUXSTATUS =====")
+  (swcad-title-print-loaded-version)
+  (swcad-title-princ-line (strcat "도면: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (swcad-title-princ-line
+    (strcat
+      "남은 원본: 표제란 "
+      (itoa source-count)
+      " / 도면틀 "
+      (itoa source-frame-count)
+      " / title-missing "
+      (itoa frame-only-count)
+    )
+  )
+  (if (swcad-title-status-stop-p next-action *swcad-title-last-apply-status*)
+    (progn
+      (swcad-title-princ-line "진행: 중단")
+      (swcad-title-princ-line (strcat "다음 명령: " command))
+      (if (> (strlen reason) 0)
+        (swcad-title-princ-line (strcat "이유: " reason))
+      )
+      (swcad-title-princ-line "같은 변환을 반복하지 말고 상세 로그를 확인하세요.")
+    )
+    (progn
+      (swcad-title-princ-line "진행: 계속")
+      (swcad-title-princ-line (strcat "다음 명령: " command))
+      (if (> (strlen reason) 0)
+        (swcad-title-princ-line (strcat "이유: " reason))
+      )
+    )
+  )
+  (if (not (swcad-title-current-dwg-in-work-p))
+    (swcad-title-princ-line "작업본: 다음 변경 명령에서 다른 이름으로 저장 창이 열립니다.")
+  )
+  (swcad-title-princ-line "한 단계 실행: CURSORSWTITLEUXSTEP")
+  (swcad-title-princ-line "상세 진단: CURSORSWTITLEUXSTATUSDETAIL")
+)
+
+(defun swcad-title-integrated-status-compact (/ cache-owned read-cache-owned old-quiet next-action)
+  (setq cache-owned (not *swcad-title-frame-style-analysis-cache-enabled*))
+  (setq read-cache-owned (not *swcad-title-read-scan-cache-enabled*))
+  (setq old-quiet *swcad-title-status-quiet*)
+  (setq *swcad-title-status-quiet* T)
+  (if cache-owned
+    (swcad-title-frame-style-analysis-cache-begin)
+  )
+  (if read-cache-owned
+    (swcad-title-read-scan-cache-begin)
+  )
+  (setq next-action (vl-catch-all-apply 'swcad-title-run-status-collectors nil))
+  (if cache-owned
+    (swcad-title-frame-style-analysis-cache-end)
+  )
+  (if read-cache-owned
+    (swcad-title-read-scan-cache-end)
+  )
+  (setq *swcad-title-status-quiet* old-quiet)
+  (if (vl-catch-all-error-p next-action)
+    (setq next-action
+      (strcat
+        "CURSORSWTITLEUXSTATUSDETAIL - 상태 계산 오류: "
+        (vl-catch-all-error-message next-action)
+      )
+    )
+  )
+  (setq *swcad-title-last-next-action* next-action)
+  (swcad-title-print-compact-status-card next-action)
+  (princ)
+)
+
 (defun swcad-title-integrated-status (/ cache-owned read-cache-owned)
   (setq cache-owned (not *swcad-title-frame-style-analysis-cache-enabled*))
   (setq read-cache-owned (not *swcad-title-read-scan-cache-enabled*))
@@ -22122,7 +22249,36 @@
 )
 
 (defun c:CURSORSWTITLEUXSTATUS ()
+  (swcad-title-integrated-status-compact)
+)
+
+(defun c:CURSORSWTITLEUXSTATUSDETAIL ()
   (swcad-title-integrated-status)
+)
+
+(defun c:CURSORSWTITLEUXSTEP (/ next-action command)
+  (swcad-title-integrated-status-compact)
+  (setq next-action *swcad-title-last-next-action*)
+  (setq command (strcase (swcad-title-status-next-command next-action)))
+  (cond
+    ((swcad-title-status-stop-p next-action *swcad-title-last-apply-status*)
+      (swcad-title-princ-text "\nCURSORSWTITLEUXSTEP 중단: 지금은 변환을 반복하지 말고 CURSORSWTITLEUXSTATUSDETAIL을 확인하세요.")
+      (princ)
+    )
+    ((wcmatch command "*PREPARE*")
+      (c:CURSORSWTITLEUXPREPARE)
+    )
+    ((wcmatch command "*CONVERTNEXT*")
+      (c:CURSORSWTITLEUXCONVERTNEXT)
+    )
+    ((wcmatch command "*VERIFY*")
+      (c:CURSORSWTITLEUXVERIFY)
+    )
+    (T
+      (swcad-title-princ-text "\nCURSORSWTITLEUXSTEP 중단: 다음에 칠 명령을 자동으로 고르지 못했습니다. CURSORSWTITLEUXSTATUSDETAIL을 확인하세요.")
+      (princ)
+    )
+  )
 )
 
 (defun c:CURSORSWTITLEUXPREPARE ()
@@ -22164,7 +22320,7 @@
   (setq *swcad-title-convert-next-mode* T)
   (swcad-title-princ-text "\n===== CURSORSWTITLEUXCONVERTNEXT 다음 1단계 자동 선택 =====")
   (swcad-title-princ-text "\n반복 확인 입력은 현재 상태의 안전한 다음 응답으로 자동 선택합니다.")
-  (swcad-title-princ-text "\nGMTITLE 창의 DR 용지/DR_titlea_3rd/Frame positioning ON/Object move OFF 확인은 계속 사람이 해야 합니다.")
+  (swcad-title-princ-text "\n자동 선택이 가능하면 DR 용지/제목블록/옵션을 검증한 뒤 확인 버튼을 누릅니다. 실패하면 원본을 유지하고 중단합니다.")
   (setq result (vl-catch-all-apply 'swcad-title-integrated-convert nil))
   (setq *swcad-title-convert-next-mode* old-auto)
   (if (vl-catch-all-error-p result)
@@ -22356,9 +22512,9 @@
 (swcad-title-disable-legacy-public-commands)
 
 (princ (strcat "\ncursor_swcad_title_scale_ux 실험 복사본 로드 완료 " *swcad-title-scale-version*))
-(princ "\n권장 흐름: CURSORSWTITLEUXSTATUS, CURSORSWTITLEUXPREPARE, CURSORSWTITLEUXCONVERTNEXT, CURSORSWTITLEUXVERIFY")
+(princ "\n권장 흐름: CURSORSWTITLEUXSTATUS 후 CURSORSWTITLEUXSTEP")
+(princ "\n상세 진단: CURSORSWTITLEUXSTATUSDETAIL")
 (princ "\n수동 응답을 직접 고를 때만 CURSORSWTITLEUXCONVERT를 사용하세요.")
-(princ "\n중요: 변환 전에는 CURSORSWTITLEUXSTATUS 결과가 안내한 다음 명령만 실행하세요.")
 (princ "\n금지: CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력해 우회하지 마세요.")
 (princ "\n예전 SWTITLE transfer/fast/A3A4/frame-only 공개 명령은 비활성화됩니다.")
 (princ)
