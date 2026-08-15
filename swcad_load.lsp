@@ -5,7 +5,7 @@
 
 (vl-load-com)
 
-(setq *swcad-version* "260626-1356")
+(setq *swcad-version* "260706-loader-convert-next-response-guidance")
 
 (defun swcad-loader-source (/ src)
   (setq src nil)
@@ -18,10 +18,37 @@
   src
 )
 
-(defun swcad-loader-root (/ src dir)
+(defun swcad-loader-root-valid-p (dir)
+  (and
+    dir
+    (findfile (strcat dir "/src/tools/gmtitle/swcad_title_scale.lsp"))
+  )
+)
+
+(defun swcad-loader-parent-dir (dir / clean)
+  (setq clean (if dir (vl-string-right-trim "\\/" dir) nil))
+  (if clean (vl-filename-directory clean) nil)
+)
+
+(defun swcad-loader-root (/ src dir dwg-dir dwg-parent user-root)
   (setq src (swcad-loader-source))
   (setq dir (if src (vl-filename-directory src) nil))
-  (if dir dir ".")
+  (setq dwg-dir (getvar "DWGPREFIX"))
+  (setq dwg-parent (swcad-loader-parent-dir dwg-dir))
+  (setq user-root
+    (if (getenv "USERPROFILE")
+      (strcat (getenv "USERPROFILE") "/Documents/CAD tool")
+      nil
+    )
+  )
+  (cond
+    ((swcad-loader-root-valid-p dir) dir)
+    ((swcad-loader-root-valid-p dwg-dir) dwg-dir)
+    ((swcad-loader-root-valid-p dwg-parent) dwg-parent)
+    ((swcad-loader-root-valid-p user-root) user-root)
+    (dir dir)
+    (T ".")
+  )
 )
 
 (setq *swcad-root* (swcad-loader-root))
@@ -37,24 +64,24 @@
       (setq result (vl-catch-all-apply 'load (list path)))
       (if (vl-catch-all-error-p result)
         (progn
-          (princ (strcat "\nSWCAD load failed: " relative))
+          (princ (strcat "\nSWCAD 모듈 로드 실패: " relative))
           (princ (strcat "\n  " (vl-catch-all-error-message result)))
           nil
         )
         (progn
-          (princ (strcat "\nSWCAD loaded: " relative))
+          (princ (strcat "\nSWCAD 모듈 로드 완료: " relative))
           T
         )
       )
     )
     (T
-      (princ (strcat "\nSWCAD missing module: " relative))
+      (princ (strcat "\nSWCAD 모듈 없음: " relative))
       nil
     )
   )
 )
 
-(princ (strcat "\nLoading SWCAD tool set " *swcad-version* "..."))
+(princ (strcat "\nSWCAD 도구 모음 로드 중 " *swcad-version* "..."))
 
 (swcad-load-file "src/lsp/swcad_common.lsp")
 (swcad-load-file "src/lsp/swcad_config.lsp")
@@ -67,8 +94,15 @@
 ;;; The current production command set is kept intact until modular migration.
 (swcad-load-file "src/tools/gstarcad-dimstyle/gstarcad_dimstyle_keep_tolerance.lsp")
 
-(princ "\nSWCAD ready.")
-(princ "\nMain command: SWAUTO")
-(princ "\nHelp: SWHELP")
-(princ "\nTitle/scale diagnostics planned: SWTITLESCAN, SWSCALESCAN, SWTITLEDEBUG")
+(princ "\nSWCAD 준비 완료.")
+(princ "\n주 명령어: SWAUTO")
+(princ "\n도움말: SWHELP")
+(princ "\nGMTITLE 작업 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLEVERIFY")
+(princ "\nGMTITLE 수동 응답을 직접 고를 때만 SWTITLECONVERT를 사용하세요.")
+(princ "\nGMTITLE CONVERTNEXT: work 복사본에서는 고정 컨트롤로 DR 용지/제목블록/옵션을 자동 선택합니다.")
+(princ "\nGMTITLE 자동 선택 실패 시 원본을 유지하고 멈춥니다. 그때만 로그에 표시된 값을 수동으로 확인하세요.")
+(princ "\nGMTITLE 중요: 변환 전에는 항상 SWTITLESTATUS로 현재 열린 DWG와 다음 상태를 먼저 확인하세요.")
+(princ "\nGMTITLE 금지: CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력해 우회하지 마세요.")
+(princ "\nGMTITLE 참고: 예전 SWTITLE transfer/fast/A3A4/frame-only 직접 명령은 사용하지 말고 위 흐름을 사용하세요.")
+(princ "\n로드된 LSP 확인: SWTITLEVERSION")
 (princ)

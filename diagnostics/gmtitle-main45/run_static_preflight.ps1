@@ -1,0 +1,1807 @@
+﻿param(
+  [string]$ExpectedGmtitleVersion = "260714-read-scan-cache-batch-queue-1",
+
+  [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
+)
+
+$ErrorActionPreference = "Stop"
+
+$repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")).Path
+$mainLspPath = Join-Path $repoRoot "src\tools\gmtitle\swcad_title_scale.lsp"
+$loaderPath = Join-Path $repoRoot "swcad_load.lsp"
+$suitePath = Join-Path $PSScriptRoot "run_main45_verification_suite.ps1"
+$readmePath = Join-Path $PSScriptRoot "README.md"
+$rootReadmePath = Join-Path $repoRoot "README.md"
+$readonlyProbeRunnerPath = Join-Path $PSScriptRoot "run_readonly_probe.ps1"
+$hiddenScriptSmokeProbeRunnerPath = Join-Path $PSScriptRoot "run_hidden_script_smoke_probe.ps1"
+$a4NormProbePath = Join-Path $PSScriptRoot "a4_outline_normalization_probe.lsp"
+$a4NormProbeRunnerPath = Join-Path $PSScriptRoot "run_a4_outline_normalization_probe.ps1"
+$a4NativeProbeFixturePath = Join-Path $PSScriptRoot "a4_native_exemplar_probe.lsp"
+$a4NativeProbeRunnerPath = Join-Path $PSScriptRoot "run_a4_native_exemplar_probe.ps1"
+$a4OutlineConvertProbePath = Join-Path $PSScriptRoot "a4_outline_convert_probe.lsp"
+$a4OutlineConvertRunnerPath = Join-Path $PSScriptRoot "run_a4_outline_convert_probe.ps1"
+$sourceTitleMissingCommonProbePath = Join-Path $PSScriptRoot "source_title_missing_common_probe.lsp"
+$sourceTitleMissingCommonRunnerPath = Join-Path $PSScriptRoot "run_source_title_missing_common_probe.ps1"
+$adoptionGateProbePath = Join-Path $PSScriptRoot "adoption_gate_compare_probe.lsp"
+$adoptionGateRunnerPath = Join-Path $PSScriptRoot "run_adoption_gate_compare_probe.ps1"
+$actualDirectStatusProbePath = Join-Path $PSScriptRoot "actual_workcopy_status_probe.lsp"
+$actualDirectStatusRunnerPath = Join-Path $PSScriptRoot "run_actual_workcopy_direct_status_probe.ps1"
+$singleCloneProbePath = Join-Path $PSScriptRoot "single_clone_probe.lsp"
+$singleCloneProbeRunnerPath = Join-Path $PSScriptRoot "run_single_clone_probe.ps1"
+$preserveCopyMatrixProbePath = Join-Path $PSScriptRoot "preserve_copy_matrix_probe.lsp"
+$preserveCopyMatrixRunnerPath = Join-Path $PSScriptRoot "run_preserve_copy_matrix_probe.ps1"
+$styleNormalizationProbePath = Join-Path $PSScriptRoot "style_normalization_compare_probe.lsp"
+$actualResidueCleanupProbePath = Join-Path $PSScriptRoot "actual_residue_cleanup_probe.lsp"
+$actualResidueCleanupRunnerPath = Join-Path $PSScriptRoot "run_actual_residue_cleanup_probe.ps1"
+$looseTitleSourceProbePath = Join-Path $PSScriptRoot "loose_title_source_probe.lsp"
+$looseTitleSourceRunnerPath = Join-Path $PSScriptRoot "run_loose_title_source_probe.ps1"
+$unifiedCleanupProbePath = Join-Path $PSScriptRoot "unified_cleanup_probe.lsp"
+$unifiedCleanupRunnerPath = Join-Path $PSScriptRoot "run_unified_cleanup_probe.ps1"
+$unifiedFinalProbePath = Join-Path $PSScriptRoot "unified_final_verification_probe.lsp"
+$unifiedFinalRunnerPath = Join-Path $PSScriptRoot "run_unified_final_verification_probe.ps1"
+$portableWorkcopyProbePath = Join-Path $PSScriptRoot "portable_workcopy_probe.lsp"
+$portableWorkcopyRunnerPath = Join-Path $PSScriptRoot "run_portable_workcopy_probe.ps1"
+$dialogControlProbePath = Join-Path $PSScriptRoot "gmtitle_dialog_control_probe.ps1"
+$dialogAutoselectHelperPath = Join-Path $repoRoot "src\tools\gmtitle\swtitle_gmtitle_dialog_autoselect.ps1"
+$dialogControlSessionProbePath = Join-Path $PSScriptRoot "dialog_control_session_probe.lsp"
+$dialogControlSessionRunnerPath = Join-Path $PSScriptRoot "run_gmtitle_dialog_control_session.ps1"
+$integratedAutoselectBatchRunnerPath = Join-Path $PSScriptRoot "run_integrated_autoselect_batch_probe.ps1"
+$postFirstNativeProbePath = Join-Path $PSScriptRoot "post_first_native_transition_probe.lsp"
+$postFirstNativeRunnerPath = Join-Path $PSScriptRoot "run_post_first_native_transition_probe.ps1"
+$openWorkcopyRunnerPath = Join-Path $PSScriptRoot "run_open_workcopy_for_manual_convert.ps1"
+$manualGmtitleSessionRunnerPath = Join-Path $PSScriptRoot "run_manual_gmtitle_session.ps1"
+$nextCadActionRunnerPath = Join-Path $PSScriptRoot "run_next_cad_action.ps1"
+$afterManualGmtitleStepRunnerPath = Join-Path $PSScriptRoot "run_after_manual_gmtitle_step.ps1"
+$nextCadActionCardProbePath = Join-Path $PSScriptRoot "run_next_cad_action_card_probe.ps1"
+$finalCompletionGatePath = Join-Path $PSScriptRoot "run_final_completion_gate.ps1"
+$selectionConfigProbePath = Join-Path $PSScriptRoot "run_gmtitle_selection_config_probe.ps1"
+$goalStatusPath = Join-Path $PSScriptRoot "run_goal_status.ps1"
+$cadTextLogReaderPath = Join-Path $PSScriptRoot "read_cad_text_log.ps1"
+$computerUseHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-computer-use-visible-cad-activation-failure-2026-07-05.md"
+$computerUseA3DialogHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-a3-visible-dialog-computer-use-2026-07-06.md"
+$computerUseDynamicInputHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-computer-use-dynamic-input-failure-2026-07-07.md"
+$hiddenSuitePassHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-main56-hidden-suite-pass-2026-07-05.md"
+$finalCompletionGateHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-final-completion-gate-2026-07-06.md"
+$commandSurfaceHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-command-surface-probe-2026-07-05.md"
+$automationBoundaryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-automation-boundary-audit-2026-07-05.md"
+$selectionConfigDeepRegistryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-selection-config-deep-registry-2026-07-06.md"
+$titleResidueGeometryHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-title-residue-geometry-2026-07-11.md"
+$freshE2eFinalHistoryPath = Join-Path $repoRoot "docs\history\gmtitle-fresh-e2e-final-2026-07-11.md"
+$guidePaths = @(
+  "docs\guide\commands.md",
+  "docs\guide\gmtitle-unified-flow-reset.md",
+  "docs\guide\gmtitle-cad-conversion-checklist.md",
+  "docs\guide\gmtitle-current-run-card.md",
+  "docs\guide\gmtitle-goal-mode-plan.md",
+  "docs\guide\gmtitle-native-frame-upgrade.md",
+  "docs\guide\gmtitle-resume-on-another-computer.md",
+  "docs\guide\gmtitle-other-computer-test.md"
+) | ForEach-Object { Join-Path $repoRoot $_ }
+
+$failures = New-Object System.Collections.Generic.List[string]
+
+function Add-Failure {
+  param([string]$Message)
+  [void]$failures.Add($Message)
+}
+
+function Read-Text {
+  param([string]$Path)
+  if (-not (Test-Path -LiteralPath $Path)) {
+    throw "Required file not found: $Path"
+  }
+  [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $Path).Path, [System.Text.Encoding]::UTF8)
+}
+
+function Test-LispBalance {
+  param(
+    [string]$Text,
+    [string]$Label
+  )
+
+  $depth = 0
+  $minDepth = 0
+  $line = 1
+  $col = 0
+  $inString = $false
+  $escape = $false
+  $comment = $false
+  $firstBad = $null
+
+  for ($i = 0; $i -lt $Text.Length; $i++) {
+    $ch = $Text[$i]
+    $col++
+
+    if ($ch -eq "`n") {
+      $line++
+      $col = 0
+      $comment = $false
+      continue
+    }
+    if ($comment) {
+      continue
+    }
+    if ($inString) {
+      if ($escape) {
+        $escape = $false
+        continue
+      }
+      if ($ch -eq "\") {
+        $escape = $true
+        continue
+      }
+      if ($ch -eq '"') {
+        $inString = $false
+        continue
+      }
+      continue
+    }
+    if ($ch -eq ";") {
+      $comment = $true
+      continue
+    }
+    if ($ch -eq '"') {
+      $inString = $true
+      continue
+    }
+    if ($ch -eq "(") {
+      $depth++
+    } elseif ($ch -eq ")") {
+      $depth--
+      if ($depth -lt $minDepth) {
+        $minDepth = $depth
+        if (-not $firstBad) {
+          $firstBad = "${line}:${col}"
+        }
+      }
+    }
+  }
+
+  if (($depth -ne 0) -or ($minDepth -ne 0) -or $inString) {
+    Add-Failure "$Label Lisp balance failed: depth=$depth minDepth=$minDepth inString=$inString firstBad=$firstBad"
+  } else {
+    Write-Output "$Label Lisp balance: OK"
+  }
+}
+
+function Test-PowerShellSyntax {
+  param(
+    [string]$Path,
+    [string]$Label
+  )
+
+  $tokens = $null
+  $errors = $null
+  [void][System.Management.Automation.Language.Parser]::ParseFile(
+    (Resolve-Path -LiteralPath $Path).Path,
+    [ref]$tokens,
+    [ref]$errors
+  )
+  if ($errors.Count -gt 0) {
+    Add-Failure "$Label PowerShell parse failed: $($errors[0].Message)"
+  } else {
+    Write-Output "$Label PowerShell parse: OK"
+  }
+}
+
+function Get-VersionValue {
+  param(
+    [string]$Text,
+    [string]$VariableName
+  )
+
+  $pattern = '\(setq\s+' + [regex]::Escape($VariableName) + '\s+"([^"]+)"\)'
+  $match = [regex]::Match($Text, $pattern)
+  if ($match.Success) {
+    return $match.Groups[1].Value
+  }
+  return $null
+}
+
+function Assert-Contains {
+  param(
+    [string]$Text,
+    [string]$Needle,
+    [string]$Label
+  )
+
+  if ($Text.Contains($Needle)) {
+    Write-Output "${Label}: found"
+  } else {
+    Add-Failure "$Label missing: $Needle"
+  }
+}
+
+function Assert-NotContains {
+  param(
+    [string]$Text,
+    [string]$Needle,
+    [string]$Label
+  )
+
+  if ($Text.Contains($Needle)) {
+    Add-Failure "$Label should not contain: $Needle"
+  } else {
+    Write-Output "${Label}: absent"
+  }
+}
+
+function Assert-NotMatches {
+  param(
+    [string]$Text,
+    [string]$Pattern,
+    [string]$Label
+  )
+
+  if ([regex]::IsMatch($Text, $Pattern)) {
+    Add-Failure "$Label should not match: $Pattern"
+  } else {
+    Write-Output "${Label}: absent"
+  }
+}
+
+function Assert-NoKnownMojibake {
+  param(
+    [string]$Text,
+    [string]$Label
+  )
+
+  $badMarkers = @("�", "紐", "理", "?꾨", "?쒕", "?먮", "援ъ", "諛붽", "癒쇱")
+  foreach ($marker in $badMarkers) {
+    if ($Text.Contains($marker)) {
+      Add-Failure "$Label contains mojibake marker: $marker"
+    }
+  }
+  Write-Output "${Label}: mojibake guard checked"
+}
+
+function Assert-VersionInFile {
+  param(
+    [string]$Path,
+    [string]$Version,
+    [string]$Label
+  )
+
+  $text = Read-Text $Path
+  if ($text.Contains($Version)) {
+    Write-Output "${Label}: version found"
+  } else {
+    Add-Failure "${Label} missing expected version: $Version"
+  }
+}
+
+$mainText = Read-Text $mainLspPath
+$loaderText = Read-Text $loaderPath
+$suiteText = Read-Text $suitePath
+$readmeText = Read-Text $readmePath
+$rootReadmeText = Read-Text $rootReadmePath
+$readonlyProbeRunnerText = Read-Text $readonlyProbeRunnerPath
+$hiddenScriptSmokeProbeRunnerText = Read-Text $hiddenScriptSmokeProbeRunnerPath
+$a4NormProbeText = Read-Text $a4NormProbePath
+$a4NormProbeRunnerText = Read-Text $a4NormProbeRunnerPath
+$a4NativeProbeFixtureText = Read-Text $a4NativeProbeFixturePath
+$a4NativeProbeRunnerText = Read-Text $a4NativeProbeRunnerPath
+$a4OutlineConvertProbeText = Read-Text $a4OutlineConvertProbePath
+$a4OutlineConvertRunnerText = Read-Text $a4OutlineConvertRunnerPath
+$sourceTitleMissingCommonProbeText = Read-Text $sourceTitleMissingCommonProbePath
+$sourceTitleMissingCommonRunnerText = Read-Text $sourceTitleMissingCommonRunnerPath
+$adoptionGateProbeText = Read-Text $adoptionGateProbePath
+$adoptionGateRunnerText = Read-Text $adoptionGateRunnerPath
+$actualDirectStatusProbeText = Read-Text $actualDirectStatusProbePath
+$actualDirectStatusRunnerText = Read-Text $actualDirectStatusRunnerPath
+$singleCloneProbeText = Read-Text $singleCloneProbePath
+$singleCloneProbeRunnerText = Read-Text $singleCloneProbeRunnerPath
+$preserveCopyMatrixProbeText = Read-Text $preserveCopyMatrixProbePath
+$preserveCopyMatrixRunnerText = Read-Text $preserveCopyMatrixRunnerPath
+$styleNormalizationProbeText = Read-Text $styleNormalizationProbePath
+$actualResidueCleanupProbeText = Read-Text $actualResidueCleanupProbePath
+$actualResidueCleanupRunnerText = Read-Text $actualResidueCleanupRunnerPath
+$looseTitleSourceProbeText = Read-Text $looseTitleSourceProbePath
+$looseTitleSourceRunnerText = Read-Text $looseTitleSourceRunnerPath
+$unifiedCleanupProbeText = Read-Text $unifiedCleanupProbePath
+$unifiedCleanupRunnerText = Read-Text $unifiedCleanupRunnerPath
+$unifiedFinalProbeText = Read-Text $unifiedFinalProbePath
+$unifiedFinalRunnerText = Read-Text $unifiedFinalRunnerPath
+$portableWorkcopyProbeText = Read-Text $portableWorkcopyProbePath
+$portableWorkcopyRunnerText = Read-Text $portableWorkcopyRunnerPath
+$dialogControlProbeText = Read-Text $dialogControlProbePath
+$dialogAutoselectHelperText = Read-Text $dialogAutoselectHelperPath
+$dialogControlSessionProbeText = Read-Text $dialogControlSessionProbePath
+$dialogControlSessionRunnerText = Read-Text $dialogControlSessionRunnerPath
+$integratedAutoselectBatchRunnerText = Read-Text $integratedAutoselectBatchRunnerPath
+$postFirstNativeProbeText = Read-Text $postFirstNativeProbePath
+$postFirstNativeRunnerText = Read-Text $postFirstNativeRunnerPath
+$openWorkcopyRunnerText = Read-Text $openWorkcopyRunnerPath
+$manualGmtitleSessionRunnerText = Read-Text $manualGmtitleSessionRunnerPath
+$nextCadActionRunnerText = Read-Text $nextCadActionRunnerPath
+$afterManualGmtitleStepRunnerText = Read-Text $afterManualGmtitleStepRunnerPath
+$nextCadActionCardProbeText = Read-Text $nextCadActionCardProbePath
+$finalCompletionGateText = Read-Text $finalCompletionGatePath
+$selectionConfigProbeText = Read-Text $selectionConfigProbePath
+$goalStatusText = Read-Text $goalStatusPath
+$cadTextLogReaderText = Read-Text $cadTextLogReaderPath
+$unifiedFlowResetGuideText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-unified-flow-reset.md")
+$computerUseHistoryText = Read-Text $computerUseHistoryPath
+$computerUseA3DialogHistoryText = Read-Text $computerUseA3DialogHistoryPath
+$computerUseDynamicInputHistoryText = Read-Text $computerUseDynamicInputHistoryPath
+$commandSurfaceHistoryText = Read-Text $commandSurfaceHistoryPath
+$automationBoundaryHistoryText = Read-Text $automationBoundaryHistoryPath
+$selectionConfigDeepRegistryHistoryText = Read-Text $selectionConfigDeepRegistryHistoryPath
+$finalCompletionGateHistoryText = Read-Text $finalCompletionGateHistoryPath
+$titleResidueGeometryHistoryText = Read-Text $titleResidueGeometryHistoryPath
+$freshE2eFinalHistoryText = Read-Text $freshE2eFinalHistoryPath
+
+Write-Output "===== GMTITLE static preflight ====="
+Write-Output ("Repo root: {0}" -f $repoRoot)
+
+Test-LispBalance -Text $mainText -Label "swcad_title_scale.lsp"
+Test-LispBalance -Text $loaderText -Label "swcad_load.lsp"
+Test-LispBalance -Text $a4NormProbeText -Label "a4_outline_normalization_probe.lsp"
+Test-LispBalance -Text $a4OutlineConvertProbeText -Label "a4_outline_convert_probe.lsp"
+Test-LispBalance -Text $sourceTitleMissingCommonProbeText -Label "source_title_missing_common_probe.lsp"
+Test-LispBalance -Text $adoptionGateProbeText -Label "adoption_gate_compare_probe.lsp"
+Test-LispBalance -Text $actualDirectStatusProbeText -Label "actual_workcopy_status_probe.lsp"
+Test-LispBalance -Text $singleCloneProbeText -Label "single_clone_probe.lsp"
+Test-LispBalance -Text $preserveCopyMatrixProbeText -Label "preserve_copy_matrix_probe.lsp"
+Test-LispBalance -Text $styleNormalizationProbeText -Label "style_normalization_compare_probe.lsp"
+Test-LispBalance -Text $actualResidueCleanupProbeText -Label "actual_residue_cleanup_probe.lsp"
+Test-LispBalance -Text $looseTitleSourceProbeText -Label "loose_title_source_probe.lsp"
+Test-LispBalance -Text $unifiedCleanupProbeText -Label "unified_cleanup_probe.lsp"
+Test-LispBalance -Text $unifiedFinalProbeText -Label "unified_final_verification_probe.lsp"
+Test-LispBalance -Text $portableWorkcopyProbeText -Label "portable_workcopy_probe.lsp"
+Test-LispBalance -Text $dialogControlSessionProbeText -Label "dialog_control_session_probe.lsp"
+Test-LispBalance -Text $postFirstNativeProbeText -Label "post_first_native_transition_probe.lsp"
+Test-PowerShellSyntax -Path $preserveCopyMatrixRunnerPath -Label "run_preserve_copy_matrix_probe.ps1"
+Test-PowerShellSyntax -Path $dialogControlProbePath -Label "gmtitle_dialog_control_probe.ps1"
+Test-PowerShellSyntax -Path $dialogAutoselectHelperPath -Label "swtitle_gmtitle_dialog_autoselect.ps1"
+Test-PowerShellSyntax -Path $dialogControlSessionRunnerPath -Label "run_gmtitle_dialog_control_session.ps1"
+Test-PowerShellSyntax -Path $integratedAutoselectBatchRunnerPath -Label "run_integrated_autoselect_batch_probe.ps1"
+Test-PowerShellSyntax -Path $actualResidueCleanupRunnerPath -Label "run_actual_residue_cleanup_probe.ps1"
+Test-PowerShellSyntax -Path $looseTitleSourceRunnerPath -Label "run_loose_title_source_probe.ps1"
+Test-PowerShellSyntax -Path $unifiedCleanupRunnerPath -Label "run_unified_cleanup_probe.ps1"
+Test-PowerShellSyntax -Path $unifiedFinalRunnerPath -Label "run_unified_final_verification_probe.ps1"
+Test-PowerShellSyntax -Path $portableWorkcopyRunnerPath -Label "run_portable_workcopy_probe.ps1"
+Test-PowerShellSyntax -Path $sourceTitleMissingCommonRunnerPath -Label "run_source_title_missing_common_probe.ps1"
+Test-PowerShellSyntax -Path $adoptionGateRunnerPath -Label "run_adoption_gate_compare_probe.ps1"
+Test-PowerShellSyntax -Path $suitePath -Label "run_main45_verification_suite.ps1"
+
+$gmtitleVersion = Get-VersionValue -Text $mainText -VariableName "*swcad-title-scale-version*"
+if ($gmtitleVersion -eq $ExpectedGmtitleVersion) {
+  Write-Output ("GMTITLE version: {0}" -f $gmtitleVersion)
+} else {
+  Add-Failure "GMTITLE version mismatch: expected '$ExpectedGmtitleVersion', got '$gmtitleVersion'"
+}
+
+$loaderVersion = Get-VersionValue -Text $loaderText -VariableName "*swcad-version*"
+if ($loaderVersion -eq $ExpectedLoaderVersion) {
+  Write-Output ("Loader version: {0}" -f $loaderVersion)
+} else {
+  Add-Failure "Loader version mismatch: expected '$ExpectedLoaderVersion', got '$loaderVersion'"
+}
+Assert-Contains -Text $loaderText -Needle "GMTITLE 작업 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLEVERIFY" -Label "Loader convert-next workflow guidance"
+Assert-Contains -Text $loaderText -Needle "GMTITLE 수동 응답을 직접 고를 때만 SWTITLECONVERT를 사용하세요" -Label "Loader manual convert fallback guidance"
+Assert-Contains -Text $loaderText -Needle "GMTITLE CONVERTNEXT: work 복사본에서는 고정 컨트롤로 DR 용지/제목블록/옵션을 자동 선택합니다." -Label "Loader fixed-control auto-selection guidance"
+Assert-Contains -Text $loaderText -Needle "GMTITLE 자동 선택 실패 시 원본을 유지하고 멈춥니다." -Label "Loader auto-selection safe-stop guidance"
+Assert-Contains -Text $loaderText -Needle "GMTITLE 중요: 변환 전에는 항상 SWTITLESTATUS로 현재 열린 DWG와 다음 상태를 먼저 확인하세요" -Label "Loader status-first visible guidance"
+Assert-Contains -Text $loaderText -Needle "GMTITLE 금지: CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력해 우회하지 마세요" -Label "Loader raw GMTITLE/TIT/OPEN guard"
+Assert-NotContains -Text $loaderText -Needle "SWCAD loaded:" -Label "Loader stale English loaded message"
+Assert-NotContains -Text $loaderText -Needle "Loading SWCAD tool set" -Label "Loader stale English loading message"
+
+$expectedPublicCommands = @(
+  "SWTITLESTATUS",
+  "SWTITLEPREPARE",
+  "SWTITLECONVERT",
+  "SWTITLECONVERTNEXT",
+  "SWTITLEVERIFY",
+  "SWTITLEVERSION",
+  "SWSCALESCAN"
+)
+$publicCommands = @(
+  [regex]::Matches($mainText, '(?m)^\s*\(defun\s+c:([A-Za-z0-9_-]+)\b') |
+    ForEach-Object { $_.Groups[1].Value.ToUpperInvariant() } |
+    Sort-Object -Unique
+)
+$missingPublic = @($expectedPublicCommands | Where-Object { $_ -notin $publicCommands })
+$extraPublic = @($publicCommands | Where-Object { $_ -notin $expectedPublicCommands })
+if (($missingPublic.Count -eq 0) -and ($extraPublic.Count -eq 0)) {
+  Write-Output ("Public c: commands: {0}" -f ($publicCommands -join ", "))
+} else {
+  if ($missingPublic.Count -gt 0) {
+    Add-Failure ("Missing public command(s): {0}" -f ($missingPublic -join ", "))
+  }
+  if ($extraPublic.Count -gt 0) {
+    Add-Failure ("Unexpected public command(s): {0}" -f ($extraPublic -join ", "))
+  }
+}
+
+$legacyPublicCommands = @(
+  "SWTITLEFASTSTATUS",
+  "SWTITLETRANSFERBOOTSTRAPFAST",
+  "SWTITLETRANSFERFASTBATCH",
+  "SWTITLEFRAMEONLYAPPLY",
+  "SWTITLEA3A4NEXT",
+  "SWTITLEGMTITLEVERIFYALL"
+)
+$legacyStillPublic = @($legacyPublicCommands | Where-Object { $_ -in $publicCommands })
+if ($legacyStillPublic.Count -eq 0) {
+  Write-Output "Legacy public commands: not exposed"
+} else {
+  Add-Failure ("Legacy public command(s) still exposed: {0}" -f ($legacyStillPublic -join ", "))
+}
+
+Assert-Contains -Text $mainText -Needle "WARN_TITLE_MISSING_OUTLINE_DEFINITION_UNSAFE" -Label "Generic title-missing unsafe definition status"
+Assert-Contains -Text $mainText -Needle "ready-native-outside-markers" -Label "Title-missing native outside marker ready status"
+Assert-Contains -Text $mainText -Needle "swcad-title-title-missing-outline-definition-needed-p" -Label "Generic title-missing outline definition gate"
+Assert-Contains -Text $mainText -Needle "swcad-title-title-missing-outline-policy-blocked-p" -Label "Generic title-missing outline policy gate"
+Assert-Contains -Text $mainText -Needle "swcad-title-title-missing-outline-frame-block-present-p" -Label "Generic title-missing outline frame-block presence guard"
+Assert-Contains -Text $mainText -Needle "swcad-title-title-missing-outline-risk-message" -Label "Generic title-missing outline risk message"
+Assert-Contains -Text $mainText -Needle "swcad-title-frame-only-source-for-frame-block" -Label "Title-missing warnings select same-size frame-only source"
+Assert-Contains -Text $mainText -Needle '*swcad-title-workcopy-xdata-marker* "SWTITLE_SELECTED_WORKCOPY"' -Label "Portable work-copy persistent marker"
+Assert-Contains -Text $mainText -Needle "SWTITLE 변환 작업본을 다른 이름으로 저장" -Label "Portable work-copy Save As dialog"
+Assert-Contains -Text $mainText -Needle "*swcad-title-work-copy-saveas-path-override*" -Label "Portable work-copy isolated CAD probe hook"
+Assert-Contains -Text $mainText -Needle "ABORT_WORK_COPY_SAVEAS_CANCELLED" -Label "Portable work-copy cancel guard"
+Assert-Contains -Text $mainText -Needle "ABORT_WORK_COPY_SAME_PATH" -Label "Portable work-copy original overwrite guard"
+Assert-Contains -Text $mainText -Needle "ERROR_WORK_COPY_ACTIVE_PATH_MISMATCH" -Label "Portable work-copy active path verification"
+Assert-Contains -Text $mainText -Needle "swcad-title-mark-selected-work-copy" -Label "Portable work-copy marker write"
+Assert-Contains -Text $mainText -Needle "swcad-title-ensure-work-copy-for-mutation" -Label "Portable work-copy public mutation gate"
+Assert-Contains -Text $mainText -Needle "user-selected-saveas-copy" -Label "Portable work-copy authorization source"
+Assert-Contains -Text $mainText -Needle "LOCALAPPDATA" -Label "Portable per-user log root"
+Assert-Contains -Text $mainText -Needle "*swcad-title-source-path*" -Label "Portable helper path from loaded LSP"
+Assert-NotContains -Text $mainText -Needle '((not (swcad-title-current-dwg-in-work-p)) "BLOCKED_NOT_WORK_COPY")' -Label "Status no fixed work-folder blocker"
+Assert-NotContains -Text $mainText -Needle "현재 DWG가 work 폴더 밖에 있습니다. 계속하려면 EDIT" -Label "No direct original EDIT bypass"
+Assert-Contains -Text $portableWorkcopyProbeText -Needle "PORTABLE_WORKCOPY_OK" -Label "Portable work-copy CAD probe completion marker"
+Assert-Contains -Text $portableWorkcopyProbeText -Needle "user-selected-saveas-copy" -Label "Portable work-copy CAD probe authorization check"
+Assert-Contains -Text $portableWorkcopyRunnerText -Needle "Source SHA256 unchanged" -Label "Portable work-copy source preservation gate"
+Assert-Contains -Text $portableWorkcopyRunnerText -Needle "portable_workcopy_reopen_verify.txt" -Label "Portable work-copy reopen persistence gate"
+if ([regex]::IsMatch($mainText, "\(swcad-title-title-missing-outline-risk-message\s*\r?\n\s*\(car\s+\(swcad-title-frame-only-source-candidates\)\)")) {
+  Add-Failure "Title-missing per-size warning must not reuse the first frame-only source."
+}
+$frameOnlySourceCandidatesStart = $mainText.IndexOf("(defun swcad-title-frame-only-source-candidates")
+$frameOnlySourceCandidatesEnd = if ($frameOnlySourceCandidatesStart -ge 0) { $mainText.IndexOf("(defun swcad-title-frame-only-source-for-frame-block", $frameOnlySourceCandidatesStart) } else { -1 }
+if (($frameOnlySourceCandidatesStart -lt 0) -or ($frameOnlySourceCandidatesEnd -le $frameOnlySourceCandidatesStart)) {
+  Add-Failure "swcad-title-frame-only-source-candidates function block not found."
+} else {
+  $frameOnlySourceCandidatesText = $mainText.Substring($frameOnlySourceCandidatesStart, $frameOnlySourceCandidatesEnd - $frameOnlySourceCandidatesStart)
+  if ($frameOnlySourceCandidatesText -notmatch "swcad-title-source-title-candidates") {
+    Add-Failure "frame-only source candidates must inspect source-title candidates."
+  }
+  if ($frameOnlySourceCandidatesText -notmatch "\(not\s+\(swcad-title-frame-has-source-title-p") {
+    Add-Failure "frame-only source candidates must be based on absence of a contained source title."
+  }
+  if ($frameOnlySourceCandidatesText -match "DR_A4_Outline|`"A4`"") {
+    Add-Failure "frame-only source candidates must not special-case A4."
+  }
+}
+$titleMissingPolicyStart = $mainText.IndexOf("(defun swcad-title-title-missing-outline-policy-active-p")
+$titleMissingPolicyEnd = if ($titleMissingPolicyStart -ge 0) { $mainText.IndexOf("(defun swcad-title-title-missing-outline-policy-blocked-p", $titleMissingPolicyStart) } else { -1 }
+if (($titleMissingPolicyStart -lt 0) -or ($titleMissingPolicyEnd -le $titleMissingPolicyStart)) {
+  Add-Failure "swcad-title-title-missing-outline-policy-active-p function block not found."
+} else {
+  $titleMissingPolicyText = $mainText.Substring($titleMissingPolicyStart, $titleMissingPolicyEnd - $titleMissingPolicyStart)
+  if ($titleMissingPolicyText -notmatch "swcad-title-frame-only-source-candidates") {
+    Add-Failure "title-missing policy must start from verified frame-only/source-title-missing candidates."
+  }
+  if ($titleMissingPolicyText -match "DR_A4_Outline|\(equal\s+[^\r\n]*`"A4`"") {
+    Add-Failure "title-missing policy must not branch on A4 or DR_A4_Outline."
+  }
+}
+if ($mainText -notmatch "title-missing/frame-only 기준: A2/A3/A4 중 어떤 용지든 원본 표제란 부재가 검증된 경우에만 예외로 처리합니다\.") {
+  Add-Failure "SWTITLESTATUS must explain that title-missing/frame-only is based on verified missing source title, not A4 size."
+}
+$requiredNativeStart = $mainText.IndexOf("(defun swcad-title-required-native-frame-blocks")
+$requiredNativeEnd = if ($requiredNativeStart -ge 0) { $mainText.IndexOf("(defun swcad-title-missing-required-native-frame-blocks", $requiredNativeStart) } else { -1 }
+if (($requiredNativeStart -lt 0) -or ($requiredNativeEnd -le $requiredNativeStart)) {
+  Add-Failure "swcad-title-required-native-frame-blocks function block not found."
+} else {
+  $requiredNativeText = $mainText.Substring($requiredNativeStart, $requiredNativeEnd - $requiredNativeStart)
+  if ($requiredNativeText -notmatch '"title-sheet-counts"') {
+    Add-Failure "native GMTITLE exemplar requirements must be based on source title-sheet counts."
+  }
+  if ($requiredNativeText -match '"frame-sheet-counts"|swcad-title-summary-frame-only-count-for-frame-block|swcad-title-frame-only-source') {
+    Add-Failure "native GMTITLE exemplar requirements must not include title-missing/frame-only source frames."
+  }
+  if ($requiredNativeText -notmatch "must not force creation of a new DR_titlea_3rd") {
+    Add-Failure "native GMTITLE exemplar requirement function must document the no-new-title invariant for title-missing/frame-only sheets."
+  }
+}
+$integratedPrepareStart = $mainText.IndexOf("(defun swcad-title-integrated-prepare")
+$integratedPrepareEnd = if ($integratedPrepareStart -ge 0) { $mainText.IndexOf("(defun swcad-title-integrated-convert", $integratedPrepareStart) } else { -1 }
+if (($integratedPrepareStart -lt 0) -or ($integratedPrepareEnd -le $integratedPrepareStart)) {
+  Add-Failure "swcad-title-integrated-prepare function block not found."
+} else {
+  $integratedPrepareText = $mainText.Substring($integratedPrepareStart, $integratedPrepareEnd - $integratedPrepareStart)
+  if ($integratedPrepareText -notmatch "\(setq summary \(swcad-title-fast-sheet-summary\)\)") {
+    Add-Failure "SWTITLEPREPARE must read the unified sheet summary before title-missing preparation."
+  }
+  if ($integratedPrepareText -notmatch '"source-title-count"') {
+    Add-Failure "SWTITLEPREPARE must inspect remaining source title count."
+  }
+  if ($integratedPrepareText -notmatch '"frame-only-count"') {
+    Add-Failure "SWTITLEPREPARE must inspect title-missing/frame-only count."
+  }
+  if ($integratedPrepareText -notmatch "\(= source-count 0\)") {
+    Add-Failure "SWTITLEPREPARE title-missing preparation must require source-count=0."
+  }
+  if ($integratedPrepareText -notmatch "\(> frame-only-count 0\)") {
+    Add-Failure "SWTITLEPREPARE title-missing preparation must require frame-only-count>0."
+  }
+  if ($integratedPrepareText -notmatch "title-missing/frame-only DR 도면틀 정의 준비: 이번 실행에서는 건너뜀") {
+    Add-Failure "SWTITLEPREPARE must skip title-missing preparation after cleanup/blocking work in the same run."
+  }
+  if ($integratedPrepareText -notmatch "정리/차단 후보 처리 후 다음 단계로 건너뛰지 않습니다") {
+    Add-Failure "SWTITLEPREPARE must explain that cleanup and next-step progression are separated."
+  }
+  if ($integratedPrepareText -match "DR_A4_Outline|A4 frame-only|A4 제목블록|A4 도면틀") {
+    Add-Failure "SWTITLEPREPARE must not special-case A4 while preparing title-missing/frame-only outlines."
+  }
+}
+$titleOffsetStart = $mainText.IndexOf("(defun swcad-title-frame-only-title-offset")
+$titleOffsetEnd = if ($titleOffsetStart -ge 0) { $mainText.IndexOf("(defun swcad-title-transfer-source-bbox", $titleOffsetStart) } else { -1 }
+if (($titleOffsetStart -lt 0) -or ($titleOffsetEnd -le $titleOffsetStart)) {
+  Add-Failure "swcad-title-frame-only-title-offset function block not found."
+} else {
+  $titleOffsetText = $mainText.Substring($titleOffsetStart, $titleOffsetEnd - $titleOffsetStart)
+  if ($titleOffsetText -match "`"A4`"|DR_A4_Outline|\(equal\s+[^\r\n]*normalized\s+`"A4`"") {
+    Add-Failure "title/frame offset calculation must not special-case A4."
+  }
+  if ($titleOffsetText -notmatch '\(list \(max 20\.0 \(- width 190\.0\)\) 10\.0\)') {
+    Add-Failure "title/frame offset calculation must use the common sheet-width formula."
+  }
+}
+$titleMissingApplyStart = $mainText.IndexOf("(defun swcad-title-transfer-title-missing-outline-apply")
+$titleMissingApplyEnd = if ($titleMissingApplyStart -ge 0) { $mainText.IndexOf("(defun swcad-title-transfer-frame-only-apply", $titleMissingApplyStart) } else { -1 }
+if (($titleMissingApplyStart -lt 0) -or ($titleMissingApplyEnd -le $titleMissingApplyStart)) {
+  Add-Failure "swcad-title-transfer-title-missing-outline-apply function block not found."
+} else {
+  $titleMissingApplyText = $mainText.Substring($titleMissingApplyStart, $titleMissingApplyEnd - $titleMissingApplyStart)
+  if ($titleMissingApplyText -notmatch "swcad-title-frame-only-source-candidates") {
+    Add-Failure "title-missing outline apply must start from verified source-title-missing/frame-only candidates."
+  }
+  if ($titleMissingApplyText -notmatch '\(setq normalized-sheet \(swcad-title-normalized-sheet-size source-sheet\)\)') {
+    Add-Failure "title-missing outline apply must normalize the source sheet instead of assuming A4."
+  }
+  if ($titleMissingApplyText -notmatch '\(strcat "DR_" normalized-sheet "_Outline"\)') {
+    Add-Failure "title-missing outline apply must derive the expected DR outline from the normalized source sheet."
+  }
+  if ($titleMissingApplyText -notmatch "swcad-title-run-native-gmtitle-prefer-commandline frame-block placement-point") {
+    Add-Failure "title-missing outline apply must create the same-size frame through real native GMTITLE."
+  }
+  if ($titleMissingApplyText -notmatch "swcad-title-delete-ename new-title-ename") {
+    Add-Failure "title-missing outline apply must delete the temporary GMTITLE title insert."
+  }
+  if ($titleMissingApplyText -notmatch 'native-title-missing-outline') {
+    Add-Failure "title-missing outline apply must mark only a verified native title-missing frame."
+  }
+  if ($titleMissingApplyText -notmatch "swcad-title-title-missing-outline-frame-record-p") {
+    Add-Failure "title-missing outline apply must recheck the native frame after deleting the temporary title."
+  }
+  if ($titleMissingApplyText -notmatch "swcad-title-script-active-p") {
+    Add-Failure "title-missing outline apply must stop safely when an interactive GMTITLE cannot run under SCRIPT."
+  }
+  if ($titleMissingApplyText -notmatch "swcad-title-abort-interactive-gmtitle-script-active") {
+    Add-Failure "title-missing outline apply must report the shared interactive-GMTITLE SCRIPT guard status."
+  }
+  if ($titleMissingApplyText -notmatch "최종 도면에는 원본에 없던 DR_titlea_3rd 제목블록을 남기지 않았습니다.") {
+    Add-Failure "title-missing outline apply must explicitly preserve the final no-new-title invariant."
+  }
+  if ($titleMissingApplyText -match "DR_A4_Outline|A4 frame-only|A4 제목블록|A4 도면틀") {
+    Add-Failure "title-missing outline apply must not contain A4-specific wording or DR_A4-specific branching."
+  }
+  if ($titleMissingApplyText -match "swcad-title-insert-clean-frame-reference-at frame-block placement-point") {
+    Add-Failure "title-missing outline apply must not substitute a plain INSERT for native GMTITLE."
+  }
+}
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-affine-inverse" -Label "Frame residue nested transform inverse"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-frame-style-pair-context" -Label "Frame residue actual title pair context"
+Assert-Contains -Text $mainText -Needle "swcad-title-title-residue-region-from-bbox" -Label "Frame residue actual title-derived region"
+Assert-Contains -Text $mainText -Needle "swcad-title-frame-path-entity-records-recurse" -Label "Frame residue nested block traversal"
+Assert-Contains -Text $mainText -Needle "swcad-title-frame-style-independent-residue-records" -Label "Frame residue independent verifier"
+Assert-Contains -Text $mainText -Needle "WARN_RESIDUE_REMAINS" -Label "Frame residue post-clean warning"
+Assert-Contains -Text $mainText -Needle "swcad-title-rebuild-frame-definition-tree-skipping-records" -Label "Frame residue nested tree rebuild"
+Assert-Contains -Text $mainText -Needle "swcad-title-frame-style-offsheet-insert-records-from-paths" -Label "Frame residue generic off-sheet nested INSERT detector"
+Assert-Contains -Text $mainText -Needle '"nested-off-sheet-insert"' -Label "Frame residue off-sheet delete reason"
+Assert-Contains -Text $mainText -Needle "(> definition-raw-risk-count 0)" -Label "Final verifier blocks raw frame-definition bbox risk"
+Assert-Contains -Text $mainText -Needle "도면틀 정의 raw bbox 위험 수:" -Label "Final verifier reports raw frame-definition bbox risk"
+Assert-Contains -Text $mainText -Needle "swcad-title-bound-block-leaf-name" -Label "Source-frame classifier uses bound-block leaf names"
+Assert-Contains -Text $mainText -Needle "swcad-title-source-frame-bbox-plausible-p" -Label "Source-frame classifier validates sheet geometry"
+Assert-Contains -Text $mainText -Needle "SWTITLE_COUNT_CLASSIFIER=BOUND_LEAF_GEOMETRY_V1" -Label "Expected-count XDATA records classifier version"
+Assert-Contains -Text $mainText -Needle "swcad-title-rebase-expected-counts-for-complete-targets" -Label "Legacy expected-count internal rebase"
+Assert-Contains -Text $mainText -Needle "ABORT_CURRENT_CLASSIFIER_COUNT_MISMATCH" -Label "Current classifier count mismatch cannot self-rebase"
+Assert-Contains -Text $mainText -Needle "ABORT_EXPECTED_COUNT_REBASE_PREFLIGHT_NOT_OK" -Label "Legacy count rebase requires strict final preflight"
+Assert-Contains -Text $mainText -Needle "(swcad-title-duplicate-target-pair-records)" -Label "Legacy count rebase rejects duplicate target pairs"
+Assert-Contains -Text $mainText -Needle "(swcad-title-counts-total stored-title-counts)" -Label "Legacy count rebase preserves expected title total"
+Assert-Contains -Text $mainText -Needle "ERROR_EXPECTED_COUNT_REBASE_ROLLED_BACK" -Label "Legacy count rebase rollback path"
+Assert-Contains -Text $mainText -Needle "내부 안전 재검증 값" -Label "Final verifier supports isolated count-rebase preflight"
+Assert-Contains -Text $mainText -Needle "swcad-title-legacy-expected-count-compatibility" -Label "Legacy expected-count read-only compatibility"
+Assert-Contains -Text $mainText -Needle "legacy xdata 읽기 전용 안전 호환값" -Label "Legacy compatibility verification log source"
+Assert-Contains -Text $mainText -Needle "*swcad-title-legacy-count-compatibility-enabled*" -Label "Legacy compatibility probe isolation switch"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "PARTIAL TITLE RESIDUE" -Label "Style fixture partial-overlap text"
+Assert-Contains -Text $styleNormalizationProbeText -Needle '"_FRAME_CONTENT"' -Label "Style fixture nested frame content"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "OFFSHEET REV TABLE" -Label "Style fixture off-sheet nested INSERT"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Preserved revision text:" -Label "Style fixture revision preservation"
+Assert-Contains -Text $mainText -Needle '*swcad-title-frame-style-structural-edge-band*' -Label "Frame style inset-edge protection band"
+Assert-Contains -Text $mainText -Needle 'swcad-title-frame-style-sheet-coverage-p' -Label "Frame style full-sheet coverage protection"
+Assert-Contains -Text $mainText -Needle 'ambiguous-partial-geometry-overlap' -Label "Frame style partial-overlap fail-closed guard"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Preserved A4 inset bottom edge:" -Label "Style fixture A4 inset bottom-edge preservation"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Preserved A4 inset right edge:" -Label "Style fixture A4 inset right-edge preservation"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Preserved A4 full-sheet cover:" -Label "Style fixture full-sheet coverage preservation"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Independent residue count after clean:" -Label "Style fixture independent post-clean verification"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Off-sheet nested insert count after clean:" -Label "Style fixture off-sheet post-clean verification"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Frame definition raw bbox risk count after clean:" -Label "Style fixture raw bbox post-clean verification"
+Assert-Contains -Text $styleNormalizationProbeText -Needle "Second clean deleted count:" -Label "Style fixture idempotent second clean"
+Assert-Contains -Text $suiteText -Needle "Independent residue count after clean: 0" -Label "Suite requires zero independent residue"
+Assert-Contains -Text $suiteText -Needle "Off-sheet nested insert count after clean: 0" -Label "Suite requires zero off-sheet nested INSERT residue"
+Assert-Contains -Text $suiteText -Needle "Frame definition raw bbox risk count after clean: 0" -Label "Suite requires zero raw frame-definition bbox risk"
+Assert-Contains -Text $suiteText -Needle "Second clean deleted count: 0" -Label "Suite requires idempotent style cleanup"
+Assert-Contains -Text $actualResidueCleanupProbeText -Needle "c:SWTITLEPREPARE" -Label "Actual residue probe exercises public prepare command"
+Assert-Contains -Text $actualResidueCleanupProbeText -Needle "swcad-title-frame-style-records-from-pairs" -Label "Actual residue probe cached independent verification"
+Assert-Contains -Text $actualResidueCleanupProbeText -Needle "swcad-title-frame-style-analysis-cache-begin" -Label "Actual residue probe command-scoped analysis cache"
+Assert-Contains -Text $actualResidueCleanupProbeText -Needle "Pair signature unchanged after second cleanup:" -Label "Actual residue probe native-pair signature check"
+Assert-Contains -Text $actualResidueCleanupRunnerText -Needle "Source work-copy SHA256 unchanged: PASS" -Label "Actual residue runner source preservation gate"
+Assert-Contains -Text $actualResidueCleanupRunnerText -Needle "ACTUAL_RESIDUE_CLEANUP_COPY_PASS" -Label "Actual residue runner pass marker"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-source-title-shell-records" -Label "Loose-title companion shell detector"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-target-title-shell-records" -Label "Final title-overlap shell detector"
+Assert-Contains -Text $mainText -Needle "swcad-title-target-title-shell-records))" -Label "Final verifier includes geometric title shell residues"
+if (([regex]::Matches($mainText, [regex]::Escape("swcad-title-delete-handle-list title-shell-handles"))).Count -lt 3) {
+  Add-Failure "Apply, adopt, and finalize paths must all delete verified loose-title companion shell inserts."
+} else {
+  Write-Output "Apply/adopt/finalize companion shell cleanup: found"
+}
+$titleShellStart = $mainText.IndexOf("(defun swcad-title-source-title-shell-records")
+$titleShellEnd = if ($titleShellStart -ge 0) { $mainText.IndexOf("(defun swcad-title-source-title-shell-handles", $titleShellStart) } else { -1 }
+if (($titleShellStart -lt 0) -or ($titleShellEnd -le $titleShellStart)) {
+  Add-Failure "Loose-title companion shell detector function block not found."
+} else {
+  $titleShellText = $mainText.Substring($titleShellStart, $titleShellEnd - $titleShellStart)
+  if ($titleShellText -match "DR_A4_Outline|A4") {
+    Add-Failure "Loose-title companion shell detection must not contain A4-specific branching."
+  } else {
+    Write-Output "Loose-title companion shell detector has no A4-specific branch: absent"
+  }
+}
+Assert-Contains -Text $looseTitleSourceProbeText -Needle "companion-shells=" -Label "Loose-title source probe records companion shell count"
+Assert-Contains -Text $looseTitleSourceRunnerText -Needle "Loose-title companion shell inserts: 2" -Label "Loose-title source runner requires two original companion shells"
+Assert-Contains -Text $unifiedFinalProbeText -Needle "target-shell-count" -Label "Unified final probe checks target-overlapping title shells"
+Assert-Contains -Text $unifiedFinalRunnerText -Needle "Target title-overlapping source shell inserts: 0" -Label "Unified final runner requires zero title shells"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-date-digits" -Label "Common date normalization helper"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-combined-approval-date-split" -Label "Combined approval/date parser"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-normalize-combined-approval-date-values" -Label "Combined approval/date value normalizer"
+Assert-Contains -Text $mainText -Needle "(swcad-title-normalize-combined-approval-date-values result)" -Label "All transfer values use combined approval/date normalization"
+$approvalNormalizeStart = $mainText.IndexOf("(defun swcad-title-normalize-combined-approval-date-values")
+$approvalNormalizeEnd = if ($approvalNormalizeStart -ge 0) { $mainText.IndexOf("(defun swcad-title-transfer-values", $approvalNormalizeStart) } else { -1 }
+if (($approvalNormalizeStart -lt 0) -or ($approvalNormalizeEnd -le $approvalNormalizeStart)) {
+  Add-Failure "Combined approval/date normalization function block not found."
+} else {
+  $approvalNormalizeText = $mainText.Substring($approvalNormalizeStart, $approvalNormalizeEnd - $approvalNormalizeStart)
+  if ($approvalNormalizeText -match "DR_A4_Outline|A4") {
+    Add-Failure "Combined approval/date normalization must not contain A4-specific branching."
+  } else {
+    Write-Output "Combined approval/date normalizer has no A4-specific branch: absent"
+  }
+}
+Assert-Contains -Text $looseTitleSourceProbeText -Needle "approval-normalized-count" -Label "Loose-title source probe detects the original combined approval/date value"
+Assert-Contains -Text $looseTitleSourceRunnerText -Needle "A4 combined approval/date normalized: 1" -Label "Loose-title runner requires one normalized source value"
+Assert-Contains -Text $looseTitleSourceRunnerText -Needle "A4 combined approval/date remaining: 0" -Label "Loose-title runner rejects remaining combined values"
+Assert-Contains -Text $unifiedFinalProbeText -Needle '("GEN-TITLE-APPM{21.7}" . "KS.LEE")' -Label "Final fixture expects the split approver value"
+Assert-NotContains -Text $unifiedFinalProbeText -Needle '("GEN-TITLE-APPM{21.7}" . "KS.LEE/20260601")' -Label "Final fixture rejects the overlapping combined approver/date value"
+Assert-Contains -Text $unifiedFinalRunnerText -Needle "A4 combined approval/date values: 0" -Label "Unified final runner requires no combined approval/date attributes"
+$titleMissingFramePredicateStart = $mainText.IndexOf("(defun swcad-title-title-missing-outline-frame-record-p")
+$titleMissingFramePredicateEnd = if ($titleMissingFramePredicateStart -ge 0) { $mainText.IndexOf("(defun swcad-title-title-missing-outline-frame-count", $titleMissingFramePredicateStart) } else { -1 }
+if (($titleMissingFramePredicateStart -lt 0) -or ($titleMissingFramePredicateEnd -le $titleMissingFramePredicateStart)) {
+  Add-Failure "swcad-title-title-missing-outline-frame-record-p function block not found."
+} else {
+  $titleMissingFramePredicateText = $mainText.Substring($titleMissingFramePredicateStart, $titleMissingFramePredicateEnd - $titleMissingFramePredicateStart)
+  if ($titleMissingFramePredicateText -notmatch 'NATIVE-TITLE-MISSING-OUTLINE') {
+    Add-Failure "title-missing frame acceptance must require the native-title-missing-outline role."
+  }
+  if ($titleMissingFramePredicateText -notmatch 'swcad-title-internal-native-link-kinds-p') {
+    Add-Failure "title-missing frame acceptance must require an internal native GMTITLE link."
+  }
+  if ($titleMissingFramePredicateText -match 'FRAME-ONLY-OUTLINE') {
+    Add-Failure "legacy frame-only-outline markers must not be accepted as native GMTITLE proof."
+  }
+  if ($titleMissingFramePredicateText -notmatch 'swcad-title-target-frame-block-contaminated-p') {
+    Add-Failure "title-missing frame acceptance must reject contaminated frame definitions."
+  }
+}
+$titleMissingAllStart = $mainText.IndexOf("(defun swcad-title-transfer-title-missing-outline-all")
+$titleMissingAllEnd = if ($titleMissingAllStart -ge 0) { $mainText.IndexOf("(defun swcad-title-transfer-frame-only-apply", $titleMissingAllStart) } else { -1 }
+if (($titleMissingAllStart -lt 0) -or ($titleMissingAllEnd -le $titleMissingAllStart)) {
+  Add-Failure "swcad-title-transfer-title-missing-outline-all function block not found."
+} else {
+  $titleMissingAllText = $mainText.Substring($titleMissingAllStart, $titleMissingAllEnd - $titleMissingAllStart)
+  if ($titleMissingAllText -notmatch "swcad-title-gmtitle-autoselect-available-p") {
+    Add-Failure "title-missing native batch must require the fixed-control GMTITLE auto-selector."
+  }
+  if ($titleMissingAllText -notmatch '\*swcad-title-allow-batch-interactive-native-gmtitle\* T') {
+    Add-Failure "title-missing native batch must enable verified interactive GMTITLE creation for each sheet."
+  }
+  if ($titleMissingAllText -notmatch "old-allow-interactive") {
+    Add-Failure "title-missing native batch must restore the prior interactive batch setting."
+  }
+}
+$integratedConvertStart = $mainText.IndexOf("(defun swcad-title-integrated-convert")
+$integratedVerifyStart = if ($integratedConvertStart -ge 0) { $mainText.IndexOf("(defun swcad-title-integrated-verify-final-summary", $integratedConvertStart) } else { -1 }
+if (($integratedConvertStart -lt 0) -or ($integratedVerifyStart -le $integratedConvertStart)) {
+  Add-Failure "swcad-title-integrated-convert function block not found."
+} else {
+  $integratedConvertText = $mainText.Substring($integratedConvertStart, $integratedVerifyStart - $integratedConvertStart)
+  $frameOnlyBranchIndex = $integratedConvertText.IndexOf("((and (= source-count 0) (> frame-only-count 0))")
+  $policyIndex = $integratedConvertText.IndexOf("(swcad-title-title-missing-outline-policy-blocked-p)")
+  $definitionNeededIndex = $integratedConvertText.IndexOf("(swcad-title-title-missing-outline-definition-needed-p)")
+  $titleMissingApplyIndex = $integratedConvertText.IndexOf("(swcad-title-transfer-title-missing-outline-apply)")
+  $legacyFrameOnlyApplyIndex = $integratedConvertText.IndexOf("(swcad-title-transfer-frame-only-apply)")
+  $titleMissingUnavailableIndex = $integratedConvertText.IndexOf('(swcad-title-apply-result "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE")')
+  $orphanAbortIndex = $integratedConvertText.IndexOf('(swcad-title-apply-result "ABORT_ORPHAN_TARGET_FRAMES_REMAIN")')
+  $nativeUpgradeIndex = $integratedConvertText.IndexOf("((> a3a4-count 0)")
+  if ($frameOnlyBranchIndex -lt 0) {
+    Add-Failure "SWTITLECONVERT must have a source-count=0/frame-only-count>0 branch."
+  }
+  if ($policyIndex -lt 0) {
+    Add-Failure "SWTITLECONVERT frame-only branch must check generic title-missing policy."
+  }
+  if ($definitionNeededIndex -lt 0) {
+    Add-Failure "SWTITLECONVERT frame-only branch must verify same-size DR outline definition readiness."
+  }
+  if ($titleMissingApplyIndex -lt 0) {
+    Add-Failure "SWTITLECONVERT frame-only branch must use title-missing outline-only apply."
+  }
+  if ($titleMissingUnavailableIndex -lt 0) {
+    Add-Failure "SWTITLECONVERT must abort when verified title-missing outline-only policy is unavailable."
+  }
+  if ($orphanAbortIndex -lt 0) {
+    Add-Failure "SWTITLECONVERT must stop before continuing when orphan target frames remain."
+  }
+  if (($orphanAbortIndex -ge 0) -and ($nativeUpgradeIndex -ge 0) -and ($nativeUpgradeIndex -lt $orphanAbortIndex)) {
+    Add-Failure "SWTITLECONVERT must clean orphan target frames before A2/A3/A4 native replacement."
+  }
+  if ($legacyFrameOnlyApplyIndex -ge 0) {
+    Add-Failure "SWTITLECONVERT must not call legacy frame-only native fallback."
+  }
+  Assert-NotContains -Text $integratedConvertText -Needle "frame-only 시트의 첫 native GMTITLE은 GMTITLE 창에서 DR 용지 선택과 배치 옵션 확인이 필요합니다." -Label "SWTITLECONVERT no legacy frame-only native dialog reason"
+  if (
+    ($frameOnlyBranchIndex -ge 0) -and
+    ($policyIndex -ge 0) -and
+    ($definitionNeededIndex -ge 0) -and
+    ($titleMissingApplyIndex -ge 0) -and
+    ($titleMissingUnavailableIndex -ge 0) -and
+    -not (
+      ($frameOnlyBranchIndex -lt $policyIndex) -and
+      ($policyIndex -lt $definitionNeededIndex) -and
+      ($definitionNeededIndex -lt $titleMissingApplyIndex) -and
+      ($titleMissingApplyIndex -lt $titleMissingUnavailableIndex)
+    )
+  ) {
+    Add-Failure "SWTITLECONVERT must handle verified title-missing outline-only apply before aborting unavailable legacy fallback."
+  }
+}
+$fastBatchPhasesStart = $mainText.IndexOf("(defun swcad-title-run-fast-batch-phases")
+$fastBatchPhasesEnd = if ($fastBatchPhasesStart -ge 0) { $mainText.IndexOf("(defun swcad-title-transfer-fast-batch", $fastBatchPhasesStart) } else { -1 }
+if (($fastBatchPhasesStart -lt 0) -or ($fastBatchPhasesEnd -le $fastBatchPhasesStart)) {
+  Add-Failure "swcad-title-run-fast-batch-phases function block not found."
+} else {
+  $fastBatchPhasesText = $mainText.Substring($fastBatchPhasesStart, $fastBatchPhasesEnd - $fastBatchPhasesStart)
+  if ($fastBatchPhasesText.Contains("swcad-title-transfer-frame-only-clone-batch-run")) {
+    Add-Failure "Fast batch phases must not call the legacy frame-only clone batch runner."
+  } else {
+    Write-Output "Fast batch phases legacy frame-only clone call: absent"
+  }
+  if ($fastBatchPhasesText.Contains("swcad-title-next-frame-only-target-missing-native-p")) {
+    Add-Failure "Fast batch phases must not require a native GMTITLE title exemplar for title-missing/frame-only sheets."
+  } else {
+    Write-Output "Fast batch phases title-missing native-exemplar gate: absent"
+  }
+  Assert-NotContains -Text $fastBatchPhasesText -Needle "needs one real native GMTITLE exemplar first" -Label "Fast batch phases no title-missing native exemplar message"
+  Assert-NotContains -Text $fastBatchPhasesText -Needle "Create/check one real matching DR_A*_Outline first with SWTITLECONVERTNEXT" -Label "Fast batch phases no old title-missing native creation guidance"
+  Assert-NotContains -Text $fastBatchPhasesText -Needle "SWTITLESTATUS로 frame-only 대상을 확인한 뒤 SWTITLECONVERTNEXT로 첫 native GMTITLE 단계를 진행하세요." -Label "Fast batch phases no legacy frame-only native next-step guidance"
+  Assert-Contains -Text $fastBatchPhasesText -Needle "WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION" -Label "Fast batch phases title-missing definition pause"
+  Assert-Contains -Text $fastBatchPhasesText -Needle "READY_FOR_TITLE_MISSING_OUTLINE" -Label "Fast batch phases title-missing ready pause"
+  Assert-Contains -Text $fastBatchPhasesText -Needle "Title-missing/frame-only sheets were not cloned" -Label "Fast batch phases no frame-only clone message"
+  Assert-Contains -Text $fastBatchPhasesText -Needle "SWTITLECONVERTNEXT to replace only the same-size DR outline" -Label "Fast batch phases title-missing convert-next guidance"
+}
+$transferFastBatchStart = $mainText.IndexOf("(defun swcad-title-transfer-fast-batch")
+$transferFastBatchEnd = if ($transferFastBatchStart -ge 0) { $mainText.IndexOf("(defun swcad-title-transfer-bootstrap-fast", $transferFastBatchStart) } else { -1 }
+if (($transferFastBatchStart -lt 0) -or ($transferFastBatchEnd -le $transferFastBatchStart)) {
+  Add-Failure "swcad-title-transfer-fast-batch function block not found."
+} else {
+  $transferFastBatchText = $mainText.Substring($transferFastBatchStart, $transferFastBatchEnd - $transferFastBatchStart)
+  Assert-Contains -Text $transferFastBatchText -Needle "빠른 clone 변환에서 제외하고 title-missing 도면틀-only 경로" -Label "Fast batch prompt excludes frame-only clone"
+  Assert-Contains -Text $transferFastBatchText -Needle "원본 표제란 부재 예외" -Label "Fast batch prompt routes frame-only by source-title-missing exception"
+  Assert-NotContains -Text $transferFastBatchText -Needle "장과 frame-only 시트" -Label "Fast batch prompt must not bundle title sheets and frame-only sheets"
+  Assert-NotContains -Text $transferFastBatchText -Needle "표제란 있는 시트와 frame-only 시트 모두" -Label "Fast batch missing-native message must not include title-missing/frame-only sheets"
+  Assert-NotContains -Text $transferFastBatchText -Needle "실제 native 기준 객체가 아직 없어 이번 빠른 변환에서 건너뜁니다" -Label "Fast batch prompt must not require frame-only native exemplars"
+}
+$transferBootstrapStart = $mainText.IndexOf("(defun swcad-title-transfer-bootstrap-fast")
+$transferBootstrapEnd = if ($transferBootstrapStart -ge 0) { $mainText.IndexOf("(defun swcad-title-scale-text-to-dimlfac", $transferBootstrapStart) } else { -1 }
+if (($transferBootstrapStart -lt 0) -or ($transferBootstrapEnd -le $transferBootstrapStart)) {
+  Add-Failure "swcad-title-transfer-bootstrap-fast function block not found."
+} else {
+  $transferBootstrapText = $mainText.Substring($transferBootstrapStart, $transferBootstrapEnd - $transferBootstrapStart)
+  Assert-Contains -Text $transferBootstrapText -Needle "OK_CONVERT_NEXT_FIRST_NATIVE_CREATED" -Label "SWTITLECONVERTNEXT first-native one-step status"
+  Assert-Contains -Text $transferBootstrapText -Needle "SWTITLECONVERTNEXT one-step stop: first native GMTITLE was created/finalized." -Label "SWTITLECONVERTNEXT first-native one-step stop message"
+  Assert-Contains -Text $transferBootstrapText -Needle "Fast clone batch was not started in this command." -Label "SWTITLECONVERTNEXT does not start clone batch after first native"
+  $oneStepStopIndex = $transferBootstrapText.IndexOf("SWTITLECONVERTNEXT one-step stop: first native GMTITLE was created/finalized.")
+  $fastBatchStartIndex = $transferBootstrapText.IndexOf("Bootstrap phase complete. Starting fast remaining-sheet batch.")
+  if (($oneStepStopIndex -lt 0) -or ($fastBatchStartIndex -lt 0) -or ($oneStepStopIndex -gt $fastBatchStartIndex)) {
+    Add-Failure "SWTITLECONVERTNEXT first-native one-step stop must appear before the bootstrap fast-batch path."
+  }
+}
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-prepare-title-missing-outline-definition (/ frame-block" -Label "Generic title-missing outline prepare implementation"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-transfer-title-missing-outline-apply (/ *error*" -Label "Generic title-missing outline transfer implementation"
+Assert-Contains -Text $mainText -Needle "swcad-title-transfer-title-missing-outline-apply" -Label "Generic title-missing outline transfer wrapper"
+Assert-Contains -Text $mainText -Needle "NEXT_CLEAN_ORPHAN_TARGET_FRAMES" -Label "SWTITLESTATUS orphan target frame stop status"
+Assert-Contains -Text $mainText -Needle "ABORT_ORPHAN_TARGET_FRAMES_REMAIN" -Label "SWTITLECONVERT orphan target frame guard"
+Assert-Contains -Text $mainText -Needle "제목블록 없는 GMTITLE 도면틀은 title-missing 도면틀-only marker가 없는 한 완료된 title-sheet로 보지 않습니다." -Label "Status refresh orphan frames are not title-sheet complete"
+Assert-NotContains -Text $mainText -Needle "swcad-title-a4-frame-only-" -Label "No legacy A4 frame-only helper aliases"
+Assert-NotContains -Text $mainText -Needle "*swcad-title-allow-a4-frame-only" -Label "No legacy A4 frame-only option alias"
+Assert-NotContains -Text $mainText -Needle "swcad-title-single-a4-frame-only" -Label "No legacy single-A4 frame-only helper"
+Assert-NotContains -Text $mainText -Needle "swcad-title-transfer-a4-frame-only" -Label "No legacy A4 frame-only transfer wrapper"
+Assert-NotContains -Text $mainText -Needle "swcad-title-prepare-a4-frame-only" -Label "No legacy A4 frame-only prepare wrapper"
+Assert-NotContains -Text $mainText -Needle "(setq risk-message (swcad-title-single-a4-frame-only-risk-message" -Label "No legacy A4 risk-message calls"
+Assert-NotContains -Text $mainText -Needle '(swcad-title-apply-result "FINALIZED_A4_FRAME_ONLY_OUTLINE_TRANSFER")' -Label "No legacy A4 finalized status emission"
+Assert-NotContains -Text $mainText -Needle '(swcad-title-apply-result "WARN_A4_FRAME_ONLY_OUTLINE_DEFINITION_UNSAFE")' -Label "No legacy A4 warning status emission"
+Assert-NotContains -Text $mainText -Needle '(swcad-title-apply-result "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION")' -Label "No legacy A4 next-prepare status emission"
+Assert-Contains -Text $mainText -Needle "swcad-title-moved-native-placement-allowed-p" -Label "Generic moved-native placement guard"
+Assert-Contains -Text $mainText -Needle "(defun swcad-title-native-upgrade-candidate-records ()" -Label "Generic A2/A3/A4 native-upgrade candidate function"
+Assert-Contains -Text $mainText -Needle "(swcad-title-target-pair-upgrade-candidate-records '(`"A2`" `"A3`" `"A4`"))" -Label "Native-upgrade candidates include A2/A3/A4"
+Assert-Contains -Text $mainText -Needle "WARN_A2_A3_A4_TARGET_FRAME_NOT_NATIVE_LIKE" -Label "Generic A2/A3/A4 native-like warning status"
+Assert-Contains -Text $mainText -Needle "A2/A3/A4 native-like completion:" -Label "Generic A2/A3/A4 native-like completion log"
+Assert-Contains -Text $mainText -Needle "다음 단계 코드: UPGRADE_NATIVE_GMTITLE" -Label "Generic native GMTITLE next-step code"
+Assert-NotContains -Text $mainText -Needle "다음 단계 코드: UPGRADE_A3_A4_NATIVE" -Label "No stale A3/A4-only native next-step code"
+Assert-NotContains -Text $mainText -Needle "복제된 A3/A4 GMTITLE" -Label "No stale visible A3/A4-only native replacement wording"
+Assert-NotContains -Text $mainText -Needle "교체된 A3/A4 native 도면틀" -Label "No stale visible A3/A4-only geometry wording"
+Assert-NotContains -Text $mainText -Needle "SCRIPT 실행 중에는 A3/A4 대화식 교체" -Label "No stale visible A3/A4-only interactive wording"
+Assert-NotContains -Text $mainText -Needle '("NEEDS_NATIVE_GMTITLE_UPGRADE" . "A3/A4 GMTITLE 중' -Label "No stale visible A3/A4-only trusted-pair wording"
+Assert-NotContains -Text $mainText -Needle "이미 만들어진 A3/A4 GMTITLE" -Label "No stale visible A3/A4-only created-pair wording"
+Assert-NotMatches -Text $mainText -Pattern '(?<!A2/)A3/A4 #' -Label "No stale visible A3/A4-only native replacement row labels"
+Assert-NotMatches -Text $mainText -Pattern '(?<!A2/)A3/A4 fix candidates by' -Label "No stale visible A3/A4-only fix candidate count labels"
+Assert-NotContains -Text $mainText -Needle "outside the A3/A4 upgrade queue" -Label "No stale visible A3/A4-only upgrade queue wording"
+Assert-NotMatches -Text $mainText -Pattern '(?<!A2/)internal A3/A4 manual native GMTITLE' -Label "No stale visible A3/A4-only manual native headings"
+Assert-NotMatches -Text $mainText -Pattern '(?<!A2/)A3/A4 MANUAL 복구 모드' -Label "No stale visible A3/A4-only manual fallback wording"
+Assert-NotContains -Text $mainText -Needle "일반 A3/A4 또는 ISO" -Label "No stale visible ordinary A3/A4 default wording"
+Assert-NotContains -Text $mainText -Needle "SWTITLECONVERT A3/A4" -Label "No stale visible A3/A4-only convert heading"
+Assert-NotContains -Text $mainText -Needle 'swcad-title-frame-name-matches-p frame-name "DR_A4_Outline"' -Label "No A4-only trusted-frame exception"
+Assert-NotContains -Text $mainText -Needle "A4 special handling" -Label "Stale A4 special handling wording"
+Assert-NotContains -Text $mainText -Needle "A4 보호 중단" -Label "Stale A4-only protection wording"
+Assert-NotContains -Text $mainText -Needle "frame-only A4 대상" -Label "Stale A4-only frame-only target wording"
+Assert-NotContains -Text $mainText -Needle "보통 원본 제목블록이 없는 A4" -Label "Stale A4-only source-title-missing assumption"
+Assert-NotContains -Text $mainText -Needle '(member "A4" missing-required-sheets)' -Label "No A4-only title-missing verify branch"
+Assert-NotContains -Text $mainText -Needle "A4 누락이 있더라도" -Label "No A4-missing-first native guidance wording"
+Assert-Contains -Text $mainText -Needle "ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE" -Label "Interactive GMTITLE script guard"
+Assert-Contains -Text $mainText -Needle "INTERACTIVE_GMTITLE_EXCEPTION" -Label "Interactive GMTITLE exception guard status"
+Assert-Contains -Text $mainText -Needle "'swcad-title-run-native-gmtitle" -Label "Interactive GMTITLE exception wrapper"
+Assert-Contains -Text $mainText -Needle "기존 SOLIDWORKS 표제란/도면틀 내용은 삭제하지 않았습니다." -Label "Interactive GMTITLE exception preserves source"
+Assert-Contains -Text $mainText -Needle "swcad-title-native-gmtitle-post-prompt-acceptable-p" -Label "Native GMTITLE acceptable post-prompt helper"
+Assert-Contains -Text $mainText -Needle '"OBJECT_MOVE_PROMPT_CANCELLED_AFTER_GMTITLE_CREATED"' -Label "Native GMTITLE accepts object-move prompt cancellation after placement"
+Assert-Contains -Text $mainText -Needle '"POST_INSERT_EMPTY_PROMPT_CANCELLED_AFTER_GMTITLE_CREATED"' -Label "Native GMTITLE accepts empty post-insert prompt cancellation after placement"
+Assert-Contains -Text $mainText -Needle "(not (swcad-title-native-gmtitle-post-prompt-acceptable-p *swcad-title-last-native-gmtitle-abort-reason*))" -Label "Native GMTITLE does not delete acceptable post-prompt inserts"
+Assert-Contains -Text $mainText -Needle "ABORT_NATIVE_GMTITLE_BATCH_SCRIPT_ACTIVE" -Label "A2/A3/A4 batch script guard"
+Assert-Contains -Text $mainText -Needle "c:SWTITLECONVERTNEXT" -Label "SWTITLECONVERTNEXT public command"
+Assert-Contains -Text $mainText -Needle "*swcad-title-convert-next-mode*" -Label "SWTITLECONVERTNEXT auto-next mode flag"
+Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT auto response" -Label "SWTITLECONVERTNEXT auto response log"
+Assert-Contains -Text $mainText -Needle "swcad-title-auto-next-answer-or-prompt" -Label "SWTITLECONVERTNEXT string-preserving auto response helper"
+if ([regex]::IsMatch($mainText, "\(or\s*\r?\n\s*\(swcad-title-auto-next-answer")) {
+  Add-Failure "SWTITLECONVERTNEXT auto response must not be wrapped in AutoLISP or; or returns T instead of the answer string."
+} else {
+  Write-Output "SWTITLECONVERTNEXT auto response string preservation: OK"
+}
+Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT ; recommended next safe conversion step" -Label "GMTITLE header convert-next main workflow"
+Assert-Contains -Text $mainText -Needle "Manual fallback:" -Label "GMTITLE header manual fallback section"
+Assert-Contains -Text $mainText -Needle "Use it only when you intentionally need to" -Label "GMTITLE header manual fallback guard"
+Assert-Contains -Text $mainText -Needle "A2/A3/A4 native-recheck or cloned GMTITLE pairs are normally handled through" -Label "GMTITLE header A2/A3/A4 convert-next wording"
+Assert-Contains -Text $mainText -Needle "권장 흐름: SWTITLESTATUS, SWTITLEPREPARE, SWTITLECONVERTNEXT, SWTITLEVERIFY" -Label "GMTITLE load convert-next workflow guidance"
+Assert-Contains -Text $mainText -Needle "수동 응답을 직접 고를 때만 SWTITLECONVERT를 사용하세요" -Label "GMTITLE load manual convert fallback guidance"
+Assert-Contains -Text $mainText -Needle "중요: 변환 전에는 SWTITLESTATUS 결과가 안내한 다음 명령만 실행하세요" -Label "GMTITLE load status-result-only guidance"
+Assert-Contains -Text $mainText -Needle "금지: CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력해 우회하지 마세요" -Label "GMTITLE load raw GMTITLE/TIT/OPEN guard"
+Assert-Contains -Text $mainText -Needle 'SWTITLEVERSION_OK' -Label "SWTITLEVERSION read-only status marker"
+Assert-Contains -Text $mainText -Needle "swcad-title-princ-raw-line" -Label "GMTITLE raw output helper for exact version strings"
+Assert-Contains -Text $mainText -Needle "SWTITLE LSP 버전: " -Label "GMTITLE exact Korean version label"
+if ([regex]::IsMatch($mainText, "\(defun\s+swcad-title-print-loaded-version\s*\(\)\s*\r?\n\s*\(swcad-title-princ-line")) {
+  Add-Failure "swcad-title-print-loaded-version must use raw output; translated output changes version tokens such as missing -> 없음."
+} else {
+  Write-Output "GMTITLE version output raw guard: OK"
+}
+Assert-Contains -Text $mainText -Needle "다음 첫 native GMTITLE 선택:" -Label "SWTITLESTATUS first-native selection heading"
+Assert-Contains -Text $mainText -Needle "GMTITLE 창에서는 위 용지/도면틀과 제목블록을 고르고" -Label "SWTITLESTATUS first-native dialog guidance"
+Assert-Contains -Text $mainText -Needle "예상 수동 GMTITLE 확인량:" -Label "SWTITLESTATUS manual GMTITLE forecast heading"
+Assert-Contains -Text $mainText -Needle "swcad-title-print-compact-next-gmtitle-card" -Label "SWTITLESTATUS compact selection card helper"
+Assert-Contains -Text $mainText -Needle "짧은 GMTITLE 선택 카드:" -Label "SWTITLESTATUS compact selection card heading"
+Assert-Contains -Text $mainText -Needle "  다음 명령: SWTITLECONVERTNEXT" -Label "SWTITLESTATUS compact selection card command"
+Assert-Contains -Text $mainText -Needle "우선순위: native 교체 후보가 title-missing/frame-only 예외 준비보다 먼저입니다." -Label "SWTITLESTATUS native priority over title-missing exception"
+Assert-Contains -Text $mainText -Needle "  켜둘 옵션: Frame positioning" -Label "SWTITLESTATUS compact selection card frame-positioning"
+Assert-Contains -Text $mainText -Needle "  꺼둘 옵션: Object move" -Label "SWTITLESTATUS compact selection card object-move"
+Assert-Contains -Text $mainText -Needle "(setq example-title (swcad-title-native-example-title))" -Label "SWTITLECONVERT compact card native-example basis"
+Assert-Contains -Text $mainText -Needle "(setq missing-required-native (swcad-title-missing-required-native-frame-blocks summary))" -Label "SWTITLECONVERT compact card missing-native basis"
+Assert-Contains -Text $mainText -Needle "(swcad-title-print-compact-next-gmtitle-card summary missing-required-native example-title a3a4-count)" -Label "SWTITLECONVERT compact selection card before dialog"
+Assert-Contains -Text $mainText -Needle "title-missing/frame-only" -Label "SWTITLESTATUS title-missing frame-only forecast"
+Assert-Contains -Text $mainText -Needle "swcad-title-next-missing-native-selection-record" -Label "SWTITLESTATUS missing-native selection helper"
+Assert-Contains -Text $mainText -Needle "다음 누락 크기 native GMTITLE 선택:" -Label "SWTITLESTATUS missing-native selection heading"
+Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록" -Label "SWTITLECONVERTNEXT exact dialog selection guidance"
+Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT는 남은 표제란 시트 중 다음 1장만 clone 변환합니다." -Label "SWTITLECONVERTNEXT source-title one-sheet clone limit"
+Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT single clone error" -Label "SWTITLECONVERTNEXT single-clone error status path"
+Assert-Contains -Text $mainText -Needle "SWTITLECONVERTNEXT가 이어서 다음 native 교체 후보 1장을 처리합니다." -Label "SWTITLECONVERTNEXT chains clone to native upgrade"
+Assert-Contains -Text $mainText -Needle '"A2/A3/A4 native 교체 후보 1장 처리"' -Label "SWTITLECONVERTNEXT native one-sheet default"
+Assert-Contains -Text $mainText -Needle "swcad-title-print-native-batch-safety-guidance" -Label "Native batch safety guidance helper"
+Assert-Contains -Text $mainText -Needle "BATCH 안전 조건: 먼저 OPEN으로 1장을 성공시킨 뒤 SWTITLESTATUS/direct probe에서 후보 수가 줄었는지 확인하세요." -Label "Native batch OPEN-first guidance"
+Assert-Contains -Text $mainText -Needle "BATCH 금지 조건: 첫 후보부터 바로 BATCH를 쓰거나" -Label "Native batch no-first-batch guidance"
+Assert-Contains -Text $mainText -Needle "다음 명령: SWTITLECONVERTNEXT" -Label "SWTITLESTATUS recommends convert-next command"
+Assert-Contains -Text $mainText -Needle "다음: SWTITLECONVERTNEXT를 실행하세요" -Label "SWTITLESTATUS next action recommends convert-next"
+Assert-NotContains -Text $mainText -Needle "다음: SWTITLECONVERT를 실행하세요." -Label "Stale direct convert next-action wording"
+Assert-NotContains -Text $mainText -Needle "일반 흐름은 SWTITLECONVERT를 사용하세요." -Label "Stale direct convert general-flow wording"
+Assert-NotContains -Text $mainText -Needle "(command pause)" -Label "GMTITLE interactive wait must use explicit pause string"
+$a3a4NextStart = $mainText.IndexOf("(defun swcad-title-upgrade-native-a3a4-next")
+$a3a4AutoOpen = if ($a3a4NextStart -ge 0) { $mainText.IndexOf('"A2/A3/A4 native 교체 후보 1장 처리"', $a3a4NextStart) } else { -1 }
+$a3a4Prompt = if ($a3a4NextStart -ge 0) { $mainText.IndexOf("이 한 장의 GMTITLE 창을 열려면 OPEN", $a3a4NextStart) } else { -1 }
+if (($a3a4NextStart -ge 0) -and ($a3a4AutoOpen -gt $a3a4NextStart) -and ($a3a4Prompt -gt $a3a4AutoOpen)) {
+  Write-Output "SWTITLECONVERTNEXT A2/A3/A4 OPEN before prompt: found"
+} else {
+  Add-Failure "SWTITLECONVERTNEXT A2/A3/A4 OPEN auto response must be checked before getstring prompt"
+}
+Assert-Contains -Text $mainText -Needle "DR_titlea_3rd/Frame positioning ON/Object move OFF" -Label "SWTITLECONVERTNEXT visual GMTITLE confirmation guard"
+Assert-Contains -Text $suiteText -Needle "Assert-WorkcopySummaryInvariant" -Label "Suite mutable work-copy structural invariant"
+Assert-Contains -Text $suiteText -Needle '($sourceTitle + $frameOnly) -ne $sourceFrame' -Label "Suite source partition invariant"
+Assert-Contains -Text $suiteText -Needle '$targetTitle -ne $targetFrame' -Label "Suite target pair-count invariant"
+Assert-NotContains -Text $suiteText -Needle '"source-title-count: 8"' -Label "Suite no mutable source-title fixed count"
+Assert-NotContains -Text $suiteText -Needle '"frame-only-count: 2"' -Label "Suite no A4 frame-only fixed count"
+Assert-Contains -Text $suiteText -Needle "Assert-ScriptGuardPreservationInvariant" -Label "Suite script-guard preservation invariant"
+Assert-NotContains -Text $suiteText -Needle '"Source titles before/after: 8/8"' -Label "Suite no mutable script-guard source count"
+Assert-NotContains -Text $suiteText -Needle '"Result: OK SWTITLESTATUS status=NEXT_UPGRADE_NATIVE_GMTITLE"' -Label "Suite current work-copy probes must not expect stale native-upgrade status"
+Assert-Contains -Text $suiteText -Needle "Common source-title-missing gap probe (A2 fixture)" -Label "Suite common A2 source-title-missing gap step"
+Assert-Contains -Text $suiteText -Needle "Common source-title-missing definition prepare probe (A3 fixture)" -Label "Suite common A3 source-title-missing prepare step"
+Assert-Contains -Text $suiteText -Needle "Common source-title-missing hidden-script safety probe (A4 fixture)" -Label "Suite common A4 source-title-missing safety step"
+Assert-Contains -Text $suiteText -Needle "run_source_title_missing_common_probe.ps1" -Label "Suite common source-title-missing runner"
+Assert-NotContains -Text $suiteText -Needle "260706-unified-title-missing-3" -Label "Suite stale GMTITLE version expectation"
+Assert-Contains -Text $suiteText -Needle "ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE" -Label "Suite title-missing outline hidden-script safety expectation"
+Assert-Contains -Text $suiteText -Needle "After target title count: 0" -Label "Suite isolated title-missing fixture adds no title in script mode"
+Assert-Contains -Text $sourceTitleMissingCommonProbeText -Needle "SWCAD_STM_SHEET" -Label "Common title-missing fixture sheet parameter"
+Assert-Contains -Text $sourceTitleMissingCommonProbeText -Needle "SWCAD_STM_MODE" -Label "Common title-missing fixture mode parameter"
+Assert-Contains -Text $sourceTitleMissingCommonProbeText -Needle "swcad-title-prepare-title-missing-outline-definition" -Label "Common title-missing fixture prepare path"
+Assert-Contains -Text $sourceTitleMissingCommonProbeText -Needle "swcad-title-transfer-title-missing-outline-apply" -Label "Common title-missing fixture script guard path"
+Assert-Contains -Text $sourceTitleMissingCommonProbeText -Needle "Fixture result: " -Label "Common title-missing fixture result marker"
+Assert-NotContains -Text $sourceTitleMissingCommonProbeText -Needle '"DR_A4_Outline"' -Label "Common title-missing fixture has no A4 target hardcode"
+Assert-Contains -Text $sourceTitleMissingCommonRunnerText -Needle '[ValidateSet("A2", "A3", "A4")]' -Label "Common title-missing runner sheet matrix"
+Assert-Contains -Text $adoptionGateProbeText -Needle "swcad-title-insert-block-reference target-title-name" -Label "Adoption fixture instantiates target attributes"
+Assert-Contains -Text $adoptionGateProbeText -Needle "Target title missing tag count before transfer:" -Label "Adoption fixture verifies required title tags"
+Assert-Contains -Text $suiteText -Needle "Target title missing tag count before transfer: 0" -Label "Suite requires complete adoption title attributes"
+Assert-Contains -Text $suiteText -Needle "WaitForGstarCADClose" -Label "Suite GstarCAD-close wait option"
+Assert-Contains -Text $suiteText -Needle "Assert-NoExistingGstarCAD" -Label "Suite open-GstarCAD preflight"
+Assert-Contains -Text $suiteText -Needle "main56_verification_suite_last_run.txt" -Label "Suite latest run summary log path"
+Assert-Contains -Text $suiteText -Needle "-DeepRegistrySearch" -Label "Suite selection config deep registry search"
+Assert-Contains -Text $suiteText -Needle "Deep registry policy: only non-recent DR marker(s) are review evidence" -Label "Suite selection config deep registry policy"
+Assert-Contains -Text $suiteText -Needle "Result: RUNNING_OR_FAILED_BEFORE_PASS" -Label "Suite latest run starts incomplete"
+Assert-Contains -Text $suiteText -Needle "Result: FAILED_BEFORE_PASS" -Label "Suite latest run failed-before-pass marker"
+Assert-Contains -Text $suiteText -Needle "Failure command:" -Label "Suite latest run failure command summary"
+Assert-Contains -Text $suiteText -Needle "Set-SuiteLastRunFailure" -Label "Suite latest run failure trap helper"
+Assert-Contains -Text $suiteText -Needle "Result: PASS" -Label "Suite latest run pass marker"
+Assert-Contains -Text $suiteText -Needle "Get-GitWorktreeEvidence" -Label "Suite worktree evidence fingerprint helper"
+Assert-Contains -Text $suiteText -Needle "core.autocrlf=false" -Label "Suite worktree fingerprint suppresses CRLF warnings"
+Assert-Contains -Text $suiteText -Needle "Worktree evidence hash:" -Label "Suite writes worktree evidence hash"
+Assert-Contains -Text $suiteText -Needle "Write-SuiteStatusSummary" -Label "Suite latest run status summary"
+Assert-Contains -Text $suiteText -Needle "Suite last-run summary:" -Label "Suite latest run summary output"
+Assert-Contains -Text $suiteText -Needle "run_hidden_script_smoke_probe.ps1" -Label "Suite hidden script smoke preflight"
+Assert-Contains -Text $suiteText -Needle "ProbeWindowStyle = ""Minimized""" -Label "Suite minimized probe window default"
+Assert-Contains -Text $suiteText -Needle "TimeoutSeconds = 240" -Label "Suite conservative GstarCAD /b timeout"
+Assert-Contains -Text $suiteText -Needle "Next CAD action card probe (no CAD)" -Label "Suite next-action card no-CAD preflight"
+Assert-Contains -Text $suiteText -Needle "run_next_cad_action_card_probe.ps1" -Label "Suite next-action card probe runner"
+Assert-Contains -Text $suiteText -Needle "Visible work-copy opener dry-run (no CAD convert)" -Label "Suite visible workcopy opener dry-run preflight"
+Assert-Contains -Text $suiteText -Needle "run_open_workcopy_for_manual_convert.ps1" -Label "Suite visible workcopy opener runner"
+Assert-Contains -Text $suiteText -Needle "SafetyMarker: no-run-SWTITLECONVERTNEXT no-open-GMTITLE no-save-DWG" -Label "Suite visible workcopy opener no-convert expectation"
+Assert-Contains -Text $suiteText -Needle "GuardMarker: no-raw-GMTITLE no-raw-TIT no-raw-OPEN" -Label "Suite visible workcopy opener raw command guard"
+Assert-Contains -Text $suiteText -Needle "Frame positioning ON" -Label "Suite visible workcopy opener required options"
+Assert-Contains -Text $suiteText -Needle "swcad_load.lsp" -Label "Suite visible workcopy opener loader token"
+Assert-NotContains -Text $suiteText -Needle "After the CAD window is ready, type SWTITLECONVERTNEXT in GstarCAD." -Label "Suite visible workcopy opener stale one-line command wording"
+Assert-Contains -Text $suiteText -Needle "Post-first-native marker gate probe" -Label "Suite post-first-native marker gate step"
+Assert-Contains -Text $suiteText -Needle "Post-first-native marker gate probe passed: yes" -Label "Suite post-first-native marker gate expectation"
+Assert-Contains -Text $suiteText -Needle "Structure next action: SWTITLECONVERTNEXT" -Label "Suite structure next action recommends convert-next"
+Assert-NotContains -Text $suiteText -Needle "Structure next action: SWTITLECONVERT`"," -Label "Suite stale structure next action"
+Assert-Contains -Text $readmeText -Needle "-WaitForGstarCADClose" -Label "README waiting-mode guidance"
+Assert-Contains -Text $readmeText -Needle "GstarCAD /b Script Smoke Probe" -Label "README GstarCAD /b script smoke probe guidance"
+Assert-Contains -Text $readmeText -Needle "swcad_title_scale_current_main56_compare_copy.lsp" -Label "README current suite compare-copy name"
+Assert-NotContains -Text $readmeText -Needle "swcad_title_scale_current_main45_compare_copy.lsp" -Label "README stale suite compare-copy name"
+Assert-Contains -Text $readmeText -Needle "work\main56_verification_suite_last_run.txt" -Label "README latest suite summary path"
+Assert-Contains -Text $readmeText -Needle "Result: RUNNING_OR_FAILED_BEFORE_PASS" -Label "README latest suite summary starts incomplete"
+Assert-Contains -Text $readmeText -Needle "Result: FAILED_BEFORE_PASS" -Label "README latest suite summary failed marker"
+Assert-Contains -Text $readmeText -Needle "failure message/command" -Label "README latest suite failure summary contents"
+Assert-Contains -Text $readmeText -Needle "Worktree evidence hash" -Label "README latest suite summary worktree hash"
+Assert-Contains -Text $readmeText -Needle "saved hash still matches the current worktree" -Label "README latest suite summary current-worktree match guidance"
+Assert-Contains -Text $readmeText -Needle "2026-07-08 visible-CAD Computer Use recheck" -Label "README latest visible-CAD Computer Use recheck evidence"
+Assert-Contains -Text $readmeText -Needle "Typing a long command/path through Computer Use was interpreted by GstarCAD as _pasteclip" -Label "README visible-CAD pasteclip failure evidence"
+Assert-Contains -Text $readmeText -Needle "Stop visible-CAD automation when _pasteclip appears" -Label "README visible-CAD pasteclip stop guidance"
+Assert-Contains -Text $readonlyProbeRunnerText -Needle "WindowStyle = ""Minimized""" -Label "Readonly probe minimized window default"
+Assert-Contains -Text $readonlyProbeRunnerText -Needle "TimeoutSeconds = 240" -Label "Readonly probe conservative GstarCAD /b timeout"
+Assert-Contains -Text $readonlyProbeRunnerText -Needle '-WindowStyle $WindowStyle' -Label "Readonly probe configurable window style"
+Assert-Contains -Text $hiddenScriptSmokeProbeRunnerText -Needle "HIDDEN_SCRIPT_SMOKE_OK" -Label "Hidden script smoke marker"
+Assert-Contains -Text $hiddenScriptSmokeProbeRunnerText -Needle "TimeoutSeconds = 240" -Label "Hidden script smoke conservative timeout"
+Assert-Contains -Text $hiddenScriptSmokeProbeRunnerText -Needle "WindowStyle=Hidden fails with no log" -Label "Hidden script smoke minimized fallback guidance"
+Assert-Contains -Text $hiddenScriptSmokeProbeRunnerText -Needle "Do not interpret later loader/probe log-missing failures as GMTITLE logic failures" -Label "Hidden script smoke failure interpretation"
+Assert-Contains -Text $readmeText -Needle "no-CAD next-action card probe" -Label "README next-action card suite preflight guidance"
+Assert-Contains -Text $readmeText -Needle "Structure next action: SWTITLECONVERTNEXT" -Label "README structure next action recommends convert-next"
+Assert-NotContains -Text $readmeText -Needle "Structure next action: SWTITLECONVERT`r`n" -Label "README stale structure next action"
+Assert-Contains -Text $readmeText -Needle "NEXT_CREATE_FIRST_NATIVE_GMTITLE / NEXT_CREATE_MISSING_NATIVE_EXEMPLAR -> SWTITLECONVERTNEXT" -Label "README first-native status recommends convert-next"
+Assert-Contains -Text $readmeText -Needle "NEXT_UPGRADE_NATIVE_GMTITLE -> SWTITLECONVERTNEXT native replacement" -Label "README native-upgrade status recommends convert-next"
+Assert-NotContains -Text $readmeText -Needle "NEXT_CREATE_FIRST_NATIVE_GMTITLE / NEXT_CREATE_MISSING_NATIVE_EXEMPLAR -> SWTITLECONVERT`r`n" -Label "README stale first-native direct convert mapping"
+Assert-NotContains -Text $readmeText -Needle "NEXT_UPGRADE_NATIVE_GMTITLE -> SWTITLECONVERT native replacement" -Label "README stale native-upgrade direct convert mapping"
+Assert-Contains -Text $readmeText -Needle "one generated source-title-missing fixture is parameterized by sheet size" -Label "README common source-title-missing fixture guidance"
+Assert-Contains -Text $readmeText -Needle "nested-direct-outside" -Label "README nested-direct source-title-missing sample probe guidance"
+Assert-Contains -Text $readmeText -Needle "run_gmtitle_selection_config_probe.ps1" -Label "README GMTITLE selection config probe guidance"
+Assert-Contains -Text $readmeText -Needle "Recent File List" -Label "README selection config recent-file warning"
+Assert-Contains -Text $a4NormProbeText -Needle "nested-outside" -Label "Source-title-missing sample nested normalization probe strategy"
+Assert-Contains -Text $a4NormProbeText -Needle "nested-direct-outside" -Label "Source-title-missing sample nested plus parent normalization probe strategy"
+Assert-Contains -Text $a4NormProbeRunnerText -Needle "WaitForGstarCADClose" -Label "Source-title-missing sample normalization probe wait option"
+Assert-Contains -Text $a4NormProbeRunnerText -Needle "Get-LatestCadDwgFromNextStepLog" -Label "Source-title-missing sample normalization latest-DWG default"
+Assert-Contains -Text $a4NativeProbeFixtureText -Needle "A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR" -Label "Source-title-missing sample native exemplar requires native pair evidence"
+Assert-Contains -Text $a4NativeProbeFixtureText -Needle "Native GMTITLE A4 pair evidence" -Label "Source-title-missing sample native exemplar logs pair evidence"
+Assert-Contains -Text $a4NativeProbeFixtureText -Needle "A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS" -Label "Source-title-missing sample native exemplar minor outside marker result"
+Assert-Contains -Text $a4NativeProbeFixtureText -Needle "Definition minor native outside markers" -Label "Source-title-missing sample native exemplar minor outside marker log"
+Assert-Contains -Text $a4NativeProbeRunnerText -Needle "A4_NATIVE_EXEMPLAR_REQUIRES_SOURCEWORKCOPYPATH" -Label "Source-title-missing sample native exemplar explicit source guard"
+Assert-Contains -Text $a4NativeProbeRunnerText -Needle "WaitForGstarCADClose" -Label "Source-title-missing sample native exemplar wait option"
+Assert-Contains -Text $a4OutlineConvertProbeText -Needle "After target title count" -Label "Title-missing outline convert no-title log"
+Assert-Contains -Text $a4OutlineConvertProbeText -Needle "ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE" -Label "Title-missing outline hidden-script safety status"
+Assert-Contains -Text $a4OutlineConvertProbeText -Needle "visible CAD by double-click" -Label "Title-missing outline visible-CAD success boundary"
+Assert-Contains -Text $a4OutlineConvertRunnerText -Needle "run_readonly_probe.ps1" -Label "Title-missing outline convert hidden runner"
+Assert-Contains -Text $actualDirectStatusRunnerText -Needle "run_readonly_probe.ps1" -Label "Actual direct work-copy hidden runner"
+Assert-Contains -Text $actualDirectStatusRunnerText -Needle "TimeoutSeconds = 180" -Label "Actual direct work-copy longer timeout"
+Assert-Contains -Text $actualDirectStatusRunnerText -Needle "SWCAD_ACTUAL_WORKCOPY_LOG_SUFFIX" -Label "Actual direct work-copy suffix override"
+Assert-Contains -Text $actualDirectStatusRunnerText -Needle "swtitle_actual_workcopy_direct_status_260705.txt" -Label "Actual direct work-copy log path"
+Assert-Contains -Text $actualDirectStatusRunnerText -Needle "Direct work-copy probe failed: expected log was not created" -Label "Actual direct work-copy missing-log failure guard"
+Assert-Contains -Text $actualDirectStatusRunnerText -Needle "Runtime check completed:\s*yes" -Label "Actual direct work-copy completion marker guard"
+Assert-Contains -Text $singleCloneProbeRunnerText -Needle "single_clone_probe.lsp" -Label "Single clone probe runner fixture"
+Assert-Contains -Text $singleCloneProbeRunnerText -Needle "Copy-Item" -Label "Single clone probe uses copied DWG"
+Assert-Contains -Text $singleCloneProbeRunnerText -Needle "run_readonly_probe.ps1" -Label "Single clone probe hidden runner"
+Assert-Contains -Text $singleCloneProbeText -Needle "swcad-title-transfer-clone-apply" -Label "Single clone probe exercises internal clone"
+Assert-Contains -Text $singleCloneProbeText -Needle "Single clone scriptable without GMTITLE dialog evidence" -Label "Single clone probe scriptability evidence"
+Assert-Contains -Text $singleCloneProbeText -Needle "Probe save behavior: no SAVE command is issued" -Label "Single clone probe no-save marker"
+Assert-Contains -Text $preserveCopyMatrixRunnerText -Needle '[int[]]$CopyCounts = @(1, 2, 3)' -Label "Preserve-copy matrix exact 1/2/3 cases"
+Assert-Contains -Text $preserveCopyMatrixRunnerText -Needle "Copy-Item -LiteralPath `$SourceWorkCopyPath" -Label "Preserve-copy matrix dedicated DWG copies"
+Assert-Contains -Text $preserveCopyMatrixRunnerText -Needle "run_readonly_probe.ps1" -Label "Preserve-copy matrix isolated CAD runner"
+Assert-Contains -Text $preserveCopyMatrixProbeText -Needle "swcad-title-copy-ename source-frame" -Label "Preserve-copy matrix copies one captured native frame"
+Assert-Contains -Text $preserveCopyMatrixProbeText -Needle "swcad-title-copy-ename source-title" -Label "Preserve-copy matrix copies one captured native title"
+Assert-Contains -Text $preserveCopyMatrixProbeText -Needle "shared-link=" -Label "Preserve-copy matrix shared-handle evidence"
+Assert-Contains -Text $preserveCopyMatrixProbeText -Needle "reactor-values" -Label "Preserve-copy matrix reactor evidence"
+Assert-Contains -Text $preserveCopyMatrixProbeText -Needle "extension-dictionary-values" -Label "Preserve-copy matrix extension dictionary evidence"
+Assert-Contains -Text $preserveCopyMatrixProbeText -Needle "title-double-click-point=" -Label "Preserve-copy matrix manual recognition target"
+Assert-Contains -Text $preserveCopyMatrixProbeText -Needle "Safety: wrapper-created work copy; no source title/frame deletion" -Label "Preserve-copy matrix source preservation marker"
+Assert-NotContains -Text $preserveCopyMatrixProbeText -Needle "swcad-title-transfer-finalize" -Label "Preserve-copy matrix no source finalize cleanup"
+Assert-Contains -Text $preserveCopyMatrixProbeText -Needle "Copy marker policy: inherit source xdata; do not add a new clone marker" -Label "Preserve-copy matrix pure inherited xdata policy"
+Assert-NotContains -Text $preserveCopyMatrixProbeText -Needle "swcad-title-mark-native-exemplar-pair copied-title" -Label "Preserve-copy matrix no new clone marker"
+Assert-Contains -Text $dialogControlProbeText -Needle "swtitle_gmtitle_dialog_autoselect.ps1" -Label "GMTITLE diagnostic wrapper uses production helper"
+Assert-Contains -Text $dialogAutoselectHelperText -Needle '$requiredIds = @(3010, 3011, 3022, 3024, 1)' -Label "GMTITLE fixed control IDs"
+Assert-Contains -Text $dialogAutoselectHelperText -Needle "CB_SETCURSEL" -Label "GMTITLE combo selection without screen coordinates"
+Assert-Contains -Text $dialogAutoselectHelperText -Needle "BM_CLICK" -Label "GMTITLE checkbox and OK control action"
+Assert-Contains -Text $dialogAutoselectHelperText -Needle "Readback validation: PASS" -Label "GMTITLE fixed control readback gate"
+Assert-Contains -Text $dialogAutoselectHelperText -Needle "Dialog automation requires an existing DWG work copy" -Label "GMTITLE dialog automation DWG guard"
+Assert-Contains -Text $dialogAutoselectHelperText -Needle "The isolated session loaded an unexpected DWG" -Label "GMTITLE dialog automation exact session-DWG guard"
+Assert-NotContains -Text $dialogAutoselectHelperText -Needle "dedicated DWG copies under work" -Label "GMTITLE dialog automation no fixed work-folder guard"
+Assert-Contains -Text $dialogAutoselectHelperText -Needle "-ClickOk requires -ApplySelections" -Label "GMTITLE OK requires exact selection mode"
+Assert-Contains -Text $dialogAutoselectHelperText -Needle "ApplicationWindowHandle" -Label "GMTITLE helper pins selection to the active CAD HWND"
+Assert-Contains -Text $mainText -Needle "swcad-title-start-gmtitle-dialog-autoselect" -Label "GMTITLE LSP launches fixed-control helper"
+Assert-Contains -Text $mainText -Needle "-ApplySelections -ClickOk" -Label "GMTITLE LSP requests exact selection and confirmation"
+Assert-Contains -Text $dialogControlSessionRunnerText -Needle "Copy-Item -LiteralPath `$SourceWorkCopyPath" -Label "GMTITLE dialog session dedicated copy"
+Assert-Contains -Text $dialogControlSessionRunnerText -Needle "-WindowStyle Hidden" -Label "GMTITLE dialog session background launch"
+Assert-Contains -Text $dialogControlSessionRunnerText -Needle "ApplySelections = `$true" -Label "GMTITLE dialog session fixed-control apply"
+Assert-Contains -Text $dialogControlSessionRunnerText -Needle "ClickOk = `$true" -Label "GMTITLE dialog session fixed-control confirm"
+Assert-Contains -Text $dialogControlSessionProbeText -Needle "swtitle-dcs-probe-name-p" -Label "GMTITLE dialog session dedicated filename guard"
+Assert-Contains -Text $dialogControlSessionProbeText -Needle "swcad-title-run-native-gmtitle" -Label "GMTITLE dialog session opens native dialog"
+Assert-Contains -Text $dialogControlSessionProbeText -Needle "NATIVE_GMTITLE_CREATED_BY_FIXED_CONTROL_SELECTION" -Label "GMTITLE dialog session native result marker"
+Assert-Contains -Text $integratedAutoselectBatchRunnerText -Needle "SWTITLECONVERTNEXT" -Label "Integrated fixed-control public conversion command"
+Assert-Contains -Text $integratedAutoselectBatchRunnerText -Needle "Shared native-link target titles" -Label "Integrated fixed-control no-shared-link gate"
+Assert-Contains -Text $integratedAutoselectBatchRunnerText -Needle "CompleteTitleMissing" -Label "Integrated full-flow title-missing continuation"
+Assert-Contains -Text $integratedAutoselectBatchRunnerText -Needle "Source work-copy SHA256 unchanged: PASS" -Label "Integrated full-flow source preservation gate"
+Assert-NotContains -Text $mainText -Needle "c:SWTITLEPRESERVECOPYMATRIX" -Label "No new public LSP command for matrix probe"
+Assert-NotContains -Text $mainText -Needle "c:SWTITLEGMTITLEDIALOGCONTROL" -Label "No new public LSP command for dialog control"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "READY_FOR_FIRST_NATIVE_GMTITLE" -Label "Next CAD action first-native readiness"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "0xEF" -Label "Next CAD action UTF-8 BOM log guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "TrimStart([char]0xFEFF)" -Label "Next CAD action BOM character trim"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "작업복사본이 direct probe 로그보다 최신입니다" -Label "Next CAD action stale direct-probe guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "direct probe 로그가 현재 로드해야 할 LSP 버전과 다릅니다" -Label "Next CAD action stale direct-probe version guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "RELOAD_LSP_AND_CONFIRM_STATUS" -Label "Next CAD action stale-version manual reload result"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "direct probe 로그는 없지만 final completion gate에 다음 CAD 상태와 GMTITLE 선택값이 남아 있습니다" -Label "Next CAD action missing-probe final-gate fallback"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "final gate 기준 예상 GMTITLE 선택" -Label "Next CAD action missing-probe expected selection"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Get-NativeUpgradeVerifyEvidence" -Label "Next CAD action native-upgrade verify evidence helper"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Get-SuiteActualWorkcopyStatusEvidence" -Label "Next CAD action suite actual workcopy evidence helper"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "최근 hidden suite actual work-copy 상태 summary" -Label "Next CAD action suite actual summary fallback"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "native-upgrade 과거 로그보다 이 상태를 우선합니다" -Label "Next CAD action suite actual state precedence"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "RUN_VERIFY_AFTER_NATIVE_UPGRADE" -Label "Next CAD action native-upgrade verify result"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "현재 작업복사본의 최신 native 교체 로그" -Label "Next CAD action native-upgrade verify log guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "CAD 안에서 최신 LSP를 다시 APPLOAD하고 SWTITLESTATUS로 현재 상태를 확인하세요" -Label "Next CAD action stale-version manual reload guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "최신 LSP로 SWTITLESTATUS를 다시 실행한 뒤, 그 결과가 변환을 안내할 때만 SWTITLECONVERTNEXT를 실행하세요" -Label "Next CAD action stale-version status-confirm-before-convert"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Direct probe 최신 상태" -Label "Next CAD action direct-probe freshness output"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Direct probe LSP 버전 일치" -Label "Next CAD action direct-probe version output"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "AutoRefreshDirectProbe" -Label "Next CAD action optional direct-probe auto refresh"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "ForceRefreshDirectProbe" -Label "Next CAD action optional direct-probe force refresh"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "AutoRefreshTimeoutSeconds = 180" -Label "Next CAD action direct-probe auto refresh timeout"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "AUTO_REFRESH_DIRECT_PROBE_FAILED" -Label "Next CAD action auto refresh failure guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "기존 로그가 대상 작업복사본, 저장 시간, 현재 LSP 버전과 일치해 재사용합니다" -Label "Next CAD action auto refresh reuse explanation"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "기존 로그가 최신이어도 저장된 DWG를 hidden GstarCAD로 다시 읽습니다" -Label "Next CAD action force refresh explanation"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "예상 수동 GMTITLE 확인량" -Label "Next CAD action manual selection forecast"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "CAD 테스트 타이밍:" -Label "Next CAD action test timing heading"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "지금 테스트할 때입니다: 복제/shared-link GMTITLE 후보 1장을 fresh native GMTITLE로 교체합니다." -Label "Next CAD action native replacement test timing"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "아직 GMTITLE 창 테스트 시점이 아닙니다" -Label "Next CAD action prepare-not-test timing"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "변환 테스트는 끝났습니다" -Label "Next CAD action final double-click timing"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "저장된 시트 수량" -Label "Next CAD action expected sheet count forecast"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "title-missing/frame-only {0}장은 원본 표제란 부재가 검증된 경우에만" -Label "Next CAD action title-missing no-title forecast"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "NEXT_CLEAN_ORPHAN_TARGET_FRAMES" -Label "Next CAD action orphan target frame status"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "title-missing 도면틀-only marker가 없는 한 완료된 title-sheet로 보지 않습니다" -Label "Next CAD action orphan target frame blocks title-sheet completion"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "function Convert-LegacyTitleMissingStatusCode" -Label "Next CAD action normalizes legacy title-missing statuses"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "RUN_TITLE_MISSING_OUTLINE_CONVERT" -Label "Next CAD action ready title-missing outline conversion guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "새 제목블록 없이 같은 크기 DR 도면틀만 교체합니다" -Label "Next CAD action title-missing no-new-title guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "이 단계는 A4 전용이 아니며" -Label "Next CAD action title-missing not-A4-only guidance"
+Assert-NotContains -Text $nextCadActionRunnerText -Needle '$hasA4Missing' -Label "Next CAD action must not infer title-missing from A4-missing alone"
+Assert-NotContains -Text $nextCadActionRunnerText -Needle "DR_A3_Outline 또는 DR_A4_Outline" -Label "Next CAD action native replacement guidance must not be A3/A4-only"
+Assert-NotContains -Text $nextCadActionRunnerText -Needle '^NEXT_PREPARE_(TITLE_MISSING_OUTLINE_DEFINITION|A4_FRAME_ONLY_OUTLINE_DEFINITION|FRAME_STYLE_NORMALIZATION)$' -Label "Next CAD action switch must use normalized title-missing prepare status"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLESTATUS가 출력한 DR_A2/A3/A4_Outline" -Label "Next CAD action native replacement guidance uses A2/A3/A4"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "legacy_title_missing_prepare_status_normalized" -Label "Next CAD action card probe covers legacy title-missing prepare status normalization"
+Assert-NotContains -Text $nextCadActionCardProbeText -Needle "legacy_a4_prepare_status_normalized" -Label "Next CAD action card probe avoids stale legacy A4 case name"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "clean_orphan_target_frame" -Label "Next CAD action card probe covers orphan target frame cleanup"
+Assert-Contains -Text $actualDirectStatusProbeText -Needle "a2a3a4-native-upgrade-candidate-count" -Label "Actual workcopy probe native-upgrade candidate count"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "a2a3a4-native-upgrade-candidate-count" -Label "Next CAD action reads A2/A3/A4 native-upgrade candidate count"
+Assert-Contains -Text $actualDirectStatusProbeText -Needle "target-gmtitle-pair-count" -Label "Actual workcopy probe target pair count"
+Assert-Contains -Text $actualDirectStatusProbeText -Needle "native-like-target-pair-count" -Label "Actual workcopy probe native-like pair count"
+Assert-Contains -Text $actualDirectStatusProbeText -Needle "duplicate-target-pair-count" -Label "Actual workcopy probe duplicate target pair count"
+Assert-Contains -Text $actualDirectStatusProbeText -Needle "first-native-selection-log-note-found" -Label "Actual workcopy probe first-native selection log check"
+Assert-Contains -Text $actualDirectStatusProbeText -Needle "manual-forecast-log-note-found" -Label "Actual workcopy probe manual forecast log check"
+Assert-Contains -Text $actualDirectStatusProbeText -Needle "source-before-title-missing-forecast-note-found" -Label "Actual workcopy probe source-before-title-missing forecast check"
+Assert-Contains -Text $actualDirectStatusProbeText -Needle "next-missing-native-frame" -Label "Actual workcopy probe missing-native frame output"
+Assert-Contains -Text $postFirstNativeProbeText -Needle "marker-only A2 target is not accepted as native-like GMTITLE; remaining real source sheets may be reviewed first" -Label "Post-first-native marker gate negative evidence"
+Assert-Contains -Text $postFirstNativeProbeText -Needle "Next missing native selection after fixture" -Label "Post-first-native marker gate next missing selection evidence"
+Assert-Contains -Text $postFirstNativeProbeText -Needle "(- before-source-count 1)" -Label "Post-first-native marker gate derives source count"
+Assert-Contains -Text $postFirstNativeProbeText -Needle "before-frame-only-count" -Label "Post-first-native marker gate derives frame-only count"
+Assert-NotContains -Text $suiteText -Needle '"Source title count after fixture: 12"' -Label "Suite no mutable post-first-native source count"
+Assert-Contains -Text $postFirstNativeRunnerText -Needle "post_first_native_transition_probe.lsp" -Label "Post-first-native marker gate runner"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "SWTITLESTATUS" -Label "Open workcopy helper status command"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "이 helper는 SWTITLECONVERTNEXT를 실행하지 않고" -Label "Open workcopy helper Korean no-convert guard"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "기본값에서는 /b 시작 스크립트를 쓰지 않습니다" -Label "Open workcopy helper Korean no-startup-script default"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "SafetyMarker: no-run-SWTITLECONVERTNEXT no-open-GMTITLE no-save-DWG" -Label "Open workcopy helper ASCII safety marker"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "GuardMarker: no-raw-GMTITLE no-raw-TIT no-raw-OPEN" -Label "Open workcopy helper ASCII raw-command guard marker"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "CAD 창이 준비되면 GstarCAD 명령창에 아래 순서만 입력하세요" -Label "Open workcopy helper Korean command-order guidance"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "필수 옵션: Frame positioning ON, Object move OFF" -Label "Open workcopy helper required GMTITLE options"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "CAD 명령창에 GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요" -Label "Open workcopy helper raw command guard"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "GSTARCAD_NO_VISIBLE_WINDOW" -Label "Open workcopy helper no-window guard"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "안정적으로 확인된 보이는 GstarCAD 창 핸들" -Label "Open workcopy helper stable-window guard"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "GSTARCAD_VISIBLE_WINDOW_NOT_STABLE_AFTER_CHECK" -Label "Open workcopy helper post-visible guard"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "창이 불안정한 GstarCAD PID를 종료했습니다" -Label "Open workcopy helper unstable-window cleanup"
+Assert-Contains -Text $openWorkcopyRunnerText -Needle "보이지 않는 GstarCAD PID를 종료했습니다" -Label "Open workcopy helper non-visible cleanup"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "run_open_workcopy_for_manual_convert.ps1" -Label "Manual session wrapper opens workcopy helper"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "run_after_manual_gmtitle_step.ps1" -Label "Manual session wrapper after-manual check"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "SWTITLECONVERTNEXT를 대신 실행하지 않고" -Label "Manual session wrapper no-convert guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle 'CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있으므로' -Label "Manual session wrapper pasteclip warning"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "Codex가 Computer Use로 SWTITLECONVERTNEXT를 대신 타이핑하지 않습니다" -Label "Manual session wrapper dynamic-input no-type guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "GMTITLE 창을 클릭하지 않고" -Label "Manual session wrapper no-click guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "Wait-ForGstarCADToClose" -Label "Manual session wrapper waits for close"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "Assert-GstarCADRunningBeforeManualStep" -Label "Manual session wrapper requires visible CAD before wait"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "SKIP_OPEN_NO_GSTARCAD" -Label "Manual session wrapper skip-open guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "GSTARCAD_CLOSED_BEFORE_MANUAL_STEP" -Label "Manual session wrapper early-close guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "초기 다음 작업 카드" -Label "Manual session wrapper initial next-action card"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "처음 실행할 다음 작업 짧은 요약:" -Label "Manual session wrapper initial short summary"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "function Get-LastRegexValue" -Label "Manual session wrapper latest-value parser"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle '$result = Get-LastRegexValue -Text $CardText -Pattern "^Result:\s*(\S+)\s*$"' -Label "Manual session wrapper latest result summary"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle '$status = Get-LastRegexValue -Text $CardText -Pattern "^(?:\s*SWTITLESTATUS:|현재 저장 상태:)\s*(\S+)"' -Label "Manual session wrapper latest status summary"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle '$frame = Get-LastRegexValue -Text $CardText -Pattern "^\s*(?:용지/도면틀|다음 GMTITLE 용지/도면틀|GMTITLE에서 고를 용지/도면틀):\s*(DR_A[1-4]_Outline)\b"' -Label "Manual session wrapper latest frame summary"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "GMTITLE 짧은 수동 선택 카드" -Label "Manual session wrapper compact card heading"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "GMTITLE에서 고를 용지/도면틀:" -Label "Manual session wrapper paper/frame summary"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "필수 옵션: Frame positioning ON, Object move OFF" -Label "Manual session wrapper required options summary"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "CAD 명령 순서:" -Label "Manual session wrapper CAD command order summary"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "GMTITLE 창: 위 용지/제목블록/옵션만 확인하세요." -Label "Manual session wrapper compact dialog scope"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "금지: GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요." -Label "Manual session wrapper compact raw-command guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle '금지: 긴 명령/경로를 자동 입력하거나 붙여넣지 마세요. CAD가 `_pasteclip` 삽입으로 해석할 수 있습니다.' -Label "Manual session wrapper compact pasteclip guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "배치점: 긴 좌표를 직접 치지 말고 자동 입력을 기다리세요." -Label "Manual session wrapper compact placement guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "처리 후: 작업복사본을 저장하고 GstarCAD를 닫으세요." -Label "Manual session wrapper compact after-step guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "상태 로그만 갱신했다면 저장하지 않아도 됩니다" -Label "Manual session wrapper reload-only no-save guidance"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "PreflightOnly" -Label "Manual session wrapper preflight-only option"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "Compact:" -Label "Manual session wrapper compact option"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "AutoRefreshDirectProbe" -Label "Manual session wrapper optional auto-refresh option"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "기본값: 현재 PC의 /b probe가 불안정할 수 있어 자동 direct probe 갱신은 하지 않습니다" -Label "Manual session wrapper no default auto-refresh"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "RELOAD_LSP_AND_CONFIRM_STATUS" -Label "Manual session wrapper stale-version reload accepted"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle '$script:InitialNextActionNeedsReload' -Label "Manual session wrapper stores reload-only state"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle '$script:InitialNextActionNeedsVerify' -Label "Manual session wrapper stores verify-only state"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "SWTITLEVERIFY 검증을 요구합니다" -Label "Manual session wrapper verify-only no-convert guidance"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "CAD 안에서 APPLOAD, SWTITLEVERSION, SWTITLESTATUS를 먼저 실행하고" -Label "Manual session wrapper stale-version status confirmation"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "아직 GMTITLE 용지/제목블록을 고르지 않습니다" -Label "Manual session wrapper stale-version no dialog selection"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "최신 LSP와 현재 상태만 확인하세요" -Label "Manual session wrapper reload-only final guidance"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "SWTITLESTATUS가 변환을 안내하기 전에는 GMTITLE 창을 열거나 용지/제목블록을 고르지 마세요" -Label "Manual session wrapper reload-only no GMTITLE dialog"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "SWTITLECONVERTNEXT  (SWTITLESTATUS가 변환을 안내할 때만)" -Label "Manual session wrapper conditional convert-next command"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "SuppressChildOutput" -Label "Manual session wrapper compact output suppression"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "긴 PowerShell 실행 명령줄은 -Compact 때문에 숨겼습니다" -Label "Manual session wrapper compact command suppression"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "출력은 -Compact 때문에 숨겼습니다" -Label "Manual session wrapper compact suppression message"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "MANUAL_SESSION_PREFLIGHT_READY" -Label "Manual session wrapper preflight-only ready result"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "PREFLIGHT_ONLY_REQUIRES_INITIAL_CARD" -Label "Manual session wrapper preflight-only misuse guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "MANUAL_SESSION_NOT_CONVERSION_READY" -Label "Manual session wrapper non-conversion guard"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "READY_FOR_FIRST_NATIVE_GMTITLE|CREATE_MISSING_NATIVE_GMTITLE_SIZE|RUN_NATIVE_REPLACEMENT|RUN_REMAINING_CONVERSION" -Label "Manual session wrapper conversion-ready result set"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "SkipInitialNextActionCard" -Label "Manual session wrapper explicit preflight skip"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "MANUAL_GMTITLE_SESSION_COMPLETE" -Label "Manual session wrapper completion marker"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle "DryRun" -Label "Manual session wrapper dry-run option"
+Assert-Contains -Text $manualGmtitleSessionRunnerText -Needle '$afterArgs += "-Compact"' -Label "Manual session wrapper forwards compact after-manual check"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "run_open_workcopy_for_manual_convert.ps1" -Label "Next CAD action open-workcopy helper"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "A2/A3/A4 native 교체 후보 수" -Label "Next CAD action native-upgrade candidate output"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "현재 GMTITLE 쌍: 전체" -Label "Next CAD action target-pair forecast"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "OPEN 1회 성공 뒤 direct probe를 갱신해서 후보 수가 줄었는지 먼저 확인하세요." -Label "Next CAD action native OPEN refresh guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Codex sandbox 기본 경로 감지" -Label "Next CAD action Codex sandbox default-path correction"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "direct probe의 실제 DWG를 대상 작업복사본으로 사용" -Label "Next CAD action real direct-probe DWG correction"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Get-RepoRootFromWorkCopyPath" -Label "Next CAD action host repo root derivation"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "실제 CAD용 저장소 폴더" -Label "Next CAD action host CAD repo output"
+Assert-Contains -Text $nextCadActionRunnerText -Needle 'Join-Path $displayRepoRoot "swcad_load.lsp"' -Label "Next CAD action APPLOAD display root"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "run_actual_workcopy_direct_status_probe.ps1" -Label "Next CAD action direct-probe runner guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Write-SuiteLastRunSummary" -Label "Next CAD action suite summary helper"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "최근 hidden suite 요약:" -Label "Next CAD action suite summary heading"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "main56_verification_suite_last_run.txt" -Label "Next CAD action suite summary path"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Get-GitHeadCommitTimeUtc" -Label "Next CAD action head commit time helper"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Test-GitWorkingTreeDirty" -Label "Next CAD action dirty worktree helper"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Get-GitWorktreeEvidence" -Label "Next CAD action worktree evidence helper"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "core.autocrlf=false" -Label "Next CAD action worktree fingerprint suppresses CRLF warnings"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "suite 로그가 현재 커밋보다 오래됨" -Label "Next CAD action stale suite flag"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "현재 작업트리 변경 있음" -Label "Next CAD action dirty worktree flag"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "suite 작업트리 지문 현재와 일치" -Label "Next CAD action suite fingerprint match output"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "현재 미커밋 변경분까지 포함한 동일 작업트리에서 suite PASS" -Label "Next CAD action current dirty worktree pass meaning"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "미커밋 변경분까지 검증한 증거가 아닙니다" -Label "Next CAD action dirty suite meaning"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "과거 guard 증거로만 봅니다" -Label "Next CAD action stale suite meaning"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "자동화/guard 검증은 통과했습니다" -Label "Next CAD action suite pass meaning"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "suite가 최종 PASS 전에 멈췄습니다" -Label "Next CAD action suite failure meaning"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Write-FinalCompletionGateSummary" -Label "Next CAD action final completion gate helper"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "최근 final completion gate 요약:" -Label "Next CAD action final completion gate heading"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "이 final gate 로그는 현재 LSP 버전과 달라 다음 선택값으로 쓰지 않습니다" -Label "Next CAD action stale final gate version warning"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "과거 final gate 기준 native GMTITLE(참고만)" -Label "Next CAD action stale final gate native value is reference-only"
+Assert-NotContains -Text $nextCadActionRunnerText -Needle "다음 native GMTITLE:" -Label "Next CAD action final gate must not print stale native as next"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "실제 작업복사본 완료 증거가 아직 없습니다" -Label "Next CAD action final completion gate incomplete meaning"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Final gate/direct probe 일치 확인:" -Label "Next CAD action final/direct consistency heading"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "REVIEW_FINAL_GATE_DIRECT_PROBE_CONFLICT" -Label "Next CAD action final/direct conflict guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "최신 final completion gate와 direct probe가 서로 다른 다음 상태를 가리킵니다" -Label "Next CAD action final/direct conflict explanation"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "RUN_PREPARE_FIRST" -Label "Next CAD action prepare-first guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "RUN_NATIVE_REPLACEMENT" -Label "Next CAD action native replacement guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "REVIEW_STRUCTURE_BEFORE_CONVERT" -Label "Next CAD action structure review guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "CREATE_MISSING_NATIVE_GMTITLE_SIZE" -Label "Next CAD action missing native exemplar guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "VERIFY_NOT_FINAL" -Label "Next CAD action verify-not-final guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "수동 GstarCAD 단계" -Label "Next CAD action Korean manual visible CAD wording"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "작업복사본을 보이는 GstarCAD로 열 수 있습니다" -Label "Next CAD action open-workcopy wording"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "helper는 기본적으로 /b startup script를 쓰지 않으므로" -Label "Next CAD action open-helper no-startup-script wording"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "정상 버전:" -Label "Next CAD action expected loaded version guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLESTATUS  (현재 열린 DWG와 다음 상태 확인)" -Label "Next CAD action visible-CAD status preflight"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "화면 캡처는 가능하지만 활성화/클릭/입력은 안정적이지 않습니다" -Label "Next CAD action Korean Computer Use limitation wording"
+Assert-Contains -Text $nextCadActionRunnerText -Needle 'CAD가 `_pasteclip` 삽입 명령으로 해석할 수 있습니다' -Label "Next CAD action pasteclip warning"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Computer Use로 SWTITLECONVERTNEXT를 타이핑하면 CAD 동적 입력이 도면 문자 삽입으로 해석될 수 있습니다" -Label "Next CAD action dynamic-input warning"
+Assert-Contains -Text $computerUseHistoryText -Needle "failed to activate captured window" -Label "Computer Use activation failure history"
+Assert-Contains -Text $computerUseHistoryText -Needle "Do not repeat the same visible-CAD Computer Use click/type attempt as a default path" -Label "Computer Use no-repeat guidance"
+Assert-Contains -Text $computerUseA3DialogHistoryText -Needle '`SWTITLECONVERTNEXT` started correctly' -Label "Computer Use A3 dialog reached through SWTITLECONVERTNEXT"
+Assert-Contains -Text $computerUseA3DialogHistoryText -Needle "UIA value is read-only" -Label "Computer Use A3 dialog combo read-only evidence"
+Assert-Contains -Text $computerUseA3DialogHistoryText -Needle "not exposed as a separate targetable window" -Label "Computer Use A3 dialog window-target evidence"
+Assert-Contains -Text $computerUseA3DialogHistoryText -Needle "did **not** click screen coordinates" -Label "Computer Use A3 no screen-coordinate fallback"
+Assert-Contains -Text $computerUseDynamicInputHistoryText -Needle 'Do not use Computer Use to type `SWTITLECONVERTNEXT` into visible GstarCAD' -Label "Computer Use dynamic-input no-type guidance"
+Assert-Contains -Text $computerUseDynamicInputHistoryText -Needle "dynamic input interpreted command text as drawing text" -Label "Computer Use dynamic-input failure evidence"
+Assert-Contains -Text $titleResidueGeometryHistoryText -Needle "정리 후보: 42" -Label "Title residue history synthetic candidate evidence"
+Assert-Contains -Text $titleResidueGeometryHistoryText -Needle "독립 잔여물 정리 후: 0" -Label "Title residue history independent zero evidence"
+Assert-Contains -Text $titleResidueGeometryHistoryText -Needle "두 번째 실행 후보/삭제: 0 / 0" -Label "Title residue history idempotence evidence"
+Assert-Contains -Text $titleResidueGeometryHistoryText -Needle "SWTITLESTATUS: NEXT_PREPARE_FRAME_STYLE_NORMALIZATION" -Label "Title residue history actual workcopy status"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle "SWTITLEVERIFY: SWTITLEVERIFY_FINAL_OK" -Label "Fresh E2E history final OK evidence"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle "target-title-count: 13" -Label "Fresh E2E history target title count"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle "target-frame-count: 15" -Label "Fresh E2E history target frame count"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle "orphan-target-frame-count: 0" -Label "Fresh E2E history no orphan frame"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle 'A2 `DR_titlea_3rd` 핸들 `16BF8`' -Label "Fresh E2E history A2 editor check"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle 'A3 `DR_titlea_3rd` 핸들 `16C8D`' -Label "Fresh E2E history A3 editor check"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle "구버전 full-flow 파일에서 보였던 A4 고아 도면틀 두 장은 fresh 전체 변환에서 재현되지 않았다" -Label "Fresh E2E history A4 orphan non-reproduction"
+Assert-Contains -Text $freshE2eFinalHistoryText -Needle '`_PASTECLIP`으로 해석될 수 있다' -Label "Fresh E2E history CAD clipboard-input guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "용지/도면틀:" -Label "Next CAD action Korean dialog paper guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERTNEXT  (권장: 고정 컨트롤로 GMTITLE 선택값 검증 후 native 연속 변환)" -Label "Next CAD action fixed-control shortcut guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "또는 수동 응답을 직접 고르려면: SWTITLECONVERT" -Label "Next CAD action manual convert fallback guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Write-AutomationBoundarySummary" -Label "Next CAD action automation boundary helper"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "자동화 경계:" -Label "Next CAD action automation boundary heading"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "LSP가 자동 처리: 현재 후보 판별" -Label "Next CAD action LSP automation scope"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "고정 컨트롤 자동 처리: DR_A*_Outline, DR_titlea_3rd, Frame positioning ON, Object move OFF 선택과 readback" -Label "Next CAD action fixed-control scope"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "사람이 확인: 현재 work 복사본 경로, SWTITLEVERIFY 결과, 대표 DR_titlea_3rd 더블클릭 편집창" -Label "Next CAD action human verification scope"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "화면 좌표는 사용하지 않으며 컨트롤 ID, 대상 DWG, GstarCAD HWND가 모두 맞아야 진행합니다" -Label "Next CAD action no-coordinate guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERTNEXT는 work 복사본에서 고정 컨트롤로 DR 용지/제목블록/옵션을 선택하고 readback합니다" -Label "Next CAD action convert-next fixed-control guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 GMTITLE 호출" -Label "Next CAD action convert-next integrated flow wording"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "좌표 입력, 값 복사, 기존 원본 정리는 SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 자동 처리합니다" -Label "Next CAD action convert-next cleanup wording"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "같은 SWTITLECONVERT를 반복하지 말고" -Label "Next CAD action no-repeat convert warning"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "Object move: OFF" -Label "Next CAD action Object move guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "GMTITLE, TIT, 일반 OPEN을 직접 입력하지 마세요" -Label "Next CAD action raw GMTITLE/TIT/OPEN guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERT 안에서 물어보는 YES/OPEN/BATCH/MANUAL 응답과 CAD 일반 OPEN 명령은 다릅니다" -Label "Next CAD action convert prompt versus CAD OPEN guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "긴 좌표를 사람이 직접 치지 마세요" -Label "Next CAD action lower-left auto placement guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERTNEXT 또는 수동 SWTITLECONVERT 흐름이 GMTITLE 창 뒤에 왼쪽 아래 배치점을 자동 전송합니다" -Label "Next CAD action convert-next placement wording"
+Assert-NotContains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERT가 GMTITLE 호출" -Label "Next CAD action stale direct convert integrated flow"
+Assert-NotContains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERT가 GMTITLE 창 뒤에 왼쪽 아래 배치점을 자동 전송합니다" -Label "Next CAD action stale direct convert placement"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "커서가 화면 중앙에 남아 보여도" -Label "Next CAD action center-cursor placement guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "REFRESH_DIRECT_PROBE_FIRST" -Label "Next CAD action direct-probe refresh guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERT/SWTITLECONVERTNEXT에서 나올 수 있는 입력" -Label "Next CAD action convert prompt guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERTNEXT는 현재 상태의 응답과 GMTITLE 고정 컨트롤 선택값을 자동 검증합니다" -Label "Next CAD action convert-next fixed-control response guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "SWTITLECONVERTNEXT를 쓰는 경우 사용자가 YES/OPEN/BATCH/MANUAL을 다시 입력하지 않습니다." -Label "Next CAD action no extra auto-next response guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "아래 항목은 수동 SWTITLECONVERT를 쓸 때의 응답 의미를 이해하기 위한 설명입니다." -Label "Next CAD action manual-response meaning guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "작업복사본을 저장하고 GstarCAD를 닫은 뒤 아래 래퍼를 실행하세요" -Label "Next CAD action after-manual wrapper first"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "run_after_manual_gmtitle_step.ps1" -Label "Next CAD action after-manual wrapper command"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "-Compact" -Label "Next CAD action compact after-manual option"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "화면에는 다음 한 단계 요약만 보여줍니다" -Label "Next CAD action compact after-manual summary"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "GstarCAD를 계속 열어 둔 상태에서는 hidden probe가 현재 화면 상태와 엇갈릴 수 있습니다" -Label "Next CAD action hidden probe closed-CAD guard"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "YES: 첫 native GMTITLE 1장을 만들고 마무리합니다." -Label "Next CAD action first-native YES guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "OPEN: 다음 A2/A3/A4 후보 1장만 fresh native GMTITLE로 교체합니다." -Label "Next CAD action native OPEN guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "BATCH: OPEN으로 최소 1장 성공한 뒤" -Label "Next CAD action native BATCH after OPEN guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "MANUAL: OPEN이 새 GMTITLE을 못 잡거나 NO_INSERTS가 반복될 때만 사용합니다." -Label "Next CAD action native MANUAL guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "반복 BATCH 검토 가능" -Label "Next CAD action repeated batch eligibility guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "교체/복제/고아/중복 경고 0개" -Label "Next CAD action repeated batch clean-guard wording"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "카드가 반복 BATCH 검토 가능을 표시하면" -Label "Next CAD action repeated batch prompt guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "ISO/일반 기본값, 다른 용지, 후보 수 미감소" -Label "Next CAD action repeated batch stop guards"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "이번 후보 GMTITLE 선택:" -Label "Next CAD action native replacement concrete frame guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle 'Write-GmtitleDialogGuidance -FrameName ($(if ($FrameName) { $FrameName } else { "SWTITLESTATUS가 출력한 DR_A2/A3/A4_Outline" }))' -Label "Next CAD action native replacement uses current frame when available"
+Assert-NotContains -Text $nextCadActionRunnerText -Needle 'Write-GmtitleDialogGuidance -FrameName "SWTITLESTATUS가 출력한 DR_A2/A3/A4_Outline" -TitleName "DR_titlea_3rd"' -Label "Next CAD action native replacement must not drop current frame"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "실제 DR_titlea_3rd 제목블록이 있는 대표 A2/A3/A4 용지만 더블클릭하세요." -Label "Next CAD action final title-only double-click guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "원본 표제란 부재가 검증된 title-missing/frame-only 시트는 더블클릭할 제목블록이 없으므로" -Label "Next CAD action final title-missing guidance"
+Assert-Contains -Text $nextCadActionRunnerText -Needle "DR_A*_Outline 도면틀을 더블클릭하면 GMPOWEREDIT/REFEDIT가 열릴 수 있으니" -Label "Next CAD action final frame double-click guard"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "run_next_cad_action.ps1" -Label "After-manual wrapper next-action card call"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "-AutoRefreshDirectProbe" -Label "After-manual wrapper direct probe refresh"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "-ForceRefreshDirectProbe" -Label "After-manual wrapper force direct probe refresh"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "기존 로그를 재사용하지 않고 실제 DWG를 다시 읽었습니다" -Label "After-manual wrapper force refresh summary"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "run_final_completion_gate.ps1" -Label "After-manual wrapper optional final gate"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "CLOSE_GSTARCAD_FIRST" -Label "After-manual wrapper visible GstarCAD close guard"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "GMTITLE 수동 한 장 처리 후 점검" -Label "After-manual wrapper Korean heading"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "목적: visible CAD에서 GMTITLE 한 장을 처리하고 저장/닫은 뒤" -Label "After-manual wrapper Korean purpose"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "안전: 이 래퍼는 DWG를 편집하지 않습니다" -Label "After-manual wrapper Korean safety"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "실행 중인 GstarCAD가 없습니다. 계속 진행합니다" -Label "After-manual wrapper Korean closed-CAD message"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "SWTITLECONVERTNEXT를 무작정 반복하지 마세요" -Label "After-manual wrapper Korean no-repeat warning"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "수동 GMTITLE 후속 점검 로그 저장" -Label "After-manual wrapper Korean saved-log message"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "AFTER_MANUAL_STEP_NEXT_ACTION_READY" -Label "After-manual wrapper next-action result"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "AFTER_MANUAL_STEP_FINAL_GATE_PASSED" -Label "After-manual wrapper final-pass result"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "AFTER_MANUAL_STEP_FINAL_GATE_NOT_PASSED" -Label "After-manual wrapper final-fail summary"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "DryRun" -Label "After-manual wrapper dry-run option"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "Compact" -Label "After-manual wrapper compact option"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "Write-AfterManualCardShortSummary" -Label "After-manual wrapper compact short summary helper"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "function Get-LastRegexValue" -Label "After-manual wrapper latest-value parser"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "function Get-TextAfterLastMarker" -Label "After-manual wrapper scoped selection parser"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle 'Get-TextAfterLastMarker -Text $CardText -Marker "GMTITLE 창에서 반드시 아래 값으로 선택:"' -Label "After-manual wrapper scopes to concrete GMTITLE selection block"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle '$result = Get-LastRegexValue -Text $CardText -Pattern "^Result:\s*(\S+)\s*$"' -Label "After-manual wrapper latest result summary"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle '$status = Get-LastRegexValue -Text $CardText -Pattern "^(?:\s*SWTITLESTATUS:|현재 저장 상태:)\s*(\S+)"' -Label "After-manual wrapper latest status summary"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle '$directProbeTime = Get-LastRegexValue -Text $CardText -Pattern "^Direct probe 시간:\s*(.+)$"' -Label "After-manual wrapper direct probe time summary parser"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle '$workCopySaveTime = Get-LastRegexValue -Text $CardText -Pattern "^작업복사본 저장 시간:\s*(.+)$"' -Label "After-manual wrapper work-copy save time summary parser"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "방금 저장했는데 작업복사본 저장 시간이 바뀌지 않았다면 다른 DWG를 저장했을 수 있습니다" -Label "After-manual wrapper wrong-file save warning"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle '$frame = Get-LastRegexValue -Text $selectionText -Pattern "^\s*(?:용지/도면틀|다음 GMTITLE 용지/도면틀):\s*(DR_A[1-4]_Outline)\b"' -Label "After-manual wrapper scoped frame summary"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "다음 GMTITLE 용지/도면틀: SWTITLESTATUS의 짧은 GMTITLE 선택 카드를 다시 확인하세요." -Label "After-manual wrapper no stale frame fallback"
+Assert-NotContains -Text $afterManualGmtitleStepRunnerText -Needle '$frame = Get-LastRegexValue -Text $CardText -Pattern "\b(DR_A[1-4]_Outline)\b"' -Label "After-manual wrapper must not mine stale final-gate frame"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "SuppressChildOutput" -Label "After-manual wrapper compact child-output suppression"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "수동 GMTITLE 처리 후 다음 작업 짧은 요약:" -Label "After-manual wrapper compact short summary heading"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "긴 PowerShell 실행 명령줄은 -Compact 때문에 화면에서 숨겼습니다" -Label "After-manual wrapper compact command suppression"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "전체 내용은 로그 파일에 저장합니다" -Label "After-manual wrapper compact full-log retention"
+Assert-Contains -Text $afterManualGmtitleStepRunnerText -Needle "[Console]::Out.WriteLine" -Label "After-manual wrapper screen output is not captured by return assignment"
+Assert-Contains -Text $readmeText -Needle "run_after_manual_gmtitle_step.ps1" -Label "README after-manual wrapper guidance"
+Assert-Contains -Text $readmeText -Needle "work\swtitle_after_manual_gmtitle_step_last.txt" -Label "README after-manual wrapper log path"
+Assert-Contains -Text $readmeText -Needle "-Compact" -Label "README compact option coverage"
+Assert-Contains -Text $readmeText -Needle "prints a short next-step summary" -Label "README after-manual short summary"
+Assert-Contains -Text $readmeText -Needle "run_manual_gmtitle_session.ps1" -Label "README manual session wrapper guidance"
+Assert-Contains -Text $readmeText -Needle 'does not run `SWTITLECONVERTNEXT`' -Label "README manual session no-convert guard"
+Assert-Contains -Text $readmeText -Needle 'runs `run_next_cad_action.ps1` without auto-refresh by default' -Label "README manual session initial next-action card"
+Assert-Contains -Text $readmeText -Needle "SkipInitialNextActionCard" -Label "README manual session skip initial card guard"
+Assert-Contains -Text $readmeText -Needle "PreflightOnly" -Label "README manual session preflight-only guidance"
+Assert-Contains -Text $readmeText -Needle 'Add `-Compact`' -Label "README manual session compact guidance"
+Assert-Contains -Text $readmeText -Needle "SKIP_OPEN_NO_GSTARCAD" -Label "README manual session skip-open guard"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "Next CAD action card probe result: PASS" -Label "Next CAD action card probe pass marker"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_CREATE_FIRST_NATIVE_GMTITLE" -Label "Next CAD action card probe first-native case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION" -Label "Next CAD action card probe title-missing prepare case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "ready_title_missing_outline" -Label "Next CAD action card probe ready title-missing case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle '"Result: RUN_TITLE_MISSING_OUTLINE_CONVERT", "SWTITLESTATUS", "SWTITLECONVERTNEXT"' -Label "Next CAD action card probe ready title-missing expectation"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_UPGRADE_NATIVE_GMTITLE" -Label "Next CAD action card probe native-upgrade case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "NEXT_REVIEW_TARGET_FRAME_GEOMETRY" -Label "Next CAD action card probe structure-review case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS" -Label "Next CAD action card probe abort-warning case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "SWTITLEVERIFY_FINAL_OK" -Label "Next CAD action card probe final-ok case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "native_upgrade_missing_direct_probe" -Label "Next CAD action card probe native-upgrade missing-direct case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle '"Result: RUN_VERIFY_AFTER_NATIVE_UPGRADE"' -Label "Next CAD action card probe native-upgrade verify expectation"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle '"SWTITLECONVERTNEXT", "DR_A2_Outline", "DR_titlea_3rd", "YES/OPEN"' -Label "Next CAD action card probe first-native token expectation"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle '"Result: RUN_NATIVE_REPLACEMENT", "SWTITLECONVERTNEXT", "SWTITLECONVERT", "OPEN", "BATCH", "MANUAL", "DR_A3_Outline", "DR_titlea_3rd"' -Label "Next CAD action card probe native replacement concrete token expectation"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "remaining_source_before_title_missing" -Label "Next CAD action card probe source-before-title-missing case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle '"남은 원본 표제란 시트 변환이 title-missing/frame-only 예외보다 먼저입니다"' -Label "Next CAD action card probe source-before-title-missing expectation"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "remaining_source_batch_eligible" -Label "Next CAD action card probe repeated-batch-eligible case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle '"A3 반복 BATCH 검토 가능", "현재 4/12장", "남은 원본 표제란 8장"' -Label "Next CAD action card probe repeated-batch-eligible expectation"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle '"Result: RELOAD_LSP_AND_CONFIRM_STATUS", "Direct probe LSP", "APPLOAD", "SWTITLESTATUS", "SWTITLECONVERTNEXT"' -Label "Next CAD action card probe stale-version reload expectation"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle '"Result: RELOAD_LSP_AND_CONFIRM_STATUS", "final gate", "-AutoRefreshDirectProbe"' -Label "Next CAD action card probe missing-log final-gate fallback expectation"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "MissingLog" -Label "Next CAD action card probe missing-log case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "MakeStale" -Label "Next CAD action card probe stale-log case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "stale_version" -Label "Next CAD action card probe stale-version case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "Invoke-SandboxCorrectionCase" -Label "Next CAD action card probe sandbox-correction case"
+Assert-Contains -Text $nextCadActionCardProbeText -Needle "Assert-NotContains" -Label "Next CAD action card probe sandbox APPLOAD negative check"
+Assert-Contains -Text $finalCompletionGateText -Needle "Final completion gate result: FAIL" -Label "Final completion gate actionable failure summary"
+Assert-Contains -Text $finalCompletionGateText -Needle "TimeoutSeconds = 240" -Label "Final completion gate conservative timeout"
+Assert-Contains -Text $finalCompletionGateText -Needle "WaitForGstarCADClose" -Label "Final completion gate GstarCAD-close wait option"
+Assert-Contains -Text $finalCompletionGateText -Needle "Existing GstarCAD process detected before the final completion gate" -Label "Final completion gate existing-GstarCAD guard"
+Assert-Contains -Text $finalCompletionGateText -Needle "Current status-after-status" -Label "Final completion gate status-after-status summary"
+Assert-Contains -Text $finalCompletionGateText -Needle "Current status-after-verify" -Label "Final completion gate status-after-verify summary"
+Assert-Contains -Text $finalCompletionGateText -Needle "Current source counts:" -Label "Final completion gate source-count summary"
+Assert-Contains -Text $finalCompletionGateText -Needle "Current target counts:" -Label "Final completion gate target-count summary"
+Assert-Contains -Text $finalCompletionGateText -Needle "Next first native GMTITLE selection:" -Label "Final completion gate next-native selection summary"
+Assert-Contains -Text $finalCompletionGateText -Needle "Missing native frames:" -Label "Final completion gate missing-native summary"
+Assert-Contains -Text $finalCompletionGateText -Needle "run_next_cad_action.ps1" -Label "Final completion gate next action guidance"
+Assert-Contains -Text $finalCompletionGateText -Needle "representative DR_titlea_3rd title-block double-click checks" -Label "Final completion gate representative title double-click reminder"
+Assert-Contains -Text $finalCompletionGateText -Needle "Title-missing/frame-only sheets have no DR_titlea_3rd title block by design" -Label "Final completion gate title-missing reminder"
+Assert-Contains -Text $finalCompletionGateText -Needle "Final automated completion evidence passed." -Label "Final completion gate automated-pass wording"
+Assert-Contains -Text $readmeText -Needle 'Converted `DR_titlea_3rd` title blocks must open `속성 블록 편집`' -Label "README final completion title editor guidance"
+Assert-Contains -Text $readmeText -Needle 'title-missing/frame-only `DR_A*_Outline` frames must open `제목 블록과 도면 경계`' -Label "README final completion title-missing frame editor guidance"
+Assert-Contains -Text $readmeText -Needle "final completion gate uses a default timeout of 180 seconds" -Label "README final completion gate timeout guidance"
+Assert-Contains -Text $readmeText -Needle "Save and close GstarCAD first, or use ``-WaitForGstarCADClose``" -Label "README final completion wait option"
+Assert-Contains -Text $readmeText -Needle "Current source counts:" -Label "README final completion source-count failure summary"
+Assert-Contains -Text $readmeText -Needle "Next first native GMTITLE selection:" -Label "README final completion next-native failure summary"
+Assert-Contains -Text $selectionConfigProbeText -Needle "GMTITLE_SELECTION_CONFIG_NOT_FOUND" -Label "Selection config probe negative result"
+Assert-Contains -Text $selectionConfigProbeText -Needle "Direct GMTITLE may still reuse an internal/current command state" -Label "Selection config probe direct-GMTITLE warning"
+Assert-Contains -Text $selectionConfigProbeText -Needle "ribbon/menu IMTITLE macro" -Label "Selection config probe IMTITLE macro note"
+Assert-Contains -Text $selectionConfigProbeText -Needle "Command surface language note" -Label "Selection config probe command-surface language note"
+Assert-Contains -Text $selectionConfigProbeText -Needle "AppData text marker scan note" -Label "Selection config probe AppData advisory scan note"
+Assert-Contains -Text $selectionConfigProbeText -Needle "recent-file history" -Label "Selection config probe recent-file registry non-evidence"
+Assert-NoKnownMojibake -Text $commandSurfaceHistoryText -Label "Command surface history"
+Assert-NoKnownMojibake -Text $automationBoundaryHistoryText -Label "Automation boundary history"
+Assert-NoKnownMojibake -Text $selectionConfigDeepRegistryHistoryText -Label "Selection config deep registry history"
+Assert-NoKnownMojibake -Text $finalCompletionGateHistoryText -Label "Final completion gate history"
+Assert-NoKnownMojibake -Text $titleResidueGeometryHistoryText -Label "Title residue geometry history"
+Assert-NoKnownMojibake -Text $freshE2eFinalHistoryText -Label "Fresh E2E final history"
+Assert-NoKnownMojibake -Text $readmeText -Label "Diagnostics README"
+Assert-NoKnownMojibake -Text $unifiedFlowResetGuideText -Label "Unified flow reset guide"
+Assert-Contains -Text $commandSurfaceHistoryText -Needle "GMTITLE 명령/설정 표면 재확인" -Label "Command surface history readable Korean title"
+Assert-Contains -Text $commandSurfaceHistoryText -Needle "Result: GMTITLE_SELECTION_CONFIG_NOT_FOUND" -Label "Command surface history selection config result"
+Assert-Contains -Text $commandSurfaceHistoryText -Needle "리본 버튼 좌표 클릭은 자동화 근거로 채택하지 않는다" -Label "Command surface history no coordinate automation"
+Assert-Contains -Text $automationBoundaryHistoryText -Needle "GMTITLE 자동화 경계 감사" -Label "Automation boundary history readable Korean title"
+Assert-Contains -Text $automationBoundaryHistoryText -Needle "CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력하지 않는다" -Label "Automation boundary raw command guard"
+Assert-Contains -Text $unifiedFlowResetGuideText -Needle "A2, A3, A4는 모두 같은 GMTITLE입니다" -Label "Unified reset A2/A3/A4 same-flow rule"
+Assert-Contains -Text $unifiedFlowResetGuideText -Needle '`A4`라는 용지 크기만으로 별도 frame-only 흐름을 선택하지 않습니다' -Label "Unified reset no A4-only frame-only rule"
+Assert-Contains -Text $unifiedFlowResetGuideText -Needle '`frame-only`는 A4 전용 정책이 아닙니다' -Label "Unified reset title-missing exception rule"
+Assert-Contains -Text $rootReadmeText -Needle $ExpectedGmtitleVersion -Label "Root README current GMTITLE version"
+Assert-Contains -Text $rootReadmeText -Needle '`frame-only`는 A4 전용이 아니라 원본 표제란/제목블록 부재가 검증된 경우에만 예외로 처리합니다.' -Label "Root README title-missing exception rule"
+Assert-NotContains -Text $rootReadmeText -Needle "A4처럼 표제란 없는 frame-only" -Label "Root README no stale A4-only frame-only wording"
+Assert-Contains -Text $rootReadmeText -Needle "현재 작업복사본의 진행 상태는 README에 고정하지 않습니다" -Label "Root README no fixed work-copy progress state"
+Assert-Contains -Text $rootReadmeText -Needle "run_goal_status.ps1" -Label "Root README goal status command"
+Assert-Contains -Text $rootReadmeText -Needle "Final gate log older than current commit" -Label "Root README final gate freshness guidance"
+Assert-NotContains -Text $rootReadmeText -Needle "현재 변환 전 기준 상태는 GMTITLE 대상 객체가 아직 없는 상태입니다" -Label "Root README no stale pre-conversion baseline"
+Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "Recent File List" -Label "Selection config deep registry recent-file evidence"
+Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "최근 직접 열었던 파일 기록" -Label "Selection config deep registry non-evidence conclusion"
+Assert-Contains -Text $selectionConfigDeepRegistryHistoryText -Needle "자동 선택할 근거가 없다" -Label "Selection config deep registry no-preselection conclusion"
+Assert-Contains -Text $finalCompletionGateHistoryText -Needle "Result: OK SWTITLESTATUS status=NEXT_CREATE_FIRST_NATIVE_GMTITLE" -Label "Final completion gate history status"
+Assert-Contains -Text $finalCompletionGateHistoryText -Needle "Result: OK SWTITLEVERIFY status=SWTITLEVERIFY_FINAL_FAIL" -Label "Final completion gate history verify fail"
+Assert-Contains -Text $finalCompletionGateHistoryText -Needle "target-title-count: 0" -Label "Final completion gate history target-title count"
+Assert-Contains -Text $finalCompletionGateHistoryText -Needle "next-bootstrap-frame: DR_A2_Outline" -Label "Final completion gate history next frame"
+Assert-Contains -Text $finalCompletionGateHistoryText -Needle "SWTITLECONVERTNEXT" -Label "Final completion gate history next command"
+Assert-Contains -Text $readmeText -Needle "screenshot-coordinate ribbon clicks are not accepted as automation evidence" -Label "README ribbon coordinate automation warning"
+Assert-Contains -Text $readmeText -Needle "AppData text marker scan is advisory" -Label "README AppData advisory scan guidance"
+Assert-Contains -Text $goalStatusText -Needle "Write-NativeFrameProgressSummary" -Label "Goal status native-frame progress summary"
+Assert-Contains -Text $goalStatusText -Needle "Convert-LegacyTitleMissingStatusLine" -Label "Goal status legacy title-missing status normalization"
+Assert-Contains -Text $goalStatusText -Needle "[System.Text.UTF8Encoding]::new(`$true, `$true)" -Label "Goal status strict UTF-8 log fallback"
+Assert-Contains -Text $goalStatusText -Needle "[System.Text.Encoding]::GetEncoding(949)" -Label "Goal status CP949 log fallback"
+Assert-Contains -Text $goalStatusText -Needle "function Test-TextLooksMojibake" -Label "Goal status mojibake detector"
+Assert-Contains -Text $goalStatusText -Needle "function Convert-SheetCountLine" -Label "Goal status sheet-count sanitizer"
+Assert-Contains -Text $goalStatusText -Needle "function Convert-SafeCadLogLine" -Label "Goal status safe CAD log formatter"
+Assert-Contains -Text $goalStatusText -Needle '$safeLine = Convert-SafeCadLogLine -Line $line.Trim()' -Label "Goal status missing-count safe formatter use"
+Assert-Contains -Text $goalStatusText -Needle '$safeCompletion = Convert-SafeCadLogLine -Line $completion' -Label "Goal status native completion safe formatter use"
+Assert-Contains -Text $goalStatusText -Needle 'Result code: {0}' -Label "Goal status mojibake result-code fallback"
+$goalStatusUtf8Index = $goalStatusText.IndexOf("[System.Text.UTF8Encoding]::new(`$true, `$true)", [System.StringComparison]::Ordinal)
+$goalStatusCp949Index = $goalStatusText.IndexOf("[System.Text.Encoding]::GetEncoding(949)", [System.StringComparison]::Ordinal)
+if ($goalStatusUtf8Index -ge 0 -and $goalStatusCp949Index -ge 0 -and $goalStatusUtf8Index -lt $goalStatusCp949Index) {
+  Write-Output "Goal status log fallback order: UTF-8 before CP949"
+} else {
+  Add-Failure "Goal status log fallback order must try strict UTF-8 before CP949 to avoid mojibake in UTF-8 CAD logs."
+}
+Assert-Contains -Text $goalStatusText -Needle "Stale direct-probe version" -Label "Goal status stale direct-probe version warning"
+Assert-Contains -Text $goalStatusText -Needle 'swcad_title_next_step_last*.txt' -Label "Goal status scans suffixed next-step logs"
+Assert-Contains -Text $goalStatusText -Needle '$candidateVersion -eq $script:ExpectedGmtitleVersion' -Label "Goal status prefers current-version next-step log"
+Assert-Contains -Text $goalStatusText -Needle 'Get-GoalCadDwgTrustInfo -DwgPath $candidateDwg -WorkDir $WorkDir' -Label "Goal status evaluates next-step log trust with work-folder scope"
+Assert-Contains -Text $goalStatusText -Needle '$candidateTrust.Trusted' -Label "Goal status prefers trusted work-copy next-step log"
+Assert-Contains -Text $goalStatusText -Needle "LSP version in log" -Label "Goal status latest CAD log version output"
+Assert-Contains -Text $goalStatusText -Needle "LSP version current" -Label "Goal status latest CAD log current-version output"
+Assert-Contains -Text $goalStatusText -Needle "latest CAD log was produced by an older LSP" -Label "Goal status stale latest CAD log warning"
+Assert-Contains -Text $goalStatusText -Needle '$script:LatestCadLogVersionCurrent -and' -Label "Goal status stale latest CAD log does not drive next action"
+Assert-Contains -Text $goalStatusText -Needle '$openCadNeedsFreshStatus' -Label "Goal status open CAD stale-log refresh branch"
+Assert-Contains -Text $goalStatusText -Needle "최신 상태 로그가 현재 LSP 버전과 맞지 않습니다" -Label "Goal status open CAD stale-log refresh wording"
+Assert-Contains -Text $goalStatusText -Needle "SWTITLEVERSION으로 버전을 확인한 뒤 SWTITLESTATUS" -Label "Goal status open CAD version-before-status guidance"
+Assert-Contains -Text $goalStatusText -Needle "최신 열린 CAD 로그 상태" -Label "Goal status latest CAD fallback for stale direct probe"
+Assert-Contains -Text $goalStatusText -Needle "NEXT_CLEAN_ORPHAN_TARGET_FRAMES" -Label "Goal status orphan target frame next status"
+Assert-Contains -Text $goalStatusText -Needle "고아 GMTITLE 도면틀 수" -Label "Goal status orphan target frame count output"
+Assert-Contains -Text $goalStatusText -Needle "SWTITLEPREPARE를 실행해 제목블록 없는 GMTITLE 도면틀을 정리하세요" -Label "Goal status orphan target frame prepare guidance"
+Assert-Contains -Text $goalStatusText -Needle "이 상태에서는 SWTITLECONVERTNEXT로 다음 용지를 만들지 않습니다" -Label "Goal status orphan target frame blocks convert-next"
+Assert-Contains -Text $goalStatusText -Needle "DR_A4_Outline definition decision" -Label "Goal status DR_A4 definition decision guidance"
+Assert-Contains -Text $goalStatusText -Needle "superseded by the official native outside marker policy" -Label "Goal status source-title-missing sample superseded normalization guidance"
+Assert-Contains -Text $goalStatusText -Needle "official native outside markers are tolerated for this A4-sized source-title-missing sample when effective geometry and raw-selection checks pass" -Label "Goal status source-title-missing sample outside marker policy"
+Assert-Contains -Text $goalStatusText -Needle "Title-missing definition investigation continuation" -Label "Goal status title-missing nested probe continuation guidance"
+Assert-Contains -Text $goalStatusText -Needle "DR_A4_Outline normalization candidate review" -Label "Goal status source-title-missing sample safe-candidate review guidance"
+Assert-Contains -Text $goalStatusText -Needle "DR_A4_Outline native comparison investigation" -Label "Goal status source-title-missing sample native-comparison fallback guidance"
+Assert-Contains -Text $goalStatusText -Needle "scratch DWG with one real native A4 GMTITLE" -Label "Goal status source-title-missing sample scratch-native comparison guidance"
+Assert-Contains -Text $goalStatusText -Needle "production source-title-missing/frame-only sheets must still not receive a new title block" -Label "Goal status source-title-missing no-production-title guidance"
+Assert-Contains -Text $goalStatusText -Needle "Native GMTITLE A4 pair evidence: yes" -Label "Goal status source-title-missing sample native pair evidence guidance"
+Assert-Contains -Text $goalStatusText -Needle "A4_NATIVE_EXEMPLAR_MISSING_NATIVE_PAIR" -Label "Goal status source-title-missing sample missing native pair guidance"
+Assert-Contains -Text $goalStatusText -Needle "Goal-log trust" -Label "Goal status latest-log trust marker"
+Assert-Contains -Text $goalStatusText -Needle "latest CAD log is ignored for goal next-action selection" -Label "Goal status scratch-log ignore guidance"
+Assert-Contains -Text $goalStatusText -Needle "ignored for goal next-action selection because this native-frame log belongs to a scratch/probe/compare DWG" -Label "Goal status scratch native-frame ignore guidance"
+Assert-Contains -Text $goalStatusText -Needle "Write-LatestNativeUpgradeSummary" -Label "Goal status latest native-upgrade summary helper"
+Assert-Contains -Text $goalStatusText -Needle "Latest native-upgrade log:" -Label "Goal status latest native-upgrade output"
+Assert-Contains -Text $goalStatusText -Needle "LatestNativeUpgradeReadyForVerify" -Label "Goal status latest native-upgrade verify gate"
+Assert-Contains -Text $goalStatusText -Needle "this proves the latest native-upgrade step only" -Label "Goal status native-upgrade summary is phase-scoped"
+Assert-NotContains -Text $goalStatusText -Needle "Next evidence-based command: SWTITLEVERIFY" -Label "Goal status native-upgrade summary must not override direct probe"
+Assert-Contains -Text $goalStatusText -Needle "지금은 GMTITLE 창을 새로 열거나 SWTITLECONVERTNEXT를 반복하지 않습니다" -Label "Goal status native-upgrade verify no-repeat guidance"
+Assert-Contains -Text $goalStatusText -Needle "전체 hidden suite 전에 focused source-title-missing definition probe를 먼저 확인하세요" -Label "Goal status focused source-title-missing probe before suite guidance"
+Assert-Contains -Text $goalStatusText -Needle "If direct GMTITLE only asks for an insertion point, cancel it" -Label "Goal status direct-GMTITLE insertion prompt warning"
+Assert-Contains -Text $goalStatusText -Needle "frame creation error and DR_titlea_3rd inserts=0" -Label "Goal status source-title-missing sample frame creation error guidance"
+Assert-Contains -Text $goalStatusText -Needle "scratch_native_a4_clean_260705.dwg" -Label "Goal status saved clean source-title-missing scratch guidance"
+Assert-Contains -Text $goalStatusText -Needle "swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt" -Label "Goal status saved clean source-title-missing scratch log guidance"
+Assert-Contains -Text $goalStatusText -Needle "DR_A4_Outline native outside-marker decision" -Label "Goal status source-title-missing sample outside marker decision guidance"
+Assert-Contains -Text $goalStatusText -Needle "official native outside markers" -Label "Goal status source-title-missing sample official marker guidance"
+Assert-Contains -Text $goalStatusText -Needle "다음 작업:" -Label "Goal status Korean next-action heading"
+Assert-Contains -Text $goalStatusText -Needle "Title-missing/frame-only exception evidence (source-title-missing sample; current evidence sample is A4-sized, not an A4-only policy):" -Label "Goal status generic title-missing evidence heading"
+Assert-NotContains -Text $goalStatusText -Needle "Title-missing/frame-only exception evidence (source-title-missing; current sample happens to be A4):" -Label "Goal status stale A4-first title-missing evidence heading"
+Assert-Contains -Text $goalStatusText -Needle "not a title-missing action yet. The trusted direct work-copy probe says the next missing native exemplar is" -Label "Goal status direct-probe priority over title-missing exception"
+Assert-NotContains -Text $goalStatusText -Needle "not an A4 action yet" -Label "Goal status stale A4 action wording"
+Assert-Contains -Text $goalStatusText -Needle "current evidence sample is A4-sized, not an A4-only policy" -Label "Goal status title-missing exception not A4 policy"
+Assert-Contains -Text $goalStatusText -Needle "source-title-missing 예외 경로는 현재 샘플로 검증됨(이 샘플이 A4 크기일 뿐, 용지 전용 정책 아님)" -Label "Goal status Korean title-missing verified guidance"
+Assert-Contains -Text $goalStatusText -Needle "Treat this as source-title-missing evidence only; accept official outside markers only when geometry/raw-selection checks pass" -Label "Goal status outside marker decision is source-title-missing scoped"
+Assert-Contains -Text $goalStatusText -Needle "실제 작업복사본 우선 단계" -Label "Goal status direct work-copy priority heading"
+Assert-Contains -Text $goalStatusText -Needle "title-missing/frame-only 샘플 증거는 source-title-missing 배경 정보입니다. 현재 샘플이 A4 크기일 뿐" -Label "Goal status A4-sized sample is background evidence"
+Assert-NotContains -Text $goalStatusText -Needle "A4 native outside-marker policy is implemented" -Label "Goal status stale A4 policy wording"
+Assert-NotContains -Text $goalStatusText -Needle "the next implementation decision is whether production source-title-missing/frame-only handling should tolerate, crop, or preserve" -Label "Goal status no stale outside-marker implementation-choice wording"
+Assert-NotContains -Text $goalStatusText -Needle "Production A4 frame-only must still not create" -Label "Goal status stale production A4 wording"
+Assert-Contains -Text $goalStatusText -Needle "다음 실제 작업복사본 단계" -Label "Goal status Korean real work-copy step guidance"
+Assert-Contains -Text $goalStatusText -Needle "SWTITLESTATUS로 현재 활성 DWG와 다음 상태를 먼저 확인하세요" -Label "Goal status visible-CAD status preflight"
+Assert-Contains -Text $goalStatusText -Needle "가장 짧은 다음 CAD 상태 요약" -Label "Goal status compact preflight heading"
+Assert-Contains -Text $goalStatusText -Needle "run_manual_gmtitle_session.ps1" -Label "Goal status manual session wrapper command"
+Assert-Contains -Text $goalStatusText -Needle "-PreflightOnly -Compact" -Label "Goal status compact preflight command"
+Assert-Contains -Text $goalStatusText -Needle "CAD 작업 전에 reload-only 상태인지, 실제 GMTITLE 선택이 필요한지, CAD 명령 순서가 무엇인지 먼저 확인합니다" -Label "Goal status compact preflight purpose"
+Assert-NotContains -Text $goalStatusText -Needle "CAD를 열기 전에 이번에 고를 DR 용지/제목블록/옵션" -Label "Goal status no stale selection-only preflight wording"
+Assert-Contains -Text $goalStatusText -Needle "짧은 다음 작업 카드 전체" -Label "Goal status short next-action card command"
+Assert-Contains -Text $goalStatusText -Needle "run_next_cad_action.ps1" -Label "Goal status next-action card script command"
+Assert-Contains -Text $goalStatusText -Needle "-AutoRefreshDirectProbe" -Label "Goal status next-action auto-refresh hint"
+Assert-Contains -Text $goalStatusText -Needle "작업복사본 열기부터 수동 한 장 처리 후 점검까지 한 번에 대기" -Label "Goal status manual session wrapper heading"
+Assert-Contains -Text $goalStatusText -Needle "수동 GMTITLE 한 장 처리 후 권장 점검" -Label "Goal status after-manual wrapper heading"
+Assert-Contains -Text $goalStatusText -Needle "run_after_manual_gmtitle_step.ps1" -Label "Goal status after-manual wrapper command"
+Assert-Contains -Text $goalStatusText -Needle "-Compact" -Label "Goal status compact option coverage"
+Assert-Contains -Text $goalStatusText -Needle "화면에는 다음 한 단계 요약만 보여줍니다" -Label "Goal status after-manual compact scope"
+Assert-Contains -Text $goalStatusText -Needle "목표 상태: 실제 작업복사본이 SWTITLEVERIFY_FINAL_OK에 도달" -Label "Goal status Korean completion reminder"
+Assert-Contains -Text $cadTextLogReaderText -Needle "Get-LogEncodingAndText" -Label "CAD text log reader encoding helper"
+Assert-Contains -Text $cadTextLogReaderText -Needle "UTF8Encoding" -Label "CAD text log reader strict UTF-8 check"
+Assert-Contains -Text $cadTextLogReaderText -Needle "[System.Text.Encoding]::Default" -Label "CAD text log reader Windows-default fallback"
+Assert-Contains -Text $cadTextLogReaderText -Needle "Safety: this script only reads text files" -Label "CAD text log reader read-only safety"
+Assert-Contains -Text $cadTextLogReaderText -Needle "Result: READ_LOG_OK" -Label "CAD text log reader success marker"
+Assert-Contains -Text $cadTextLogReaderText -Needle "Result: LISTED_LOGS" -Label "CAD text log reader list marker"
+Assert-Contains -Text $cadTextLogReaderText -Needle "Find regex:" -Label "CAD text log reader find support"
+Assert-Contains -Text $readmeText -Needle "main verification suite no longer uses the mutable default work-copy as its title-missing fixture" -Label "README mutable A4 gap fixture retired"
+Assert-Contains -Text $readmeText -Needle "A4 clean scratch comparison evidence" -Label "README clean A4 scratch comparison evidence"
+Assert-Contains -Text $readmeText -Needle "not as an A4-only conversion policy" -Label "README A4 probe is sample evidence not policy"
+Assert-Contains -Text $readmeText -Needle "The rule being tested is generic" -Label "README title-missing convert probe generic rule"
+Assert-Contains -Text $readmeText -Needle "It should not be used to route all A4 sheets into a separate frame-only workflow" -Label "README A4 normalization probe no separate workflow"
+Assert-Contains -Text $readmeText -Needle "Actual Work-Copy Direct Status Probe" -Label "README direct actual work-copy probe guidance"
+Assert-Contains -Text $readmeText -Needle "default timeout is 180 seconds" -Label "README direct actual work-copy timeout guidance"
+Assert-Contains -Text $readmeText -Needle "different GMTITLE LSP version" -Label "README direct-probe version refresh guidance"
+Assert-Contains -Text $readmeText -Needle "run_next_cad_action.ps1" -Label "README next CAD action guidance"
+Assert-Contains -Text $readmeText -Needle "swtitle_final_completion_gate_status.txt" -Label "README final/direct probe comparison guidance"
+Assert-Contains -Text $readmeText -Needle "REVIEW_FINAL_GATE_DIRECT_PROBE_CONFLICT" -Label "README final/direct conflict guard"
+Assert-Contains -Text $readmeText -Needle "A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS" -Label "README clean A4 outside marker result"
+Assert-Contains -Text $readmeText -Needle "swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt" -Label "README clean A4 scratch dedicated log"
+Assert-Contains -Text $goalStatusText -Needle "run_gmtitle_selection_config_probe.ps1" -Label "Goal status selection config probe guidance"
+Assert-Contains -Text $goalStatusText -Needle "Direct actual work-copy probe" -Label "Goal status direct actual work-copy probe summary"
+Assert-Contains -Text $goalStatusText -Needle "loaded-version:" -Label "Goal status direct-probe loaded version output"
+Assert-Contains -Text $goalStatusText -Needle "manual-forecast-log-note-found:" -Label "Goal status direct-probe manual forecast evidence"
+Assert-Contains -Text $mainText -Needle "우선순위: 남은 원본 표제란 시트 변환이 title-missing/frame-only 예외보다 먼저입니다." -Label "GMTITLE manual forecast source-before-title-missing priority"
+Assert-Contains -Text $goalStatusText -Needle "Write-HiddenSuiteLastRunSummary" -Label "Goal status hidden suite summary helper"
+Assert-Contains -Text $goalStatusText -Needle "Hidden verification suite last run" -Label "Goal status hidden suite summary heading"
+Assert-Contains -Text $goalStatusText -Needle "main56_verification_suite_last_run.txt" -Label "Goal status hidden suite summary path"
+Assert-Contains -Text $goalStatusText -Needle "Actual work-copy source-title/source-frame/frame-only in suite" -Label "Goal status suite actual source counts"
+Assert-Contains -Text $goalStatusText -Needle "Actual work-copy target-title/target-frame in suite" -Label "Goal status suite actual target counts"
+Assert-Contains -Text $goalStatusText -Needle "Actual work-copy next GMTITLE in suite" -Label "Goal status suite actual next GMTITLE"
+Assert-Contains -Text $goalStatusText -Needle "Superseded by suite actual work-copy summary" -Label "Goal status stale direct-probe superseded marker"
+Assert-Contains -Text $goalStatusText -Needle "Commit time:" -Label "Goal status commit time output"
+Assert-Contains -Text $goalStatusText -Needle "Suite log older than current commit" -Label "Goal status stale suite flag"
+Assert-Contains -Text $goalStatusText -Needle "Working tree: dirty" -Label "Goal status dirty worktree output"
+Assert-Contains -Text $goalStatusText -Needle "current uncommitted changes" -Label "Goal status dirty suite meaning"
+Assert-Contains -Text $goalStatusText -Needle "historical guard evidence until /b smoke passes" -Label "Goal status stale suite meaning"
+Assert-Contains -Text $goalStatusText -Needle "automation/guard probes passed; this is not proof that the real work DWG finished conversion" -Label "Goal status hidden suite pass boundary"
+Assert-Contains -Text $goalStatusText -Needle "the suite stopped before final PASS" -Label "Goal status hidden suite failure boundary"
+Assert-Contains -Text $goalStatusText -Needle "Write-FinalCompletionGateSummary" -Label "Goal status final completion gate helper"
+Assert-Contains -Text $goalStatusText -Needle "Final completion gate last run" -Label "Goal status final completion gate heading"
+Assert-Contains -Text $goalStatusText -Needle "Final gate log older than current commit" -Label "Goal status final gate stale flag"
+Assert-Contains -Text $goalStatusText -Needle "final completion gate is rerun" -Label "Goal status stale final gate meaning"
+Assert-Contains -Text $goalStatusText -Needle "real work-copy completion evidence is still missing" -Label "Goal status final completion gate incomplete meaning"
+Assert-Contains -Text $goalStatusText -Needle "not a title-missing blocker yet" -Label "Goal status first-native before title-missing interpretation"
+Assert-Contains -Text $goalStatusText -Needle "target title/frame counts 0/0" -Label "Goal status target-zero first-native interpretation"
+Assert-Contains -Text $goalStatusText -Needle "GstarCAD /b script smoke probe" -Label "Goal status GstarCAD /b script smoke summary"
+Assert-Contains -Text $goalStatusText -Needle "WindowStyle=Minimized" -Label "Goal status minimized smoke probe guidance"
+
+$runCardText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-current-run-card.md")
+$goalPlanText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-goal-mode-plan.md")
+$commandsGuideText = Read-Text (Join-Path $repoRoot "docs\guide\commands.md")
+$cadChecklistText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-cad-conversion-checklist.md")
+$otherComputerTestGuideText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-other-computer-test.md")
+$nativeUpgradeGuideText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-native-frame-upgrade.md")
+$resumeGuideText = Read-Text (Join-Path $repoRoot "docs\guide\gmtitle-resume-on-another-computer.md")
+$hiddenSuitePassHistoryText = Read-Text $hiddenSuitePassHistoryPath
+Assert-NoKnownMojibake -Text $hiddenSuitePassHistoryText -Label "Hidden suite pass history"
+Assert-Contains -Text $runCardText -Needle "scratch_native_a4_clean_260705.dwg" -Label "Run card clean A4 scratch evidence"
+Assert-Contains -Text $runCardText -Needle "기본 제한 시간을 180초" -Label "Run card direct probe timeout guidance"
+Assert-Contains -Text $runCardText -Needle "final completion gate가 direct probe보다 최신이면" -Label "Run card final/direct comparison guidance"
+Assert-Contains -Text $runCardText -Needle "REVIEW_FINAL_GATE_DIRECT_PROBE_CONFLICT" -Label "Run card final/direct conflict guard"
+Assert-Contains -Text $goalPlanText -Needle "2026-07-05 clean scratch CAD" -Label "Goal plan clean A4 scratch evidence"
+Assert-Contains -Text $runCardText -Needle "A4_NATIVE_EXEMPLAR_READY_WITH_NATIVE_OUTSIDE_MARKERS" -Label "Run card clean A4 outside marker result"
+Assert-Contains -Text $goalPlanText -Needle "official native outside marker" -Label "Goal plan A4 official marker decision"
+Assert-Contains -Text $runCardText -Needle "swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt" -Label "Run card clean A4 scratch dedicated log"
+Assert-Contains -Text $goalPlanText -Needle "swtitle_a4_native_exemplar_scratch_native_a4_clean_260705.txt" -Label "Goal plan clean A4 scratch dedicated log"
+Assert-Contains -Text $runCardText -Needle "RIBBON_ACCESSIBILITY_NOT_STABLE" -Label "Run card ribbon coordinate automation warning"
+Assert-Contains -Text $runCardText -Needle "## 자동화 경계" -Label "Run card automation boundary section"
+Assert-Contains -Text $runCardText -Needle "LSP와 고정 컨트롤 보조 프로그램이 자동 처리:" -Label "Run card fixed-control automation scope"
+Assert-Contains -Text $runCardText -Needle "사람이 확인:" -Label "Run card human GMTITLE scope"
+Assert-Contains -Text $runCardText -Needle "자동 선택은 리본 접근성이나 스크린샷 좌표를 사용하지 않습니다" -Label "Run card fixed-control no-coordinate policy"
+Assert-Contains -Text $runCardText -Needle "Codex Computer Use의 화면 클릭은 활성화와 동적 입력 해석이 안정적이지 않으므로 GMTITLE 자동화에 사용하지 않습니다" -Label "Run card Computer Use exclusion"
+Assert-Contains -Text $runCardText -Needle "생산용 고정 컨트롤 보조 프로그램이 대상 GstarCAD HWND와 컨트롤 ID를 검증해 수행합니다" -Label "Run card production helper policy"
+Assert-Contains -Text $runCardText -Needle "GMTITLE 배치점 원칙" -Label "Run card GMTITLE placement principle"
+Assert-Contains -Text $runCardText -Needle '`SWTITLECONVERTNEXT` 또는 수동 `SWTITLECONVERT`를 통해 GMTITLE 창을 열었을 때는 긴 좌표를 사람이 직접 치지 않습니다' -Label "Run card convert-next placement wording"
+Assert-Contains -Text $runCardText -Needle '`SWTITLECONVERTNEXT`/`SWTITLECONVERT`가 GMTITLE 호출, 왼쪽 아래 배치점 자동 전송, 값 복사, 이전 원본 정리를 묶어서 처리합니다' -Label "Run card convert-next integrated flow wording"
+Assert-Contains -Text $runCardText -Needle "예상 수동 GMTITLE 확인량" -Label "Run card manual selection forecast guidance"
+Assert-Contains -Text $runCardText -Needle "## 테스트 타이밍" -Label "Run card test timing section"
+Assert-Contains -Text $runCardText -Needle "NEXT_UPGRADE_NATIVE_GMTITLE:" -Label "Run card native replacement test timing row"
+Assert-Contains -Text $runCardText -Needle "자동 선택을 사용할 수 없을 때만 OPEN/BATCH 수동 fallback을 검토합니다." -Label "Run card manual BATCH fallback boundary"
+Assert-Contains -Text $runCardText -Needle "지금은 테스트를 멈출 때입니다" -Label "Run card stop-test-on-warning guidance"
+Assert-Contains -Text $runCardText -Needle "긴 좌표를 사람이 직접 치지 않습니다" -Label "Run card no manual long coordinate guidance"
+Assert-Contains -Text $runCardText -Needle "마우스 커서가 화면 중앙에 남아 보여도" -Label "Run card center-cursor guidance"
+Assert-Contains -Text $runCardText -Needle 'Loaded version`이 현재 LSP 기대 버전과 다르면' -Label "Run card direct-probe version refresh guidance"
+Assert-Contains -Text $runCardText -Needle "BATCH는 OPEN으로 최소 1장 성공한 뒤" -Label "Run card BATCH after OPEN guidance"
+Assert-Contains -Text $runCardText -Needle "A3 반복 BATCH 검토 가능" -Label "Run card repeated A3 BATCH eligibility guidance"
+Assert-Contains -Text $runCardText -Needle "현재 카드가 `반복 BATCH 검토 가능`을 출력하면" -Label "Run card repeated BATCH condition wording"
+Assert-Contains -Text $runCardText -Needle "SWTITLECONVERTNEXT" -Label "Run card convert-next shortcut guidance"
+Assert-Contains -Text $runCardText -Needle '`SWTITLECONVERTNEXT`를 쓴 경우에는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않습니다' -Label "Run card no extra convert-next response guidance"
+Assert-Contains -Text $runCardText -Needle '| `NEXT_CREATE_FIRST_NATIVE_GMTITLE` | 아직 실제 native GMTITLE 기준 객체가 없음 | `SWTITLECONVERTNEXT` |' -Label "Run card first-native recommends convert-next"
+Assert-Contains -Text $runCardText -Needle '| `NEXT_UPGRADE_NATIVE_GMTITLE` | A2/A3/A4 복제/shared-link 쌍을 fresh native로 교체해야 함 | `SWTITLECONVERTNEXT` |' -Label "Run card native-upgrade recommends convert-next"
+Assert-Contains -Text $runCardText -Needle "docs/history" -Label "Run card history-doc warning"
+Assert-Contains -Text $runCardText -Needle "docs/investigations" -Label "Run card investigations-doc warning"
+Assert-Contains -Text $runCardText -Needle 'A2/A3/A4는 모두 `DR_A*_Outline + DR_titlea_3rd` 공통 GMTITLE 흐름으로 판단' -Label "Run card unified GMTITLE current standard"
+Assert-Contains -Text $runCardText -Needle "## title-missing 판단" -Label "Run card title-missing section heading"
+Assert-Contains -Text $runCardText -Needle "따라서 title-missing/frame-only 성공 조건은 제목블록을 만드는 것이 아닙니다." -Label "Run card generic title-missing success wording"
+Assert-Contains -Text $runCardText -Needle "DR_titlea_3rd가 있는 대표 A2/A3/A4 제목블록 더블클릭" -Label "Run card A2/A3/A4 representative double-click wording"
+Assert-NotContains -Text $runCardText -Needle "## A4 판단" -Label "Run card stale A4 section heading"
+Assert-NotContains -Text $runCardText -Needle "따라서 A4 성공 조건" -Label "Run card stale A4 success wording"
+Assert-NotContains -Text $runCardText -Needle "A4 제목블록 생성" -Label "Run card stale A4-title creation wording"
+Assert-NotContains -Text $runCardText -Needle "A4 도면틀 정의 준비/검증 필요" -Label "Run card stale A4 outline prepare wording"
+Assert-Contains -Text $runCardText -Needle "원본에 없던 제목블록 생성" -Label "Run card generic unexpected-title warning"
+Assert-Contains -Text $runCardText -Needle "원본 표제란 부재가 검증된 시트의 같은 크기 DR 도면틀 정의 준비/검증 필요" -Label "Run card generic title-missing outline prepare wording"
+Assert-Contains -Text $runCardText -Needle 'CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력해서 우회하지 않습니다' -Label "Run card raw GMTITLE/TIT/OPEN guard"
+Assert-Contains -Text $runCardText -Needle "이 문서는 특정 DWG의 과거 상태를 `"최신`"으로 고정하지 않습니다" -Label "Run card no stale latest-state wording"
+Assert-Contains -Text $runCardText -Needle '과거에 어떤 도면이 `NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION`이었더라도 지금 열린 도면에 그대로 적용하지 않습니다' -Label "Run card no stale title-missing prepare carry-over"
+Assert-NotContains -Text $runCardText -Needle "2026-07-05 08:55 기준 최신 CAD 로그" -Label "Run card stale timestamp latest state"
+Assert-NotContains -Text $runCardText -Needle "0000_A_DRP125 CP_ALL_260704_test.dwg" -Label "Run card stale 260704 workcopy path"
+Assert-Contains -Text $goalPlanText -Needle "RIBBON_ACCESSIBILITY_NOT_STABLE" -Label "Goal plan ribbon accessibility finding"
+Assert-Contains -Text $goalPlanText -Needle "특정 과거 로그를 `"최신 CAD 진행 상태`"로 고정하지 않는다" -Label "Goal plan no stale latest-state wording"
+Assert-Contains -Text $goalPlanText -Needle "run_after_manual_gmtitle_step.ps1" -Label "Goal plan after-manual wrapper state lock"
+Assert-Contains -Text $goalPlanText -Needle 'Generated/Result/Worktree evidence hash' -Label "Goal plan latest hidden-suite evidence guidance"
+Assert-Contains -Text $goalPlanText -Needle 'suite 작업트리 지문 현재와 일치' -Label "Goal plan dirty-worktree suite hash guidance"
+Assert-Contains -Text $goalPlanText -Needle "상태 코드:" -Label "Goal plan current direct-probe status block"
+Assert-Contains -Text $goalPlanText -Needle "저장된 실제 작업복사본 direct probe: NEXT_PREPARE_FRAME_STYLE_NORMALIZATION" -Label "Goal plan current direct-probe residue-preparation status"
+Assert-Contains -Text $goalPlanText -Needle "다음 visible CAD 명령:" -Label "Goal plan current visible CAD command heading"
+Assert-Contains -Text $runCardText -Needle "현재 저장 상태:" -Label "Run card current direct-probe status block"
+Assert-Contains -Text $runCardText -Needle "NEXT_PREPARE_FRAME_STYLE_NORMALIZATION" -Label "Run card current direct-probe residue-preparation status"
+Assert-Contains -Text $runCardText -Needle "최신 final completion gate:" -Label "Run card current final completion gate block"
+Assert-Contains -Text $runCardText -Needle '최신성은 run_goal_status.ps1의 "Final gate log older than current commit" 값으로 판단' -Label "Run card current final completion gate freshness source"
+Assert-Contains -Text $runCardText -Needle "현재 저장본 기준 예상 상태: FAIL" -Label "Run card current final completion gate expected status"
+Assert-Contains -Text $runCardText -Needle "source-title/source-frame/frame-only: 8 / 10 / 2" -Label "Run card current final completion source-count summary"
+Assert-Contains -Text $runCardText -Needle "target-title/target-frame: 5 / 5" -Label "Run card current final completion target-count summary"
+Assert-Contains -Text $runCardText -Needle "direct probe와 다음 상태/검증/다음 GMTITLE 선택값 일치" -Label "Run card current final/direct consistency note"
+Assert-NotContains -Text $runCardText -Needle "2026-07-08 05:40 기준 FAIL" -Label "Run card no hard-coded final completion gate timestamp"
+Assert-NotContains -Text $runCardText -Needle "2026-07-08 05:03 기준 FAIL" -Label "Run card no stale final completion gate timestamp"
+Assert-Contains -Text $runCardText -Needle "현재 기본 작업복사본에는 적용하지 않습니다" -Label "Run card stale initial-state exclusion"
+Assert-NotContains -Text $runCardText -Needle "2026-07-06 01:02 final completion gate 기준, 기본 작업복사본은 아직 변환 전 상태입니다" -Label "Run card no stale initial-state current wording"
+Assert-Contains -Text $runCardText -Needle "남은 A3를 포함한 표제란 시트를 각각 새 native GMTITLE로 연속 처리합니다" -Label "Run card native continuous conversion guidance"
+Assert-Contains -Text $goalPlanText -Needle "필요한 native 기준 객체: DR_A2_Outline, DR_A3_Outline" -Label "Goal plan initial title-sheet native requirements"
+Assert-Contains -Text $goalPlanText -Needle "원본 표제란이 있는 용지 크기의 native 기준 객체" -Label "Goal plan native requirements are title-sheet-only"
+Assert-Contains -Text $goalPlanText -Needle 'A4는 `표제란 없는 도면틀 시트`로만 감지되므로' -Label "Goal plan A4 initial title-missing interpretation"
+Assert-NotContains -Text $goalPlanText -Needle "필요한 native 기준 객체: DR_A2_Outline, DR_A3_Outline, DR_A4_Outline" -Label "Goal plan no A4 native requirement for title-missing-only sheet"
+Assert-NotContains -Text $goalPlanText -Needle "현재 기본 workcopy의 첫 대상은 A2" -Label "Goal plan no stale current-A2-first wording"
+Assert-NotContains -Text $goalPlanText -Needle "기본 workcopy라면 NEXT_CREATE_FIRST_NATIVE_GMTITLE인지 확인" -Label "Goal plan no stale current-first-native checklist"
+Assert-Contains -Text $goalPlanText -Needle '`SWTITLECONVERTNEXT`를 사용한 경우에는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않는다' -Label "Goal plan no extra convert-next response guidance"
+Assert-NotContains -Text $goalPlanText -Needle "frame-only A4가 제목블록 없이 도면틀만 남음" -Label "Goal plan stale frame-only A4 progress wording"
+Assert-NotContains -Text $goalPlanText -Needle "| A4 frame-only |" -Label "Goal plan stale A4 frame-only table row"
+Assert-NotContains -Text $goalPlanText -Needle "A4 제목블록 생성" -Label "Goal plan stale A4-title creation wording"
+Assert-NotContains -Text $goalPlanText -Needle "대표 A3 제목블록 더블클릭" -Label "Goal plan no A3-only representative double-click wording"
+Assert-Contains -Text $goalPlanText -Needle "원본에 없던 제목블록 생성" -Label "Goal plan generic unexpected-title warning"
+Assert-NotContains -Text $goalPlanText -Needle "hidden verification suite 전체 통과" -Label "Goal plan stale hidden-suite unproven wording"
+Assert-NotContains -Text $goalPlanText -Needle "2026-07-05 08:55 기준 최신 CAD next-step 로그" -Label "Goal plan stale timestamp latest state"
+Assert-NotContains -Text $goalPlanText -Needle "0000_A_DRP125 CP_ALL_260704_test.dwg" -Label "Goal plan stale 260704 workcopy path"
+Assert-Contains -Text $runCardText -Needle "최신 hidden suite PASS 여부와 Generated 시각은 아래 둘 중 하나로 확인합니다" -Label "Run card latest hidden suite status guidance"
+Assert-Contains -Text $runCardText -Needle 'work\main56_verification_suite_last_run.txt`의 `Generated:`, `Result:`, `Worktree evidence hash:`' -Label "Run card latest hidden suite log guidance"
+Assert-Contains -Text $runCardText -Needle 'suite 작업트리 지문 현재와 일치' -Label "Run card latest hidden suite dirty-worktree hash guidance"
+Assert-NotContains -Text $runCardText -Needle '2026-07-06 00:55 기준 `run_main45_verification_suite.ps1 -TimeoutSeconds 180`는 PASS입니다' -Label "Run card no fixed hidden-suite current timestamp"
+Assert-Contains -Text $runCardText -Needle "All expected log markers were verified." -Label "Run card hidden suite verified markers"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "===== GMTITLE main56 verification suite complete =====" -Label "Hidden suite pass history completion marker"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "All expected log markers were verified." -Label "Hidden suite pass history verified markers"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "2026-07-06 00:55 KST" -Label "Hidden suite pass history latest timestamp"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "Generated: 2026-07-06 00:55:12 +09:00" -Label "Hidden suite pass history last-run timestamp"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "GMTITLE selection config deep registry probe: PASS" -Label "Hidden suite pass history deep registry marker"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "Recent File List" -Label "Hidden suite pass history recent-file distinction"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "Result: PASS" -Label "Hidden suite pass history last-run pass marker"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "FAILED_BEFORE_PASS" -Label "Hidden suite pass history failure-summary behavior"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "status-after-status: NEXT_CREATE_FIRST_NATIVE_GMTITLE" -Label "Hidden suite pass history actual workcopy status"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "next-bootstrap-frame: DR_A2_Outline" -Label "Hidden suite pass history next frame"
+Assert-Contains -Text $hiddenSuitePassHistoryText -Needle "next-bootstrap-title: DR_titlea_3rd" -Label "Hidden suite pass history next title"
+Assert-Contains -Text $commandsGuideText -Needle "docs/history" -Label "Commands guide history-doc warning"
+Assert-Contains -Text $commandsGuideText -Needle "docs/investigations" -Label "Commands guide investigations-doc warning"
+Assert-Contains -Text $commandsGuideText -Needle '`frame-only`는 A4 전용 정책이 아니라' -Label "Commands guide unified GMTITLE current standard"
+Assert-Contains -Text $commandsGuideText -Needle "자동화 경계:" -Label "Commands guide automation boundary section"
+Assert-Contains -Text $commandsGuideText -Needle "LSP와 고정 컨트롤 보조 프로그램이 자동 처리:" -Label "Commands guide fixed-control automation scope"
+Assert-Contains -Text $commandsGuideText -Needle "사람이 확인:" -Label "Commands guide human GMTITLE scope"
+Assert-Contains -Text $commandsGuideText -Needle '고정 컨트롤 ID `3010`, `3011`, `3022`, `3024`, `1`' -Label "Commands guide fixed-control IDs"
+Assert-Contains -Text $commandsGuideText -Needle 'CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력하지 않습니다' -Label "Commands guide raw GMTITLE/TIT/OPEN guard"
+Assert-Contains -Text $commandsGuideText -Needle 'OPEN` 응답은 CAD 일반 `OPEN` 명령이 아닙니다' -Label "Commands guide convert OPEN versus CAD OPEN guard"
+Assert-Contains -Text $commandsGuideText -Needle "첫 native GMTITLE 생성: YES" -Label "Commands guide convert YES prompt"
+Assert-Contains -Text $commandsGuideText -Needle "A2/A3/A4 native 교체 1장 처리: OPEN" -Label "Commands guide convert OPEN prompt"
+Assert-Contains -Text $commandsGuideText -Needle "BATCH는 OPEN으로 최소 1장 성공한 뒤" -Label "Commands guide BATCH after OPEN guidance"
+Assert-Contains -Text $commandsGuideText -Needle "반복 BATCH 검토 가능" -Label "Commands guide repeated BATCH eligibility guidance"
+Assert-Contains -Text $commandsGuideText -Needle "후보 수 미감소, 원본 도면 내용 과삭제" -Label "Commands guide repeated BATCH stop guards"
+Assert-Contains -Text $commandsGuideText -Needle "NO_INSERTS가 반복됨: MANUAL" -Label "Commands guide convert MANUAL prompt"
+Assert-Contains -Text $commandsGuideText -Needle "SWTITLECONVERTNEXT" -Label "Commands guide convert-next shortcut guidance"
+Assert-Contains -Text $commandsGuideText -Needle '`SWTITLECONVERTNEXT`를 사용하는 경우에는 아래 응답을 직접 입력하지 않습니다' -Label "Commands guide no extra convert-next response guidance"
+Assert-Contains -Text $commandsGuideText -Needle "SolidWorks DWG의 도면틀/표제란을 GstarCAD Mechanical GMTITLE 구조로 바꾸는 일반 작업은 아래 권장 4개 명령만 사용합니다." -Label "Commands guide recommended 4-command wording"
+Assert-Contains -Text $commandsGuideText -Needle "SWTITLECONVERTNEXT    상태가 요구할 때만" -Label "Commands guide sequence recommends convert-next"
+Assert-Contains -Text $commandsGuideText -Needle "수동으로 GMTITLE 창에서 한 장을 처리한 뒤에는 작업복사본을 저장하고 GstarCAD를 닫은 다음" -Label "Commands guide after-manual wrapper loop"
+Assert-Contains -Text $commandsGuideText -Needle "run_after_manual_gmtitle_step.ps1" -Label "Commands guide after-manual wrapper command"
+Assert-Contains -Text $commandsGuideText -Needle "run_after_manual_gmtitle_step.ps1 -Compact" -Label "Commands guide compact after-manual wrapper command"
+Assert-Contains -Text $commandsGuideText -Needle "run_manual_gmtitle_session.ps1" -Label "Commands guide manual session wrapper command"
+Assert-Contains -Text $commandsGuideText -Needle "저장된 작업복사본이 실제로 변환 가능한 상태인지 확인" -Label "Commands guide manual session initial card guard"
+Assert-Contains -Text $commandsGuideText -Needle "run_manual_gmtitle_session.ps1 -PreflightOnly" -Label "Commands guide manual session preflight-only command"
+Assert-Contains -Text $commandsGuideText -Needle "run_manual_gmtitle_session.ps1 -PreflightOnly -Compact" -Label "Commands guide manual session compact preflight command"
+Assert-Contains -Text $runCardText -Needle "run_after_manual_gmtitle_step.ps1" -Label "Run card after-manual wrapper command"
+Assert-Contains -Text $runCardText -Needle "run_after_manual_gmtitle_step.ps1 -Compact" -Label "Run card compact after-manual wrapper command"
+Assert-Contains -Text $runCardText -Needle "work\swtitle_after_manual_gmtitle_step_last.txt" -Label "Run card after-manual wrapper log"
+Assert-Contains -Text $runCardText -Needle "작업복사본을 저장하고 GstarCAD를 닫은 상태" -Label "Run card after-manual saved-and-closed guard"
+Assert-Contains -Text $runCardText -Needle "run_manual_gmtitle_session.ps1" -Label "Run card manual session wrapper command"
+Assert-Contains -Text $runCardText -Needle '먼저 `run_next_cad_action.ps1`로 작업복사본의 다음 작업 카드를 확인하고' -Label "Run card manual fallback initial next-action card"
+Assert-Contains -Text $runCardText -Needle "SkipInitialNextActionCard" -Label "Run card manual session skip initial card guard"
+Assert-Contains -Text $runCardText -Needle "PreflightOnly" -Label "Run card manual session preflight-only guidance"
+Assert-Contains -Text $runCardText -Needle "run_manual_gmtitle_session.ps1 -PreflightOnly -Compact" -Label "Run card manual session compact preflight command"
+Assert-Contains -Text $runCardText -Needle '수동 fallback 보조 도구이며 `SWTITLECONVERTNEXT`를 대신 실행하지 않습니다' -Label "Run card manual fallback scope"
+Assert-Contains -Text $runCardText -Needle "SKIP_OPEN_NO_GSTARCAD" -Label "Run card manual session skip-open guard"
+Assert-Contains -Text $cadChecklistText -Needle "첫 native GMTITLE 기준 객체 생성: YES" -Label "CAD checklist convert YES prompt"
+Assert-Contains -Text $cadChecklistText -Needle "A2/A3/A4 native 교체 1장 처리: OPEN" -Label "CAD checklist convert OPEN prompt"
+Assert-Contains -Text $cadChecklistText -Needle "BATCH는 OPEN으로 최소 1장 성공한 뒤" -Label "CAD checklist BATCH after OPEN guidance"
+Assert-Contains -Text $cadChecklistText -Needle "SWTITLECONVERTNEXT" -Label "CAD checklist convert-next shortcut guidance"
+Assert-Contains -Text $cadChecklistText -Needle '고정 컨트롤 자동 선택이 가능하면 `YES`/`OPEN` 응답과 GMTITLE 용지/제목블록/옵션 선택을 자동 처리합니다.' -Label "CAD checklist fixed-control convert-next scope"
+Assert-Contains -Text $otherComputerTestGuideText -Needle "git checkout codex/gm-title" -Label "Other-computer guide branch checkout"
+Assert-Contains -Text $otherComputerTestGuideText -Needle $ExpectedGmtitleVersion -Label "Other-computer guide expected version"
+Assert-Contains -Text $otherComputerTestGuideText -Needle "SWTITLESTATUS" -Label "Other-computer guide status-first flow"
+Assert-Contains -Text $otherComputerTestGuideText -Needle "속성 블록 편집 표가 열림" -Label "Other-computer guide representative editor check"
+Assert-Contains -Text $cadChecklistText -Needle '`SWTITLECONVERTNEXT`를 사용하는 경우에는 `YES`, `OPEN`, `BATCH`, `MANUAL`을 다시 입력하지 않습니다' -Label "CAD checklist no extra convert-next response guidance"
+Assert-Contains -Text $cadChecklistText -Needle "run_after_manual_gmtitle_step.ps1" -Label "CAD checklist after-manual wrapper command"
+Assert-Contains -Text $cadChecklistText -Needle "run_manual_gmtitle_session.ps1" -Label "CAD checklist manual session wrapper command"
+Assert-Contains -Text $cadChecklistText -Needle "visible CAD를 열기 전에 next-action 카드를 갱신" -Label "CAD checklist manual session initial card guard"
+Assert-Contains -Text $cadChecklistText -Needle "run_manual_gmtitle_session.ps1 -PreflightOnly" -Label "CAD checklist manual session preflight-only command"
+Assert-Contains -Text $cadChecklistText -Needle "run_manual_gmtitle_session.ps1 -PreflightOnly -Compact" -Label "CAD checklist manual session compact preflight command"
+Assert-Contains -Text $cadChecklistText -Needle "title-missing/frame-only 처리 전 조건:" -Label "CAD checklist generic title-missing preconditions"
+Assert-Contains -Text $cadChecklistText -Needle "title-missing/frame-only 성공 조건:" -Label "CAD checklist generic title-missing success conditions"
+Assert-Contains -Text $cadChecklistText -Needle "같은 크기 DR_A*_Outline 도면틀만 원본 위치/크기에 맞게 들어감" -Label "CAD checklist generic title-missing frame success condition"
+Assert-Contains -Text $cadChecklistText -Needle "DR_titlea_3rd가 있는 대표 A2/A3/A4 제목블록 더블클릭" -Label "CAD checklist A2/A3/A4 representative double-click wording"
+Assert-NotContains -Text $cadChecklistText -Needle "A4 처리 전 조건:" -Label "CAD checklist stale A4 preconditions"
+Assert-NotContains -Text $cadChecklistText -Needle "A4 성공 조건:" -Label "CAD checklist stale A4 success conditions"
+Assert-NotContains -Text $cadChecklistText -Needle "DR_A4_Outline 도면틀만 원본 A4 위치/크기에 맞게 들어감" -Label "CAD checklist no stale A4-specific title-missing success condition"
+Assert-NotContains -Text $cadChecklistText -Needle "기존 A4 도면 내용이나 빈 도면틀이 삭제되지 않음" -Label "CAD checklist no stale A4-specific preservation condition"
+Assert-NotContains -Text $cadChecklistText -Needle "SWTITLEVERIFY에서 A4 target 수량이 2로 맞음" -Label "CAD checklist no stale A4-specific target-count condition"
+Assert-NotContains -Text $cadChecklistText -Needle "공식 native A4 마커" -Label "CAD checklist no stale A4-specific outside-marker condition"
+Assert-Contains -Text $nativeUpgradeGuideText -Needle 'SWTITLECONVERTNEXT는 같은 bbox에 기존 native GMTITLE 쌍이 있으면 새로 만들지 않고 그 쌍을 채택한다.' -Label "Native upgrade guide convert-next adoption wording"
+Assert-Contains -Text $resumeGuideText -Needle "첫 native GMTITLE 생성: YES" -Label "Resume guide convert YES prompt"
+Assert-Contains -Text $resumeGuideText -Needle "A2/A3/A4 native 교체 1장 처리: OPEN" -Label "Resume guide convert OPEN prompt"
+Assert-Contains -Text $resumeGuideText -Needle "BATCH는 OPEN으로 최소 1장 성공한 뒤" -Label "Resume guide BATCH after OPEN guidance"
+Assert-Contains -Text $resumeGuideText -Needle "NO_INSERTS가 반복됨: MANUAL" -Label "Resume guide convert MANUAL prompt"
+Assert-Contains -Text $resumeGuideText -Needle "SWTITLECONVERTNEXT" -Label "Resume guide convert-next shortcut guidance"
+Assert-Contains -Text $resumeGuideText -Needle "run_after_manual_gmtitle_step.ps1" -Label "Resume guide after-manual wrapper command"
+Assert-Contains -Text $resumeGuideText -Needle "실제 DR_titlea_3rd가 있는 대표 A2/A3/A4 용지" -Label "Resume guide A2/A3/A4 representative double-click wording"
+Assert-Contains -Text $resumeGuideText -Needle "현재 작업 기준은 이 문서" -Label "Resume guide current-doc priority"
+Assert-Contains -Text $resumeGuideText -Needle "docs/history" -Label "Resume guide history-doc warning"
+Assert-Contains -Text $resumeGuideText -Needle "docs/investigations" -Label "Resume guide investigations-doc warning"
+Assert-Contains -Text $resumeGuideText -Needle 'CAD 명령줄에 `GMTITLE`, `TIT`, 일반 `OPEN`을 직접 입력해서 우회하지 않습니다' -Label "Resume guide raw GMTITLE/TIT/OPEN guard"
+
+$suiteStepNumbers = @(
+  [regex]::Matches($suiteText, "Write-Output\s+.===== ([0-9]+)\. ") |
+    ForEach-Object { [int]$_.Groups[1].Value }
+)
+$expectedSuiteStepNumbers = 1..18
+if (($suiteStepNumbers.Count -eq $expectedSuiteStepNumbers.Count) -and (@(Compare-Object $suiteStepNumbers $expectedSuiteStepNumbers).Count -eq 0)) {
+  Write-Output ("Suite step numbers: {0}" -f ($suiteStepNumbers -join ", "))
+} else {
+  Add-Failure ("Suite step numbers mismatch: expected {0}, got {1}" -f (($expectedSuiteStepNumbers -join ", ")), (($suiteStepNumbers -join ", ")))
+}
+
+Assert-Contains -Text $readmeText -Needle "18. GMTITLE selection config probe" -Label "README suite step list"
+Assert-Contains -Text $readmeText -Needle "deep-registry" -Label "README suite selection config deep-registry wording"
+
+foreach ($guidePath in $guidePaths) {
+  $label = "Guide version " + (Resolve-Path -LiteralPath $guidePath).Path.Substring($repoRoot.Length + 1)
+  Assert-VersionInFile -Path $guidePath -Version $ExpectedGmtitleVersion -Label $label
+}
+
+if ($failures.Count -gt 0) {
+  Write-Output ""
+  Write-Output "Static preflight failures:"
+  foreach ($failure in $failures) {
+    Write-Output ("  - {0}" -f $failure)
+  }
+  throw "GMTITLE static preflight failed with $($failures.Count) issue(s)."
+}
+
+Write-Output "Static preflight result: PASS"
