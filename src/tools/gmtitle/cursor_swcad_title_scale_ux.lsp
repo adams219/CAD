@@ -1,4 +1,4 @@
-;;; UX experiment copy of swcad_title_scale.lsp.
+;;; Cursor UX experiment copy of swcad_title_scale.lsp.
 ;;;
 ;;; Keep src/tools/gmtitle/swcad_title_scale.lsp unchanged.
 ;;; APPLOAD this file only when trying the UX copy.
@@ -6,13 +6,13 @@
 ;;; swcad-title-* functions and *swcad-title-* globals would collide.
 ;;;
 ;;; Public commands in this copy:
-;;;   SWTITLEUXSTATUS
-;;;   SWTITLEUXPREPARE
-;;;   SWTITLEUXCONVERTNEXT
-;;;   SWTITLEUXVERIFY
-;;;   SWTITLEUXCONVERT     ; manual fallback
-;;;   SWTITLEUXVERSION
-;;;   SWTITLEUXSCALESCAN
+;;;   CURSORSWTITLEUXSTATUS
+;;;   CURSORSWTITLEUXPREPARE
+;;;   CURSORSWTITLEUXCONVERTNEXT
+;;;   CURSORSWTITLEUXVERIFY
+;;;   CURSORSWTITLEUXCONVERT     ; manual fallback
+;;;   CURSORSWTITLEUXVERSION
+;;;   CURSORSWTITLEUXSCALESCAN
 ;;;
 ;;; Original file header follows.
 ;;;
@@ -20,15 +20,15 @@
 ;;;
 ;;; Main workflow:
 ;;;   APPLOAD this file directly, then run:
-;;;     SWTITLEUXSTATUS
-;;;     SWTITLEUXPREPARE     ; only when SWTITLEUXSTATUS asks for preparation
-;;;     SWTITLEUXCONVERTNEXT ; recommended next safe conversion step
-;;;     SWTITLEUXVERIFY
+;;;     CURSORSWTITLEUXSTATUS
+;;;     CURSORSWTITLEUXPREPARE     ; only when CURSORSWTITLEUXSTATUS asks for preparation
+;;;     CURSORSWTITLEUXCONVERTNEXT ; recommended next safe conversion step
+;;;     CURSORSWTITLEUXVERIFY
 ;;; Manual fallback:
-;;;     SWTITLEUXCONVERT
+;;;     CURSORSWTITLEUXCONVERT
 ;;;   uses the same conversion decision tree, but asks the operator to choose
 ;;;   YES, OPEN, BATCH, or MANUAL. Use it only when you intentionally need to
-;;;   override the SWTITLEUXCONVERTNEXT default. GMTITLE dialog paper/title/options
+;;;   override the CURSORSWTITLEUXCONVERTNEXT default. GMTITLE dialog paper/title/options
 ;;;   are selected by fixed Win32 control IDs when the bundled helper is available.
 ;;;   Manual visual selection remains the safe fallback when that helper cannot run.
 ;;;
@@ -44,21 +44,21 @@
 ;;; Verifiers warn when multiple title blocks share one internal GMTITLE link,
 ;;; because that preserve-copy pattern can still fail GMPOWEREDIT.
 ;;; A2/A3/A4 native-recheck or cloned GMTITLE pairs are normally handled through
-;;; SWTITLEUXCONVERTNEXT, one sheet at a time, so the GMTITLE dialog can be
-;;; visually verified before the next sheet is touched. SWTITLEUXCONVERT remains
+;;; CURSORSWTITLEUXCONVERTNEXT, one sheet at a time, so the GMTITLE dialog can be
+;;; visually verified before the next sheet is touched. CURSORSWTITLEUXCONVERT remains
 ;;; the manual-response fallback. Use BATCH only after one OPEN pass proves the
 ;;; candidate count decreases and the same DR frame/title/options repeat.
 ;;; Command-line -GMTITLE selection is disabled by default. Local CAD
 ;;; history showed it can choose ordinary ISO/A-series defaults instead
 ;;; of the required DR_A*_Outline + DR_titlea_3rd pair.
-;;; SWTITLEUXVERSION prints the currently loaded LSP version so stale CAD loads
+;;; CURSORSWTITLEUXVERSION prints the currently loaded LSP version so stale CAD loads
 ;;; are easy to spot before trusting status logs.
-;;; SWTITLEUXSCALESCAN compares title-block scale candidates with dimension
+;;; CURSORSWTITLEUXSCALESCAN compares title-block scale candidates with dimension
 ;;; DIMLFAC values. It does not modify the drawing.
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260815-ux-copy-1")
+(setq *swcad-title-scale-version* "260815-cursor-ux-copy-1")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -296,14 +296,14 @@
     (assoc
       status
       '(
-        ("FINALIZED_CLONED_GMTITLE_TRANSFER" . "clone 변환은 완료됐지만 더블클릭 표 편집을 위해 SWTITLEUXCONVERT의 native 교체 단계가 아직 필요합니다.")
+        ("FINALIZED_CLONED_GMTITLE_TRANSFER" . "clone 변환은 완료됐지만 더블클릭 표 편집을 위해 CURSORSWTITLEUXCONVERT의 native 교체 단계가 아직 필요합니다.")
         ("FINALIZED_EXISTING_GMTITLE_TRANSFER" . "기존/native GMTITLE 변환이 완료됐습니다.")
         ("ADOPTED_EXISTING_NATIVE_GMTITLE_TRANSFER" . "이미 같은 위치에 있던 native GMTITLE 쌍을 채택해 값 입력과 기존 잔여물 정리를 완료했습니다.")
         ("FINALIZED_FRAME_ONLY_GMTITLE_TRANSFER" . "표제란 없는 도면틀 시트 변환이 완료됐습니다.")
         ("FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER" . "원본 표제란 부재가 검증된 시트의 도면틀만 교체했습니다.")
         ("READY_FOR_TITLE_MISSING_OUTLINE" . "title-missing/frame-only 시트를 제목블록 없이 도면틀만 교체할 수 있습니다.")
         ("WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION" . "title-missing/frame-only 변환 전에 같은 크기 DR 도면틀 정의를 먼저 검증해야 합니다.")
-        ("NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION" . "title-missing/frame-only 변환 전에 SWTITLEUXPREPARE로 같은 크기 DR 도면틀 정의를 준비해야 합니다.")
+        ("NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION" . "title-missing/frame-only 변환 전에 CURSORSWTITLEUXPREPARE로 같은 크기 DR 도면틀 정의를 준비해야 합니다.")
         ("OK_TITLE_MISSING_OUTLINE_DEFINITION_IMPORTED" . "DR 도면틀 정의를 가져와 title-missing/frame-only 변환 준비가 됐습니다.")
         ("WARN_TITLE_MISSING_OUTLINE_DEFINITION_UNSAFE" . "DR 도면틀 정의를 가져왔지만 형상/선택범위 검사를 통과하지 못했습니다.")
         ("ABORT_TITLE_MISSING_OUTLINE_DEFINITION_USER" . "사용자가 title-missing/frame-only 도면틀 정의 준비를 취소했습니다.")
@@ -419,7 +419,7 @@
         ("ABORT_NATIVE_UPGRADE_INVALID_FRAME_GEOMETRY" . "교체된 A2/A3/A4 native 도면틀 크기/범위가 예상과 맞지 않습니다.")
         ("ABORT_NATIVE_UPGRADE_GMTITLE_NO_INSERTS" . "GMTITLE 창을 취소했거나 새 GMTITLE 객체가 생성되지 않았습니다. 기존 쌍은 보존됩니다.")
         ("ABORT_INTERACTIVE_GMTITLE_SCRIPT_ACTIVE" . "SCRIPT/자동화 실행 중에는 대화식 GMTITLE 생성/교체를 안전하게 진행할 수 없어 중단했습니다.")
-        ("ABORT_PREPARE_SCRIPT_ACTIVE" . "SCRIPT/자동화 실행 중에는 YES 확인이 필요한 SWTITLEUXPREPARE 정리를 안전하게 진행할 수 없어 중단했습니다.")
+        ("ABORT_PREPARE_SCRIPT_ACTIVE" . "SCRIPT/자동화 실행 중에는 YES 확인이 필요한 CURSORSWTITLEUXPREPARE 정리를 안전하게 진행할 수 없어 중단했습니다.")
         ("ABORT_NO_TARGET_FRAME_PLACEMENT_POINT" . "대상 도면틀의 왼쪽 아래 배치 기준점을 계산하지 못했습니다.")
         ("ABORT_NO_MANUAL_NATIVE_GMTITLE_PENDING" . "마무리할 수동 native GMTITLE 작업이 대기 중이 아닙니다.")
         ("ABORT_PENDING_TARGET_PAIR_MISSING" . "대기 중인 대상 도면틀/제목블록 쌍을 찾지 못했습니다.")
@@ -462,7 +462,7 @@
         ("OK_ROLE_CLASSIFICATION" . "GMTITLE 도면틀/제목블록 역할 판정이 완료됐습니다.")
         ("OK_LINK_DETAIL_DUMPED" . "GMTITLE native link 상세 정보를 로그로 출력했습니다.")
         ("SWTITLEVERIFY_FINAL_OK" . "검증 기준을 통과했습니다. 대표 제목블록 더블클릭만 최종 확인하세요.")
-        ("SWTITLEVERIFY_FINAL_WARN" . "남은 경고가 있습니다. 모양만 보고 완료하지 말고 SWTITLEUXSTATUS의 다음 조치를 확인하세요.")
+        ("SWTITLEVERIFY_FINAL_WARN" . "남은 경고가 있습니다. 모양만 보고 완료하지 말고 CURSORSWTITLEUXSTATUS의 다음 조치를 확인하세요.")
         ("SWTITLEVERIFY_FINAL_FAIL" . "누락 또는 구조 문제가 남아 있어 변환 완료로 볼 수 없습니다.")
       )
     )
@@ -577,11 +577,11 @@
           ("Title-missing/frame-only native template caution:" . "title-missing/frame-only native 템플릿 주의:")
           ("Title-missing/frame-only exception handling: GMTITLE was created at the default location and moved to the old source frame." . "title-missing/frame-only 예외 처리: GMTITLE이 기본 위치에 생성되어 기존 도면틀 위치로 이동했습니다.")
           ("Moved native placement accepted after geometry check." . "형상 검사를 통과해 이동 배치된 native GMTITLE을 허용했습니다.")
-          ("This is allowed only for verified title-missing/frame-only sheets; run SWTITLEUXVERIFY after conversion." . "이 처리는 원본 표제란 부재가 검증된 title-missing/frame-only 시트에만 허용됩니다. 변환 후 SWTITLEUXVERIFY로 해당 DR 도면틀 수량/형상을 검증하세요.")
+          ("This is allowed only for verified title-missing/frame-only sheets; run CURSORSWTITLEUXVERIFY after conversion." . "이 처리는 원본 표제란 부재가 검증된 title-missing/frame-only 시트에만 허용됩니다. 변환 후 CURSORSWTITLEUXVERIFY로 해당 DR 도면틀 수량/형상을 검증하세요.")
           ("Run final double-click verification after conversion." . "변환 후 최종 더블클릭 검증을 실행하세요.")
           ("Important: fast batch may create clone GMTITLE pairs. Clone pairs can look correct but still fail GMPOWEREDIT/double-click native behavior." . "중요: 빠른 일괄 변환은 clone GMTITLE 쌍을 만들 수 있습니다. 겉으로 맞아 보여도 GMPOWEREDIT/더블클릭 native 동작은 실패할 수 있습니다.")
           ("Final success requires no clone/native-upgrade warnings and manual double-click checks for title blocks that actually exist." . "최종 성공은 clone/native-upgrade 경고가 없고 실제 제목블록이 있는 대표 용지의 더블클릭 확인까지 통과해야 합니다.")
-          ("Run SWTITLEUXSTATUS, then SWTITLEUXVERIFY." . "SWTITLEUXSTATUS 실행 후 SWTITLEUXVERIFY를 실행하세요.")
+          ("Run CURSORSWTITLEUXSTATUS, then CURSORSWTITLEUXVERIFY." . "CURSORSWTITLEUXSTATUS 실행 후 CURSORSWTITLEUXVERIFY를 실행하세요.")
           ("Open a writable copy of the DWG before upgrading." . "교체 작업 전에 쓰기 가능한 DWG 복사본을 여세요.")
           ("Open a work-folder copy before running native upgrade commands." . "native 교체 명령을 실행하기 전에 work 폴더의 복사본을 여세요.")
           ("Open a writable work copy before applying changes." . "변경 적용 전에 쓰기 가능한 작업복사본을 여세요.")
@@ -635,13 +635,13 @@
           ("GMPOWEREDIT diagnosis: multiple GMTITLE titles share the same internal native recognition handle." . "GMPOWEREDIT 진단: 여러 GMTITLE 제목블록이 같은 내부 native 인식 handle을 공유합니다.")
           ("This is typical of preserve-copy/clone output: it can look correct, but double-click recognition can fall back to REFEDIT or block editing." . "preserve-copy/clone 결과에서 흔한 상태입니다. 겉으로 맞아 보여도 더블클릭 인식이 REFEDIT나 블록 편집으로 빠질 수 있습니다.")
           ("Missing-sheet diagnosis: old SOLIDWORKS frame-only sheets still remain." . "누락 용지 진단: 기존 SOLIDWORKS frame-only 시트가 아직 남아 있습니다.")
-          ("Next after native clone review: run SWTITLEUXCONVERT to handle remaining title-missing/frame-only exception sheets." . "native 복제 검토 뒤 다음 단계: 남은 title-missing/frame-only 예외 시트는 SWTITLEUXCONVERTNEXT로 처리하세요.")
+          ("Next after native clone review: run CURSORSWTITLEUXCONVERT to handle remaining title-missing/frame-only exception sheets." . "native 복제 검토 뒤 다음 단계: 남은 title-missing/frame-only 예외 시트는 CURSORSWTITLEUXCONVERTNEXT로 처리하세요.")
           ("Note: DR_A*_Outline sheet frames are still INSERT/block references; test the paired title block for the GMTITLE table editor." . "참고: DR_A*_Outline 도면틀은 여전히 INSERT/block 참조입니다. GMTITLE 표 편집창은 짝 제목블록에서 확인하세요.")
           ("참고: DR_A*_Outline sheet frames are still INSERT/block references; test the paired title block for the GMTITLE table editor." . "참고: DR_A*_Outline 도면틀은 여전히 INSERT/block 참조입니다. GMTITLE 표 편집창은 짝 제목블록에서 확인하세요.")
           ("These pairs can have correct attributes and SWTITLE markers but still open GMPOWEREDIT/REFEDIT instead of the GMTITLE table editor." . "이 쌍들은 속성과 SWTITLE marker가 맞아도 GMTITLE 표 편집창 대신 GMPOWEREDIT/REFEDIT가 열릴 수 있습니다.")
           ("Remaining source sheets are a separate follow-up after the listed clone/non-native pairs are reviewed." . "남은 원본 시트 처리는 표시된 clone/non-native 쌍을 검토한 뒤 별도로 이어집니다.")
           ("You can upgrade the listed native target pairs now even if title-missing/frame-only source sheets still remain." . "title-missing/frame-only 원본 시트가 남아 있어도 표시된 native 대상 쌍은 지금 교체할 수 있습니다.")
-          ("After this command succeeds, rerun SWTITLEUXSTATUS; repeat SWTITLEUXCONVERT until A2/A3/A4 target pairs needing native replacement is 0." . "이 명령이 성공하면 SWTITLEUXSTATUS를 다시 실행하세요. native 교체가 필요한 A2/A3/A4 대상 쌍이 0이 될 때까지 SWTITLEUXCONVERTNEXT를 반복합니다.")
+          ("After this command succeeds, rerun CURSORSWTITLEUXSTATUS; repeat CURSORSWTITLEUXCONVERT until A2/A3/A4 target pairs needing native replacement is 0." . "이 명령이 성공하면 CURSORSWTITLEUXSTATUS를 다시 실행하세요. native 교체가 필요한 A2/A3/A4 대상 쌍이 0이 될 때까지 CURSORSWTITLEUXCONVERTNEXT를 반복합니다.")
           ("No A2/A3/A4 target pairs need native replacement." . "native 교체가 필요한 A2/A3/A4 대상 쌍이 없습니다.")
           ("Next A3/A4 native upgrade candidate:" . "다음 A2/A3/A4 native 교체 후보:")
           ("This step upgrades only one sheet." . "이 단계는 한 번에 한 장만 교체합니다.")
@@ -798,10 +798,10 @@
           ("Do not accept ISO defaults. Cancel and rerun if the dialog still shows ISO paper/title." . "ISO 기본값을 그대로 승인하지 마세요. 창에 ISO 용지/제목블록이 보이면 취소하고 다시 실행하세요.")
           ("Next: rerun and choose the printed DR_A*_Outline paper plus DR_titlea_3rd; do not accept ISO defaults." . "다음: 다시 실행해서 출력된 DR_A*_Outline 용지와 DR_titlea_3rd를 선택하세요. ISO 기본값은 승인하지 마세요.")
           ("Fast batch not started because bootstrap phase ended with status:" . "bootstrap 단계가 다음 상태로 끝나 빠른 일괄 변환을 시작하지 않았습니다:")
-          (": run SWTITLEUXCONVERT to create/finalize one real title sheet for this size, then rerun SWTITLEUXSTATUS." . ": 이 크기의 실제 표제란 시트 1장을 생성/마무리하려면 SWTITLEUXCONVERTNEXT를 실행한 뒤 SWTITLEUXSTATUS를 다시 실행하세요.")
-          (": run SWTITLEUXCONVERT to create/finalize one real frame-only sheet for this size, then rerun SWTITLEUXSTATUS." . ": 이 크기의 실제 frame-only 시트 1장을 생성/마무리하려면 SWTITLEUXCONVERTNEXT를 실행한 뒤 SWTITLEUXSTATUS를 다시 실행하세요.")
+          (": run CURSORSWTITLEUXCONVERT to create/finalize one real title sheet for this size, then rerun CURSORSWTITLEUXSTATUS." . ": 이 크기의 실제 표제란 시트 1장을 생성/마무리하려면 CURSORSWTITLEUXCONVERTNEXT를 실행한 뒤 CURSORSWTITLEUXSTATUS를 다시 실행하세요.")
+          (": run CURSORSWTITLEUXCONVERT to create/finalize one real frame-only sheet for this size, then rerun CURSORSWTITLEUXSTATUS." . ": 이 크기의 실제 frame-only 시트 1장을 생성/마무리하려면 CURSORSWTITLEUXCONVERTNEXT를 실행한 뒤 CURSORSWTITLEUXSTATUS를 다시 실행하세요.")
           ("Do not continue with clone/fast batch for this sheet size until the created matching DR_A*_Outline frame passes the bbox check." . "생성된 같은 크기 DR_A*_Outline 도면틀이 bbox 검사를 통과하기 전에는 이 용지 크기의 clone/빠른 일괄 변환을 계속하지 마세요.")
-          ("If SWTITLEUXCONVERT aborts with invalid frame geometry, inspect the GMTITLE DR paper selection or repair/check the frame definition before retrying." . "SWTITLEUXCONVERTNEXT/SWTITLEUXCONVERT가 도면틀 형상 오류로 중단되면 다시 시도하기 전에 GMTITLE DR 용지 선택값을 확인하거나 도면틀 정의를 복구/점검하세요.")
+          ("If CURSORSWTITLEUXCONVERT aborts with invalid frame geometry, inspect the GMTITLE DR paper selection or repair/check the frame definition before retrying." . "CURSORSWTITLEUXCONVERTNEXT/CURSORSWTITLEUXCONVERT가 도면틀 형상 오류로 중단되면 다시 시도하기 전에 GMTITLE DR 용지 선택값을 확인하거나 도면틀 정의를 복구/점검하세요.")
           ("It will process " . "내부 처리 예정: ")
           (" currently listed A2/A3/A4 native replacement candidate(s) internally." . "개의 현재 A2/A3/A4 native 교체 후보")
           ("Important: native-finalize and native-frame-only must be legacy-uncertain=yes." . "중요: native-finalize와 native-frame-only는 legacy-uncertain=yes로 분류되어야 합니다.")
@@ -813,18 +813,18 @@
           ("This command does not create missing title-missing/frame-only target sheets; it only repairs native recognition of target pairs already created." . "이 단계는 누락된 title-missing/frame-only 대상 시트를 새로 만들지 않고, 이미 만들어진 대상 쌍의 native 인식만 복구합니다.")
           ("This fixes native double-click behavior for already-created A3/A4 GMTITLE target pairs." . "이미 만들어진 A2/A3/A4 GMTITLE 대상 쌍의 native 더블클릭 동작을 복구하는 단계입니다.")
           ("This experiment is limited to Documents/CAD tool/work copies." . "이 실험은 Documents/CAD tool/work 안의 복사본에서만 실행할 수 있습니다.")
-          ("Next safest path: run SWTITLEUXCONVERT; it will enter the native replacement phase." . "다음 안전한 경로: SWTITLEUXCONVERTNEXT를 실행하면 native 교체 단계로 들어갑니다.")
-          ("SWTITLEUXCONVERT processes the next candidate from " . "SWTITLEUXCONVERTNEXT는 현재 후보 ")
+          ("Next safest path: run CURSORSWTITLEUXCONVERT; it will enter the native replacement phase." . "다음 안전한 경로: CURSORSWTITLEUXCONVERTNEXT를 실행하면 native 교체 단계로 들어갑니다.")
+          ("CURSORSWTITLEUXCONVERT processes the next candidate from " . "CURSORSWTITLEUXCONVERTNEXT는 현재 후보 ")
           (" currently listed A2/A3/A4 candidate(s) through its native replacement phase." . "개 중 다음 1개를 native 교체 단계로 처리합니다.")
-          ("Then rerun SWTITLEUXSTATUS to check whether the pair was loaded from stale LSP logic." . "그 뒤 SWTITLEUXSTATUS를 다시 실행해서 오래된 LSP 로직으로 로드된 쌍인지 확인하세요.")
-          ("If they are accidental command leftovers in a work copy, clean them first, then rerun SWTITLEUXSTATUS." . "작업복사본 안의 실수 명령어 잔여물이 맞다면 먼저 정리한 뒤 SWTITLEUXSTATUS를 다시 실행하세요.")
-          ("SWTITLEUXCONVERT will process the next one of " . "SWTITLEUXCONVERTNEXT는 현재 ")
+          ("Then rerun CURSORSWTITLEUXSTATUS to check whether the pair was loaded from stale LSP logic." . "그 뒤 CURSORSWTITLEUXSTATUS를 다시 실행해서 오래된 LSP 로직으로 로드된 쌍인지 확인하세요.")
+          ("If they are accidental command leftovers in a work copy, clean them first, then rerun CURSORSWTITLEUXSTATUS." . "작업복사본 안의 실수 명령어 잔여물이 맞다면 먼저 정리한 뒤 CURSORSWTITLEUXSTATUS를 다시 실행하세요.")
+          ("CURSORSWTITLEUXCONVERT will process the next one of " . "CURSORSWTITLEUXCONVERTNEXT는 현재 ")
           (" currently listed candidate(s), then return to status verification." . "개 후보 중 다음 1개를 처리한 뒤 상태 검증으로 돌아갑니다.")
-          ("After the native GMTITLE is visibly created, continue with SWTITLEUXCONVERT for the guided finish/retry flow." . "native GMTITLE이 화면에 생성된 것이 보이면, 안내된 마무리/재시도 흐름을 위해 SWTITLEUXCONVERTNEXT를 계속 실행하세요.")
-          ("Tip: use SWTITLEUXCONVERT from the four-command workflow; it sends the lower-left point automatically after the GMTITLE dialog." . "팁: 4단계 흐름의 SWTITLEUXCONVERTNEXT를 사용하세요. GMTITLE 창 이후 왼쪽 아래 점을 자동으로 보냅니다.")
-          ("Run the status SCRIPT first, then type SWTITLEUXCONVERT manually in the CAD command line." . "먼저 상태 SCRIPT를 실행한 뒤 CAD 명령줄에 SWTITLEUXCONVERTNEXT를 직접 입력하세요.")
-          ("Handle those after this native-recognition upgrade with SWTITLEUXCONVERT." . "이 native 인식 교체가 끝난 뒤 해당 항목은 SWTITLEUXCONVERTNEXT로 처리하세요.")
-          ("For normal use, keep using SWTITLEUXCONVERT; one-sheet recovery commands are diagnostic only." . "일반 사용에서는 계속 SWTITLEUXCONVERTNEXT를 사용하세요. 한 장 복구용 명령은 진단용입니다.")
+          ("After the native GMTITLE is visibly created, continue with CURSORSWTITLEUXCONVERT for the guided finish/retry flow." . "native GMTITLE이 화면에 생성된 것이 보이면, 안내된 마무리/재시도 흐름을 위해 CURSORSWTITLEUXCONVERTNEXT를 계속 실행하세요.")
+          ("Tip: use CURSORSWTITLEUXCONVERT from the four-command workflow; it sends the lower-left point automatically after the GMTITLE dialog." . "팁: 4단계 흐름의 CURSORSWTITLEUXCONVERTNEXT를 사용하세요. GMTITLE 창 이후 왼쪽 아래 점을 자동으로 보냅니다.")
+          ("Run the status SCRIPT first, then type CURSORSWTITLEUXCONVERT manually in the CAD command line." . "먼저 상태 SCRIPT를 실행한 뒤 CAD 명령줄에 CURSORSWTITLEUXCONVERTNEXT를 직접 입력하세요.")
+          ("Handle those after this native-recognition upgrade with CURSORSWTITLEUXCONVERT." . "이 native 인식 교체가 끝난 뒤 해당 항목은 CURSORSWTITLEUXCONVERTNEXT로 처리하세요.")
+          ("For normal use, keep using CURSORSWTITLEUXCONVERT; one-sheet recovery commands are diagnostic only." . "일반 사용에서는 계속 CURSORSWTITLEUXCONVERTNEXT를 사용하세요. 한 장 복구용 명령은 진단용입니다.")
           ("No A2/A3/A4 native-recheck or cloned GMTITLE pair was found." . "native 재확인 또는 복제 GMTITLE 상태의 A2/A3/A4 쌍을 찾지 못했습니다.")
           ("No A3/A4 native-recheck or cloned GMTITLE pair was found." . "native 재확인 또는 복제 GMTITLE 상태의 A2/A3/A4 쌍을 찾지 못했습니다.")
           ("Reason: old SOLIDWORKS source title/frame candidates still remain." . "이유: 기존 SOLIDWORKS 원본 표제란/도면틀 후보가 아직 남아 있습니다.")
@@ -841,9 +841,9 @@
           ("No A3/A4 pairs were changed." . "변경된 A2/A3/A4 쌍이 없습니다.")
           ("A2/A3/A4 native replacement candidates currently listed:" . "현재 표시된 A2/A3/A4 native 교체 후보:")
           (" frame-only source sheet(s) still remain; this batch will not create them." . "개의 frame-only 원본 시트가 아직 남아 있습니다. 이 일괄 단계에서는 새로 만들지 않습니다.")
-          ("This A2/A3/A4 native replacement phase is run from SWTITLEUXCONVERT." . "이 A2/A3/A4 native 교체 단계는 SWTITLEUXCONVERTNEXT/SWTITLEUXCONVERT 내부에서 실행됩니다.")
-          ("SWTITLEUXCONVERT A2/A3/A4 native replacement error:" . "SWTITLEUXCONVERT A2/A3/A4 native 교체 오류:")
-          ("After this command succeeds, rerun SWTITLEUXSTATUS; repeat SWTITLEUXCONVERT until A2/A3/A4 target pairs needing native replacement is 0." . "이 단계가 성공하면 SWTITLEUXSTATUS를 다시 실행하세요. native 교체가 필요한 A2/A3/A4 대상 쌍이 0이 될 때까지 SWTITLEUXCONVERTNEXT를 반복합니다.")
+          ("This A2/A3/A4 native replacement phase is run from CURSORSWTITLEUXCONVERT." . "이 A2/A3/A4 native 교체 단계는 CURSORSWTITLEUXCONVERTNEXT/CURSORSWTITLEUXCONVERT 내부에서 실행됩니다.")
+          ("CURSORSWTITLEUXCONVERT A2/A3/A4 native replacement error:" . "CURSORSWTITLEUXCONVERT A2/A3/A4 native 교체 오류:")
+          ("After this command succeeds, rerun CURSORSWTITLEUXSTATUS; repeat CURSORSWTITLEUXCONVERT until A2/A3/A4 target pairs needing native replacement is 0." . "이 단계가 성공하면 CURSORSWTITLEUXSTATUS를 다시 실행하세요. native 교체가 필요한 A2/A3/A4 대상 쌍이 0이 될 때까지 CURSORSWTITLEUXCONVERTNEXT를 반복합니다.")
           ("No A2/A3/A4 target pairs need native replacement." . "native 교체가 필요한 A2/A3/A4 대상 쌍이 없습니다.")
           ("Detected sheet size:" . "감지된 용지 크기:")
           ("title-text=" . "표제란 텍스트=")
@@ -896,7 +896,7 @@
           ("Frame positioning=ON" . "Frame positioning=ON(도면틀 위치 자동 맞춤)")
           ("Object move=OFF" . "Object move=OFF(기존 도면 내용 이동 안 함)")
           ("Reason: each candidate may need the interactive GMTITLE dialog, and SCRIPT mode suppresses that fallback." . "이유: 각 후보는 대화식 GMTITLE 창이 필요할 수 있는데 SCRIPT 모드에서는 그 fallback이 막힙니다.")
-          ("Run the status SCRIPT first, then type SWTITLEUXCONVERT manually in the CAD command line." . "먼저 상태 SCRIPT를 실행한 뒤 CAD 명령줄에 SWTITLEUXCONVERTNEXT를 직접 입력하세요.")
+          ("Run the status SCRIPT first, then type CURSORSWTITLEUXCONVERT manually in the CAD command line." . "먼저 상태 SCRIPT를 실행한 뒤 CAD 명령줄에 CURSORSWTITLEUXCONVERTNEXT를 직접 입력하세요.")
           ("WARNING:" . "경고:")
           ("Warning:" . "경고:")
           ("Note:" . "참고:")
@@ -933,7 +933,7 @@
           ("GMPOWEREDIT diagnosis: multiple GMTITLE titles share the same internal native recognition handle." . "GMPOWEREDIT 진단: 여러 GMTITLE 제목블록이 같은 내부 native 인식 핸들을 공유합니다.")
           ("This is typical of preserve-copy/clone output: it can look correct, but double-click recognition can fall back to REFEDIT or block editing." . "preserve-copy/clone 결과에서 흔한 상태입니다. 모양은 맞아 보여도 더블클릭 인식이 REFEDIT 또는 블록 편집으로 돌아갈 수 있습니다.")
           ("Missing-sheet diagnosis: old SOLIDWORKS frame-only sheets still remain." . "누락 시트 진단: 기존 SOLIDWORKS frame-only 시트가 아직 남아 있습니다.")
-          ("Next after native clone review: run SWTITLEUXCONVERT to handle remaining title-missing/frame-only exception sheets." . "native 복제 검토 후 다음 단계: 남은 title-missing/frame-only 예외 시트는 SWTITLEUXCONVERTNEXT로 처리하세요.")
+          ("Next after native clone review: run CURSORSWTITLEUXCONVERT to handle remaining title-missing/frame-only exception sheets." . "native 복제 검토 후 다음 단계: 남은 title-missing/frame-only 예외 시트는 CURSORSWTITLEUXCONVERTNEXT로 처리하세요.")
           ("Loose text scale candidates:" . "분리된 텍스트 스케일 후보:")
           ("Possible accidental command text entities:" . "실수로 도면에 들어간 명령어 텍스트 후보:")
           ("Command text cleanup is limited to Documents/CAD tool/work copies." . "명령어 텍스트 정리는 Documents/CAD tool/work 안의 복사본에서만 실행합니다.")
@@ -953,7 +953,7 @@
           ("Cloned GMTITLE was finalized for frame-only source; native upgrade is still required for double-click behavior." . "frame-only 원본에 대한 복제 GMTITLE 마무리는 완료됐지만, 더블클릭 동작을 위해 native 교체가 아직 필요합니다.")
           ("Existing/default native GMTITLE was used for frame-only source." . "frame-only 원본에 기존/기본 native GMTITLE을 사용했습니다.")
           ("Title-missing/frame-only exception handling: GMTITLE was created at the default location and moved to the old source frame." . "title-missing/frame-only 예외 처리: GMTITLE이 기본 위치에 생성된 뒤 기존 도면틀로 이동됐습니다.")
-          ("This is allowed only for verified title-missing/frame-only sheets; run SWTITLEUXVERIFY after conversion." . "이 처리는 원본 표제란 부재가 검증된 title-missing/frame-only 시트에서만 허용됩니다. 변환 후 SWTITLEUXVERIFY로 해당 DR 도면틀 수량/형상을 검증하세요.")
+          ("This is allowed only for verified title-missing/frame-only sheets; run CURSORSWTITLEUXVERIFY after conversion." . "이 처리는 원본 표제란 부재가 검증된 title-missing/frame-only 시트에서만 허용됩니다. 변환 후 CURSORSWTITLEUXVERIFY로 해당 DR 도면틀 수량/형상을 검증하세요.")
           ("Visible A4 frame size is usable, but extra dependency/block geometry is attached outside the frame." . "보이는 A4 도면틀 크기는 사용할 수 있지만, 도면틀 밖에 추가 의존/블록 형상이 붙어 있습니다.")
           ("The created GMTITLE frame bbox will be checked before any old title-missing/frame-only content is removed." . "기존 title-missing/frame-only 내용을 삭제하기 전에 새 GMTITLE 도면틀 bbox를 먼저 검사합니다.")
           ("Native GMTITLE will open once for this frame-only sheet." . "이 frame-only 시트에 대해 native GMTITLE 창이 한 번 열립니다.")
@@ -1032,7 +1032,7 @@
     (progn
       (swcad-title-princ-line
         (strcat
-          "SWTITLEUXCONVERTNEXT auto response: "
+          "CURSORSWTITLEUXCONVERTNEXT auto response: "
           answer
           (if message (strcat " - " message) "")
         )
@@ -1729,7 +1729,7 @@
           (swcad-title-current-dwg-full-path)
         )
       )
-      (swcad-title-princ-line "SWTITLEUXPREPARE/SWTITLEUXCONVERT는 현재 활성 탭의 도면을 변경할 수 있습니다.")
+      (swcad-title-princ-line "CURSORSWTITLEUXPREPARE/CURSORSWTITLEUXCONVERT는 현재 활성 탭의 도면을 변경할 수 있습니다.")
       (setq answer
         (getstring
           T
@@ -1772,43 +1772,43 @@
 )
 
 (defun swcad-title-open-debug-log ()
-  (swcad-title-open-log "swcad_title_debug_last.txt" "SWTITLEUXSTATUS 내부 debug log")
+  (swcad-title-open-log "swcad_title_debug_last.txt" "CURSORSWTITLEUXSTATUS 내부 debug log")
 )
 
 (defun swcad-title-open-scan-log ()
-  (swcad-title-open-log "swcad_title_scan_last.txt" "SWTITLEUXSTATUS 내부 스캔 로그")
+  (swcad-title-open-log "swcad_title_scan_last.txt" "CURSORSWTITLEUXSTATUS 내부 스캔 로그")
 )
 
 (defun swcad-title-open-scale-log ()
-  (swcad-title-open-log "swcad_scale_scan_last.txt" "SWTITLEUXSCALESCAN log")
+  (swcad-title-open-log "swcad_scale_scan_last.txt" "CURSORSWTITLEUXSCALESCAN log")
 )
 
 (defun swcad-title-open-text-log ()
-  (swcad-title-open-log "swcad_title_text_scan_last.txt" "SWTITLEUXSTATUS 내부 텍스트 스캔 로그")
+  (swcad-title-open-log "swcad_title_text_scan_last.txt" "CURSORSWTITLEUXSTATUS 내부 텍스트 스캔 로그")
 )
 
 (defun swcad-title-open-command-text-log ()
-  (swcad-title-open-log "swcad_title_command_text_scan_last.txt" "SWTITLEUXSTATUS 내부 명령어 텍스트 확인 로그")
+  (swcad-title-open-log "swcad_title_command_text_scan_last.txt" "CURSORSWTITLEUXSTATUS 내부 명령어 텍스트 확인 로그")
 )
 
 (defun swcad-title-open-transfer-log ()
-  (swcad-title-open-log "swcad_title_transfer_preview_last.txt" "SWTITLEUXSTATUS 내부 변환 미리보기 로그")
+  (swcad-title-open-log "swcad_title_transfer_preview_last.txt" "CURSORSWTITLEUXSTATUS 내부 변환 미리보기 로그")
 )
 
 (defun swcad-title-open-multi-preview-log ()
-  (swcad-title-open-log "swcad_title_multi_preview_last.txt" "SWTITLEUXSTATUS 내부 다중 시트 요약 로그")
+  (swcad-title-open-log "swcad_title_multi_preview_last.txt" "CURSORSWTITLEUXSTATUS 내부 다중 시트 요약 로그")
 )
 
 (defun swcad-title-open-multi-detail-log ()
-  (swcad-title-open-log "swcad_title_multi_detail_last.txt" "SWTITLEUXSTATUS 내부 상세 진단 로그")
+  (swcad-title-open-log "swcad_title_multi_detail_last.txt" "CURSORSWTITLEUXSTATUS 내부 상세 진단 로그")
 )
 
 (defun swcad-title-open-frame-scan-log ()
-  (swcad-title-open-log "swcad_title_frame_scan_last.txt" "SWTITLEUXSTATUS 내부 도면틀 스캔 로그")
+  (swcad-title-open-log "swcad_title_frame_scan_last.txt" "CURSORSWTITLEUXSTATUS 내부 도면틀 스캔 로그")
 )
 
 (defun swcad-title-open-apply-log ()
-  (swcad-title-open-log "swcad_title_transfer_apply_last.txt" "SWTITLEUXCONVERT 내부 첫 native 변환 로그")
+  (swcad-title-open-log "swcad_title_transfer_apply_last.txt" "CURSORSWTITLEUXCONVERT 내부 첫 native 변환 로그")
 )
 
 (defun swcad-title-apply-result (status)
@@ -1817,107 +1817,107 @@
 )
 
 (defun swcad-title-open-gmtitle-verify-log ()
-  (swcad-title-open-log "swcad_title_gmtitle_verify_last.txt" "SWTITLEUXVERIFY 내부 GMTITLE 검증 로그")
+  (swcad-title-open-log "swcad_title_gmtitle_verify_last.txt" "CURSORSWTITLEUXVERIFY 내부 GMTITLE 검증 로그")
 )
 
 (defun swcad-title-open-gmtitle-verify-all-log ()
-  (swcad-title-open-log "swcad_title_gmtitle_verify_all_last.txt" "SWTITLEUXVERIFY 내부 전체 GMTITLE 검증 로그")
+  (swcad-title-open-log "swcad_title_gmtitle_verify_all_last.txt" "CURSORSWTITLEUXVERIFY 내부 전체 GMTITLE 검증 로그")
 )
 
 (defun swcad-title-open-gmtitle-link-scan-log ()
-  (swcad-title-open-log "swcad_title_gmtitle_link_scan_last.txt" "SWTITLEUXVERIFY 내부 GMTITLE link 스캔 로그")
+  (swcad-title-open-log "swcad_title_gmtitle_link_scan_last.txt" "CURSORSWTITLEUXVERIFY 내부 GMTITLE link 스캔 로그")
 )
 
 (defun swcad-title-open-gmtitle-link-detail-log ()
-  (swcad-title-open-log "swcad_title_gmtitle_link_detail_last.txt" "SWTITLEUXVERIFY 내부 GMTITLE link 상세 로그")
+  (swcad-title-open-log "swcad_title_gmtitle_link_detail_last.txt" "CURSORSWTITLEUXVERIFY 내부 GMTITLE link 상세 로그")
 )
 
 (defun swcad-title-open-gmtitle-compare-log ()
-  (swcad-title-open-log "swcad_title_gmtitle_compare_last.txt" "SWTITLEUXVERIFY 내부 GMTITLE 비교 로그")
+  (swcad-title-open-log "swcad_title_gmtitle_compare_last.txt" "CURSORSWTITLEUXVERIFY 내부 GMTITLE 비교 로그")
 )
 
 (defun swcad-title-open-gmtitle-preserve-copy-test-log ()
-  (swcad-title-open-log "swcad_title_gmtitle_preserve_copy_test_last.txt" "SWTITLEUXVERIFY 내부 preserve-copy 테스트 로그")
+  (swcad-title-open-log "swcad_title_gmtitle_preserve_copy_test_last.txt" "CURSORSWTITLEUXVERIFY 내부 preserve-copy 테스트 로그")
 )
 
 (defun swcad-title-open-native-upgrade-log ()
-  (swcad-title-open-log "swcad_title_native_upgrade_last.txt" "SWTITLEUXCONVERT native 교체 로그")
+  (swcad-title-open-log "swcad_title_native_upgrade_last.txt" "CURSORSWTITLEUXCONVERT native 교체 로그")
 )
 
 (defun swcad-title-open-native-frame-check-log ()
-  (swcad-title-open-log "swcad_title_native_frame_check_last.txt" "SWTITLEUXVERIFY 내부 native 도면틀 확인 로그")
+  (swcad-title-open-log "swcad_title_native_frame_check_last.txt" "CURSORSWTITLEUXVERIFY 내부 native 도면틀 확인 로그")
 )
 
 (defun swcad-title-open-orphan-frame-clean-log ()
-  (swcad-title-open-log "swcad_title_orphan_frame_clean_last.txt" "SWTITLEUXPREPARE 내부 고아 도면틀 정리 로그")
+  (swcad-title-open-log "swcad_title_orphan_frame_clean_last.txt" "CURSORSWTITLEUXPREPARE 내부 고아 도면틀 정리 로그")
 )
 
 (defun swcad-title-open-duplicate-target-pair-clean-log ()
-  (swcad-title-open-log "swcad_title_duplicate_target_pair_clean_last.txt" "SWTITLEUXPREPARE 내부 겹친 GMTITLE target 쌍 정리 로그")
+  (swcad-title-open-log "swcad_title_duplicate_target_pair_clean_last.txt" "CURSORSWTITLEUXPREPARE 내부 겹친 GMTITLE target 쌍 정리 로그")
 )
 
 (defun swcad-title-open-pick-check-log ()
-  (swcad-title-open-log "swcad_title_pick_check_last.txt" "SWTITLEUXVERIFY 내부 선택 객체 확인 로그")
+  (swcad-title-open-log "swcad_title_pick_check_last.txt" "CURSORSWTITLEUXVERIFY 내부 선택 객체 확인 로그")
 )
 
 (defun swcad-title-open-double-click-check-log ()
-  (swcad-title-open-log "swcad_title_double_click_check_last.txt" "SWTITLEUXVERIFY 내부 더블클릭 확인 로그")
+  (swcad-title-open-log "swcad_title_double_click_check_last.txt" "CURSORSWTITLEUXVERIFY 내부 더블클릭 확인 로그")
 )
 
 (defun swcad-title-open-verify-summary-log ()
-  (swcad-title-open-log "swcad_title_verify_summary_last.txt" "SWTITLEUXVERIFY 통합 최종 요약 로그")
+  (swcad-title-open-log "swcad_title_verify_summary_last.txt" "CURSORSWTITLEUXVERIFY 통합 최종 요약 로그")
 )
 
 (defun swcad-title-open-role-check-log ()
-  (swcad-title-open-log "swcad_title_role_check_last.txt" "SWTITLEUXVERIFY 내부 role 확인 로그")
+  (swcad-title-open-log "swcad_title_role_check_last.txt" "CURSORSWTITLEUXVERIFY 내부 role 확인 로그")
 )
 
 (defun swcad-title-open-frame-def-check-log ()
-  (swcad-title-open-log "swcad_title_frame_def_check_last.txt" "SWTITLEUXSTATUS 내부 도면틀 정의 확인 로그")
+  (swcad-title-open-log "swcad_title_frame_def_check_last.txt" "CURSORSWTITLEUXSTATUS 내부 도면틀 정의 확인 로그")
 )
 
 (defun swcad-title-open-frame-def-clean-log ()
-  (swcad-title-open-log "swcad_title_frame_def_clean_last.txt" "SWTITLEUXPREPARE 내부 도면틀 정의 정리 로그")
+  (swcad-title-open-log "swcad_title_frame_def_clean_last.txt" "CURSORSWTITLEUXPREPARE 내부 도면틀 정의 정리 로그")
 )
 
 (defun swcad-title-open-frame-def-repair-log ()
-  (swcad-title-open-log "swcad_title_frame_def_repair_last.txt" "SWTITLEUXPREPARE 내부 도면틀 정의 복구 로그")
+  (swcad-title-open-log "swcad_title_frame_def_repair_last.txt" "CURSORSWTITLEUXPREPARE 내부 도면틀 정의 복구 로그")
 )
 
 (defun swcad-title-open-frame-def-title-clean-log ()
-  (swcad-title-open-log "swcad_title_frame_def_title_clean_last.txt" "SWTITLEUXPREPARE 내부 중첩 제목블록 정리 로그")
+  (swcad-title-open-log "swcad_title_frame_def_title_clean_last.txt" "CURSORSWTITLEUXPREPARE 내부 중첩 제목블록 정리 로그")
 )
 
 (defun swcad-title-open-frame-embedded-title-clean-log ()
-  (swcad-title-open-log "swcad_title_frame_embedded_title_clean_last.txt" "SWTITLEUXPREPARE 내부 도면틀 내장 표제란 정리 로그")
+  (swcad-title-open-log "swcad_title_frame_embedded_title_clean_last.txt" "CURSORSWTITLEUXPREPARE 내부 도면틀 내장 표제란 정리 로그")
 )
 
 (defun swcad-title-open-frame-style-normalization-clean-log ()
-  (swcad-title-open-log "swcad_title_frame_style_normalization_clean_last.txt" "SWTITLEUXPREPARE 내부 도면틀 스타일 정규화 로그")
+  (swcad-title-open-log "swcad_title_frame_style_normalization_clean_last.txt" "CURSORSWTITLEUXPREPARE 내부 도면틀 스타일 정규화 로그")
 )
 
 (defun swcad-title-open-a3-frame-clean-log ()
-  (swcad-title-open-log "swcad_title_a3_frame_clean_last.txt" "SWTITLEUXPREPARE 내부 A3 내장 표제란 정리 로그")
+  (swcad-title-open-log "swcad_title_a3_frame_clean_last.txt" "CURSORSWTITLEUXPREPARE 내부 A3 내장 표제란 정리 로그")
 )
 
 (defun swcad-title-open-fast-status-log ()
-  (swcad-title-open-log "swcad_title_fast_status_last.txt" "SWTITLEUXSTATUS 내부 빠른 변환 준비 로그")
+  (swcad-title-open-log "swcad_title_fast_status_last.txt" "CURSORSWTITLEUXSTATUS 내부 빠른 변환 준비 로그")
 )
 
 (defun swcad-title-open-next-step-log ()
-  (swcad-title-open-log "swcad_title_next_step_last.txt" "SWTITLEUXSTATUS 내부 다음 단계 로그")
+  (swcad-title-open-log "swcad_title_next_step_last.txt" "CURSORSWTITLEUXSTATUS 내부 다음 단계 로그")
 )
 
 (defun swcad-title-open-status-refresh-log ()
-  (swcad-title-open-log "swcad_title_status_refresh_last.txt" "SWTITLEUXSTATUS 내부 상태 요약 로그")
+  (swcad-title-open-log "swcad_title_status_refresh_last.txt" "CURSORSWTITLEUXSTATUS 내부 상태 요약 로그")
 )
 
 (defun swcad-title-open-structure-diagnosis-log ()
-  (swcad-title-open-log "swcad_title_structure_diagnosis_last.txt" "SWTITLEUXSTATUS 내부 구조 판단 요약 로그")
+  (swcad-title-open-log "swcad_title_structure_diagnosis_last.txt" "CURSORSWTITLEUXSTATUS 내부 구조 판단 요약 로그")
 )
 
 (defun swcad-title-open-a3a4-fix-plan-log ()
-  (swcad-title-open-log "swcad_title_a3a4_fix_plan_last.txt" "SWTITLEUXSTATUS 내부 A2/A3/A4 교체 계획 로그")
+  (swcad-title-open-log "swcad_title_a3a4_fix_plan_last.txt" "CURSORSWTITLEUXSTATUS 내부 A2/A3/A4 교체 계획 로그")
 )
 
 (defun swcad-title-close-log ()
@@ -4267,7 +4267,7 @@
     (if msg
       (progn
         (swcad-title-log-line (strcat "Error: " (swcad-title-string msg)))
-        (swcad-title-princ-line (strcat "SWTITLEUXSTATUS 다중 시트 요약 오류: " (swcad-title-string msg)))
+        (swcad-title-princ-line (strcat "CURSORSWTITLEUXSTATUS 다중 시트 요약 오류: " (swcad-title-string msg)))
       )
     )
     (swcad-title-close-log)
@@ -4285,11 +4285,11 @@
   (setq title-with-frame-count 0)
   (setq title-without-frame-count 0)
 
-  (swcad-title-log-line "----- SWTITLEUXSTATUS 내부 빠른 다중 시트 요약(읽기 전용) -----")
+  (swcad-title-log-line "----- CURSORSWTITLEUXSTATUS 내부 빠른 다중 시트 요약(읽기 전용) -----")
   (swcad-title-log-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-log-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-log-line "Residue cleanup candidate scan: skipped in fast preview.")
-  (swcad-title-log-line "상세 매핑/잔여물 진단은 SWTITLEUXSTATUS 내부 로그에서 확인하세요.")
+  (swcad-title-log-line "상세 매핑/잔여물 진단은 CURSORSWTITLEUXSTATUS 내부 로그에서 확인하세요.")
 
   (foreach sheet-frame sheet-frames
     (setq sheet-frame-key (nth 5 sheet-frame))
@@ -4379,7 +4379,7 @@
   (swcad-title-log-line (strcat "Elapsed ms: " (itoa elapsed)))
   (swcad-title-log-line "No drawing data was changed.")
 
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 빠른 요약 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 빠른 요약 -----")
   (swcad-title-princ-line (strcat "Source titles: " (itoa total)))
   (swcad-title-princ-line (strcat "Source sheet frames: " (itoa frame-total)))
   (swcad-title-princ-line (strcat "Frame-only sheets: " (itoa frame-only-count)))
@@ -4403,7 +4403,7 @@
   (setq frame-sheet-counts nil)
   (setq mapped-total 0)
   (setq residue-total 0)
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 다중 시트 변환 미리보기(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 다중 시트 변환 미리보기(읽기 전용) -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -4567,7 +4567,7 @@
 
 (defun swcad-title-frame-scan (/ sources index source ename data bbox block frame frame-data frame-bbox frame-block raw-frame-block block-sheet insert-ss insert-index insert-total insert-ename insert-data raw-name effective-name insert-bbox insert-sheet bbox-sheet interesting-count a4-count)
   (swcad-title-open-frame-scan-log)
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 원본 도면틀 진단(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 원본 도면틀 진단(읽기 전용) -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-princ-line "Selected source frames:")
@@ -5327,11 +5327,11 @@
               (strcat
                 "  "
                 frame-block
-                ": 이 크기의 실제 표제란 시트 1장을 생성/마무리하려면 SWTITLEUXCONVERTNEXT를 실행한 뒤 SWTITLEUXSTATUS를 다시 실행하세요."
+                ": 이 크기의 실제 표제란 시트 1장을 생성/마무리하려면 CURSORSWTITLEUXCONVERTNEXT를 실행한 뒤 CURSORSWTITLEUXSTATUS를 다시 실행하세요."
               )
             )
             (if (not has-any-example)
-              (swcad-title-princ-line "    전체 첫 시트라면 SWTITLEUXCONVERTNEXT가 내부에서 첫 실제 GMTITLE 단계를 엽니다.")
+              (swcad-title-princ-line "    전체 첫 시트라면 CURSORSWTITLEUXCONVERTNEXT가 내부에서 첫 실제 GMTITLE 단계를 엽니다.")
             )
           )
           ((> frame-only-count 0)
@@ -5339,7 +5339,7 @@
               (strcat
                 "  "
                 frame-block
-                ": 이 크기는 원본 표제란 부재가 검증된 도면틀-only 예외입니다. 새 DR_titlea_3rd를 만들지 말고 같은 크기 DR 도면틀 정의 검증 후 SWTITLEUXCONVERTNEXT로 outline-only 변환하세요."
+                ": 이 크기는 원본 표제란 부재가 검증된 도면틀-only 예외입니다. 새 DR_titlea_3rd를 만들지 말고 같은 크기 DR 도면틀 정의 검증 후 CURSORSWTITLEUXCONVERTNEXT로 outline-only 변환하세요."
               )
             )
             (setq risk-message
@@ -5352,7 +5352,7 @@
               (progn
                 (swcad-title-princ-line (strcat "    경고: " risk-message))
                 (swcad-title-princ-line "    같은 크기 DR_A*_Outline 도면틀 정의가 bbox 검사를 통과하기 전에는 기존 원본 도면틀을 지우지 마세요.")
-                (swcad-title-princ-line "    SWTITLEUXPREPARE가 도면틀 정의를 준비/검증한 뒤 SWTITLEUXCONVERTNEXT가 outline-only 변환을 처리합니다.")
+                (swcad-title-princ-line "    CURSORSWTITLEUXPREPARE가 도면틀 정의를 준비/검증한 뒤 CURSORSWTITLEUXCONVERTNEXT가 outline-only 변환을 처리합니다.")
               )
             )
           )
@@ -5515,10 +5515,10 @@
       )
     )
     ((equal status "missing")
-      (swcad-title-princ-line "  필요 작업(title-missing 예외): SWTITLEUXPREPARE로 설치 원본 정의를 가져와 형상/선택범위를 먼저 검증하세요.")
+      (swcad-title-princ-line "  필요 작업(title-missing 예외): CURSORSWTITLEUXPREPARE로 설치 원본 정의를 가져와 형상/선택범위를 먼저 검증하세요.")
     )
     ((equal status "contaminated")
-      (swcad-title-princ-line "  필요 작업(title-missing 예외): SWTITLEUXPREPARE로 오염된 DR 도면틀 정의를 정리/복구해야 합니다.")
+      (swcad-title-princ-line "  필요 작업(title-missing 예외): CURSORSWTITLEUXPREPARE로 오염된 DR 도면틀 정의를 정리/복구해야 합니다.")
     )
     ((equal status "raw-bbox-risk")
       (swcad-title-princ-line "  필요 작업(title-missing 예외): DR 도면틀 정의의 실제 선택 범위가 커서 기존 원본 도면틀을 삭제하지 않습니다.")
@@ -5744,7 +5744,7 @@
       (setq title-block (caddr record))
       (setq role (if (cadddr record) (cadddr record) "title-sheet"))
       (swcad-title-princ-line "짧은 GMTITLE 선택 카드:")
-      (swcad-title-princ-line "  다음 명령: SWTITLEUXCONVERTNEXT")
+      (swcad-title-princ-line "  다음 명령: CURSORSWTITLEUXCONVERTNEXT")
       (swcad-title-princ-line (strcat "  용지/도면틀: " (if frame-block frame-block "<unknown>")))
       (swcad-title-princ-line (strcat "  제목블록: " (if title-block title-block "<unknown>")))
       (if (equal role "frame-only")
@@ -5762,7 +5762,7 @@
         (setq frame-block (if pair (caddr pair) "DR_A*_Outline"))
         (setq sheet (swcad-title-sheet-size-from-block-name frame-block))
         (swcad-title-princ-line "짧은 GMTITLE 선택 카드:")
-        (swcad-title-princ-line "  다음 명령: SWTITLEUXCONVERTNEXT")
+        (swcad-title-princ-line "  다음 명령: CURSORSWTITLEUXCONVERTNEXT")
         (swcad-title-princ-line "  대상: A2/A3/A4 native 교체 후보 다음 1장")
         (swcad-title-princ-line "  우선순위: native 교체 후보가 title-missing/frame-only 예외 준비보다 먼저입니다.")
         (swcad-title-princ-line (strcat "  용지/도면틀: " (if frame-block frame-block "DR_A*_Outline")))
@@ -5877,7 +5877,7 @@
       )
     )
   )
-  (swcad-title-princ-line "  - 좌표 입력, 값 복사, 기존 원본 정리는 SWTITLEUXCONVERTNEXT/SWTITLEUXCONVERT 흐름이 처리합니다.")
+  (swcad-title-princ-line "  - 좌표 입력, 값 복사, 기존 원본 정리는 CURSORSWTITLEUXCONVERTNEXT/CURSORSWTITLEUXCONVERT 흐름이 처리합니다.")
 )
 
 (defun swcad-title-fast-prerequisite-status (summary contaminated example-title / source-count frame-only-count missing-required frame-records geometry-risk-count overlap-risk-count)
@@ -5917,7 +5917,7 @@
   (setq geometry-risk-count (swcad-title-target-frame-geometry-warning-count frame-records))
   (setq overlap-risk-count (swcad-title-target-frame-overlap-warning-count frame-records))
   (setq status (swcad-title-fast-prerequisite-status summary contaminated example-title))
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 빠른 일괄 변환 준비 상태(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 빠른 일괄 변환 준비 상태(읽기 전용) -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -5956,36 +5956,36 @@
   (swcad-title-princ-line (strcat "Result: " status))
   (cond
     ((equal status "WARN_TARGET_FRAME_GEOMETRY_INVALID")
-      (swcad-title-princ-line "다음: SWTITLEUXVERIFY로 형상을 확인한 뒤, 문제가 있는 용지 크기의 GMTITLE 도면틀을 다시 만들거나 복구하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXVERIFY로 형상을 확인한 뒤, 문제가 있는 용지 크기의 GMTITLE 도면틀을 다시 만들거나 복구하세요.")
     )
     ((equal status "WARN_TARGET_FRAME_SELECTION_RISK")
-      (swcad-title-princ-line "다음: 더블클릭 확인 전에 SWTITLEUXVERIFY로 겹치는 도면틀/제목블록 영역을 확인하세요.")
+      (swcad-title-princ-line "다음: 더블클릭 확인 전에 CURSORSWTITLEUXVERIFY로 겹치는 도면틀/제목블록 영역을 확인하세요.")
     )
     ((equal status "WAITING_FOR_NATIVE_GMTITLE_EXEMPLAR")
-      (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행하세요. 첫 native GMTITLE 단계의 반복 응답을 자동 선택합니다.")
-      (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행하세요. 첫 native GMTITLE 단계의 반복 응답을 자동 선택합니다.")
+      (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
     )
     ((equal status "READY_FOR_TITLE_MISSING_OUTLINE")
-      (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행하세요. 원본에 없던 제목블록은 만들지 않고 해당 DR 도면틀만 교체합니다.")
-      (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행하세요. 원본에 없던 제목블록은 만들지 않고 해당 DR 도면틀만 교체합니다.")
+      (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
       (swcad-title-princ-line "형상 검사를 통과하지 못하면 새 도면틀은 삭제하고 기존 원본 도면틀은 보존합니다.")
     )
     ((equal status "WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION")
       (swcad-title-print-title-missing-outline-definition-status)
-      (swcad-title-princ-line "다음: SWTITLEUXPREPARE를 실행해 대상 DR 도면틀 정의를 먼저 가져오고 검증하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXPREPARE를 실행해 대상 DR 도면틀 정의를 먼저 가져오고 검증하세요.")
       (swcad-title-princ-line "검증 전에는 기존 원본 도면틀을 삭제하지 않습니다.")
     )
     ((equal status "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
-      (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행해서 누락된 같은 크기의 native GMTITLE 기준 객체를 만들거나 안내받으세요.")
-      (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행해서 누락된 같은 크기의 native GMTITLE 기준 객체를 만들거나 안내받으세요.")
+      (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
     )
     ((equal status "PARTIAL_READY_FOR_FAST_BATCH")
-      (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행하세요. 준비된 용지 크기를 처리하고, 다음 누락 크기에서 멈춥니다.")
-      (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행하세요. 준비된 용지 크기를 처리하고, 다음 누락 크기에서 멈춥니다.")
+      (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
     )
     ((equal status "OK_READY_FOR_FAST_BATCH")
-      (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행하세요.")
-      (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행하세요.")
+      (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
     )
   )
   (swcad-title-princ-line "No drawing data was changed.")
@@ -6011,7 +6011,7 @@
 )
 
 (defun swcad-title-print-native-batch-safety-guidance ()
-  (swcad-title-princ-line "BATCH 안전 조건: 먼저 OPEN으로 1장을 성공시킨 뒤 SWTITLEUXSTATUS/direct probe에서 후보 수가 줄었는지 확인하세요.")
+  (swcad-title-princ-line "BATCH 안전 조건: 먼저 OPEN으로 1장을 성공시킨 뒤 CURSORSWTITLEUXSTATUS/direct probe에서 후보 수가 줄었는지 확인하세요.")
   (swcad-title-princ-line "BATCH 사용 시점: 남은 후보들이 같은 DR 용지/DR_titlea_3rd/Frame positioning ON/Object move OFF로 반복된다고 눈으로 확인될 때만 사용하세요.")
   (swcad-title-princ-line "BATCH 금지 조건: 첫 후보부터 바로 BATCH를 쓰거나, GMTITLE 창이 DR이 아닌 일반/ISO 기본값이면 진행하지 마세요.")
 )
@@ -6064,7 +6064,7 @@
   (setq style-count (length style-records))
   (setq command-text-count (swcad-title-command-text-residue-count))
 
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 다음 단계 안내(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 다음 단계 안내(읽기 전용) -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-print-log-evidence-note)
@@ -6111,7 +6111,7 @@
   )
 
   (if (not (swcad-title-current-dwg-in-work-p))
-    (swcad-title-princ-line "작업본 안내: 다음 SWTITLEUXPREPARE/SWTITLEUXCONVERTNEXT 실행 시 다른 이름으로 저장 창에서 새 작업본 위치를 먼저 선택합니다.")
+    (swcad-title-princ-line "작업본 안내: 다음 CURSORSWTITLEUXPREPARE/CURSORSWTITLEUXCONVERTNEXT 실행 시 다른 이름으로 저장 창에서 새 작업본 위치를 먼저 선택합니다.")
   )
   (if (swcad-title-document-read-only-p)
     (swcad-title-princ-line "읽기 전용 원본 안내: 원본을 직접 수정하지 않고, 선택한 새 작업본에 저장한 뒤 변환합니다.")
@@ -6121,42 +6121,42 @@
     ((> command-text-count 0)
       (swcad-title-apply-result "NEXT_REVIEW_ACCIDENTAL_COMMAND_TEXT")
       (swcad-title-princ-line "이유: CAD가 문자/입력 상태였을 때 명령어 글자가 도면에 들어갔을 수 있습니다.")
-      (swcad-title-princ-line "다음: 계속하기 전에 SWTITLEUXSTATUS로 명령어 텍스트 잔여물 후보를 확인하세요.")
-      (swcad-title-princ-line "목록의 항목이 작업복사본 안의 실수 명령어 잔여물이 맞다면 SWTITLEUXPREPARE에서 정리하세요.")
+      (swcad-title-princ-line "다음: 계속하기 전에 CURSORSWTITLEUXSTATUS로 명령어 텍스트 잔여물 후보를 확인하세요.")
+      (swcad-title-princ-line "목록의 항목이 작업복사본 안의 실수 명령어 잔여물이 맞다면 CURSORSWTITLEUXPREPARE에서 정리하세요.")
       (swcad-title-princ-line "작업복사본에서 확인/정리하기 전에는 변환 명령을 실행하지 마세요.")
     )
     ((> style-count 0)
       (swcad-title-apply-result "NEXT_PREPARE_FRAME_STYLE_NORMALIZATION")
       (swcad-title-princ-line "이유: CAD native DR 도면틀 안의 static 표제란 형상이 별도 DR_titlea_3rd와 겹쳐 표제란이 두 개처럼 보일 수 있습니다.")
       (swcad-title-print-frame-style-normalization-records style-records)
-      (swcad-title-princ-line "다음: SWTITLEUXPREPARE로 도면틀 스타일 정규화 후보를 확인하세요.")
-      (swcad-title-princ-line "이 상태에서 SWTITLEUXCONVERT를 반복하면 같은 중복 모양이 여러 장으로 복제될 수 있습니다.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXPREPARE로 도면틀 스타일 정규화 후보를 확인하세요.")
+      (swcad-title-princ-line "이 상태에서 CURSORSWTITLEUXCONVERT를 반복하면 같은 중복 모양이 여러 장으로 복제될 수 있습니다.")
     )
     ((> definition-raw-risk-count 0)
       (swcad-title-apply-result "NEXT_REVIEW_FRAME_DEFINITION_RAW_BBOX")
       (swcad-title-princ-line "이유: DR 도면틀 정의 자체의 raw bbox가 예상 용지보다 과도하게 큽니다.")
       (swcad-title-print-frame-definition-raw-bbox-risk-records definition-raw-risk-records)
-      (swcad-title-princ-line "다음: 현재 단계에서는 SWTITLEUXCONVERT를 반복하지 말고, 정의 복구/정규화 설계를 먼저 확인하세요.")
+      (swcad-title-princ-line "다음: 현재 단계에서는 CURSORSWTITLEUXCONVERT를 반복하지 말고, 정의 복구/정규화 설계를 먼저 확인하세요.")
       (swcad-title-princ-line "기존 원본 도면틀은 raw bbox 검사를 통과하기 전까지 삭제하지 않습니다.")
     )
     ((> geometry-risk-count 0)
       (swcad-title-apply-result "NEXT_REVIEW_TARGET_FRAME_GEOMETRY")
-      (swcad-title-princ-line "다음: 계속하기 전에 SWTITLEUXVERIFY로 잘못된 대상 도면틀 형상을 확인하세요.")
+      (swcad-title-princ-line "다음: 계속하기 전에 CURSORSWTITLEUXVERIFY로 잘못된 대상 도면틀 형상을 확인하세요.")
     )
     ((> overlap-risk-count 0)
       (swcad-title-apply-result "NEXT_REVIEW_TARGET_FRAME_SELECTION")
-      (swcad-title-princ-line "다음: SWTITLEUXVERIFY로 겹치거나 과도하게 큰 대상 도면틀 선택 위험을 확인하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXVERIFY로 겹치거나 과도하게 큰 대상 도면틀 선택 위험을 확인하세요.")
     )
     ((> orphan-count 0)
       (swcad-title-apply-result "NEXT_CLEAN_ORPHAN_TARGET_FRAMES")
       (swcad-title-print-orphan-target-frame-records orphan-records)
-      (swcad-title-princ-line "다음: SWTITLEUXPREPARE를 실행해 제목블록 없는 GMTITLE 도면틀을 먼저 정리하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXPREPARE를 실행해 제목블록 없는 GMTITLE 도면틀을 먼저 정리하세요.")
       (swcad-title-princ-line "이 상태에서 다음 용지로 넘어가면 A2/A3/A4 title-sheet 완료 판단이 어긋날 수 있습니다.")
     )
     ((or (> invalid-title-missing-count 0) title-count-shortage-records)
       (swcad-title-apply-result "NEXT_REVIEW_MISSING_NATIVE_TITLES")
       (swcad-title-princ-line "이유: 제목 정보가 있던 시트에 DR_titlea_3rd가 없거나, 기존 일반 제목 MTEXT만 남아 있습니다.")
-      (swcad-title-princ-line "다음: SWTITLEUXVERIFY 상세를 확인하고, 원본 work 복사본에서 통합 변환을 다시 실행하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXVERIFY 상세를 확인하고, 원본 work 복사본에서 통합 변환을 다시 실행하세요.")
       (swcad-title-princ-line "13개 제목블록 / 15개 도면틀 상태를 완료로 사용하지 마세요.")
     )
     ((> a3a4-count 0)
@@ -6170,22 +6170,22 @@
               "개의 표제란 없는 도면틀 시트가 아직 남아 있습니다. 원본 제목블록 부재가 검증된 경우에만 title-missing 예외로 처리합니다."
             )
           )
-          (swcad-title-princ-line "SWTITLEUXCONVERTNEXT는 이미 만들어진 A2/A3/A4 GMTITLE 중 더블클릭 동작을 신뢰할 수 없는 쌍을 먼저 한 장씩 교체합니다.")
-          (swcad-title-princ-line "그 뒤 SWTITLEUXSTATUS를 다시 실행하면 남은 title-missing 도면틀 시트의 같은 크기 DR_A*_Outline 기준 객체 필요 여부를 확인할 수 있습니다.")
+          (swcad-title-princ-line "CURSORSWTITLEUXCONVERTNEXT는 이미 만들어진 A2/A3/A4 GMTITLE 중 더블클릭 동작을 신뢰할 수 없는 쌍을 먼저 한 장씩 교체합니다.")
+          (swcad-title-princ-line "그 뒤 CURSORSWTITLEUXSTATUS를 다시 실행하면 남은 title-missing 도면틀 시트의 같은 크기 DR_A*_Outline 기준 객체 필요 여부를 확인할 수 있습니다.")
         )
       )
       (if (> a3a4-count 1)
         (progn
-          (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행하면 다음 A2/A3/A4 native 교체 후보 1장만 처리합니다.")
-          (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행하면 다음 A2/A3/A4 native 교체 후보 1장만 처리합니다.")
+          (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
           (swcad-title-princ-line (strcat "현재 A2/A3/A4 교체 후보는 " (itoa a3a4-count) "개입니다. GMTITLE 창을 안전하게 확인하기 위해 한 번에 1장만 처리합니다."))
           (swcad-title-princ-line "다음 후보의 native GMTITLE 창을 열고, 기존 제목블록 값을 복사한 뒤 이전 복제/non-native 쌍을 삭제합니다.")
           (swcad-title-princ-line "GMTITLE 창에서는 출력된 DR_A*_Outline 용지와 DR_titlea_3rd를 고르세요. Frame positioning은 ON, Object move는 OFF로 두세요.")
-          (swcad-title-princ-line "나머지 A2/A3/A4 후보는 SWTITLEUXSTATUS와 SWTITLEUXCONVERTNEXT를 반복해서 처리하세요. 보조 복구 명령은 진단용입니다.")
+          (swcad-title-princ-line "나머지 A2/A3/A4 후보는 CURSORSWTITLEUXSTATUS와 CURSORSWTITLEUXCONVERTNEXT를 반복해서 처리하세요. 보조 복구 명령은 진단용입니다.")
         )
         (progn
-          (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행하세요.")
-          (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행하세요.")
+          (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
           (swcad-title-princ-line "GMTITLE 창에서는 출력된 DR_A*_Outline 용지와 DR_titlea_3rd를 고르고, Frame positioning은 ON, Object move는 OFF로 두세요.")
         )
       )
@@ -6195,52 +6195,52 @@
         ((and (= source-count 0) (> frame-only-count 0) (swcad-title-title-missing-outline-definition-needed-p))
           (swcad-title-apply-result "NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION")
           (swcad-title-print-title-missing-outline-definition-status)
-          (swcad-title-princ-line "다음: SWTITLEUXPREPARE를 실행하세요. 같은 크기 DR_A*_Outline 정의를 가져와 형상/선택범위를 먼저 검사합니다.")
-          (swcad-title-princ-line "이 검사를 통과하기 전에는 SWTITLEUXCONVERTNEXT가 기존 원본 도면틀을 삭제하지 않습니다.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXPREPARE를 실행하세요. 같은 크기 DR_A*_Outline 정의를 가져와 형상/선택범위를 먼저 검사합니다.")
+          (swcad-title-princ-line "이 검사를 통과하기 전에는 CURSORSWTITLEUXCONVERTNEXT가 기존 원본 도면틀을 삭제하지 않습니다.")
         )
         ((and (= source-count 0) (> frame-only-count 0) (swcad-title-title-missing-outline-policy-blocked-p))
           (swcad-title-apply-result "READY_FOR_TITLE_MISSING_OUTLINE")
-          (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행하세요. 원본 표제란 부재가 검증된 시트는 도면틀만 교체합니다.")
-          (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행하세요. 원본 표제란 부재가 검증된 시트는 도면틀만 교체합니다.")
+          (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
           (swcad-title-princ-line "원본에 없던 DR_titlea_3rd 제목블록은 만들지 않습니다.")
         )
         ((not example-title)
           (swcad-title-apply-result "NEXT_CREATE_FIRST_NATIVE_GMTITLE")
           (swcad-title-print-next-bootstrap-selection)
-          (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행하세요. 첫 native GMTITLE 단계를 내부에서 엽니다.")
-          (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행하세요. 첫 native GMTITLE 단계를 내부에서 엽니다.")
+          (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
           (swcad-title-princ-line "GMTITLE 창에서는 위 용지/도면틀과 제목블록을 고르고, Frame positioning은 ON, Object move는 OFF로 두세요.")
         )
         ((and missing-required-native (not (swcad-title-next-fast-target-ready-p)))
           (swcad-title-apply-result "NEXT_CREATE_MISSING_NATIVE_EXEMPLAR")
           (swcad-title-print-required-native-exemplars summary)
           (swcad-title-print-next-missing-native-selection summary missing-required-native)
-          (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행하세요. 가능한 경우 누락된 정확한 크기의 native GMTITLE 단계를 내부에서 안내합니다.")
-          (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행하세요. 가능한 경우 누락된 정확한 크기의 native GMTITLE 단계를 내부에서 안내합니다.")
+          (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
         )
         (T
           (setq next-frame-block (swcad-title-next-fast-target-frame-block))
           (swcad-title-apply-result "NEXT_RUN_FAST_BATCH")
-          (swcad-title-princ-line (strcat "다음: SWTITLEUXCONVERTNEXT를 실행하세요. 다음 대상 도면틀=" (if next-frame-block next-frame-block "<unknown>")))
-          (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+          (swcad-title-princ-line (strcat "다음: CURSORSWTITLEUXCONVERTNEXT를 실행하세요. 다음 대상 도면틀=" (if next-frame-block next-frame-block "<unknown>")))
+          (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
         )
       )
     )
     (missing-target-sheets
       (swcad-title-apply-result "NEXT_CREATE_MISSING_TARGET_SHEET")
-      (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행해서 가능한 경우 누락된 대상 용지 크기를 만들고 finalize하세요.")
-      (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행해서 가능한 경우 누락된 대상 용지 크기를 만들고 finalize하세요.")
+      (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
     )
     ((and (= source-frame-count 0) count-shortage-records)
       (swcad-title-apply-result "NEXT_REVIEW_TARGET_SHEET_COUNT_SHORTAGE")
-      (swcad-title-princ-line "다음: SWTITLEUXVERIFY 로그에서 부족한 대상 용지 수량을 확인하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXVERIFY 로그에서 부족한 대상 용지 수량을 확인하세요.")
       (swcad-title-princ-line "원본 도면틀이 모두 사라진 상태에서 target 수량이 부족하므로 변환 완료로 볼 수 없습니다.")
     )
     (T
       (swcad-title-apply-result "NEXT_FINAL_VERIFY_AND_DOUBLE_CLICK")
-      (swcad-title-princ-line "다음: SWTITLEUXVERIFY를 실행하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXVERIFY를 실행하세요.")
       (swcad-title-princ-line "최종 수동 확인: GstarCAD에서 실제 DR_titlea_3rd 제목블록이 있는 대표 용지만 더블클릭하세요.")
-      (swcad-title-princ-line "원본 표제란이 없는 title-missing/frame-only 시트는 더블클릭할 제목블록이 없으므로 SWTITLEUXVERIFY의 도면틀 수량/형상 검증으로 확인하세요.")
+      (swcad-title-princ-line "원본 표제란이 없는 title-missing/frame-only 시트는 더블클릭할 제목블록이 없으므로 CURSORSWTITLEUXVERIFY의 도면틀 수량/형상 검증으로 확인하세요.")
     )
   )
   (swcad-title-princ-line "도면 데이터는 변경하지 않았습니다.")
@@ -6264,7 +6264,7 @@
   (setq invalid-title-missing-count (length (swcad-title-title-missing-outline-with-loose-title-records)))
   (setq geometry-risk-count (swcad-title-target-frame-geometry-warning-count frame-records))
   (setq overlap-risk-count (swcad-title-target-frame-overlap-warning-count frame-records))
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 상태 요약 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 상태 요약 -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -6298,10 +6298,10 @@
   (swcad-title-apply-result status)
   (cond
     ((equal status "NEXT_UPGRADE_NATIVE_GMTITLE")
-      (swcad-title-princ-line "다음 명령: SWTITLEUXCONVERTNEXT")
-      (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+      (swcad-title-princ-line "다음 명령: CURSORSWTITLEUXCONVERTNEXT")
+      (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
       (swcad-title-princ-line (strcat "현재 표시된 A2/A3/A4 native 교체 후보는 " (itoa a3a4-count) "개입니다."))
-      (swcad-title-princ-line "SWTITLEUXCONVERTNEXT는 다음 후보 1장의 OPEN 응답을 자동 선택합니다. BATCH는 수동 SWTITLEUXCONVERT에서만 직접 선택하세요.")
+      (swcad-title-princ-line "CURSORSWTITLEUXCONVERTNEXT는 다음 후보 1장의 OPEN 응답을 자동 선택합니다. BATCH는 수동 CURSORSWTITLEUXCONVERT에서만 직접 선택하세요.")
       (swcad-title-print-native-batch-safety-guidance)
       (swcad-title-princ-line "BATCH를 써도 각 GMTITLE 창의 DR 용지/DR_titlea_3rd/Frame positioning ON/Object move OFF 확인은 사람이 해야 합니다.")
       (swcad-title-princ-line "이미 만들어진 A2/A3/A4 GMTITLE 대상 쌍의 더블클릭 native 동작을 복구하는 단계입니다.")
@@ -6310,38 +6310,38 @@
       )
     )
     ((equal status "NEXT_CLEAN_ORPHAN_TARGET_FRAMES")
-      (swcad-title-princ-line "다음 명령: SWTITLEUXPREPARE")
+      (swcad-title-princ-line "다음 명령: CURSORSWTITLEUXPREPARE")
       (swcad-title-print-orphan-target-frame-records orphan-records)
       (swcad-title-princ-line "제목블록 없는 GMTITLE 도면틀은 title-missing 도면틀-only marker가 없는 한 완료된 title-sheet로 보지 않습니다.")
-      (swcad-title-princ-line "정리 후 SWTITLEUXSTATUS를 다시 실행하세요.")
+      (swcad-title-princ-line "정리 후 CURSORSWTITLEUXSTATUS를 다시 실행하세요.")
     )
     ((equal status "NEXT_TRANSFER_REMAINING_SOURCE_SHEETS")
-      (swcad-title-princ-line "다음 명령: SWTITLEUXCONVERTNEXT")
-      (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+      (swcad-title-princ-line "다음 명령: CURSORSWTITLEUXCONVERTNEXT")
+      (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
       (if (> frame-only-count 0)
         (swcad-title-princ-line "원본 표제란이 없는 title-missing/frame-only 시트는 필요한 native 검사를 거친 뒤 같은 변환 흐름 안에서 처리됩니다.")
       )
     )
     ((equal status "READY_FOR_TITLE_MISSING_OUTLINE")
-      (swcad-title-princ-line "다음 명령: SWTITLEUXCONVERTNEXT")
-      (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+      (swcad-title-princ-line "다음 명령: CURSORSWTITLEUXCONVERTNEXT")
+      (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
       (swcad-title-princ-line "원본 표제란이 없는 title-missing/frame-only 시트는 원본에 없던 제목블록을 만들지 않고 도면틀만 교체합니다.")
       (swcad-title-princ-line "형상 검사를 통과하지 못하면 기존 원본 도면틀은 삭제하지 않습니다.")
     )
     ((equal status "NEXT_PREPARE_TITLE_MISSING_OUTLINE_DEFINITION")
-      (swcad-title-princ-line "다음 명령: SWTITLEUXPREPARE")
+      (swcad-title-princ-line "다음 명령: CURSORSWTITLEUXPREPARE")
       (swcad-title-print-title-missing-outline-definition-status)
-      (swcad-title-princ-line "대상 DR 도면틀 정의 검증이 끝난 뒤 SWTITLEUXSTATUS와 SWTITLEUXCONVERTNEXT를 이어서 실행하세요.")
+      (swcad-title-princ-line "대상 DR 도면틀 정의 검증이 끝난 뒤 CURSORSWTITLEUXSTATUS와 CURSORSWTITLEUXCONVERTNEXT를 이어서 실행하세요.")
     )
     ((equal status "NEXT_FINAL_VERIFY_AND_DOUBLE_CLICK")
-      (swcad-title-princ-line "다음 명령: SWTITLEUXVERIFY")
+      (swcad-title-princ-line "다음 명령: CURSORSWTITLEUXVERIFY")
       (swcad-title-princ-line "최종 수동 확인: 실제 DR_titlea_3rd 제목블록이 있는 대표 용지만 더블클릭하세요. 원본 표제란이 없는 title-missing/frame-only 시트는 더블클릭할 제목블록이 없습니다.")
     )
     (T
       (swcad-title-princ-line "다음: 위 상태가 가리키는 상세 로그를 확인하세요.")
     )
   )
-  (swcad-title-princ-line "SWTITLEUXSTATUS가 갱신한 내부 로그:")
+  (swcad-title-princ-line "CURSORSWTITLEUXSTATUS가 갱신한 내부 로그:")
   (swcad-title-princ-line "  work/swcad_title_next_step_last.txt")
   (swcad-title-princ-line "  work/swcad_title_native_upgrade_last.txt")
   (swcad-title-princ-line "  work/swcad_title_gmtitle_verify_all_last.txt")
@@ -6904,7 +6904,7 @@
 
 (defun swcad-title-role-check (/ failures item)
   (swcad-title-open-role-check-log)
-  (swcad-title-princ-line "----- SWTITLEUXVERIFY 내부 native role 분류 확인(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXVERIFY 내부 native role 분류 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
   (setq failures 0)
   (foreach item
@@ -9286,7 +9286,7 @@
         )
         (swcad-title-princ-line (strcat "     실제 제목블록 기준 도면틀 로컬 영역=" (swcad-title-bbox-string (nth 11 record))))
         (swcad-title-princ-line (strcat "     판단: " (nth 10 record)))
-        (swcad-title-princ-line "     다음: SWTITLEUXPREPARE에서 작업복사본 안의 도면틀 스타일 정규화를 검토하세요.")
+        (swcad-title-princ-line "     다음: CURSORSWTITLEUXPREPARE에서 작업복사본 안의 도면틀 스타일 정규화를 검토하세요.")
         (setq index (+ index 1))
       )
     )
@@ -9511,7 +9511,7 @@
 
 (defun swcad-title-frame-def-check (/ contaminated)
   (swcad-title-open-frame-def-check-log)
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 대상 도면틀 정의 확인(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 대상 도면틀 정의 확인(읽기 전용) -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -9537,7 +9537,7 @@
       (vl-catch-all-apply 'vla-EndUndoMark (list doc))
     )
     (if msg
-      (swcad-title-princ-line (strcat "SWTITLEUXPREPARE 도면틀 정의 제목블록 정리 오류: " (swcad-title-string msg)))
+      (swcad-title-princ-line (strcat "CURSORSWTITLEUXPREPARE 도면틀 정의 제목블록 정리 오류: " (swcad-title-string msg)))
     )
     (swcad-title-apply-result "ERROR_FRAME_DEF_TITLE_CLEAN")
     (swcad-title-close-log)
@@ -9548,7 +9548,7 @@
   (setq records (swcad-title-frame-def-title-child-records))
   (setq total (length records))
   (setq touched nil)
-  (swcad-title-princ-line "----- SWTITLEUXPREPARE 내부 도면틀 정의 안의 중첩 제목블록 정리 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXPREPARE 내부 도면틀 정의 안의 중첩 제목블록 정리 -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -9599,7 +9599,7 @@
           (vl-catch-all-apply 'vla-EndUndoMark (list doc))
           (swcad-title-princ-line (strcat "삭제한 중첩 제목블록: " (itoa deleted-count)))
           (swcad-title-apply-result "OK_FRAME_DEF_TITLE_CHILDREN_CLEANED")
-          (swcad-title-princ-line "다음: SWTITLEUXSTATUS와 SWTITLEUXVERIFY를 다시 실행해서 중복 표제란과 겹침 경고가 사라졌는지 확인하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXSTATUS와 CURSORSWTITLEUXVERIFY를 다시 실행해서 중복 표제란과 겹침 경고가 사라졌는지 확인하세요.")
         )
       )
     )
@@ -9610,7 +9610,7 @@
 
 (defun swcad-title-a3-frame-embedded-title-scan ()
   (swcad-title-open-a3-frame-clean-log)
-  (swcad-title-princ-line "----- SWTITLEUXPREPARE 내부 A3 도면틀 내부 표제란 형상 스캔(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXPREPARE 내부 A3 도면틀 내부 표제란 형상 스캔(읽기 전용) -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -9627,7 +9627,7 @@
       (vl-catch-all-apply 'vla-EndUndoMark (list doc))
     )
     (if msg
-      (swcad-title-princ-line (strcat "SWTITLEUXPREPARE A3 도면틀 내부 표제란 정리 오류: " (swcad-title-string msg)))
+      (swcad-title-princ-line (strcat "CURSORSWTITLEUXPREPARE A3 도면틀 내부 표제란 정리 오류: " (swcad-title-string msg)))
     )
     (swcad-title-apply-result "ERROR_A3_FRAME_EMBEDDED_TITLE_CLEAN")
     (swcad-title-close-log)
@@ -9638,7 +9638,7 @@
   (setq records (swcad-title-a3-frame-embedded-title-records))
   (setq total (length records))
   (setq touched nil)
-  (swcad-title-princ-line "----- SWTITLEUXPREPARE 내부 A3 도면틀 내부 표제란 형상 정리 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXPREPARE 내부 A3 도면틀 내부 표제란 형상 정리 -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -9689,7 +9689,7 @@
           (vl-catch-all-apply 'vla-EndUndoMark (list doc))
           (swcad-title-princ-line (strcat "삭제한 A3 도면틀 내부 표제란 형상: " (itoa deleted-count)))
           (swcad-title-apply-result "OK_A3_FRAME_EMBEDDED_TITLE_CLEANED")
-          (swcad-title-princ-line "다음: 화면에서 A3 도면틀 안의 내장 표제란이 사라졌는지 확인하고, SWTITLEUXSTATUS와 SWTITLEUXVERIFY를 다시 실행하세요.")
+          (swcad-title-princ-line "다음: 화면에서 A3 도면틀 안의 내장 표제란이 사라졌는지 확인하고, CURSORSWTITLEUXSTATUS와 CURSORSWTITLEUXVERIFY를 다시 실행하세요.")
         )
       )
     )
@@ -9704,7 +9704,7 @@
       (vl-catch-all-apply 'vla-EndUndoMark (list doc))
     )
     (if msg
-      (swcad-title-princ-line (strcat "SWTITLEUXPREPARE frame embedded title cleanup error: " (swcad-title-string msg)))
+      (swcad-title-princ-line (strcat "CURSORSWTITLEUXPREPARE frame embedded title cleanup error: " (swcad-title-string msg)))
     )
     (swcad-title-apply-result "ERROR_FRAME_EMBEDDED_TITLE_CLEAN")
     (swcad-title-close-log)
@@ -9715,7 +9715,7 @@
   (setq records (swcad-title-frame-embedded-title-records))
   (setq total (length records))
   (setq touched nil)
-  (swcad-title-princ-line "----- SWTITLEUXPREPARE DR 도면틀 정의 내부 표제란 형상 정리 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXPREPARE DR 도면틀 정의 내부 표제란 형상 정리 -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -9761,7 +9761,7 @@
           (vl-catch-all-apply 'vla-EndUndoMark (list doc))
           (swcad-title-princ-line (strcat "삭제한 도면틀 내부 표제란 형상: " (itoa deleted-count)))
           (swcad-title-apply-result "OK_FRAME_EMBEDDED_TITLE_CLEANED")
-          (swcad-title-princ-line "다음: SWTITLEUXSTATUS로 경고가 줄었는지 확인한 뒤 SWTITLEUXCONVERTNEXT를 실행하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXSTATUS로 경고가 줄었는지 확인한 뒤 CURSORSWTITLEUXCONVERTNEXT를 실행하세요.")
         )
       )
     )
@@ -10399,7 +10399,7 @@
       (vl-catch-all-apply 'vla-EndUndoMark (list doc))
     )
     (if msg
-      (swcad-title-princ-line (strcat "SWTITLEUXPREPARE frame style normalization error: " (swcad-title-string msg)))
+      (swcad-title-princ-line (strcat "CURSORSWTITLEUXPREPARE frame style normalization error: " (swcad-title-string msg)))
     )
     (swcad-title-apply-result "ERROR_FRAME_STYLE_NORMALIZATION_CLEAN")
     (if cache-owned
@@ -10421,7 +10421,7 @@
   (setq total (length records))
   (setq verify-total (length verify-records))
   (setq touched nil)
-  (swcad-title-princ-line "----- SWTITLEUXPREPARE 도면틀 스타일 정규화 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXPREPARE 도면틀 스타일 정규화 -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -10484,7 +10484,7 @@
               (swcad-title-princ-line "독립 검증을 통과했습니다. 같은 정리를 다시 실행해도 추가 삭제가 없어야 합니다.")
             )
           )
-          (swcad-title-princ-line "다음: SWTITLEUXSTATUS를 다시 실행해서 독립 잔여물 수가 0인지 확인하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXSTATUS를 다시 실행해서 독립 잔여물 수가 0인지 확인하세요.")
         )
       )
     )
@@ -10787,7 +10787,7 @@
 
 (defun swcad-title-repair-frame-definitions (/ doc answer frame-name result repaired failed status)
   (swcad-title-open-frame-def-repair-log)
-  (swcad-title-princ-line "----- SWTITLEUXPREPARE 내부 대상 도면틀 정의 형상 복구 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXPREPARE 내부 대상 도면틀 정의 형상 복구 -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -11074,7 +11074,7 @@
                   (swcad-title-princ-line (strcat "참고 정의 범위: " strict-warning))
                 )
               )
-              (swcad-title-princ-line "다음: SWTITLEUXSTATUS를 다시 실행한 뒤 SWTITLEUXCONVERTNEXT로 title-missing 도면틀-only 변환을 진행하세요.")
+              (swcad-title-princ-line "다음: CURSORSWTITLEUXSTATUS를 다시 실행한 뒤 CURSORSWTITLEUXCONVERTNEXT로 title-missing 도면틀-only 변환을 진행하세요.")
             )
             (T
               (if (and imported (not existed) (swcad-title-block-exists-p frame-block))
@@ -11122,7 +11122,7 @@
 
 (defun swcad-title-frame-def-clean-safe (/ doc answer frame-name exists old-child-names raw-risk-record raw-risk-after insert-count children rename-names rename-results target-renamed target backup-name renamed imported imported-valid rollback any-contaminated cleaned skipped failed skipped-referenced skipped-missing)
   (swcad-title-open-frame-def-clean-log)
-  (swcad-title-princ-line "----- SWTITLEUXPREPARE 내부 대상 도면틀 정의 안전 정리 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXPREPARE 내부 대상 도면틀 정의 안전 정리 -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -11909,7 +11909,7 @@
   (setq example-frame (if example-frame-record (car example-frame-record) nil))
   (setq example-frame-block (if example-frame-record (cadr example-frame-record) nil))
   (setq example-frame-bbox (if example-frame-record (cadddr example-frame-record) nil))
-  (swcad-title-princ-line "----- SWTITLEUXVERIFY 내부 preserve-copy native 쌍 복사 실험 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXVERIFY 내부 preserve-copy native 쌍 복사 실험 -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -12174,7 +12174,7 @@
   (setq frame-records (swcad-title-frame-records))
   (setq native-title (swcad-title-first-title-by-native-kind "internal"))
   (setq visible-title (swcad-title-first-title-by-native-kind "visible-target-frame"))
-  (swcad-title-princ-line "----- SWTITLEUXVERIFY 내부 native/clone 비교(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXVERIFY 내부 native/clone 비교(읽기 전용) -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -12224,7 +12224,7 @@
       )
     )
   )
-  (swcad-title-princ-line "----- SWTITLEUXVERIFY 내부 native-link 원시 상세(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXVERIFY 내부 native-link 원시 상세(읽기 전용) -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -12287,7 +12287,7 @@
   (setq visible-frame-link-found nil)
   (setq visible-frame-link-count 0)
   (setq contaminated-frame-found nil)
-  (swcad-title-princ-line "----- SWTITLEUXVERIFY 내부 GMTITLE link 스캔(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXVERIFY 내부 GMTITLE link 스캔(읽기 전용) -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -12467,7 +12467,7 @@
   (setq any-empty-attrs nil)
   (setq any-missing-native-xdata nil)
   (setq any-visible-frame-native-link nil)
-  (swcad-title-princ-line "----- SWTITLEUXVERIFY 내부 GMTITLE 변환 검증(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXVERIFY 내부 GMTITLE 변환 검증(읽기 전용) -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -12622,7 +12622,7 @@
   (setq native-link-title-counts (swcad-title-target-title-native-link-counts))
   (setq shared-native-link-count 0)
 
-  (swcad-title-princ-line "----- SWTITLEUXVERIFY 내부 전체 GMTITLE 검증(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXVERIFY 내부 전체 GMTITLE 검증(읽기 전용) -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -13004,7 +13004,7 @@
   (setq selection-risk-count 0)
   (setq used-title-enames nil)
 
-  (swcad-title-princ-line "----- SWTITLEUXVERIFY 내부 A2/A3/A4 native 도면틀 확인(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXVERIFY 내부 A2/A3/A4 native 도면틀 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -13227,20 +13227,20 @@
     (progn
       (swcad-title-princ-line "GMPOWEREDIT 진단: 복제된 GMTITLE 쌍이 남아 있습니다.")
       (swcad-title-princ-line "복제 쌍은 보이는 도면틀/제목블록/속성값은 복사됐지만, GstarCAD native 편집기 인식은 아직 증명되지 않은 상태입니다.")
-      (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행해서 해당 쌍을 fresh native GMTITLE 결과로 교체하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행해서 해당 쌍을 fresh native GMTITLE 결과로 교체하세요.")
     )
   )
   (if (> shared-link-count 0)
     (progn
       (swcad-title-princ-line "GMPOWEREDIT 진단: 여러 GMTITLE 제목블록이 같은 내부 native 인식 handle을 공유합니다.")
       (swcad-title-princ-line "preserve-copy/복제 결과에서 자주 보이는 상태입니다. 겉보기는 맞아도 더블클릭 인식이 REFEDIT나 블록 편집으로 떨어질 수 있습니다.")
-      (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행해서 해당 쌍을 fresh native GMTITLE 결과로 교체하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행해서 해당 쌍을 fresh native GMTITLE 결과로 교체하세요.")
     )
   )
   (if (and missing-required-sheets (> (length source-frames) 0))
     (progn
       (swcad-title-princ-line "누락 용지 진단: 기존 SOLIDWORKS 표제란 없는 도면틀 시트가 아직 남아 있습니다.")
-      (swcad-title-princ-line "native 복제 검토가 끝난 뒤 SWTITLEUXCONVERTNEXT로 남은 title-missing/frame-only 예외 시트를 처리하세요.")
+      (swcad-title-princ-line "native 복제 검토가 끝난 뒤 CURSORSWTITLEUXCONVERTNEXT로 남은 title-missing/frame-only 예외 시트를 처리하세요.")
     )
   )
   (swcad-title-princ-line "최종 수동 확인 필요: GstarCAD에서 변환된 대표 용지의 DR_titlea_3rd 제목블록을 더블클릭하세요.")
@@ -13302,7 +13302,7 @@
       (vl-catch-all-apply 'vla-EndUndoMark (list doc))
     )
     (if msg
-      (swcad-title-princ-line (strcat "SWTITLEUXPREPARE 고아 GMTITLE 도면틀 정리 오류: " (swcad-title-string msg)))
+      (swcad-title-princ-line (strcat "CURSORSWTITLEUXPREPARE 고아 GMTITLE 도면틀 정리 오류: " (swcad-title-string msg)))
     )
     (swcad-title-apply-result "ERROR_ORPHAN_TARGET_FRAME_CLEAN")
     (swcad-title-close-log)
@@ -13312,7 +13312,7 @@
   (setq doc (swcad-title-doc))
   (setq records (swcad-title-orphan-target-frame-records))
   (setq total (length records))
-  (swcad-title-princ-line "----- SWTITLEUXPREPARE 내부 제목블록 없는 GMTITLE 도면틀 정리 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXPREPARE 내부 제목블록 없는 GMTITLE 도면틀 정리 -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -13355,7 +13355,7 @@
           (vl-catch-all-apply 'vla-EndUndoMark (list doc))
           (swcad-title-princ-line (strcat "삭제한 고아 GMTITLE 도면틀: " (itoa deleted-count)))
           (swcad-title-apply-result "OK_ORPHAN_TARGET_FRAMES_CLEANED")
-          (swcad-title-princ-line "다음: SWTITLEUXVERIFY를 다시 실행해서 겹침 경고가 사라졌는지 확인하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXVERIFY를 다시 실행해서 겹침 경고가 사라졌는지 확인하세요.")
         )
       )
     )
@@ -13518,7 +13518,7 @@
       (vl-catch-all-apply 'vla-EndUndoMark (list doc))
     )
     (if msg
-      (swcad-title-princ-line (strcat "SWTITLEUXPREPARE 겹친 GMTITLE target 쌍 정리 오류: " (swcad-title-string msg)))
+      (swcad-title-princ-line (strcat "CURSORSWTITLEUXPREPARE 겹친 GMTITLE target 쌍 정리 오류: " (swcad-title-string msg)))
     )
     (swcad-title-apply-result "ERROR_DUPLICATE_TARGET_PAIR_CLEAN")
     (swcad-title-close-log)
@@ -13528,7 +13528,7 @@
   (setq doc (swcad-title-doc))
   (setq records (swcad-title-duplicate-target-pair-records))
   (setq total (length records))
-  (swcad-title-princ-line "----- SWTITLEUXPREPARE 내부 겹친 GMTITLE target 쌍 정리 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXPREPARE 내부 겹친 GMTITLE target 쌍 정리 -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -13578,7 +13578,7 @@
           (swcad-title-princ-line (strcat "삭제한 중복 제목블록: " (itoa deleted-title-count)))
           (swcad-title-princ-line (strcat "삭제한 중복 도면틀: " (itoa deleted-frame-count)))
           (swcad-title-apply-result "OK_DUPLICATE_TARGET_PAIRS_CLEANED")
-          (swcad-title-princ-line "다음: SWTITLEUXSTATUS를 다시 실행해서 겹침 경고가 사라졌는지 확인하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXSTATUS를 다시 실행해서 겹침 경고가 사라졌는지 확인하세요.")
         )
       )
     )
@@ -14113,7 +14113,7 @@
               )
             )
             (swcad-title-princ-line
-              "A2/A3/A4 대상은 SWTITLEUXSTATUS로 상태를 확인한 뒤 SWTITLEUXCONVERTNEXT로 한 장씩 처리하세요. 대화상자를 확인하기 위해 한 번에 한 후보만 처리합니다."
+              "A2/A3/A4 대상은 CURSORSWTITLEUXSTATUS로 상태를 확인한 뒤 CURSORSWTITLEUXCONVERTNEXT로 한 장씩 처리하세요. 대화상자를 확인하기 위해 한 번에 한 후보만 처리합니다."
             )
             result
           )
@@ -14360,7 +14360,7 @@
 (defun swcad-title-print-basic-entity (ename data / object object-name)
   (setq object (swcad-title-safe-vla-object ename))
   (setq object-name (swcad-title-safe-vla-get object 'ObjectName))
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 DEBUG BASIC -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 DEBUG BASIC -----")
   (swcad-title-princ-line (strcat "entity type: " (swcad-title-string (swcad-title-dxf-value data 0))))
   (swcad-title-princ-line (strcat "handle: " (swcad-title-string (swcad-title-dxf-value data 5))))
   (swcad-title-princ-line (strcat "layer: " (swcad-title-string (swcad-title-dxf-value data 8))))
@@ -14377,7 +14377,7 @@
 
 (defun swcad-title-print-xdata (ename / xdata pair)
   (setq xdata (entget ename '("*")))
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 DEBUG XDATA / RAW ENTGET -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 DEBUG XDATA / RAW ENTGET -----")
   (if xdata
     (foreach pair xdata
       (swcad-title-code-value-line "  DXF" pair)
@@ -14387,7 +14387,7 @@
 )
 
 (defun swcad-title-print-insert-attributes (ename / next edata etype count)
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 DEBUG ATTRIBUTES -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 DEBUG ATTRIBUTES -----")
   (setq count 0)
   (foreach edata (swcad-title-insert-attributes ename)
     (setq count (+ count 1))
@@ -14413,13 +14413,13 @@
   (if (= etype "INSERT")
     (swcad-title-print-insert-attributes ename)
     (progn
-      (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 DEBUG ATTRIBUTES -----")
+      (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 DEBUG ATTRIBUTES -----")
       (swcad-title-princ-line "  Selected entity is not an INSERT.")
     )
   )
-  (swcad-title-print-data-section "----- SWTITLEUXSTATUS 내부 DEBUG ENTGET -----" data)
+  (swcad-title-print-data-section "----- CURSORSWTITLEUXSTATUS 내부 DEBUG ENTGET -----" data)
   (swcad-title-print-xdata ename)
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 DEBUG END -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 DEBUG END -----")
   (swcad-title-close-log)
   (princ)
 )
@@ -14649,7 +14649,7 @@
 
 (defun swcad-title-command-text-scan (/ ss total records count record)
   (swcad-title-open-command-text-log)
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 명령어 텍스트 잔여물 확인(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 명령어 텍스트 잔여물 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -14680,7 +14680,7 @@
 
 (defun swcad-title-command-text-clean-safe (/ records count record answer doc deleted)
   (swcad-title-open-command-text-log)
-  (swcad-title-princ-line "----- SWTITLEUXPREPARE 내부 실수 명령어 텍스트 안전 정리 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXPREPARE 내부 실수 명령어 텍스트 안전 정리 -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -14726,7 +14726,7 @@
           (vl-catch-all-apply 'vla-EndUndoMark (list doc))
           (swcad-title-princ-line (strcat "실수로 들어간 명령어 텍스트 삭제: " (itoa deleted)))
           (swcad-title-apply-result "OK_COMMAND_TEXT_CLEANED")
-          (swcad-title-princ-line "다음: SWTITLEUXSTATUS를 다시 실행하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXSTATUS를 다시 실행하세요.")
         )
       )
     )
@@ -14903,7 +14903,7 @@
   (setq attribute-count 0)
   (setq bboxes nil)
   (setq text-records nil)
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 표제란 텍스트 스캔(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 표제란 텍스트 스캔(읽기 전용) -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
 
@@ -15667,7 +15667,7 @@
   (setq mapped-count 0)
   (setq duplicate-count 0)
   (setq unmapped-count 0)
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 GMTITLE 변환 미리보기(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 GMTITLE 변환 미리보기(읽기 전용) -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -15831,7 +15831,7 @@
       (swcad-title-princ-line (strcat "  sheet residue cleanup candidates: " (itoa (length residue-records))))
     )
     (progn
-      (swcad-title-princ-line "표제란처럼 보이는 INSERT를 찾지 못했습니다. 자세한 상태는 SWTITLEUXSTATUS로 다시 확인하세요.")
+      (swcad-title-princ-line "표제란처럼 보이는 INSERT를 찾지 못했습니다. 자세한 상태는 CURSORSWTITLEUXSTATUS로 다시 확인하세요.")
       (swcad-title-princ-line "Summary:")
       (swcad-title-princ-line "  mapped fields: 0")
     )
@@ -15857,7 +15857,7 @@
   (setq source-frame-block (if source-frame-ename (swcad-title-effective-insert-name source-frame-ename) nil))
   (setq frame-block (swcad-title-target-frame-block-name-for-source source-block source-frame-block nil source-frame-bbox))
   (setq title-block (swcad-title-target-title-block-name))
-  (swcad-title-princ-line "----- SWTITLEUXCONVERT 내부 첫 native GMTITLE 변환 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT 내부 첫 native GMTITLE 변환 -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -16239,7 +16239,7 @@
                   (swcad-title-princ-line (strcat "Frame geometry warning: " geometry-warning))
                 )
                 (if (and (> (strlen actual-frame-name) 0) (not (swcad-title-frame-name-matches-p actual-frame-name frame-block)))
-                  (swcad-title-princ-line "선택된 GMTITLE 용지가 기대한 원본 용지와 다릅니다. SWTITLEUXSTATUS로 상태를 확인한 뒤 로그가 요구한 DR 용지로 다시 진행하세요.")
+                  (swcad-title-princ-line "선택된 GMTITLE 용지가 기대한 원본 용지와 다릅니다. CURSORSWTITLEUXSTATUS로 상태를 확인한 뒤 로그가 요구한 DR 용지로 다시 진행하세요.")
                 )
                 (swcad-title-princ-line (strcat "Removed wrong/new GMTITLE inserts: " (itoa deleted-new-gmtitle-count)))
                 (swcad-title-princ-line "No old SOLIDWORKS title/frame content was removed.")
@@ -16288,7 +16288,7 @@
   (setq source-frame-block (if source-frame-ename (swcad-title-effective-insert-name source-frame-ename) nil))
   (setq frame-block (swcad-title-target-frame-block-name-for-source source-block source-frame-block nil source-frame-bbox))
   (setq title-block (swcad-title-target-title-block-name))
-  (swcad-title-princ-line "----- SWTITLEUXCONVERT 내부 기존 GMTITLE 변환 마무리 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT 내부 기존 GMTITLE 변환 마무리 -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -16622,7 +16622,7 @@
               (if (equal (strcase marker-role) "CLONE")
                 (progn
                   (swcad-title-apply-result "FINALIZED_CLONED_GMTITLE_TRANSFER")
-                  (swcad-title-princ-line "다음: 최종 더블클릭 확인 전에 SWTITLEUXSTATUS를 실행하고, 남은 A2/A3/A4 교체 후보를 SWTITLEUXCONVERTNEXT로 처리하세요.")
+                  (swcad-title-princ-line "다음: 최종 더블클릭 확인 전에 CURSORSWTITLEUXSTATUS를 실행하고, 남은 A2/A3/A4 교체 후보를 CURSORSWTITLEUXCONVERTNEXT로 처리하세요.")
                 )
                 (progn
                   (swcad-title-apply-result "FINALIZED_EXISTING_GMTITLE_TRANSFER")
@@ -16686,7 +16686,7 @@
   (setq source-sheet (if source-frame (nth 5 source-frame) nil))
   (setq frame-block (swcad-title-target-frame-block-name-for-sheet source-sheet))
   (setq title-block (swcad-title-target-title-block-name))
-  (swcad-title-princ-line "----- SWTITLEUXCONVERT 내부 기존/native frame-only 변환 마무리 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT 내부 기존/native frame-only 변환 마무리 -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -16774,7 +16774,7 @@
         (progn
           (setq geometry-warning "원본 표제란이 없는 시트에 별도 제목블록이 생성됨")
           (swcad-title-princ-line "title-missing 보호 중단: 원본 시트에는 표제란이 없는데 GMTITLE이 별도 제목블록을 만들었습니다.")
-          (swcad-title-princ-line "기존 원본 도면틀은 삭제하지 않습니다. SWTITLEUXCONVERTNEXT의 title-missing/frame-only 도면틀-only 경로로 다시 처리하세요.")
+          (swcad-title-princ-line "기존 원본 도면틀은 삭제하지 않습니다. CURSORSWTITLEUXCONVERTNEXT의 title-missing/frame-only 도면틀-only 경로로 다시 처리하세요.")
         )
       )
       (setq values (swcad-title-frame-only-default-values source-frame))
@@ -16920,7 +16920,7 @@
               (if (equal (strcase marker-role) "CLONE")
                 (progn
                   (swcad-title-apply-result "FINALIZED_CLONED_FRAME_ONLY_GMTITLE_TRANSFER")
-                  (swcad-title-princ-line "다음: 최종 더블클릭 확인 전에 SWTITLEUXSTATUS를 실행하고, 남은 A2/A3/A4 교체 후보를 SWTITLEUXCONVERTNEXT로 처리하세요.")
+                  (swcad-title-princ-line "다음: 최종 더블클릭 확인 전에 CURSORSWTITLEUXSTATUS를 실행하고, 남은 A2/A3/A4 교체 후보를 CURSORSWTITLEUXCONVERTNEXT로 처리하세요.")
                 )
                 (progn
                   (swcad-title-apply-result "FINALIZED_FRAME_ONLY_GMTITLE_TRANSFER")
@@ -17004,7 +17004,7 @@
   (setq placement-point (swcad-title-bbox-lower-left-point source-frame-bbox))
   (setq raw-definition-risk (if frame-block (swcad-title-frame-definition-raw-bbox-risk-record frame-block) nil))
   (swcad-title-open-apply-log)
-  (swcad-title-princ-line "----- SWTITLEUXCONVERT 내부 title-missing native 도면틀 변환 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT 내부 title-missing native 도면틀 변환 -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-loaded-version)
@@ -17051,12 +17051,12 @@
       (swcad-title-apply-result "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE")
       (swcad-title-princ-line "DR 도면틀 정의 raw bbox 위험이 남아 있어 기존 원본 도면틀을 삭제하지 않습니다.")
       (swcad-title-print-frame-definition-raw-bbox-risk-records (list raw-definition-risk))
-      (swcad-title-princ-line "먼저 SWTITLEUXPREPARE로 도면틀 정의를 복구/정규화하고 SWTITLEUXSTATUS를 다시 확인하세요.")
+      (swcad-title-princ-line "먼저 CURSORSWTITLEUXPREPARE로 도면틀 정의를 복구/정규화하고 CURSORSWTITLEUXSTATUS를 다시 확인하세요.")
     )
     ((not (and (swcad-title-block-exists-p frame-block) (not (swcad-title-target-frame-block-contaminated-p frame-block))))
       (swcad-title-apply-result "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE")
       (swcad-title-princ-line (strcat "현재 도면 안의 " (swcad-title-string frame-block) " 블록 정의가 없거나 정규화되지 않았습니다."))
-      (swcad-title-princ-line "먼저 SWTITLEUXPREPARE로 도면틀 정의를 정리하고 SWTITLEUXSTATUS를 다시 확인하세요.")
+      (swcad-title-princ-line "먼저 CURSORSWTITLEUXPREPARE로 도면틀 정의를 정리하고 CURSORSWTITLEUXSTATUS를 다시 확인하세요.")
     )
     ((swcad-title-script-active-p)
       (swcad-title-abort-interactive-gmtitle-script-active
@@ -17302,7 +17302,7 @@
           (progn
             (swcad-title-princ-line
               (strcat
-                "--- SWTITLEUXCONVERTNEXT title-missing 도면틀 "
+                "--- CURSORSWTITLEUXCONVERTNEXT title-missing 도면틀 "
                 (itoa index)
                 " / "
                 (itoa count)
@@ -17382,7 +17382,7 @@
   (setq frame-block (swcad-title-target-frame-block-name-for-sheet source-sheet))
   (setq placement-point (swcad-title-bbox-lower-left-point source-frame-bbox))
   (swcad-title-open-apply-log)
-  (swcad-title-princ-line "----- SWTITLEUXCONVERT 내부 첫 frame-only native 변환 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT 내부 첫 frame-only native 변환 -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -17466,7 +17466,7 @@
               (if (vl-catch-all-error-p finalize-result)
                 (progn
                   (swcad-title-open-apply-log)
-                  (swcad-title-princ-line "----- SWTITLEUXCONVERT frame-only finalize 오류 -----")
+                  (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT frame-only finalize 오류 -----")
                   (swcad-title-princ-line (vl-catch-all-error-message finalize-result))
                   (swcad-title-apply-result "ERROR_FRAME_ONLY_NATIVE_FINALIZE")
                   (swcad-title-close-log)
@@ -17475,7 +17475,7 @@
             )
             (progn
               (swcad-title-open-apply-log)
-              (swcad-title-princ-line "----- SWTITLEUXCONVERT frame-only native GMTITLE 실패 -----")
+              (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT frame-only native GMTITLE 실패 -----")
               (swcad-title-princ-line (strcat "예상 도면틀 블록: " frame-block))
               (swcad-title-princ-line (strcat "예상 제목블록: " (swcad-title-target-title-block-name)))
               (swcad-title-apply-result "ABORT_FRAME_ONLY_NATIVE_GMTITLE_NOT_CREATED")
@@ -17519,7 +17519,7 @@
         (setq *swcad-title-batch-frame-record* frame)
         (princ
           (strcat
-            "\n--- SWTITLEUXCONVERT 내부 표제란 시트 "
+            "\n--- CURSORSWTITLEUXCONVERT 내부 표제란 시트 "
             (itoa index)
             " / "
             (itoa total)
@@ -17586,7 +17586,7 @@
     (T
       (swcad-title-princ-line
         (strcat
-          "SWTITLEUXCONVERTNEXT native 자동 일괄 변환 시작: 남은 표제란 시트="
+          "CURSORSWTITLEUXCONVERTNEXT native 자동 일괄 변환 시작: 남은 표제란 시트="
           (itoa count)
         )
       )
@@ -17684,7 +17684,7 @@
           )
         )
       )
-      (princ "\n내부 변환 일괄 처리가 끝났습니다. SWTITLEUXVERIFY를 실행한 뒤 새 제목블록을 더블클릭해 표 편집창을 확인하세요.")
+      (princ "\n내부 변환 일괄 처리가 끝났습니다. CURSORSWTITLEUXVERIFY를 실행한 뒤 새 제목블록을 더블클릭해 표 편집창을 확인하세요.")
       (princ)
     )
   )
@@ -17711,7 +17711,7 @@
         (progn
           (setq *swcad-title-last-apply-status* "ABORT_CLONE_GMTITLE_PAIR_FAILED")
           (swcad-title-open-apply-log)
-          (swcad-title-princ-line "----- SWTITLEUXCONVERT 내부 native GMTITLE clone 적용 -----")
+          (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT 내부 native GMTITLE clone 적용 -----")
           (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
           (swcad-title-print-work-copy-status)
           (if (vl-catch-all-error-p clone-result)
@@ -17745,7 +17745,7 @@
             (progn
               (setq *swcad-title-last-apply-status* "ERROR_CLONE_FINALIZE")
               (swcad-title-open-apply-log)
-              (swcad-title-princ-line "----- SWTITLEUXCONVERT 내부 clone 마무리 오류 -----")
+              (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT 내부 clone 마무리 오류 -----")
               (swcad-title-princ-line (vl-catch-all-error-message finalize-result))
               (swcad-title-apply-result "ERROR_CLONE_FINALIZE")
               (swcad-title-close-log)
@@ -17788,7 +17788,7 @@
                 " needs one real native GMTITLE exemplar first."
               )
             )
-            (swcad-title-princ-text "\nSWTITLEUXSTATUS로 필요한 용지 크기를 확인한 뒤 SWTITLEUXCONVERTNEXT로 첫 native GMTITLE 단계를 진행하세요.")
+            (swcad-title-princ-text "\nCURSORSWTITLEUXSTATUS로 필요한 용지 크기를 확인한 뒤 CURSORSWTITLEUXCONVERTNEXT로 첫 native GMTITLE 단계를 진행하세요.")
             (setq index count)
           )
           (progn
@@ -17874,7 +17874,7 @@
           )
         )
       )
-      (princ "\n내부 빠른 표제란 복제 단계가 끝났습니다. 전체 확인은 SWTITLEUXVERIFY로 진행하세요.")
+      (princ "\n내부 빠른 표제란 복제 단계가 끝났습니다. 전체 확인은 CURSORSWTITLEUXVERIFY로 진행하세요.")
       (princ)
     )
   )
@@ -17914,7 +17914,7 @@
             (progn
               (setq *swcad-title-last-apply-status* "ABORT_FRAME_ONLY_CLONE_FAILED")
               (swcad-title-open-apply-log)
-              (swcad-title-princ-line "----- SWTITLEUXCONVERT 내부 frame-only clone 적용 -----")
+              (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT 내부 frame-only clone 적용 -----")
               (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
               (swcad-title-print-work-copy-status)
               (if (vl-catch-all-error-p clone-result)
@@ -17935,7 +17935,7 @@
                 )
               )
               (swcad-title-princ-line "동일 크기 native clone에는 같은 DR_A*_Outline 용지 크기의 실제 GMTITLE 기준 객체가 1개 필요합니다.")
-              (swcad-title-princ-line "첫 title-missing/frame-only 예외 시트는 SWTITLEUXSTATUS로 상태를 확인한 뒤 SWTITLEUXCONVERTNEXT로 진행하세요.")
+              (swcad-title-princ-line "첫 title-missing/frame-only 예외 시트는 CURSORSWTITLEUXSTATUS로 상태를 확인한 뒤 CURSORSWTITLEUXCONVERTNEXT로 진행하세요.")
               (swcad-title-princ-line "대상 도면틀 블록 정의 확인:")
               (swcad-title-print-frame-def-check-lines)
               (swcad-title-apply-result "ABORT_FRAME_ONLY_CLONE_FAILED")
@@ -17954,7 +17954,7 @@
                 (progn
                   (setq *swcad-title-last-apply-status* "ERROR_FRAME_ONLY_CLONE_FINALIZE")
                   (swcad-title-open-apply-log)
-                  (swcad-title-princ-line "----- SWTITLEUXCONVERT 내부 frame-only clone 마무리 오류 -----")
+                  (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT 내부 frame-only clone 마무리 오류 -----")
                   (swcad-title-princ-line (vl-catch-all-error-message finalize-result))
                   (swcad-title-apply-result "ERROR_FRAME_ONLY_CLONE_FINALIZE")
                   (swcad-title-close-log)
@@ -18002,10 +18002,10 @@
             (if (setq risk-message (swcad-title-title-missing-outline-risk-message source-frame target-frame-block))
               (progn
                 (swcad-title-princ-text (strcat "\ntitle-missing/frame-only native template caution: " risk-message))
-                (swcad-title-princ-text "\n도면틀 형상 오류로 중단되면 clone/fast batch를 계속하지 말고 SWTITLEUXSTATUS로 상태를 다시 확인하세요.")
+                (swcad-title-princ-text "\n도면틀 형상 오류로 중단되면 clone/fast batch를 계속하지 말고 CURSORSWTITLEUXSTATUS로 상태를 다시 확인하세요.")
               )
             )
-            (swcad-title-princ-text "\nSWTITLEUXSTATUS로 title-missing/frame-only 대상을 확인한 뒤 SWTITLEUXCONVERTNEXT로 같은 크기 DR 도면틀-only 변환 단계를 진행하세요.")
+            (swcad-title-princ-text "\nCURSORSWTITLEUXSTATUS로 title-missing/frame-only 대상을 확인한 뒤 CURSORSWTITLEUXCONVERTNEXT로 같은 크기 DR 도면틀-only 변환 단계를 진행하세요.")
             (setq index count)
           )
           (progn
@@ -18114,7 +18114,7 @@
               )
             )
           )
-          (princ "\nFrame-only 복제 단계가 끝났습니다. 전체 확인은 SWTITLEUXVERIFY로 진행하세요.")
+          (princ "\nFrame-only 복제 단계가 끝났습니다. 전체 확인은 CURSORSWTITLEUXVERIFY로 진행하세요.")
           (princ)
         )
       )
@@ -18173,7 +18173,7 @@
                   "개 표제란 없는 도면틀 시트의 같은 크기 DR 도면틀 정의 검증이 먼저 필요합니다."
                 )
               )
-              (swcad-title-princ-text "\nTitle-missing/frame-only sheets were not changed. Run SWTITLEUXSTATUS, then SWTITLEUXPREPARE if requested.")
+              (swcad-title-princ-text "\nTitle-missing/frame-only sheets were not changed. Run CURSORSWTITLEUXSTATUS, then CURSORSWTITLEUXPREPARE if requested.")
             )
             ((swcad-title-title-missing-outline-policy-blocked-p)
               (setq *swcad-title-last-apply-status* "READY_FOR_TITLE_MISSING_OUTLINE")
@@ -18184,7 +18184,7 @@
                   "개 표제란 없는 도면틀 시트는 원본 표제란 부재 예외 경로에서 한 장씩 처리합니다."
                 )
               )
-              (swcad-title-princ-text "\nTitle-missing/frame-only sheets were not cloned. Run SWTITLEUXSTATUS, then SWTITLEUXCONVERTNEXT to replace only the same-size DR outline.")
+              (swcad-title-princ-text "\nTitle-missing/frame-only sheets were not cloned. Run CURSORSWTITLEUXSTATUS, then CURSORSWTITLEUXCONVERTNEXT to replace only the same-size DR outline.")
             )
             (T
               (setq *swcad-title-last-apply-status* "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE")
@@ -18215,11 +18215,11 @@
     ((equal *swcad-title-last-apply-status* "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
       (swcad-title-princ-text "\nResult: WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
       (swcad-title-princ-text "\nFast batch paused so the next sheet size can be created once with real native GMTITLE.")
-      (swcad-title-princ-text "\n다음 정확한 작업은 SWTITLEUXSTATUS로 확인하고, 변환은 SWTITLEUXCONVERTNEXT로 계속하세요.")
+      (swcad-title-princ-text "\n다음 정확한 작업은 CURSORSWTITLEUXSTATUS로 확인하고, 변환은 CURSORSWTITLEUXCONVERTNEXT로 계속하세요.")
     )
     ((member *swcad-title-last-apply-status* '("WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION" "READY_FOR_TITLE_MISSING_OUTLINE" "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE"))
       (swcad-title-princ-text (strcat "\nResult: " *swcad-title-last-apply-status*))
-      (swcad-title-princ-text "\n다음 정확한 작업은 SWTITLEUXSTATUS로 확인하고, 변환은 SWTITLEUXCONVERTNEXT로 계속하세요.")
+      (swcad-title-princ-text "\n다음 정확한 작업은 CURSORSWTITLEUXSTATUS로 확인하고, 변환은 CURSORSWTITLEUXCONVERTNEXT로 계속하세요.")
     )
     ((or (> final-source-count 0) (> final-frame-only-count 0))
       (setq *swcad-title-last-apply-status* "WARN_FAST_BATCH_REMAINING_SOURCES")
@@ -18232,7 +18232,7 @@
     (T
       (setq *swcad-title-last-apply-status* "OK_FAST_BATCH_COMPLETE")
       (swcad-title-princ-text "\nResult: OK_FAST_BATCH_COMPLETE")
-      (swcad-title-princ-text "\n다음: SWTITLEUXSTATUS 실행 후 SWTITLEUXVERIFY를 실행하세요.")
+      (swcad-title-princ-text "\n다음: CURSORSWTITLEUXSTATUS 실행 후 CURSORSWTITLEUXVERIFY를 실행하세요.")
       (swcad-title-princ-text "\n중요: 빠른 일괄 변환은 clone GMTITLE 쌍을 만들 수 있습니다. 겉보기에는 맞아도 GMPOWEREDIT/더블클릭 native 동작은 실패할 수 있습니다.")
       (swcad-title-princ-text "\n최종 성공은 clone/native-upgrade 경고가 없고 변환된 대표 용지의 표제란 더블클릭 확인까지 끝났을 때입니다.")
     )
@@ -18250,7 +18250,7 @@
   (setq frame-records (swcad-title-frame-records))
   (setq geometry-risk-count (swcad-title-target-frame-geometry-warning-count frame-records))
   (setq overlap-risk-count (swcad-title-target-frame-overlap-warning-count frame-records))
-  (swcad-title-princ-text "\n----- SWTITLEUXCONVERT 내부 남은 시트 빠른 변환 -----")
+  (swcad-title-princ-text "\n----- CURSORSWTITLEUXCONVERT 내부 남은 시트 빠른 변환 -----")
   (swcad-title-princ-text (strcat "\nDWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-text (strcat "\nCTAB: " (getvar "CTAB")))
   (swcad-title-princ-text
@@ -18293,25 +18293,25 @@
       (setq *swcad-title-last-apply-status* "WARN_TARGET_FRAME_GEOMETRY_INVALID")
       (swcad-title-princ-text "\nResult: WARN_TARGET_FRAME_GEOMETRY_INVALID")
       (swcad-title-princ-text "\nFast batch stopped because an existing target frame has invalid A-size geometry.")
-      (swcad-title-princ-text "\n계속하기 전에 SWTITLEUXVERIFY로 문제가 있는 용지 크기를 확인하고 다시 만들거나 복구하세요.")
+      (swcad-title-princ-text "\n계속하기 전에 CURSORSWTITLEUXVERIFY로 문제가 있는 용지 크기를 확인하고 다시 만들거나 복구하세요.")
     )
     ((> overlap-risk-count 0)
       (setq *swcad-title-last-apply-status* "WARN_TARGET_FRAME_SELECTION_RISK")
       (swcad-title-princ-text "\nResult: WARN_TARGET_FRAME_SELECTION_RISK")
       (swcad-title-princ-text "\nFast batch stopped because existing target frames overlap and may select the wrong GMTITLE object.")
-      (swcad-title-princ-text "\n계속하기 전에 SWTITLEUXVERIFY로 대상 도면틀 상태를 확인하세요.")
+      (swcad-title-princ-text "\n계속하기 전에 CURSORSWTITLEUXVERIFY로 대상 도면틀 상태를 확인하세요.")
     )
     ((and (= source-count 0) (= frame-only-count 0))
       (setq *swcad-title-last-apply-status* "OK_NO_REMAINING_SOURCES")
       (swcad-title-princ-text "\nResult: OK_NO_REMAINING_SOURCES")
-      (swcad-title-princ-text "\n신뢰 가능한 변환 결과 검증은 SWTITLEUXVERIFY로 진행하세요.")
+      (swcad-title-princ-text "\n신뢰 가능한 변환 결과 검증은 CURSORSWTITLEUXVERIFY로 진행하세요.")
     )
     ((not example-title)
       (setq *swcad-title-last-apply-status* "ABORT_NO_NATIVE_GMTITLE_EXEMPLAR")
       (swcad-title-princ-text "\nResult: ABORT_NO_NATIVE_GMTITLE_EXEMPLAR")
       (swcad-title-princ-text "\nCreate/finalize one real native GMTITLE first, then run this command again.")
       (swcad-title-princ-text "\nCloned titles whose native link points to a visible frame are not accepted as exemplars.")
-      (swcad-title-princ-text "\n권장: SWTITLEUXSTATUS로 다음 대상을 확인한 뒤 SWTITLEUXCONVERTNEXT로 첫 native GMTITLE 단계를 진행하세요.")
+      (swcad-title-princ-text "\n권장: CURSORSWTITLEUXSTATUS로 다음 대상을 확인한 뒤 CURSORSWTITLEUXCONVERTNEXT로 첫 native GMTITLE 단계를 진행하세요.")
     )
     ((and missing-required (not (swcad-title-next-fast-target-ready-p)))
       (setq *swcad-title-last-apply-status* "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
@@ -18329,7 +18329,7 @@
               "장은 빠른 clone 변환에서 제외하고 title-missing 도면틀-only 경로로 넘깁니다."
             )
           )
-          (swcad-title-princ-text "\n이 단계에서는 표제란 있는 시트만 처리하고, frame-only 시트는 SWTITLEUXSTATUS 후 SWTITLEUXCONVERTNEXT에서 원본 표제란 부재 예외로 진행합니다.")
+          (swcad-title-princ-text "\n이 단계에서는 표제란 있는 시트만 처리하고, frame-only 시트는 CURSORSWTITLEUXSTATUS 후 CURSORSWTITLEUXCONVERTNEXT에서 원본 표제란 부재 예외로 진행합니다.")
         )
       )
       (setq answer
@@ -18368,7 +18368,7 @@
   (setq frame-records (swcad-title-frame-records))
   (setq geometry-risk-count (swcad-title-target-frame-geometry-warning-count frame-records))
   (setq overlap-risk-count (swcad-title-target-frame-overlap-warning-count frame-records))
-  (swcad-title-princ-text "\n----- SWTITLEUXCONVERT 내부 첫 native + 빠른 일괄 변환 -----")
+  (swcad-title-princ-text "\n----- CURSORSWTITLEUXCONVERT 내부 첫 native + 빠른 일괄 변환 -----")
   (swcad-title-princ-text (strcat "\nDWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-text (strcat "\nCTAB: " (getvar "CTAB")))
   (swcad-title-princ-text
@@ -18416,24 +18416,24 @@
       (setq *swcad-title-last-apply-status* "WARN_TARGET_FRAME_GEOMETRY_INVALID")
       (swcad-title-princ-text "\nResult: WARN_TARGET_FRAME_GEOMETRY_INVALID")
       (swcad-title-princ-text "\nBootstrap fast transfer stopped because an existing target frame has invalid A-size geometry.")
-      (swcad-title-princ-text "\n계속하기 전에 SWTITLEUXVERIFY로 문제가 있는 용지 크기를 확인하고 다시 만들거나 복구하세요.")
+      (swcad-title-princ-text "\n계속하기 전에 CURSORSWTITLEUXVERIFY로 문제가 있는 용지 크기를 확인하고 다시 만들거나 복구하세요.")
     )
     ((> overlap-risk-count 0)
       (setq *swcad-title-last-apply-status* "WARN_TARGET_FRAME_SELECTION_RISK")
       (swcad-title-princ-text "\nResult: WARN_TARGET_FRAME_SELECTION_RISK")
       (swcad-title-princ-text "\nBootstrap fast transfer stopped because existing target frames overlap and may select the wrong GMTITLE object.")
-      (swcad-title-princ-text "\n계속하기 전에 SWTITLEUXVERIFY로 대상 도면틀 상태를 확인하세요.")
+      (swcad-title-princ-text "\n계속하기 전에 CURSORSWTITLEUXVERIFY로 대상 도면틀 상태를 확인하세요.")
     )
     ((and (= source-count 0) (= frame-only-count 0))
       (setq *swcad-title-last-apply-status* "OK_NO_REMAINING_SOURCES")
       (swcad-title-princ-text "\nResult: OK_NO_REMAINING_SOURCES")
-      (swcad-title-princ-text "\n신뢰 가능한 변환 결과 검증은 SWTITLEUXVERIFY로 진행하세요.")
+      (swcad-title-princ-text "\n신뢰 가능한 변환 결과 검증은 CURSORSWTITLEUXVERIFY로 진행하세요.")
     )
     ((and example-title missing-required (not (swcad-title-next-fast-target-ready-p)))
       (setq *swcad-title-last-apply-status* "WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
       (swcad-title-princ-text "\nResult: WAITING_FOR_EXACT_SIZE_NATIVE_GMTITLE_EXEMPLARS")
       (swcad-title-princ-text "\nA native GMTITLE exemplar exists, but one or more remaining title-sheet sizes still need their own first real GMTITLE.")
-      (swcad-title-princ-text "\nSWTITLEUXSTATUS로 누락 크기를 확인하고 SWTITLEUXCONVERTNEXT로 필요한 첫 native GMTITLE 단계를 진행하세요.")
+      (swcad-title-princ-text "\nCURSORSWTITLEUXSTATUS로 누락 크기를 확인하고 CURSORSWTITLEUXCONVERTNEXT로 필요한 첫 native GMTITLE 단계를 진행하세요.")
     )
     (example-title
       (setq answer
@@ -18455,7 +18455,7 @@
       (setq *swcad-title-last-apply-status* "ABORT_NO_TITLE_SOURCE_FOR_BOOTSTRAP")
       (swcad-title-princ-text "\nResult: ABORT_NO_TITLE_SOURCE_FOR_BOOTSTRAP")
       (swcad-title-princ-text "\nNo title source remains to create the first native GMTITLE exemplar.")
-      (swcad-title-princ-text "\nSWTITLEUXSTATUS로 현재 상태를 확인한 뒤, 필요한 첫 native GMTITLE 단계는 SWTITLEUXCONVERTNEXT로 진행하세요.")
+      (swcad-title-princ-text "\nCURSORSWTITLEUXSTATUS로 현재 상태를 확인한 뒤, 필요한 첫 native GMTITLE 단계는 CURSORSWTITLEUXCONVERTNEXT로 진행하세요.")
     )
     (T
       (setq answer
@@ -18505,9 +18505,9 @@
               (if *swcad-title-convert-next-mode*
                 (progn
                   (setq *swcad-title-last-apply-status* "OK_CONVERT_NEXT_FIRST_NATIVE_CREATED")
-                  (swcad-title-princ-text "\nSWTITLEUXCONVERTNEXT one-step stop: first native GMTITLE was created/finalized.")
+                  (swcad-title-princ-text "\nCURSORSWTITLEUXCONVERTNEXT one-step stop: first native GMTITLE was created/finalized.")
                   (swcad-title-princ-text "\nFast clone batch was not started in this command.")
-                  (swcad-title-princ-text "\n다음: SWTITLEUXSTATUS로 상태를 다시 확인한 뒤 안내된 다음 한 단계만 진행하세요.")
+                  (swcad-title-princ-text "\n다음: CURSORSWTITLEUXSTATUS로 상태를 다시 확인한 뒤 안내된 다음 한 단계만 진행하세요.")
                 )
                 (progn
                   (setq after-summary (swcad-title-fast-sheet-summary))
@@ -18873,7 +18873,7 @@
 
 (defun swcad-title-pick-check (/ picked ename pick-point wcs-point insert-ename insert-name record area title-ename frame-ename frame-block title-bbox frame-bbox title-role frame-role native-like reason geometry-warning title-center frame-center)
   (swcad-title-open-pick-check-log)
-  (swcad-title-princ-line "----- SWTITLEUXVERIFY 내부 GMTITLE 선택 객체 확인(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXVERIFY 내부 GMTITLE 선택 객체 확인(읽기 전용) -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -18997,11 +18997,11 @@
          )
           (swcad-title-apply-result "NEEDS_NATIVE_GMTITLE_UPGRADE")
           (swcad-title-princ-line "선택한 쌍은 최종 더블클릭 동작을 보장할 fresh native GMTITLE로 인정되지 않습니다.")
-          (swcad-title-princ-line "다음: SWTITLEUXSTATUS를 실행한 뒤, SWTITLEUXCONVERTNEXT로 다음 A2/A3/A4 native 교체 후보를 처리하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXSTATUS를 실행한 뒤, CURSORSWTITLEUXCONVERTNEXT로 다음 A2/A3/A4 native 교체 후보를 처리하세요.")
         )
         (T
           (swcad-title-apply-result "NEEDS_GMTITLE_PAIR_REVIEW")
-          (swcad-title-princ-line "다음: SWTITLEUXSTATUS와 SWTITLEUXVERIFY를 실행하세요. 그래도 GMPOWEREDIT/REFEDIT가 열리면 이 pick-check 로그를 공유하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXSTATUS와 CURSORSWTITLEUXVERIFY를 실행하세요. 그래도 GMPOWEREDIT/REFEDIT가 열리면 이 pick-check 로그를 공유하세요.")
         )
       )
     )
@@ -19077,7 +19077,7 @@
 
 (defun swcad-title-double-click-check (/ records record index native-count needs-count)
   (swcad-title-open-double-click-check-log)
-  (swcad-title-princ-line "----- SWTITLEUXVERIFY 내부 수동 더블클릭 확인 목록(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXVERIFY 내부 수동 더블클릭 확인 목록(읽기 전용) -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -19104,12 +19104,12 @@
       (if (> needs-count 0)
         (progn
           (swcad-title-apply-result "NEEDS_NATIVE_GMTITLE_UPGRADE")
-          (swcad-title-princ-line "다음: SWTITLEUXSTATUS를 실행한 뒤, 남은 A2/A3/A4 쌍을 SWTITLEUXCONVERTNEXT로 한 장씩 반복 처리하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXSTATUS를 실행한 뒤, 남은 A2/A3/A4 쌍을 CURSORSWTITLEUXCONVERTNEXT로 한 장씩 반복 처리하세요.")
         )
         (progn
           (swcad-title-apply-result "OK_DOUBLE_CLICK_MANUAL_CHECK_READY")
           (swcad-title-princ-line "다음: 화면에서 변환된 대표 용지의 제목블록을 더블클릭해 GMTITLE 표 편집창이 열리는지 확인하세요.")
-          (swcad-title-princ-line "하나라도 GMPOWEREDIT/REFEDIT로 열리면 해당 제목블록 위치와 SWTITLEUXVERIFY 로그를 공유하세요.")
+          (swcad-title-princ-line "하나라도 GMPOWEREDIT/REFEDIT로 열리면 해당 제목블록 위치와 CURSORSWTITLEUXVERIFY 로그를 공유하세요.")
         )
       )
     )
@@ -19421,7 +19421,7 @@
 
 (defun swcad-title-a3a4-fix-plan (/ records total record frame-block sheet reason sheet-counts reason-counts role-failures command-text-count)
   (swcad-title-open-a3a4-fix-plan-log)
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 A2/A3/A4 GMPOWEREDIT 해결 계획(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 A2/A3/A4 GMPOWEREDIT 해결 계획(읽기 전용) -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -19431,8 +19431,8 @@
   (if (> command-text-count 0)
     (progn
       (swcad-title-princ-line "WARNING: command text may have been inserted into the drawing while CAD was in a text/input state.")
-      (swcad-title-princ-line "A2/A3/A4 native 교체 전에 SWTITLEUXSTATUS로 명령어 텍스트 잔여물 후보를 확인하세요.")
-      (swcad-title-princ-line "목록의 항목이 작업복사본 안의 실수 명령어 잔여물이 맞다면 SWTITLEUXPREPARE에서 먼저 정리하세요.")
+      (swcad-title-princ-line "A2/A3/A4 native 교체 전에 CURSORSWTITLEUXSTATUS로 명령어 텍스트 잔여물 후보를 확인하세요.")
+      (swcad-title-princ-line "목록의 항목이 작업복사본 안의 실수 명령어 잔여물이 맞다면 CURSORSWTITLEUXPREPARE에서 먼저 정리하세요.")
     )
   )
   (swcad-title-princ-line "Role baseline check:")
@@ -19464,22 +19464,22 @@
       (if (> command-text-count 0)
         (progn
           (swcad-title-apply-result "REVIEW_ACCIDENTAL_COMMAND_TEXT_BEFORE_NATIVE_GMTITLE_UPGRADE")
-          (swcad-title-princ-line "A2/A3/A4 교체 전 다음 확인: SWTITLEUXSTATUS")
-          (swcad-title-princ-line "명령어 텍스트 잔여물 확인/정리가 끝나면 SWTITLEUXSTATUS를 다시 실행하세요.")
+          (swcad-title-princ-line "A2/A3/A4 교체 전 다음 확인: CURSORSWTITLEUXSTATUS")
+          (swcad-title-princ-line "명령어 텍스트 잔여물 확인/정리가 끝나면 CURSORSWTITLEUXSTATUS를 다시 실행하세요.")
         )
         (progn
           (swcad-title-apply-result "NEEDS_NATIVE_GMTITLE_UPGRADE")
-          (swcad-title-princ-line "다음 명령: SWTITLEUXCONVERTNEXT")
+          (swcad-title-princ-line "다음 명령: CURSORSWTITLEUXCONVERTNEXT")
         )
       )
       (swcad-title-princ-line
         (strcat
-          "SWTITLEUXCONVERTNEXT processes the next candidate from "
+          "CURSORSWTITLEUXCONVERTNEXT processes the next candidate from "
           (itoa total)
           " currently listed A2/A3/A4 candidate(s) through its native replacement phase."
         )
       )
-          (swcad-title-princ-line "일반 흐름은 SWTITLEUXCONVERTNEXT를 사용하세요. 수동 응답을 직접 고를 때만 SWTITLEUXCONVERT를 사용하세요.")
+          (swcad-title-princ-line "일반 흐름은 CURSORSWTITLEUXCONVERTNEXT를 사용하세요. 수동 응답을 직접 고를 때만 CURSORSWTITLEUXCONVERT를 사용하세요.")
           (swcad-title-print-native-batch-safety-guidance)
           (swcad-title-princ-line "GMTITLE 창에서는 출력된 DR_A*_Outline 용지와 DR_titlea_3rd 제목블록을 선택하세요.")
           (swcad-title-princ-line "필수 GMTITLE 옵션: Frame positioning=ON, Object move=OFF.")
@@ -19491,8 +19491,8 @@
         (swcad-title-apply-result "OK_NO_NATIVE_GMTITLE_FIX_CANDIDATE")
       )
       (swcad-title-princ-line "현재 native 교체 대기 중인 A2/A3/A4 대상 쌍이 없습니다.")
-      (swcad-title-princ-line "A2/A3/A4가 여전히 GMPOWEREDIT로 열리면 실패한 제목블록 위치와 SWTITLEUXVERIFY 로그를 비교하세요.")
-      (swcad-title-princ-line "그 다음 SWTITLEUXSTATUS를 다시 실행해 오래된 LSP 로직으로 로드된 쌍인지 확인하세요.")
+      (swcad-title-princ-line "A2/A3/A4가 여전히 GMPOWEREDIT로 열리면 실패한 제목블록 위치와 CURSORSWTITLEUXVERIFY 로그를 비교하세요.")
+      (swcad-title-princ-line "그 다음 CURSORSWTITLEUXSTATUS를 다시 실행해 오래된 LSP 로직으로 로드된 쌍인지 확인하세요.")
     )
   )
   (swcad-title-princ-line "No drawing data was changed.")
@@ -19618,7 +19618,7 @@
 
 (defun swcad-title-upgrade-native-status (/ summary clone-total a3a4-total review total native-like clone untrusted source-titles source-frames frame-records target-sheet-counts missing-target-sheets selection-risk-count geometry-risk-count overlap-risk-count command-text-count)
   (swcad-title-open-native-upgrade-log)
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 내부 native 도면틀 교체 상태(읽기 전용) -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 내부 native 도면틀 교체 상태(읽기 전용) -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -19654,14 +19654,14 @@
     ((> selection-risk-count 0)
       (swcad-title-apply-result "WARN_TARGET_FRAME_SELECTION_RISK")
       (swcad-title-princ-line "이유: 하나 이상의 대상 도면틀 선택 bbox가 너무 크거나 다른 대상 도면틀과 겹칩니다.")
-      (swcad-title-princ-line "다음: 계속하기 전에 SWTITLEUXVERIFY를 실행하고 검증 로그를 확인하세요.")
+      (swcad-title-princ-line "다음: 계속하기 전에 CURSORSWTITLEUXVERIFY를 실행하고 검증 로그를 확인하세요.")
     )
     ((and (> command-text-count 0) (> a3a4-total 0))
       (swcad-title-apply-result "REVIEW_ACCIDENTAL_COMMAND_TEXT_BEFORE_NATIVE_GMTITLE_UPGRADE")
       (swcad-title-princ-line "이유: A2/A3/A4 native 교체 후보가 있는 상태에서 도면 안에 명령어 텍스트 후보가 있습니다.")
-      (swcad-title-princ-line "다음: A2/A3/A4 교체 전에 SWTITLEUXSTATUS로 표시된 TEXT/MTEXT 후보를 확인하세요.")
-      (swcad-title-princ-line "작업복사본 안의 실수 명령어 잔여물이 맞다면 먼저 정리한 뒤 SWTITLEUXSTATUS를 다시 실행하세요.")
-      (swcad-title-princ-line (strcat "그 뒤 후보 수가 아직 " (itoa a3a4-total) "이면 SWTITLEUXCONVERTNEXT를 실행하세요."))
+      (swcad-title-princ-line "다음: A2/A3/A4 교체 전에 CURSORSWTITLEUXSTATUS로 표시된 TEXT/MTEXT 후보를 확인하세요.")
+      (swcad-title-princ-line "작업복사본 안의 실수 명령어 잔여물이 맞다면 먼저 정리한 뒤 CURSORSWTITLEUXSTATUS를 다시 실행하세요.")
+      (swcad-title-princ-line (strcat "그 뒤 후보 수가 아직 " (itoa a3a4-total) "이면 CURSORSWTITLEUXCONVERTNEXT를 실행하세요."))
     )
     ((> a3a4-total 0)
       (swcad-title-apply-result "NEEDS_NATIVE_GMTITLE_UPGRADE")
@@ -19676,22 +19676,22 @@
           (swcad-title-princ-line "title-missing/frame-only 원본 시트가 남아 있어도 표시된 native 대상 쌍은 지금 교체할 수 있습니다.")
         )
       )
-      (swcad-title-princ-line "다음 안전한 경로: SWTITLEUXCONVERTNEXT를 실행하면 native 교체 단계로 들어갑니다.")
-      (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
-      (swcad-title-princ-line (strcat "SWTITLEUXCONVERTNEXT는 현재 표시된 후보 " (itoa a3a4-total) "개 중 다음 1개를 처리한 뒤 상태 확인으로 돌아갑니다."))
+      (swcad-title-princ-line "다음 안전한 경로: CURSORSWTITLEUXCONVERTNEXT를 실행하면 native 교체 단계로 들어갑니다.")
+      (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
+      (swcad-title-princ-line (strcat "CURSORSWTITLEUXCONVERTNEXT는 현재 표시된 후보 " (itoa a3a4-total) "개 중 다음 1개를 처리한 뒤 상태 확인으로 돌아갑니다."))
       (swcad-title-print-native-batch-safety-guidance)
       (swcad-title-princ-line "각 GMTITLE 창에서는 출력된 DR_A*_Outline 용지와 DR_titlea_3rd를 선택하고, Frame positioning은 ON, Object move는 OFF로 둔 뒤 확인하세요.")
       (swcad-title-princ-line "DR이 아닌 일반 용지 또는 ISO 제목블록 기본값이면 확인하지 말고 취소한 뒤 다시 실행하세요.")
-      (swcad-title-princ-line "특정 시트를 먼저 진단하려면 해당 제목블록 위치와 SWTITLEUXVERIFY 로그를 비교하세요.")
+      (swcad-title-princ-line "특정 시트를 먼저 진단하려면 해당 제목블록 위치와 CURSORSWTITLEUXVERIFY 로그를 비교하세요.")
       (if (or (> (length source-titles) 0) (> (length source-frames) 0))
-        (swcad-title-princ-line "그 뒤 SWTITLEUXSTATUS를 다시 실행하고 남은 원본 시트는 SWTITLEUXCONVERTNEXT로 처리하세요.")
+        (swcad-title-princ-line "그 뒤 CURSORSWTITLEUXSTATUS를 다시 실행하고 남은 원본 시트는 CURSORSWTITLEUXCONVERTNEXT로 처리하세요.")
       )
     )
     ((or (> (length source-titles) 0) (> (length source-frames) 0))
       (swcad-title-apply-result "WAITING_FOR_TRANSFER_SOURCES_REMAIN")
       (swcad-title-princ-line "Reason: old SOLIDWORKS source title/frame candidates still remain.")
-      (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행하세요.")
-      (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행하세요.")
+      (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
     )
     (missing-target-sheets
       (swcad-title-apply-result "WARN_REQUIRED_TARGET_SHEET_MISSING")
@@ -19706,7 +19706,7 @@
       (if (> untrusted 0)
         (swcad-title-princ-line "Note: remaining untrusted/non-marker pairs are outside the A2/A3/A4 upgrade queue, usually the pre-existing A2 baseline.")
       )
-      (swcad-title-princ-line "다음: SWTITLEUXVERIFY를 실행한 뒤, 실제 DR_titlea_3rd 제목블록이 있는 대표 용지만 더블클릭해 최종 CAD 동작을 확인하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXVERIFY를 실행한 뒤, 실제 DR_titlea_3rd 제목블록이 있는 대표 용지만 더블클릭해 최종 CAD 동작을 확인하세요.")
     )
     ((> clone-total 0)
       (swcad-title-apply-result "NEEDS_NATIVE_FRAME_UPGRADE")
@@ -19765,7 +19765,7 @@
   (setq old-title-object (swcad-title-safe-vla-object old-title))
   (setq values (if old-title-object (swcad-title-title-attribute-pairs old-title-object) nil))
   (setq placement-point (swcad-title-bbox-lower-left-point old-frame-bbox))
-  (swcad-title-princ-line "----- SWTITLEUXCONVERT 내부 기존 쌍 native 도면틀 교체 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT 내부 기존 쌍 native 도면틀 교체 -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
   (swcad-title-print-work-copy-status)
@@ -19773,7 +19773,7 @@
     ((not pair)
       (swcad-title-apply-result "STOP_NO_NATIVE_UPGRADE_CANDIDATE")
       (swcad-title-princ-line "No A2/A3/A4 native-recheck or cloned GMTITLE pair was found.")
-      (swcad-title-princ-line "도면틀 선택이 여전히 이상하면 SWTITLEUXSTATUS와 SWTITLEUXVERIFY 로그를 함께 확인하세요.")
+      (swcad-title-princ-line "도면틀 선택이 여전히 이상하면 CURSORSWTITLEUXSTATUS와 CURSORSWTITLEUXVERIFY 로그를 함께 확인하세요.")
     )
     ((swcad-title-document-read-only-p)
       (swcad-title-apply-result "ABORT_READ_ONLY_DOCUMENT")
@@ -19958,8 +19958,8 @@
                     (swcad-title-apply-result "UPGRADED_CLONE_TO_NATIVE_GMTITLE")
                     (swcad-title-princ-line "Manual check: double-click the upgraded title block and confirm the GMTITLE table editor opens.")
                     (if (> remaining-a3a4-count 0)
-                      (swcad-title-princ-line "이 시트가 정상이라면 SWTITLEUXSTATUS를 실행한 뒤 다음 A2/A3/A4 후보를 SWTITLEUXCONVERTNEXT로 처리하세요.")
-                      (swcad-title-princ-line "모든 A2/A3/A4 교체 후보가 정리됐습니다. SWTITLEUXVERIFY를 실행하세요.")
+                      (swcad-title-princ-line "이 시트가 정상이라면 CURSORSWTITLEUXSTATUS를 실행한 뒤 다음 A2/A3/A4 후보를 CURSORSWTITLEUXCONVERTNEXT로 처리하세요.")
+                      (swcad-title-princ-line "모든 A2/A3/A4 교체 후보가 정리됐습니다. CURSORSWTITLEUXVERIFY를 실행하세요.")
                     )
                   )
                 )
@@ -20045,7 +20045,7 @@
       (setq *swcad-title-pending-manual-native-upgrade* nil)
       (swcad-title-apply-result "STOP_NO_NATIVE_GMTITLE_UPGRADE_CANDIDATE")
       (swcad-title-princ-line "No A2/A3/A4 target pair currently needs native replacement.")
-      (swcad-title-princ-line "현재 상태를 확인하려면 SWTITLEUXSTATUS를 실행하세요.")
+      (swcad-title-princ-line "현재 상태를 확인하려면 CURSORSWTITLEUXSTATUS를 실행하세요.")
     )
     ((swcad-title-document-read-only-p)
       (setq *swcad-title-pending-manual-native-upgrade* nil)
@@ -20097,8 +20097,8 @@
       (swcad-title-princ-line (strcat "GMTITLE 기준점은 기존 도면틀 왼쪽 아래입니다: " (swcad-title-point-string placement-point)))
       (swcad-title-princ-line "긴 소수점 좌표를 직접 치지 말고, 가능하면 기존 도면틀 왼쪽 아래 끝점/스냅으로 지정하세요.")
       (swcad-title-princ-line "마무리 단계에서 새 GMTITLE이 이 기준점과 맞는지 검사합니다.")
-      (swcad-title-princ-line "native GMTITLE이 화면에 생성된 것이 보이면, 안내된 마무리/재시도 흐름을 위해 SWTITLEUXCONVERTNEXT를 계속 실행하세요.")
-      (swcad-title-princ-line "팁: 4단계 흐름의 SWTITLEUXCONVERTNEXT를 사용하면 GMTITLE 창 이후 왼쪽 아래 점을 자동으로 보냅니다.")
+      (swcad-title-princ-line "native GMTITLE이 화면에 생성된 것이 보이면, 안내된 마무리/재시도 흐름을 위해 CURSORSWTITLEUXCONVERTNEXT를 계속 실행하세요.")
+      (swcad-title-princ-line "팁: 4단계 흐름의 CURSORSWTITLEUXCONVERTNEXT를 사용하면 GMTITLE 창 이후 왼쪽 아래 점을 자동으로 보냅니다.")
       (swcad-title-apply-result "READY_MANUAL_NATIVE_GMTITLE_CREATE")
     )
   )
@@ -20126,12 +20126,12 @@
   (cond
     ((not *swcad-title-pending-manual-native-upgrade*)
       (swcad-title-apply-result "ABORT_NO_MANUAL_NATIVE_GMTITLE_PENDING")
-      (swcad-title-princ-line "SWTITLEUXCONVERTNEXT를 다시 실행하고 출력된 값으로 native GMTITLE 한 장을 만드세요.")
+      (swcad-title-princ-line "CURSORSWTITLEUXCONVERTNEXT를 다시 실행하고 출력된 값으로 native GMTITLE 한 장을 만드세요.")
     )
     ((or (not old-title) (not old-frame))
       (setq *swcad-title-pending-manual-native-upgrade* nil)
       (swcad-title-apply-result "ABORT_PENDING_TARGET_PAIR_MISSING")
-      (swcad-title-princ-line "대기 중이던 기존 대상 쌍이 더 이상 없습니다. SWTITLEUXSTATUS 후 SWTITLEUXCONVERTNEXT를 다시 실행하세요.")
+      (swcad-title-princ-line "대기 중이던 기존 대상 쌍이 더 이상 없습니다. CURSORSWTITLEUXSTATUS 후 CURSORSWTITLEUXCONVERTNEXT를 다시 실행하세요.")
     )
     ((not (swcad-title-current-dwg-in-work-p))
       (swcad-title-apply-result "ABORT_NOT_WORK_COPY")
@@ -20202,7 +20202,7 @@
                 )
               )
               (swcad-title-princ-line (strcat "Removed new GMTITLE inserts: " (itoa deleted-new-count)))
-              (swcad-title-princ-line "SWTITLEUXCONVERTNEXT를 다시 실행하고 기존 도면틀 왼쪽 아래 끝점/스냅으로 GMTITLE을 만드세요.")
+              (swcad-title-princ-line "CURSORSWTITLEUXCONVERTNEXT를 다시 실행하고 기존 도면틀 왼쪽 아래 끝점/스냅으로 GMTITLE을 만드세요.")
             )
             (progn
               (setq new-title-object (swcad-title-safe-vla-object new-title))
@@ -20242,8 +20242,8 @@
               (swcad-title-princ-line (strcat "Remaining A2/A3/A4 native upgrade candidates: " (itoa remaining-a3a4-count)))
               (swcad-title-apply-result "FINISHED_MANUAL_NATIVE_GMTITLE_UPGRADE")
               (if (> remaining-a3a4-count 0)
-                (swcad-title-princ-line "다음: SWTITLEUXSTATUS를 실행한 뒤 SWTITLEUXCONVERTNEXT로 다음 후보를 처리하세요.")
-                (swcad-title-princ-line "모든 A2/A3/A4 native 교체 후보가 정리됐습니다. SWTITLEUXVERIFY를 실행하세요.")
+                (swcad-title-princ-line "다음: CURSORSWTITLEUXSTATUS를 실행한 뒤 CURSORSWTITLEUXCONVERTNEXT로 다음 후보를 처리하세요.")
+                (swcad-title-princ-line "모든 A2/A3/A4 native 교체 후보가 정리됐습니다. CURSORSWTITLEUXVERIFY를 실행하세요.")
               )
             )
           )
@@ -20272,7 +20272,7 @@
             (swcad-title-princ-line (strcat "Frame geometry warning: " geometry-warning))
           )
           (swcad-title-princ-line (strcat "Removed wrong/new GMTITLE inserts: " (itoa deleted-new-count)))
-          (swcad-title-princ-line "대기 중이던 기존 대상 쌍은 보존됐습니다. SWTITLEUXCONVERTNEXT를 실행해 GMTITLE을 다시 만드세요.")
+          (swcad-title-princ-line "대기 중이던 기존 대상 쌍은 보존됐습니다. CURSORSWTITLEUXCONVERTNEXT를 실행해 GMTITLE을 다시 만드세요.")
         )
       )
     )
@@ -20311,7 +20311,7 @@
     )
     (progn
       (swcad-title-open-native-upgrade-log)
-      (swcad-title-princ-line "----- SWTITLEUXCONVERT 내부 선택 대상 native 교체 -----")
+      (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT 내부 선택 대상 native 교체 -----")
       (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
       (if ename
@@ -20402,7 +20402,7 @@
       (swcad-title-princ-line "BATCH는 수량을 입력받고 GMTITLE 창을 여러 번 이어서 열 수 있습니다.")
       (swcad-title-print-native-batch-safety-guidance)
       (swcad-title-princ-line "BATCH 중에도 각 GMTITLE 창에서 DR 용지/DR_titlea_3rd/옵션을 반드시 눈으로 확인하세요.")
-      (swcad-title-princ-line "처리 후에는 SWTITLEUXSTATUS를 다시 실행하세요. native 교체가 필요한 A2/A3/A4 대상 쌍이 0이 될 때까지 진행합니다.")
+      (swcad-title-princ-line "처리 후에는 CURSORSWTITLEUXSTATUS를 다시 실행하세요. native 교체가 필요한 A2/A3/A4 대상 쌍이 0이 될 때까지 진행합니다.")
       (setq answer
         (swcad-title-auto-next-answer-or-prompt
           "OPEN"
@@ -20421,7 +20421,7 @@
             (progn
               (swcad-title-princ-line
                 (strcat
-                  "SWTITLEUXCONVERT A2/A3/A4 native replacement error: "
+                  "CURSORSWTITLEUXCONVERT A2/A3/A4 native replacement error: "
                   (vl-catch-all-error-message result)
                 )
               )
@@ -20431,7 +20431,7 @@
         )
         ((= (strcase answer) "MANUAL")
           (swcad-title-princ-line "A2/A3/A4 MANUAL 복구 모드로 전환합니다.")
-          (swcad-title-princ-line "이번 실행은 대상/값/왼쪽 아래 기준점만 저장합니다. GMTITLE로 안내된 한 장을 만든 뒤 SWTITLEUXCONVERTNEXT를 다시 실행하면 마무리합니다.")
+          (swcad-title-princ-line "이번 실행은 대상/값/왼쪽 아래 기준점만 저장합니다. GMTITLE로 안내된 한 장을 만든 뒤 CURSORSWTITLEUXCONVERTNEXT를 다시 실행하면 마무리합니다.")
           (swcad-title-upgrade-native-a3a4-prepare)
         )
         ((= (strcase answer) "BATCH")
@@ -20441,7 +20441,7 @@
         (T
         (progn
           (swcad-title-open-native-upgrade-log)
-      (swcad-title-princ-line "----- SWTITLEUXCONVERT A2/A3/A4 한 장 native 교체 사전 확인 -----")
+      (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT A2/A3/A4 한 장 native 교체 사전 확인 -----")
           (swcad-title-print-loaded-version)
           (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
           (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -20470,13 +20470,13 @@
     )
     (progn
       (swcad-title-open-native-upgrade-log)
-      (swcad-title-princ-line "----- SWTITLEUXCONVERT A2/A3/A4 한 장 native 교체 -----")
+      (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT A2/A3/A4 한 장 native 교체 -----")
       (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
       (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
       (swcad-title-print-work-copy-status)
       (swcad-title-apply-result "STOP_NO_NATIVE_GMTITLE_UPGRADE_CANDIDATE")
       (swcad-title-princ-line "No A2/A3/A4 target pair currently needs native replacement.")
-      (swcad-title-princ-line "다음: SWTITLEUXVERIFY를 실행한 뒤 수동 더블클릭 확인을 하세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXVERIFY를 실행한 뒤 수동 더블클릭 확인을 하세요.")
       (swcad-title-princ-line "No drawing data was changed.")
       (swcad-title-close-log)
     )
@@ -20587,7 +20587,7 @@
               (swcad-title-apply-result "WARN_NATIVE_UPGRADE_BATCH_REMAINING_CLONES")
             )
           )
-          (swcad-title-princ-line "다음: SWTITLEUXVERIFY를 실행한 뒤 변환된 대표 용지의 DR_titlea_3rd 제목블록을 수동으로 더블클릭하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXVERIFY를 실행한 뒤 변환된 대표 용지의 DR_titlea_3rd 제목블록을 수동으로 더블클릭하세요.")
         )
       )
     )
@@ -20604,7 +20604,7 @@
     (setq *swcad-title-native-upgrade-selected-pair* nil)
     (setq *swcad-title-native-upgrade-batch-remaining-hint* nil)
     (if msg
-      (swcad-title-princ-line (strcat "SWTITLEUXCONVERT A2/A3/A4 일괄 교체 오류: " (swcad-title-string msg)))
+      (swcad-title-princ-line (strcat "CURSORSWTITLEUXCONVERT A2/A3/A4 일괄 교체 오류: " (swcad-title-string msg)))
     )
     (swcad-title-apply-result "ERROR_NATIVE_GMTITLE_UPGRADE_BATCH")
     (swcad-title-close-log)
@@ -20616,7 +20616,7 @@
   (setq records (swcad-title-a3a4-native-upgrade-candidate-records))
   (setq total (length records))
   (setq command-text-count (swcad-title-command-text-residue-count))
-  (swcad-title-princ-line "----- SWTITLEUXCONVERT 내부 A2/A3/A4 native 교체 일괄 단계 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXCONVERT 내부 A2/A3/A4 native 교체 일괄 단계 -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
@@ -20636,11 +20636,11 @@
           (setq missing-required (swcad-title-missing-required-native-frame-blocks summary))
           (if missing-required
             (progn
-              (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행해서 누락된 각 용지 크기의 첫 실제 native GMTITLE을 만드세요.")
+              (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행해서 누락된 각 용지 크기의 첫 실제 native GMTITLE을 만드세요.")
               (swcad-title-print-missing-native-exemplar-actions summary missing-required)
             )
             (progn
-              (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT로 A2/A3/A4 대상 쌍을 만든 뒤, native 교체 후보가 남으면 SWTITLEUXCONVERTNEXT를 다시 실행하세요.")
+              (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT로 A2/A3/A4 대상 쌍을 만든 뒤, native 교체 후보가 남으면 CURSORSWTITLEUXCONVERTNEXT를 다시 실행하세요.")
             )
           )
         )
@@ -20654,20 +20654,20 @@
     ((not (swcad-title-current-dwg-in-work-p))
       (swcad-title-apply-result "ABORT_NOT_WORK_COPY")
       (swcad-title-princ-line "A2/A3/A4 batch native upgrade is limited to Documents/CAD tool/work copies.")
-      (swcad-title-princ-line "SWTITLEUXCONVERTNEXT 실행 전에는 work 폴더의 작업복사본을 여세요.")
+      (swcad-title-princ-line "CURSORSWTITLEUXCONVERTNEXT 실행 전에는 work 폴더의 작업복사본을 여세요.")
     )
     ((swcad-title-script-active-p)
       (swcad-title-apply-result "ABORT_NATIVE_GMTITLE_BATCH_SCRIPT_ACTIVE")
       (swcad-title-princ-line "A2/A3/A4 native 교체 단계는 SCRIPT 파일에서 실행하지 마세요.")
       (swcad-title-princ-line "이유: 각 후보가 대화식 GMTITLE 창을 필요로 할 수 있는데, SCRIPT 모드에서는 이 대화식 흐름이 막힐 수 있습니다.")
-      (swcad-title-princ-line "먼저 상태 SCRIPT를 실행한 뒤 CAD 명령줄에 SWTITLEUXCONVERTNEXT를 직접 입력하세요.")
+      (swcad-title-princ-line "먼저 상태 SCRIPT를 실행한 뒤 CAD 명령줄에 CURSORSWTITLEUXCONVERTNEXT를 직접 입력하세요.")
       (swcad-title-princ-line "도면 데이터는 변경하지 않았습니다.")
     )
     ((> command-text-count 0)
       (swcad-title-apply-result "ABORT_REVIEW_ACCIDENTAL_COMMAND_TEXT_FIRST")
       (swcad-title-princ-line "도면 안에 명령어 텍스트 후보가 있습니다.")
-      (swcad-title-princ-line "A2/A3/A4 교체 전에 SWTITLEUXSTATUS로 표시된 TEXT/MTEXT 후보를 확인하세요.")
-      (swcad-title-princ-line "작업복사본 안의 실수 명령어 잔여물이 맞다면 SWTITLEUXPREPARE에서 먼저 정리한 뒤 SWTITLEUXCONVERTNEXT를 다시 실행하세요.")
+      (swcad-title-princ-line "A2/A3/A4 교체 전에 CURSORSWTITLEUXSTATUS로 표시된 TEXT/MTEXT 후보를 확인하세요.")
+      (swcad-title-princ-line "작업복사본 안의 실수 명령어 잔여물이 맞다면 CURSORSWTITLEUXPREPARE에서 먼저 정리한 뒤 CURSORSWTITLEUXCONVERTNEXT를 다시 실행하세요.")
       (swcad-title-princ-line "변경된 A2/A3/A4 쌍은 없습니다.")
     )
     (T
@@ -20689,12 +20689,12 @@
               "개의 frame-only 원본 시트가 아직 남아 있습니다. 이 일괄 단계에서는 새로 만들지 않습니다."
             )
           )
-          (swcad-title-princ-line "이 native 인식 교체가 끝난 뒤 해당 항목은 SWTITLEUXCONVERTNEXT로 처리하세요.")
+          (swcad-title-princ-line "이 native 인식 교체가 끝난 뒤 해당 항목은 CURSORSWTITLEUXCONVERTNEXT로 처리하세요.")
         )
       )
       (swcad-title-princ-line "기본 수량은 현재 표시된 모든 후보입니다. Enter를 누르면 표시된 A2/A3/A4 후보를 모두 처리합니다.")
-      (swcad-title-princ-line "이 A2/A3/A4 native 교체 단계는 SWTITLEUXCONVERTNEXT/SWTITLEUXCONVERT 내부에서 실행됩니다.")
-      (swcad-title-princ-line "일반 사용에서는 계속 SWTITLEUXCONVERTNEXT를 사용하세요. 한 장 복구용 명령은 진단용입니다.")
+      (swcad-title-princ-line "이 A2/A3/A4 native 교체 단계는 CURSORSWTITLEUXCONVERTNEXT/CURSORSWTITLEUXCONVERT 내부에서 실행됩니다.")
+      (swcad-title-princ-line "일반 사용에서는 계속 CURSORSWTITLEUXCONVERTNEXT를 사용하세요. 한 장 복구용 명령은 진단용입니다.")
       (if *swcad-title-a3a4-batch-default-all*
         (progn
           (setq count default-count)
@@ -20740,7 +20740,7 @@
               (progn
                 (swcad-title-princ-line
                   (strcat
-                    "--- SWTITLEUXCONVERT A2/A3/A4 시트 "
+                    "--- CURSORSWTITLEUXCONVERT A2/A3/A4 시트 "
                     (itoa index)
                     " / "
                     (itoa count)
@@ -20792,12 +20792,12 @@
           (cond
             ((equal *swcad-title-last-native-gmtitle-abort-reason* "INTERACTIVE_GMTITLE_SKIPPED_IN_BATCH")
               (swcad-title-princ-line "다음: GMTITLE 창이 ISO 기본값으로 열려 batch를 안전하게 계속할 수 없습니다.")
-              (swcad-title-princ-line "권장: SWTITLEUXCONVERTNEXT를 다시 실행하고 한 장씩 확인하세요.")
+              (swcad-title-princ-line "권장: CURSORSWTITLEUXCONVERTNEXT를 다시 실행하고 한 장씩 확인하세요.")
               (swcad-title-princ-line "GMTITLE 창마다 요청된 DR 용지와 DR_titlea_3rd를 선택하세요.")
-              (swcad-title-princ-line "title-missing/frame-only 예외 시트도 이후 SWTITLEUXSTATUS로 상태를 확인하고 SWTITLEUXCONVERTNEXT로 진행하세요.")
+              (swcad-title-princ-line "title-missing/frame-only 예외 시트도 이후 CURSORSWTITLEUXSTATUS로 상태를 확인하고 CURSORSWTITLEUXCONVERTNEXT로 진행하세요.")
             )
             (T
-              (swcad-title-princ-line "다음: SWTITLEUXVERIFY를 실행한 뒤 실제 DR_titlea_3rd 제목블록이 있는 대표 용지만 수동으로 더블클릭하세요.")
+              (swcad-title-princ-line "다음: CURSORSWTITLEUXVERIFY를 실행한 뒤 실제 DR_titlea_3rd 제목블록이 있는 대표 용지만 수동으로 더블클릭하세요.")
             )
           )
         )
@@ -20821,7 +20821,7 @@
     (progn
       (swcad-title-princ-line
         (strcat
-          "SWTITLEUXCONVERT A2/A3/A4 대화식 교체 오류: "
+          "CURSORSWTITLEUXCONVERT A2/A3/A4 대화식 교체 오류: "
           (vl-catch-all-error-message result)
         )
       )
@@ -20840,7 +20840,7 @@
     (progn
       (swcad-title-princ-line
         (strcat
-          "SWTITLEUXCONVERT A2/A3/A4 교체 오류: "
+          "CURSORSWTITLEUXCONVERT A2/A3/A4 교체 오류: "
           (vl-catch-all-error-message result)
         )
       )
@@ -20945,25 +20945,25 @@
   (setq a3a4-count (length (swcad-title-a3a4-native-upgrade-candidate-records)))
   (setq next-action
     (cond
-      ((> command-text-count 0) "SWTITLEUXPREPARE - 실수 명령어 텍스트 잔여물을 먼저 확인/정리해야 합니다.")
-      ((> style-count 0) "SWTITLEUXPREPARE - 도면틀 스타일 정규화가 먼저 필요합니다.")
-      ((> embedded-count 0) "SWTITLEUXPREPARE - 도면틀 정의 안의 표제란 형상을 먼저 정리")
-      (frame-definition-blockers "SWTITLEUXPREPARE - 도면틀 정의 유형이 변환 전 정규화를 요구합니다.")
-      ((> definition-raw-risk-count 0) "SWTITLEUXPREPARE 또는 정의 복구 - 도면틀 정의 raw bbox 위험 먼저 확인")
-      ((> duplicate-pair-count 0) "SWTITLEUXPREPARE - 같은 위치에 겹친 GMTITLE target 쌍을 먼저 정리")
-      ((or (> raw-count 0) (> geometry-count 0) (> overlap-count 0)) "SWTITLEUXPREPARE 또는 구조 점검 - 도면틀 선택 범위/크기/겹침 위험 먼저 확인")
-      (contaminated "SWTITLEUXPREPARE - 오염 의심 대상 도면틀 정의 정규화")
-      ((> invalid-title-missing-count 0) "SWTITLEUXVERIFY - 제목 정보가 있는데 DR_titlea_3rd가 없는 시트 확인")
-      ((> a3a4-count 0) "SWTITLEUXCONVERTNEXT - A2/A3/A4 native 교체 후보를 먼저 한 장 처리")
-      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-title-missing-outline-definition-needed-p)) "SWTITLEUXPREPARE - 같은 크기 DR_A*_Outline 정의를 먼저 가져오고 형상/선택범위 검증")
-      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-title-missing-outline-policy-blocked-p)) "SWTITLEUXCONVERTNEXT - 원본 표제란 부재가 검증된 시트의 도면틀만 교체")
-      ((or (> source-count 0) (> frame-only-count 0)) "SWTITLEUXCONVERTNEXT - 남은 원본 SolidWorks 시트 변환")
-      (missing-required "SWTITLEUXCONVERTNEXT - 누락된 대상 용지 크기의 native GMTITLE 생성")
-      ((and (= source-frame-count 0) count-shortage-records) "SWTITLEUXVERIFY - 변환 기준 수량 대비 누락된 대상 도면틀 확인")
-      (T "SWTITLEUXVERIFY - 최종 검증")
+      ((> command-text-count 0) "CURSORSWTITLEUXPREPARE - 실수 명령어 텍스트 잔여물을 먼저 확인/정리해야 합니다.")
+      ((> style-count 0) "CURSORSWTITLEUXPREPARE - 도면틀 스타일 정규화가 먼저 필요합니다.")
+      ((> embedded-count 0) "CURSORSWTITLEUXPREPARE - 도면틀 정의 안의 표제란 형상을 먼저 정리")
+      (frame-definition-blockers "CURSORSWTITLEUXPREPARE - 도면틀 정의 유형이 변환 전 정규화를 요구합니다.")
+      ((> definition-raw-risk-count 0) "CURSORSWTITLEUXPREPARE 또는 정의 복구 - 도면틀 정의 raw bbox 위험 먼저 확인")
+      ((> duplicate-pair-count 0) "CURSORSWTITLEUXPREPARE - 같은 위치에 겹친 GMTITLE target 쌍을 먼저 정리")
+      ((or (> raw-count 0) (> geometry-count 0) (> overlap-count 0)) "CURSORSWTITLEUXPREPARE 또는 구조 점검 - 도면틀 선택 범위/크기/겹침 위험 먼저 확인")
+      (contaminated "CURSORSWTITLEUXPREPARE - 오염 의심 대상 도면틀 정의 정규화")
+      ((> invalid-title-missing-count 0) "CURSORSWTITLEUXVERIFY - 제목 정보가 있는데 DR_titlea_3rd가 없는 시트 확인")
+      ((> a3a4-count 0) "CURSORSWTITLEUXCONVERTNEXT - A2/A3/A4 native 교체 후보를 먼저 한 장 처리")
+      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-title-missing-outline-definition-needed-p)) "CURSORSWTITLEUXPREPARE - 같은 크기 DR_A*_Outline 정의를 먼저 가져오고 형상/선택범위 검증")
+      ((and (= source-count 0) (> frame-only-count 0) (swcad-title-title-missing-outline-policy-blocked-p)) "CURSORSWTITLEUXCONVERTNEXT - 원본 표제란 부재가 검증된 시트의 도면틀만 교체")
+      ((or (> source-count 0) (> frame-only-count 0)) "CURSORSWTITLEUXCONVERTNEXT - 남은 원본 SolidWorks 시트 변환")
+      (missing-required "CURSORSWTITLEUXCONVERTNEXT - 누락된 대상 용지 크기의 native GMTITLE 생성")
+      ((and (= source-frame-count 0) count-shortage-records) "CURSORSWTITLEUXVERIFY - 변환 기준 수량 대비 누락된 대상 도면틀 확인")
+      (T "CURSORSWTITLEUXVERIFY - 최종 검증")
     )
   )
-  (swcad-title-princ-line "----- SWTITLEUXSTATUS 구조 판단 요약 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSTATUS 구조 판단 요약 -----")
   (swcad-title-princ-line (strcat "원본 표제란/도면틀: " (itoa source-count) " / " (itoa source-frame-count)))
   (swcad-title-princ-line (strcat "표제란 없는 도면틀 시트: " (itoa frame-only-count)))
   (if (> frame-only-count 0)
@@ -21040,10 +21040,10 @@
   )
   (cond
     ((> style-count 0)
-      (swcad-title-princ-line "도면틀 판단: 도면틀 안 native 표제란 형상이 별도 DR_titlea_3rd와 겹칩니다. 변환 반복보다 SWTITLEUXPREPARE가 먼저입니다.")
+      (swcad-title-princ-line "도면틀 판단: 도면틀 안 native 표제란 형상이 별도 DR_titlea_3rd와 겹칩니다. 변환 반복보다 CURSORSWTITLEUXPREPARE가 먼저입니다.")
     )
     ((> embedded-count 0)
-      (swcad-title-princ-line "도면틀 판단: 도면틀 안에 표제란 형상 후보가 있어 변환 반복보다 SWTITLEUXPREPARE가 먼저입니다.")
+      (swcad-title-princ-line "도면틀 판단: 도면틀 안에 표제란 형상 후보가 있어 변환 반복보다 CURSORSWTITLEUXPREPARE가 먼저입니다.")
     )
     ((> a3a4-count 0)
       (swcad-title-princ-line "native 판단: native 교체 후보가 남아 있습니다. title-missing/frame-only 예외보다 이 후보를 먼저 한 장씩 처리합니다.")
@@ -21072,21 +21072,21 @@
           (swcad-title-princ-line "title-missing 판단 보충: 아직 원본 표제란 시트가 남아 있어 예외 준비보다 원본 시트 변환이 먼저입니다.")
           (swcad-title-princ-line "현재 권장 다음 명령은 아래의 권장 다음 명령 줄을 따르세요. 도면틀 정의 준비는 원본 시트 변환 뒤에 다시 안내됩니다.")
         )
-        (swcad-title-princ-line "다음: SWTITLEUXPREPARE로 같은 크기 DR 도면틀 정의를 먼저 준비/검증하세요.")
+        (swcad-title-princ-line "다음: CURSORSWTITLEUXPREPARE로 같은 크기 DR 도면틀 정의를 먼저 준비/검증하세요.")
       )
     )
     ((and (> frame-only-count 0) (swcad-title-title-missing-outline-policy-blocked-p))
       (swcad-title-princ-line "title-missing 판단: 표제란 없는 도면틀 시트가 남아 있습니다. 원본에 없던 제목블록은 만들지 않고 도면틀만 교체합니다.")
       (if (> a3a4-count 0)
-        (swcad-title-princ-line "다만 A2/A3/A4 native 교체 후보가 남아 있으므로, SWTITLEUXCONVERTNEXT는 그 후보를 먼저 처리합니다.")
+        (swcad-title-princ-line "다만 A2/A3/A4 native 교체 후보가 남아 있으므로, CURSORSWTITLEUXCONVERTNEXT는 그 후보를 먼저 처리합니다.")
         (progn
-          (swcad-title-princ-line "다음: SWTITLEUXCONVERTNEXT를 실행하세요.")
-          (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+          (swcad-title-princ-line "다음: CURSORSWTITLEUXCONVERTNEXT를 실행하세요.")
+          (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
         )
       )
     )
     ((> frame-only-count 0)
-      (swcad-title-princ-line "title-missing 판단: 표제란 없는 도면틀 시트가 남아 있습니다. SWTITLEUXCONVERTNEXT가 표제란 없는 도면틀 흐름으로 처리합니다.")
+      (swcad-title-princ-line "title-missing 판단: 표제란 없는 도면틀 시트가 남아 있습니다. CURSORSWTITLEUXCONVERTNEXT가 표제란 없는 도면틀 흐름으로 처리합니다.")
     )
   )
   (swcad-title-print-automation-policy-summary)
@@ -21104,7 +21104,7 @@
   (if read-cache-owned
     (swcad-title-read-scan-cache-begin)
   )
-  (swcad-title-integrated-command-header "SWTITLEUXSTATUS" "상태 진단")
+  (swcad-title-integrated-command-header "CURSORSWTITLEUXSTATUS" "상태 진단")
   (swcad-title-princ-text "\n읽기 전용으로 현재 도면 상태, 도면틀 정의, native GMTITLE 준비 상태를 확인합니다.")
   (swcad-title-fast-status)
   (swcad-title-frame-def-check)
@@ -21118,17 +21118,17 @@
   (if read-cache-owned
     (swcad-title-read-scan-cache-end)
   )
-  (swcad-title-princ-text "\nSWTITLEUXSTATUS 완료: 위 결과에서 다음 명령이 SWTITLEUXPREPARE인지 SWTITLEUXCONVERTNEXT인지 확인하세요.")
+  (swcad-title-princ-text "\nCURSORSWTITLEUXSTATUS 완료: 위 결과에서 다음 명령이 CURSORSWTITLEUXPREPARE인지 CURSORSWTITLEUXCONVERTNEXT인지 확인하세요.")
   (princ)
 )
 
 (defun swcad-title-integrated-prepare (/ summary source-count frame-only-count command-text-records frame-title-records embedded-title-records style-records style-cache-owned frame-definition-blockers contaminated-definition-records definition-raw-risk-records blocking-cleanup-seen title-missing-outline-needed orphan-records duplicate-pair-records)
-  (swcad-title-integrated-command-header "SWTITLEUXPREPARE" "도면틀/블록 정의 정규화")
+  (swcad-title-integrated-command-header "CURSORSWTITLEUXPREPARE" "도면틀/블록 정의 정규화")
   (if (swcad-title-script-active-p)
     (progn
       (swcad-title-apply-result "ABORT_PREPARE_SCRIPT_ACTIVE")
       (swcad-title-princ-text "\nSCRIPT/자동화 실행 중에는 YES 확인이 필요한 정리 작업을 진행하지 않습니다.")
-      (swcad-title-princ-text "\n먼저 SWTITLEUXSTATUS로 상태만 확인한 뒤, CAD 명령줄에서 SWTITLEUXPREPARE를 직접 입력하세요.")
+      (swcad-title-princ-text "\n먼저 CURSORSWTITLEUXSTATUS로 상태만 확인한 뒤, CAD 명령줄에서 CURSORSWTITLEUXPREPARE를 직접 입력하세요.")
       (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
     )
     (if (swcad-title-active-dwg-confirmed-p)
@@ -21257,7 +21257,7 @@
       (cond
         (blocking-cleanup-seen
           (swcad-title-princ-text "\ntitle-missing/frame-only DR 도면틀 정의 준비: 이번 실행에서는 건너뜀")
-          (swcad-title-princ-text "\n이유: SWTITLEUXPREPARE는 정리/차단 후보 처리 후 다음 단계로 건너뛰지 않습니다. SWTITLEUXSTATUS로 상태를 다시 확인하세요.")
+          (swcad-title-princ-text "\n이유: CURSORSWTITLEUXPREPARE는 정리/차단 후보 처리 후 다음 단계로 건너뛰지 않습니다. CURSORSWTITLEUXSTATUS로 상태를 다시 확인하세요.")
         )
         (title-missing-outline-needed
           (swcad-title-prepare-title-missing-outline-definition)
@@ -21268,7 +21268,7 @@
       )
       (swcad-title-frame-def-check)
       (swcad-title-native-frame-completion-check)
-      (swcad-title-princ-text "\nSWTITLEUXPREPARE 완료: 경고가 줄었는지 확인한 뒤 SWTITLEUXSTATUS 또는 SWTITLEUXCONVERTNEXT를 실행하세요.")
+      (swcad-title-princ-text "\nCURSORSWTITLEUXPREPARE 완료: 경고가 줄었는지 확인한 뒤 CURSORSWTITLEUXSTATUS 또는 CURSORSWTITLEUXCONVERTNEXT를 실행하세요.")
       )
       (swcad-title-abort-multiple-open-dwgs)
     )
@@ -21282,15 +21282,15 @@
   (if reason
     (swcad-title-princ-text (strcat "\n중단 이유: " reason))
   )
-  (swcad-title-princ-text "\n먼저 SWTITLEUXSTATUS로 상태만 확인한 뒤, CAD 명령줄에서 SWTITLEUXCONVERTNEXT를 직접 입력하세요.")
+  (swcad-title-princ-text "\n먼저 CURSORSWTITLEUXSTATUS로 상태만 확인한 뒤, CAD 명령줄에서 CURSORSWTITLEUXCONVERTNEXT를 직접 입력하세요.")
   (swcad-title-princ-text "\nGMTITLE 창이 열리면 로그가 요구한 DR_A*_Outline, DR_titlea_3rd, Frame positioning ON, Object move OFF를 눈으로 확인하세요.")
 )
 
 (defun swcad-title-integrated-convert (/ summary source-count frame-only-count command-text-records command-text-count a3a4-count style-records frame-definition-blockers definition-raw-risk-records orphan-records missing-required-native example-title old-batch-mode apply-result answer)
-  (swcad-title-integrated-command-header "SWTITLEUXCONVERT" "변환 실행")
+  (swcad-title-integrated-command-header "CURSORSWTITLEUXCONVERT" "변환 실행")
   (if (swcad-title-script-active-p)
     (swcad-title-abort-interactive-gmtitle-script-active
-      "SWTITLEUXCONVERT는 도면을 변경할 수 있고 GMTITLE 창 선택이 필요할 수 있어 자동 실행에서는 진행하지 않습니다."
+      "CURSORSWTITLEUXCONVERT는 도면을 변경할 수 있고 GMTITLE 창 선택이 필요할 수 있어 자동 실행에서는 진행하지 않습니다."
     )
     (if (swcad-title-active-dwg-confirmed-p)
       (progn
@@ -21325,31 +21325,31 @@
             )
           )
           (swcad-title-command-text-scan)
-          (swcad-title-princ-text "\n다음: SWTITLEUXSTATUS로 후보를 확인하고, 작업복사본 안의 실수 잔여물이 맞으면 SWTITLEUXPREPARE에서 정리하세요.")
+          (swcad-title-princ-text "\n다음: CURSORSWTITLEUXSTATUS로 후보를 확인하고, 작업복사본 안의 실수 잔여물이 맞으면 CURSORSWTITLEUXPREPARE에서 정리하세요.")
         )
         (style-records
           (swcad-title-apply-result "ABORT_FRAME_STYLE_NOT_NORMALIZED")
           (swcad-title-princ-text "\n변환 전 도면틀 스타일 정규화가 먼저 필요합니다.")
           (swcad-title-print-frame-style-normalization-records style-records)
-          (swcad-title-princ-text "\n다음: SWTITLEUXPREPARE를 실행해 후보를 확인한 뒤 SWTITLEUXSTATUS를 다시 확인하세요.")
+          (swcad-title-princ-text "\n다음: CURSORSWTITLEUXPREPARE를 실행해 후보를 확인한 뒤 CURSORSWTITLEUXSTATUS를 다시 확인하세요.")
         )
         (frame-definition-blockers
           (swcad-title-apply-result "ABORT_FRAME_DEFINITION_NOT_NORMALIZED")
           (swcad-title-princ-text "\n변환 전 도면틀 정의 정규화가 먼저 필요합니다.")
           (swcad-title-print-frame-definition-class-records frame-definition-blockers)
-          (swcad-title-princ-text "\n다음: SWTITLEUXPREPARE를 실행하고, 후보가 맞으면 YES로 정리한 뒤 SWTITLEUXSTATUS를 다시 확인하세요.")
+          (swcad-title-princ-text "\n다음: CURSORSWTITLEUXPREPARE를 실행하고, 후보가 맞으면 YES로 정리한 뒤 CURSORSWTITLEUXSTATUS를 다시 확인하세요.")
         )
         (definition-raw-risk-records
           (swcad-title-apply-result "ABORT_FRAME_DEFINITION_RAW_BBOX_RISK")
           (swcad-title-princ-text "\n변환 전 도면틀 정의 raw bbox 위험을 먼저 확인해야 합니다.")
           (swcad-title-print-frame-definition-raw-bbox-risk-records definition-raw-risk-records)
-          (swcad-title-princ-text "\n다음: SWTITLEUXSTATUS 로그를 확인하고, 도면틀 정의 복구/정규화가 준비될 때까지 기존 원본 도면틀을 삭제하지 마세요.")
+          (swcad-title-princ-text "\n다음: CURSORSWTITLEUXSTATUS 로그를 확인하고, 도면틀 정의 복구/정규화가 준비될 때까지 기존 원본 도면틀을 삭제하지 마세요.")
         )
         (orphan-records
           (swcad-title-apply-result "ABORT_ORPHAN_TARGET_FRAMES_REMAIN")
           (swcad-title-princ-text "\n제목블록 없는 GMTITLE 도면틀이 남아 있어 변환을 계속하지 않습니다.")
           (swcad-title-print-orphan-target-frame-records orphan-records)
-          (swcad-title-princ-text "\n다음: SWTITLEUXPREPARE를 실행해 고아 도면틀을 먼저 정리하고 SWTITLEUXSTATUS를 다시 확인하세요.")
+          (swcad-title-princ-text "\n다음: CURSORSWTITLEUXPREPARE를 실행해 고아 도면틀을 먼저 정리하고 CURSORSWTITLEUXSTATUS를 다시 확인하세요.")
           (swcad-title-princ-text "\n이 상태에서 다음 용지로 넘어가면 A2/A3/A4 title-sheet 완료 판단이 어긋날 수 있습니다.")
         )
         ((> a3a4-count 0)
@@ -21375,14 +21375,14 @@
               "A2/A3/A4 native 교체는 GMTITLE 창의 용지/제목블록 선택을 사람이 확인해야 합니다."
             )
             (progn
-              (swcad-title-princ-text "\nSWTITLEUXCONVERT 내부에서 A2/A3/A4 native 교체 단계를 안내합니다. OPEN은 1장, BATCH는 여러 장 연속 처리입니다.")
+              (swcad-title-princ-text "\nCURSORSWTITLEUXCONVERT 내부에서 A2/A3/A4 native 교체 단계를 안내합니다. OPEN은 1장, BATCH는 여러 장 연속 처리입니다.")
               (swcad-title-upgrade-native-a3a4-next)
             )
             )
           )
         )
         ((and (= source-count 0) (= frame-only-count 0))
-          (swcad-title-princ-text "\n변환할 원본 SolidWorks 시트가 없습니다. SWTITLEUXVERIFY를 실행하세요.")
+          (swcad-title-princ-text "\n변환할 원본 SolidWorks 시트가 없습니다. CURSORSWTITLEUXVERIFY를 실행하세요.")
         )
         ((and (= source-count 0) (> frame-only-count 0))
           (swcad-title-princ-text
@@ -21394,7 +21394,7 @@
           )
           (if (swcad-title-script-active-p)
             (swcad-title-abort-interactive-gmtitle-script-active
-              "title-missing/frame-only 도면틀-only 변환은 도면을 변경하므로, 보이는 CAD에서 SWTITLEUXSTATUS 안내를 확인한 뒤 SWTITLEUXCONVERTNEXT로 진행해야 합니다."
+              "title-missing/frame-only 도면틀-only 변환은 도면을 변경하므로, 보이는 CAD에서 CURSORSWTITLEUXSTATUS 안내를 확인한 뒤 CURSORSWTITLEUXCONVERTNEXT로 진행해야 합니다."
             )
             (if (swcad-title-title-missing-outline-policy-blocked-p)
               (if (swcad-title-title-missing-outline-definition-needed-p)
@@ -21402,14 +21402,14 @@
                   (swcad-title-apply-result "WAITING_FOR_TITLE_MISSING_OUTLINE_DEFINITION")
                   (swcad-title-princ-text "\n같은 크기 DR 도면틀 정의가 아직 title-missing/frame-only 변환 기준을 통과하지 못했습니다.")
                   (swcad-title-print-title-missing-outline-definition-status)
-                  (swcad-title-princ-text "\n다음: SWTITLEUXPREPARE를 실행해 같은 크기 DR 도면틀 정의를 먼저 준비/검증하세요.")
+                  (swcad-title-princ-text "\n다음: CURSORSWTITLEUXPREPARE를 실행해 같은 크기 DR 도면틀 정의를 먼저 준비/검증하세요.")
                   (swcad-title-princ-text "\n기존 원본 도면틀은 삭제하지 않았습니다.")
                 )
                 (progn
-                  (swcad-title-princ-text "\nSWTITLEUXCONVERT 내부에서 title-missing 도면틀-only 변환 단계를 실행합니다.")
+                  (swcad-title-princ-text "\nCURSORSWTITLEUXCONVERT 내부에서 title-missing 도면틀-only 변환 단계를 실행합니다.")
                   (if *swcad-title-convert-next-mode*
                     (progn
-                      (swcad-title-princ-text "\nSWTITLEUXCONVERTNEXT는 검증된 남은 title-missing 도면틀 시트를 모두 연속 처리합니다.")
+                      (swcad-title-princ-text "\nCURSORSWTITLEUXCONVERTNEXT는 검증된 남은 title-missing 도면틀 시트를 모두 연속 처리합니다.")
                       (swcad-title-transfer-title-missing-outline-all)
                     )
                     (swcad-title-transfer-title-missing-outline-apply)
@@ -21420,13 +21420,13 @@
                 (swcad-title-apply-result "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE")
                 (swcad-title-princ-text "\n이 표제란 없는 도면틀 시트는 공통 title-missing 도면틀-only 조건을 통과하지 못했습니다.")
                 (swcad-title-princ-text "\nA2/A3/A4는 같은 GMTITLE 흐름으로 처리해야 하므로 구형 frame-only native fallback은 실행하지 않습니다.")
-                (swcad-title-princ-text "\n다음: SWTITLEUXSTATUS/SWTITLEUXPREPARE로 원본 표제란 부재와 같은 크기 DR_A*_Outline 정의 상태를 먼저 확인하세요.")
+                (swcad-title-princ-text "\n다음: CURSORSWTITLEUXSTATUS/CURSORSWTITLEUXPREPARE로 원본 표제란 부재와 같은 크기 DR_A*_Outline 정의 상태를 먼저 확인하세요.")
               )
             )
           )
         )
         ((not example-title)
-          (swcad-title-princ-text "\n첫 native GMTITLE 기준 객체가 없습니다. SWTITLEUXCONVERT 내부에서 첫 native 생성 단계를 진행합니다.")
+          (swcad-title-princ-text "\n첫 native GMTITLE 기준 객체가 없습니다. CURSORSWTITLEUXCONVERT 내부에서 첫 native 생성 단계를 진행합니다.")
           (swcad-title-print-compact-next-gmtitle-card summary missing-required-native example-title a3a4-count)
           (swcad-title-print-next-bootstrap-selection)
           (if
@@ -21439,7 +21439,7 @@
               (swcad-title-transfer-native-autoselect-all)
             )
             (progn
-              (swcad-title-princ-text "\nSWTITLEUXCONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록을 고르고, Frame positioning은 ON, Object move는 OFF로 두세요.")
+              (swcad-title-princ-text "\nCURSORSWTITLEUXCONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록을 고르고, Frame positioning은 ON, Object move는 OFF로 두세요.")
               (if (swcad-title-script-active-p)
                 (swcad-title-abort-interactive-gmtitle-script-active
                   "첫 native GMTITLE 기준 객체 생성은 GMTITLE 창 선택을 사람이 확인해야 합니다."
@@ -21451,7 +21451,7 @@
         )
         ((and (> source-count 0) (not (swcad-title-next-fast-target-ready-p)))
           (swcad-title-princ-text "\n다음 원본 표제란 시트와 같은 크기의 native GMTITLE 기준 객체가 아직 없습니다.")
-          (swcad-title-princ-text "\nSWTITLEUXCONVERT 내부에서 이 크기의 실제 native GMTITLE 한 장을 먼저 생성합니다.")
+          (swcad-title-princ-text "\nCURSORSWTITLEUXCONVERT 내부에서 이 크기의 실제 native GMTITLE 한 장을 먼저 생성합니다.")
           (swcad-title-print-compact-next-gmtitle-card summary missing-required-native example-title a3a4-count)
           (swcad-title-print-next-missing-native-selection summary missing-required-native)
           (if
@@ -21464,7 +21464,7 @@
               (swcad-title-transfer-native-autoselect-all)
             )
             (progn
-              (swcad-title-princ-text "\nSWTITLEUXCONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록을 고르고, Frame positioning은 ON, Object move는 OFF로 두세요.")
+              (swcad-title-princ-text "\nCURSORSWTITLEUXCONVERTNEXT 선택 안내: 위 용지/도면틀과 제목블록을 고르고, Frame positioning은 ON, Object move는 OFF로 두세요.")
               (if (swcad-title-script-active-p)
             (swcad-title-abort-interactive-gmtitle-script-active
               "누락 크기의 첫 native GMTITLE 기준 객체 생성은 GMTITLE 창 선택을 사람이 확인해야 합니다."
@@ -21517,7 +21517,7 @@
             )
             (if *swcad-title-convert-next-mode*
             (progn
-              (swcad-title-princ-text "\n기준 GMTITLE이 있으므로 SWTITLEUXCONVERTNEXT는 남은 표제란 시트 중 다음 1장만 clone 변환합니다.")
+              (swcad-title-princ-text "\n기준 GMTITLE이 있으므로 CURSORSWTITLEUXCONVERTNEXT는 남은 표제란 시트 중 다음 1장만 clone 변환합니다.")
               (setq old-batch-mode *swcad-title-batch-mode*)
               (setq *swcad-title-batch-mode* T)
               (setq apply-result (vl-catch-all-apply 'swcad-title-transfer-clone-apply nil))
@@ -21527,7 +21527,7 @@
                   (setq *swcad-title-last-apply-status* "ERROR_CONVERT_NEXT_SINGLE_CLONE_FATAL")
                   (princ
                     (strcat
-                      "\nSWTITLEUXCONVERTNEXT single clone error: "
+                      "\nCURSORSWTITLEUXCONVERTNEXT single clone error: "
                       (vl-catch-all-error-message apply-result)
                     )
                   )
@@ -21546,7 +21546,7 @@
                   (if (vl-catch-all-error-p apply-result)
                     (swcad-title-princ-text "\nclone 변환 오류가 있어 native 교체 단계는 실행하지 않습니다.")
                     (progn
-                      (swcad-title-princ-text "\nSWTITLEUXCONVERTNEXT가 이어서 다음 native 교체 후보 1장을 처리합니다.")
+                      (swcad-title-princ-text "\nCURSORSWTITLEUXCONVERTNEXT가 이어서 다음 native 교체 후보 1장을 처리합니다.")
                       (if (swcad-title-script-active-p)
                         (swcad-title-abort-interactive-gmtitle-script-active
                           "clone 변환 뒤 생긴 A2/A3/A4 native 교체 후보는 GMTITLE 창 확인이 필요합니다."
@@ -21571,7 +21571,7 @@
                       "개 생겼습니다."
                     )
                   )
-                  (swcad-title-princ-text "\nSWTITLEUXCONVERT 내부에서 이어서 A2/A3/A4 native 교체 단계를 한 장만 안전하게 실행합니다.")
+                  (swcad-title-princ-text "\nCURSORSWTITLEUXCONVERT 내부에서 이어서 A2/A3/A4 native 교체 단계를 한 장만 안전하게 실행합니다.")
                   (if (swcad-title-script-active-p)
                     (swcad-title-abort-interactive-gmtitle-script-active
                       "빠른 변환 뒤 생긴 A2/A3/A4 native 교체 후보는 GMTITLE 창 확인이 필요합니다."
@@ -21591,7 +21591,7 @@
       (swcad-title-abort-multiple-open-dwgs)
     )
   )
-  (swcad-title-princ-text "\nSWTITLEUXCONVERT 완료: 멈춤/경고가 있으면 SWTITLEUXSTATUS를, 완료되면 SWTITLEUXVERIFY를 실행하세요.")
+  (swcad-title-princ-text "\nCURSORSWTITLEUXCONVERT 완료: 멈춤/경고가 있으면 CURSORSWTITLEUXSTATUS를, 완료되면 CURSORSWTITLEUXVERIFY를 실행하세요.")
   (swcad-title-princ-text "\n")
   (swcad-title-print-after-manual-step-guidance)
   (princ)
@@ -21806,7 +21806,7 @@
     )
   )
   (setq *swcad-title-last-apply-status* result-code)
-  (swcad-title-princ-line "----- SWTITLEUXVERIFY 통합 최종 요약 -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXVERIFY 통합 최종 요약 -----")
   (swcad-title-princ-line (strcat "남은 원본 표제란 후보: " (itoa (length source-titles))))
   (swcad-title-princ-line (strcat "남은 원본 도면틀 후보: " (itoa (length source-frames))))
   (swcad-title-princ-line (strcat "실수 명령어 텍스트 후보: " (itoa (length command-text-records))))
@@ -21874,31 +21874,31 @@
       (swcad-title-princ-line "다음: 변환된 대표 용지의 DR_titlea_3rd 제목블록을 더블클릭해 GMTITLE 표 편집창을 확인하세요.")
     )
     ((equal status "WARN")
-      (swcad-title-princ-line "다음: SWTITLEUXSTATUS를 실행해 남은 경고의 다음 조치를 확인하세요. 모양만 보고 완료로 판단하지 마세요.")
+      (swcad-title-princ-line "다음: CURSORSWTITLEUXSTATUS를 실행해 남은 경고의 다음 조치를 확인하세요. 모양만 보고 완료로 판단하지 마세요.")
     )
     (T
       (cond
         ((> a3a4-count 0)
           (swcad-title-princ-line "다음 단계 코드: UPGRADE_NATIVE_GMTITLE")
           (swcad-title-princ-line "다음: 특정 용지 누락이나 title-missing 예외가 있더라도 A2/A3/A4 native 교체 후보가 먼저입니다.")
-          (swcad-title-princ-line "SWTITLEUXSTATUS로 후보를 확인한 뒤 SWTITLEUXCONVERTNEXT를 실행해 다음 A2/A3/A4 후보를 처리하세요.")
-          (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+          (swcad-title-princ-line "CURSORSWTITLEUXSTATUS로 후보를 확인한 뒤 CURSORSWTITLEUXCONVERTNEXT를 실행해 다음 A2/A3/A4 후보를 처리하세요.")
+          (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
         )
         ((and (= (length source-titles) 0) (> frame-only-source-count 0))
           (swcad-title-princ-line "다음 단계 코드: TITLE_MISSING_AFTER_SOURCES")
-          (swcad-title-princ-line "다음: 남은 표제란 없는 도면틀 시트를 SWTITLEUXCONVERTNEXT로 처리하세요.")
-          (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+          (swcad-title-princ-line "다음: 남은 표제란 없는 도면틀 시트를 CURSORSWTITLEUXCONVERTNEXT로 처리하세요.")
+          (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
           (swcad-title-princ-line "원본에 제목블록이 없다고 검증된 시트이므로 새 DR_titlea_3rd를 만들지 않고 같은 크기 DR 도면틀만 검증합니다.")
         )
         ((or (> (length source-titles) 0) (> source-frame-with-title-count 0))
           (swcad-title-princ-line "다음 단계 코드: SOURCE_SHEETS_BEFORE_TITLE_MISSING")
           (swcad-title-princ-line "다음: 아직 원본 SolidWorks 표제란/도면틀이 남아 있으므로 title-missing 예외보다 원본 시트 변환이 먼저입니다.")
-          (swcad-title-princ-line "SWTITLEUXSTATUS로 현재 상태를 확인한 뒤 SWTITLEUXCONVERTNEXT로 남은 원본 SolidWorks 시트를 처리하세요.")
-          (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+          (swcad-title-princ-line "CURSORSWTITLEUXSTATUS로 현재 상태를 확인한 뒤 CURSORSWTITLEUXCONVERTNEXT로 남은 원본 SolidWorks 시트를 처리하세요.")
+          (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
         )
         ((or (> invalid-title-missing-count 0) (> title-count-shortage-count 0))
           (swcad-title-princ-line "다음 단계 코드: REVIEW_MISSING_NATIVE_TITLES")
-          (swcad-title-princ-line "다음: 제목 정보가 있던 시트의 DR_titlea_3rd가 누락됐습니다. 원본 작업복사본에서 SWTITLEUXSTATUS 후 통합 변환을 다시 실행하세요.")
+          (swcad-title-princ-line "다음: 제목 정보가 있던 시트의 DR_titlea_3rd가 누락됐습니다. 원본 작업복사본에서 CURSORSWTITLEUXSTATUS 후 통합 변환을 다시 실행하세요.")
           (swcad-title-princ-line "기존 title-missing 도면틀-only 결과를 최종 성공으로 사용하지 마세요.")
         )
         ((> title-missing-tags-count 0)
@@ -21907,8 +21907,8 @@
         )
         ((> count-shortage-count 0)
           (swcad-title-princ-line "다음 단계 코드: REVIEW_TARGET_SHEET_SHORTAGE")
-          (swcad-title-princ-line "다음: 변환 기준 수량 대비 부족한 대상 도면틀을 SWTITLEUXSTATUS에서 확인하고 SWTITLEUXCONVERTNEXT로 보충하세요.")
-          (swcad-title-princ-line "수동 응답을 직접 고르려면 SWTITLEUXCONVERT를 사용하세요.")
+          (swcad-title-princ-line "다음: 변환 기준 수량 대비 부족한 대상 도면틀을 CURSORSWTITLEUXSTATUS에서 확인하고 CURSORSWTITLEUXCONVERTNEXT로 보충하세요.")
+          (swcad-title-princ-line "수동 응답을 직접 고르려면 CURSORSWTITLEUXCONVERT를 사용하세요.")
         )
         (T
           (swcad-title-princ-line "다음 단계 코드: REVIEW_MISSING_TARGET_STRUCTURE")
@@ -22105,7 +22105,7 @@
   (if read-cache-owned
     (swcad-title-read-scan-cache-begin)
   )
-  (swcad-title-integrated-command-header "SWTITLEUXVERIFY" "최종 검증")
+  (swcad-title-integrated-command-header "CURSORSWTITLEUXVERIFY" "최종 검증")
   (swcad-title-princ-text "\n표제란 중복, 고아 도면틀, 현재 필요한 대상 용지 누락, native-like 상태를 읽기 전용으로 확인합니다.")
   (swcad-title-gmtitle-verify-all)
   (swcad-title-native-frame-completion-check)
@@ -22117,42 +22117,42 @@
   (if read-cache-owned
     (swcad-title-read-scan-cache-end)
   )
-  (swcad-title-princ-text "\nSWTITLEUXVERIFY 완료: 최종 결과가 OK가 아니면 SWTITLEUXSTATUS로 다음 조치를 확인하세요.")
+  (swcad-title-princ-text "\nCURSORSWTITLEUXVERIFY 완료: 최종 결과가 OK가 아니면 CURSORSWTITLEUXSTATUS로 다음 조치를 확인하세요.")
   (princ)
 )
 
-(defun c:SWTITLEUXSTATUS ()
+(defun c:CURSORSWTITLEUXSTATUS ()
   (swcad-title-integrated-status)
 )
 
-(defun c:SWTITLEUXPREPARE ()
+(defun c:CURSORSWTITLEUXPREPARE ()
   (if (swcad-title-script-active-p)
     (swcad-title-integrated-prepare)
     (if (swcad-title-ensure-work-copy-for-mutation)
       (swcad-title-integrated-prepare)
       (progn
-        (swcad-title-princ-text "\nSWTITLEUXPREPARE 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
+        (swcad-title-princ-text "\nCURSORSWTITLEUXPREPARE 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
         (princ)
       )
     )
   )
 )
 
-(defun c:SWTITLEUXCONVERT ()
+(defun c:CURSORSWTITLEUXCONVERT ()
   (if (swcad-title-script-active-p)
     (progn
-      (swcad-title-princ-text "\n===== SWTITLEUXCONVERT 변환 실행 =====")
+      (swcad-title-princ-text "\n===== CURSORSWTITLEUXCONVERT 변환 실행 =====")
       (swcad-title-print-loaded-version)
       (swcad-title-abort-interactive-gmtitle-script-active
-        "SWTITLEUXCONVERT는 도면을 변경할 수 있고 GMTITLE 창 선택이 필요할 수 있어 SCRIPT나 /b 자동 실행에서는 진행하지 않습니다."
+        "CURSORSWTITLEUXCONVERT는 도면을 변경할 수 있고 GMTITLE 창 선택이 필요할 수 있어 SCRIPT나 /b 자동 실행에서는 진행하지 않습니다."
       )
-      (swcad-title-princ-text "\nSWTITLEUXCONVERT 완료: SWTITLEUXSTATUS로 상태를 확인한 뒤 CAD 명령줄에서 직접 다시 실행하세요.")
+      (swcad-title-princ-text "\nCURSORSWTITLEUXCONVERT 완료: CURSORSWTITLEUXSTATUS로 상태를 확인한 뒤 CAD 명령줄에서 직접 다시 실행하세요.")
       (princ)
     )
     (if (swcad-title-ensure-work-copy-for-mutation)
       (swcad-title-integrated-convert)
       (progn
-        (swcad-title-princ-text "\nSWTITLEUXCONVERT 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
+        (swcad-title-princ-text "\nCURSORSWTITLEUXCONVERT 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
         (princ)
       )
     )
@@ -22162,7 +22162,7 @@
 (defun swcad-title-integrated-convert-next (/ old-auto result)
   (setq old-auto *swcad-title-convert-next-mode*)
   (setq *swcad-title-convert-next-mode* T)
-  (swcad-title-princ-text "\n===== SWTITLEUXCONVERTNEXT 다음 1단계 자동 선택 =====")
+  (swcad-title-princ-text "\n===== CURSORSWTITLEUXCONVERTNEXT 다음 1단계 자동 선택 =====")
   (swcad-title-princ-text "\n반복 확인 입력은 현재 상태의 안전한 다음 응답으로 자동 선택합니다.")
   (swcad-title-princ-text "\nGMTITLE 창의 DR 용지/DR_titlea_3rd/Frame positioning ON/Object move OFF 확인은 계속 사람이 해야 합니다.")
   (setq result (vl-catch-all-apply 'swcad-title-integrated-convert nil))
@@ -22171,7 +22171,7 @@
     (progn
       (swcad-title-princ-text
         (strcat
-          "\nSWTITLEUXCONVERTNEXT 오류: "
+          "\nCURSORSWTITLEUXCONVERTNEXT 오류: "
           (vl-catch-all-error-message result)
         )
       )
@@ -22181,42 +22181,42 @@
   (princ)
 )
 
-(defun c:SWTITLEUXCONVERTNEXT ()
+(defun c:CURSORSWTITLEUXCONVERTNEXT ()
   (if (swcad-title-script-active-p)
     (progn
-      (swcad-title-princ-text "\n===== SWTITLEUXCONVERTNEXT 다음 1단계 자동 선택 =====")
+      (swcad-title-princ-text "\n===== CURSORSWTITLEUXCONVERTNEXT 다음 1단계 자동 선택 =====")
       (swcad-title-print-loaded-version)
       (swcad-title-abort-interactive-gmtitle-script-active
-        "SWTITLEUXCONVERTNEXT도 GMTITLE 창 선택이 필요할 수 있어 SCRIPT나 /b 자동 실행에서는 진행하지 않습니다."
+        "CURSORSWTITLEUXCONVERTNEXT도 GMTITLE 창 선택이 필요할 수 있어 SCRIPT나 /b 자동 실행에서는 진행하지 않습니다."
       )
-      (swcad-title-princ-text "\nSWTITLEUXCONVERTNEXT 완료: SWTITLEUXSTATUS로 상태를 확인한 뒤 CAD 명령줄에서 직접 다시 실행하세요.")
+      (swcad-title-princ-text "\nCURSORSWTITLEUXCONVERTNEXT 완료: CURSORSWTITLEUXSTATUS로 상태를 확인한 뒤 CAD 명령줄에서 직접 다시 실행하세요.")
       (princ)
     )
     (if (swcad-title-ensure-work-copy-for-mutation)
       (swcad-title-integrated-convert-next)
       (progn
-        (swcad-title-princ-text "\nSWTITLEUXCONVERTNEXT 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
+        (swcad-title-princ-text "\nCURSORSWTITLEUXCONVERTNEXT 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
         (princ)
       )
     )
   )
 )
 
-(defun c:SWTITLEUXVERIFY ()
+(defun c:CURSORSWTITLEUXVERIFY ()
   (swcad-title-integrated-verify)
 )
 
-(defun c:SWTITLEUXVERSION ()
+(defun c:CURSORSWTITLEUXVERSION ()
   (setq *swcad-title-last-apply-status* "SWTITLEVERSION_OK")
-  (swcad-title-princ-text "\n----- SWTITLEUXVERSION 로드된 LSP 확인(읽기 전용) -----")
+  (swcad-title-princ-text "\n----- CURSORSWTITLEUXVERSION 로드된 LSP 확인(읽기 전용) -----")
   (swcad-title-print-loaded-version)
   (swcad-title-princ-text (strcat "\n통합 흐름 기준 기대 버전: " *swcad-title-scale-version*))
-  (swcad-title-princ-text "\n다른 버전이 보이면 SWTITLEUXSTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
+  (swcad-title-princ-text "\n다른 버전이 보이면 CURSORSWTITLEUXSTATUS 결과를 믿기 전에 이 파일을 다시 APPLOAD하세요.")
   (swcad-title-princ-text "\n도면 데이터는 변경하지 않았습니다.")
   (princ)
 )
 
-(defun c:SWTITLEUXSCALESCAN (/ insert-ss insert-index insert-total dim-ss dim-index dim-total ename data overrides style styledata override-value style-value effective-value expected-values effective-counts override-counts style-counts match-count mismatch-count mismatch-example-count match result)
+(defun c:CURSORSWTITLEUXSCALESCAN (/ insert-ss insert-index insert-total dim-ss dim-index dim-total ename data overrides style styledata override-value style-value effective-value expected-values effective-counts override-counts style-counts match-count mismatch-count mismatch-example-count match result)
   (swcad-title-open-scale-log)
   (setq *swcad-title-scan-title-insert-count* 0)
   (setq *swcad-title-scan-scale-count* 0)
@@ -22229,7 +22229,7 @@
   (setq match-count 0)
   (setq mismatch-count 0)
   (setq mismatch-example-count 0)
-  (swcad-title-princ-line "----- SWTITLEUXSCALESCAN read-only title scale / DIMLFAC scan -----")
+  (swcad-title-princ-line "----- CURSORSWTITLEUXSCALESCAN read-only title scale / DIMLFAC scan -----")
   (swcad-title-princ-line (strcat "DWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (swcad-title-princ-line (strcat "CTAB: " (getvar "CTAB")))
 
@@ -22355,10 +22355,10 @@
 
 (swcad-title-disable-legacy-public-commands)
 
-(princ (strcat "\nswcad_title_scale_ux 실험 복사본 로드 완료 " *swcad-title-scale-version*))
-(princ "\n권장 흐름: SWTITLEUXSTATUS, SWTITLEUXPREPARE, SWTITLEUXCONVERTNEXT, SWTITLEUXVERIFY")
-(princ "\n수동 응답을 직접 고를 때만 SWTITLEUXCONVERT를 사용하세요.")
-(princ "\n중요: 변환 전에는 SWTITLEUXSTATUS 결과가 안내한 다음 명령만 실행하세요.")
+(princ (strcat "\ncursor_swcad_title_scale_ux 실험 복사본 로드 완료 " *swcad-title-scale-version*))
+(princ "\n권장 흐름: CURSORSWTITLEUXSTATUS, CURSORSWTITLEUXPREPARE, CURSORSWTITLEUXCONVERTNEXT, CURSORSWTITLEUXVERIFY")
+(princ "\n수동 응답을 직접 고를 때만 CURSORSWTITLEUXCONVERT를 사용하세요.")
+(princ "\n중요: 변환 전에는 CURSORSWTITLEUXSTATUS 결과가 안내한 다음 명령만 실행하세요.")
 (princ "\n금지: CAD 명령줄에 GMTITLE, TIT, 일반 OPEN을 직접 입력해 우회하지 마세요.")
 (princ "\n예전 SWTITLE transfer/fast/A3A4/frame-only 공개 명령은 비활성화됩니다.")
 (princ)
