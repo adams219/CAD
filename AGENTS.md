@@ -22,6 +22,16 @@ Both resolve the repo root by probing for known module paths and wrap each `load
 
 Diagnostic / regression probes live under `diagnostics/gmtitle-main45/` and `diagnostics/swcad-workflow/` — they are CAD-host probes, not CI tests.
 
+### GMTITLE edits: Cursor copy only
+When changing GMTITLE behavior or UX, edit **only** the Cursor experiment copy. Leave the original production files untouched so they stay available for comparison.
+
+| Role | File | Commands | Loader |
+| --- | --- | --- | --- |
+| Original (do not edit) | `src/tools/gmtitle/swcad_title_scale.lsp` | `SWTITLESTATUS`, `SWTITLEPREPARE`, `SWTITLECONVERTNEXT`, `SWTITLEVERIFY` | `swcad_load.lsp` |
+| Cursor working copy | `src/tools/gmtitle/cursor_swcad_title_scale_ux.lsp` | `CURSORSWTITLEUXSTATUS`, `CURSORSWTITLEUXPREPARE`, `CURSORSWTITLEUXCONVERTNEXT`, `CURSORSWTITLEUXVERIFY` | `src/tools/gmtitle/cursor_swcad_title_scale_ux_load.lsp` |
+
+Do not APPLOAD both GMTITLE files in the same CAD session: internal `swcad-title-*` symbols collide. Do not point `swcad_load.lsp` at the Cursor copy unless the user explicitly asks to promote it.
+
 ### Practical validation in the cloud VM
 Since the CAD runtime is unavailable, the meaningful local check is **structural validation of the AutoLISP source** (balanced parentheses/strings, honoring `;` line comments, `;| ... |;` block comments, and `\"` string escapes). This mirrors the loader's per-module `load` step. There is no committed lint/test script; validate structurally (e.g. a small paren/quote-balance pass over every `.lsp`) before considering an edit "loadable". Do not claim behavioral correctness from this alone — it only proves the files will parse/load.
 
