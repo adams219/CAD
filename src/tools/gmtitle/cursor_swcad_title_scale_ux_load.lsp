@@ -32,8 +32,8 @@
 (if (findfile (strcat *swcad-title-ux-loader-dir* "/cursor_swcad_title_scale_ux.lsp"))
   (progn
     (load (strcat *swcad-title-ux-loader-dir* "/cursor_swcad_title_scale_ux.lsp"))
-    (princ "\nCommands: SWTITLESTATUS SWTITLESTEP SWTITLEDETAIL")
-    (princ "\nFile is the Cursor copy; command names match the original SWTITLE flow.")
+    (princ "\nCommands: SWSTAT  SWGO  SWCHECK")
+    (princ "\nMore: SWPREP  SWNEXT  SWMORE  SWMANUAL")
   )
   (princ "\nCursor GMTITLE UX copy missing: cursor_swcad_title_scale_ux.lsp")
 )

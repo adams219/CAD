@@ -28,7 +28,7 @@ When changing GMTITLE behavior or UX, edit **only** the Cursor experiment copy. 
 | Role | File | Commands | Loader |
 | --- | --- | --- | --- |
 | Original (do not edit) | `src/tools/gmtitle/swcad_title_scale.lsp` | `SWTITLESTATUS`, `SWTITLEPREPARE`, `SWTITLECONVERTNEXT`, `SWTITLEVERIFY` | `swcad_load.lsp` |
-| Cursor working copy | `src/tools/gmtitle/cursor_swcad_title_scale_ux.lsp` | Same natural names: `SWTITLESTATUS`, `SWTITLESTEP`, `SWTITLEDETAIL`, `SWTITLEPREPARE`, `SWTITLECONVERTNEXT`, `SWTITLEVERIFY` | `src/tools/gmtitle/cursor_swcad_title_scale_ux_load.lsp` |
+| Cursor working copy | `src/tools/gmtitle/cursor_swcad_title_scale_ux.lsp` | Short commands: `SWSTAT`, `SWGO`, `SWCHECK`, `SWPREP`, `SWNEXT`, `SWMORE` | `src/tools/gmtitle/cursor_swcad_title_scale_ux_load.lsp` |
 
 Do not APPLOAD both GMTITLE files in the same CAD session: internal `swcad-title-*` symbols collide. Do not point `swcad_load.lsp` at the Cursor copy unless the user explicitly asks to promote it.
 
