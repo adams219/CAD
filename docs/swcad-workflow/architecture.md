@@ -99,6 +99,8 @@ GMTITLE 단계는 새 `DR_titlea_3rd`의 11칸을 모두 쓴다(2026-09-29, `260
 
 회귀 테스트: `diagnostics/gmtitle-values/run_title_value_test.ps1`. 상세 기록: `docs/history/gmtitle-title-values-2026-09-29.md`.
 
+옛 표제란 정리는 옛 표제란 상자 안의 선·해치와, 표제란에 닿은 도면틀 테두리 여백(11 mm)의 조각만 지운다. 찾는 범위는 원본 시트가 있는 공간이다. 삭제는 이미 지운 객체를 다시 건드리지 않는다(`entdel` 재호출은 객체를 되살린다). 옛 표제란·도면틀·글자가 잠긴 레이어에 있으면 GMTITLE 생성 전에 `ABORT_SOURCE_ON_LOCKED_LAYER`로 멈추고, 변환 뒤 남아 있으면 `REVIEW_OLD_TITLE_NOT_DELETED`로 멈춘다. 상세 기록: `docs/history/gmtitle-delete-safety-2026-09-29.md`.
+
 ## 치수 의미 보존
 
 대표 도면에서 기존 SWAUTO는 스타일 감사 자체는 통과했지만, native Mechanical fit 적용 중 핸들 `37C1`의 의미 오버라이드가 다음처럼 달라지는 사례가 발견됐다.

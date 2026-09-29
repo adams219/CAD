@@ -1,4 +1,4 @@
 # Canonical module baseline for the SWCAD Workflow MVP branch.
-95560E89CA58420927D913BE70BE5228A7007C7348D19DAD4D1B7E99D93423A3  src/tools/gmtitle/swcad_title_scale.lsp
+FB39B48C33D79AF6D7ED698024B0B83D7FA18199125981A659417C4711A471F4  src/tools/gmtitle/swcad_title_scale.lsp
 E34CA6ADCF14F04F7BE29BCAD6B8AB3B4BC92F640A3BD51703CACB02C44DFDBC  src/tools/gstarcad-dimstyle/gstarcad_dimstyle_keep_tolerance.lsp
 B1FE0DD971E2EC2D14BEF7B4540C7163D4A7CC99F47DE8BA451C12E3394C4903  src/tools/gstarcad-layout/gstarcad_layout_from_model.lsp

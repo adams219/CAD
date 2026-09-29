@@ -36,7 +36,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260929-title-values-1
+260929-delete-safety-1
 ```
 
 다른 버전이 보이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
