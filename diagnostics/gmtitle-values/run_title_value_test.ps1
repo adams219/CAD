@@ -78,6 +78,7 @@ Write-Output "TITLE stage drawing: $TitleStageDwg"
 
 Invoke-Probe $TitleStageDwg (Join-Path $PSScriptRoot "title_value_plan_probe.lsp") "plan" "Value plan probe completed: yes" @{ SWT_PLAN_LOG = (Join-Path $OutputRoot "plan.log"); SWT_PLAN_MODULE = $module }
 Invoke-Probe $TitleStageDwg (Join-Path $PSScriptRoot "title_value_write_probe.lsp") "write" "Write verify probe completed: yes" @{ SWT_WRITE_LOG = (Join-Path $OutputRoot "write.log"); SWT_PLAN_MODULE = $module }
+Invoke-Probe $TitleStageDwg (Join-Path $PSScriptRoot "title_delete_safety_probe.lsp") "delete_safety" "Step2 unit probe completed: yes" @{ SWT_STEP2_LOG = (Join-Path $OutputRoot "delete_safety.log"); SWT_PLAN_MODULE = $module }
 
 $index = 0
 foreach ($dwg in $CheckDwg) {
@@ -92,6 +93,8 @@ if ($EndToEnd) {
   $work = ((Get-Content -LiteralPath $driverLog -Encoding UTF8 | Where-Object { $_ -match 'work result: ' } | Select-Object -Last 1) -replace '^.*work result: ', '')
   if (-not $work -or -not (Test-Path -LiteralPath $work)) { throw "End-to-end run left no work drawing. See $driverLog" }
   Invoke-Probe $work (Join-Path $PSScriptRoot "title_value_dump_probe.lsp") "e2e_dump" "Attribute probe completed: yes" @{ SWT_ATTR_LOG = (Join-Path $OutputRoot "e2e_dump.log") }
+  Invoke-Probe $TitleStageDwg (Join-Path $PSScriptRoot "title_value_entity_dump_probe.lsp") "entities_before" "Entity probe completed: yes" @{ SWT_ENT_LOG = (Join-Path $OutputRoot "entities_before.log") }
+  Invoke-Probe $work (Join-Path $PSScriptRoot "title_value_entity_dump_probe.lsp") "entities_after" "Entity probe completed: yes" @{ SWT_ENT_LOG = (Join-Path $OutputRoot "entities_after.log") }
   Invoke-Probe $work (Join-Path $PSScriptRoot "title_value_verify_probe.lsp") "verify_e2e" "Verify probe completed: yes" @{ SWT_VERIFY_LOG = (Join-Path $OutputRoot "verify_e2e.log"); SWT_PLAN_MODULE = $module }
   if ($FullWorkflow) {
     Invoke-Probe $work (Join-Path $PSScriptRoot "workflow_final_verify_probe.lsp") "final_verify" "Final verify probe completed: yes" @{ SWT_FINAL_LOG = (Join-Path $OutputRoot "final_verify.log"); SWT_WORKFLOW_LOADER = (Join-Path $repoRoot "apps\swcad-workflow\swcad_workflow_load.lsp") }

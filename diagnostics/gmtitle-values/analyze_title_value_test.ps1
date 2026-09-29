@@ -131,6 +131,17 @@ if (Test-Path -LiteralPath $writePath) {
   if ($unitFail -gt 0 -or $readDiff -gt 0 -or $verifyErrors -ne 0 -or $readback -ne $fieldCount) { $problems++ }
 }
 
+# ---- deletion safety ----
+$safetyPath = Join-Path $OutputRoot "delete_safety.log"
+if (Test-Path -LiteralPath $safetyPath) {
+  $safety = Read-Lines $safetyPath
+  $ok = @($safety | Where-Object { $_.StartsWith("UNIT_OK") }).Count
+  $failed = @($safety | Where-Object { $_.StartsWith("UNIT_FAIL") })
+  "== Deletion safety: unit checks $($ok + $failed.Count) (failed $($failed.Count))"
+  $failed | ForEach-Object { "  $_" }
+  if ($failed.Count -gt 0 -or $ok -eq 0) { $problems++ }
+}
+
 # ---- end to end ----
 $dumpPath = Join-Path $OutputRoot "e2e_dump.log"
 if (Test-Path -LiteralPath $dumpPath) {
@@ -161,6 +172,16 @@ if (Test-Path -LiteralPath $dumpPath) {
 $driverPath = Join-Path $OutputRoot "e2e_driver.log"
 if (Test-Path -LiteralPath $driverPath) {
   "  driver: " + ((Read-Lines $driverPath | Where-Object { $_ -match 'run \d+:|stopped|finished|complete|source unchanged' }) -join " / ")
+}
+
+# ---- model-space entities removed by the conversion ----
+$beforePath = Join-Path $OutputRoot "entities_before.log"
+$afterPath = Join-Path $OutputRoot "entities_after.log"
+if ((Test-Path -LiteralPath $beforePath) -and (Test-Path -LiteralPath $afterPath)) {
+  $before = @{}; foreach ($l in (Read-Lines $beforePath)) { if ($l.StartsWith("ENT|")) { $before[$l.Split('|')[1]] = $l.Split('|')[2] } }
+  $after = @{}; foreach ($l in (Read-Lines $afterPath)) { if ($l.StartsWith("ENT|")) { $after[$l.Split('|')[1]] = $l.Split('|')[2] } }
+  $removed = @($before.Keys | Where-Object { -not $after.ContainsKey($_) })
+  "== Removed model-space entities: $($removed.Count) of $($before.Count) (" + (($removed | ForEach-Object { $before[$_] } | Group-Object | Sort-Object Count -Descending | ForEach-Object { "{0} {1}" -f $_.Count, $_.Name }) -join ", ") + ")"
 }
 
 # ---- full workflow ----
