@@ -25,6 +25,15 @@
 ;;; changed to one standard style, the style-level tolerance display can disappear.
 ;;; This command first "bakes" the effective tolerance values into each dimension's
 ;;; ACAD/DSTYLE xdata, then changes the style name.
+;;;
+;;; Dimensions without an active tolerance also keep DIMLFAC, DIMTOL, DIMLIM,
+;;; DIMTP and DIMTM when the target style would change them; otherwise a 2:1
+;;; detail-view dimension with DIMLFAC 0.5 falls back to the style's 1.0 and
+;;; shows a doubled number. Every dimension also keeps its decimal places and
+;;; rounding (DIMDEC, DIMRND, DIMADEC), so 29.406 does not become 29.41 under a
+;;; 2-decimal target style; zero suppression (DIMZIN) follows the target style.
+;;; SWAUTO compares every dimension before and after the run, restores anything
+;;; that changed, and checks the number actually drawn in each dimension block.
 
 (vl-load-com)
 
@@ -37,6 +46,7 @@
     (42  . real)   ; DIMEXO
     (43  . real)   ; DIMDLI
     (44  . real)   ; DIMEXE
+    (45  . real)   ; DIMRND
     (46  . real)   ; DIMDLE
     (47  . real)   ; DIMTP
     (48  . real)   ; DIMTM
@@ -48,6 +58,8 @@
     (144 . real)   ; DIMLFAC
     (146 . real)   ; DIMTFAC
     (147 . real)   ; DIMGAP
+    (179 . int)    ; DIMADEC
+    (271 . int)    ; DIMDEC
     (272 . int)    ; DIMTDEC
     (274 . int)    ; DIMALTTD
     (283 . int)    ; DIMTOLJ
@@ -59,7 +71,7 @@
 (setq *swdt-fit-review-matches* nil)
 (setq *swdt-fit-review-index* 0)
 (setq *swdt-mechfit-stage* "")
-(setq *swdt-version* "260626-1048")
+(setq *swdt-version* "260929-value-guard-3")
 
 (defun swdt-mechfit-stage (label)
   (setq *swdt-mechfit-stage* label)
@@ -366,21 +378,54 @@
   )
 )
 
-(defun swdt-process-dimension (ent target / data text values overrides newdata ok)
+;;; Codes that decide the displayed number (scale, decimals, rounding) and
+;;; whether a tolerance shows. DIMZIN is left to the target style on purpose:
+;;; SOLIDWORKS exports DIMZIN 12, which would turn its 0.5 into .5.
+(setq *swdt-value-keep-codes* '(144 71 72 47 48 271 45 179))
+
+(defun swdt-dimvar-same-p (left right)
+  (if (and (numberp left) (numberp right))
+    (equal (float left) (float right) 1e-9)
+    (equal left right)
+  )
+)
+
+(defun swdt-value-keep-overrides (values target / styledata result code pair)
+  (setq styledata (if (swdt-string-p target) (tblsearch "DIMSTYLE" target) nil))
+  (setq result nil)
+  (foreach code *swdt-value-keep-codes*
+    (setq pair (assoc code values))
+    (if
+      (and
+        pair
+        (not (swdt-dimvar-same-p (cdr pair) (if styledata (cdr (assoc code styledata)) nil)))
+      )
+      (setq result (swdt-dxf-put result code (cdr pair)))
+    )
+  )
+  result
+)
+
+(defun swdt-process-dimension (ent target / data text values overrides keep newdata ok)
   (setq data (entget ent '("ACAD")))
   (setq text (swdt-safe-string (cdr (assoc 1 data))))
   (setq values (swdt-effective-tolerance-values data))
   (setq overrides (swdt-filter-overrides-for-entity values text))
+  (setq keep (if overrides nil (swdt-value-keep-overrides values target)))
   (setq newdata (swdt-dxf-put data 3 target))
   (if text
     (setq newdata (swdt-dxf-put newdata 1 text))
   )
-  (setq newdata (swdt-set-dstyle-xdata newdata overrides))
+  (setq newdata (swdt-set-dstyle-xdata newdata (if overrides overrides keep)))
   (regapp "ACAD")
   (setq ok (entmod newdata))
   (if ok (entupd ent))
   (if ok
-    (if overrides 'tolerance 'style-only)
+    (cond
+      (overrides 'tolerance)
+      (keep 'value-keep)
+      (T 'style-only)
+    )
     nil
   )
 )
@@ -1770,9 +1815,15 @@
 
 (defun swdt-trim-tol-real (value / s)
   (setq s (rtos (abs (float value)) 2 6))
-  (setq s (vl-string-right-trim "0" s))
-  (if (and (> (strlen s) 0) (= (substr s (strlen s) 1) "."))
-    (setq s (substr s 1 (1- (strlen s))))
+  ;; DIMZIN may already drop trailing zeros; only trim after a decimal point
+  ;; so 10 stays 10 instead of becoming 1.
+  (if (vl-string-search "." s)
+    (progn
+      (setq s (vl-string-right-trim "0" s))
+      (if (and (> (strlen s) 0) (= (substr s (strlen s) 1) "."))
+        (setq s (substr s 1 (1- (strlen s))))
+      )
+    )
   )
   (if (= s "") "0" s)
 )
@@ -1834,11 +1885,39 @@
   token
 )
 
-(defun swdt-dim-display-prefix (data / text)
+;;; Keeps what the drawing shows before the measurement, such as "3-" in
+;;; "3-<>H7 Hole DP3".
+(defun swdt-dim-display-prefix (data / text pos)
   (setq text (swdt-safe-string (cdr (assoc 1 data))))
-  (if (and text (vl-string-search "%%C" (strcase text)))
-    "%%C<>"
-    "<>"
+  (setq pos (if text (vl-string-search "<>" text) nil))
+  (cond
+    (pos (strcat (swdt-mtext-plain (substr text 1 pos)) "<>"))
+    ((and text (vl-string-search "%%C" (strcase text))) "%%C<>")
+    (T "<>")
+  )
+)
+
+;;; Text after the fit code, such as " Hole DP3" in "3-<>H7 Hole DP3". Text that
+;;; looks like a tolerance is dropped so the fit tolerance is not shown twice.
+(defun swdt-dim-fit-suffix (data fit / text pos tail idx)
+  (setq text (swdt-safe-string (cdr (assoc 1 data))))
+  (setq pos (if text (vl-string-search "<>" text) nil))
+  (setq tail (if pos (swdt-mtext-plain (substr text (+ pos 3))) ""))
+  (setq idx (if (and (swdt-string-p fit) (/= fit "")) (vl-string-search fit tail) nil))
+  (if idx
+    (progn
+      (setq tail (substr tail (+ idx (strlen fit) 1)))
+      (if
+        (or
+          (vl-string-search "+" tail)
+          (vl-string-search "/" tail)
+          (vl-string-search "%%p" (strcase tail T))
+        )
+        ""
+        tail
+      )
+    )
+    ""
   )
 )
 
@@ -1927,13 +2006,32 @@
   )
 )
 
-(defun swdt-dim-measurement (ent data / raw dimlfac)
-  (setq raw (swdt-dim-raw-measurement ent data))
-  (setq dimlfac (swdt-dim-linear-scale ent data))
-  (if (swdt-positive-real-p raw)
-    (* raw dimlfac)
-    0.0
+;;; Size shown on the drawing, used as the Mechanical fit nominal size.
+;;; GstarCAD's Measurement property and DXF 42 already include DIMLFAC (a 2:1
+;;; view measures 8 geometric units and reports 4); only the defining-point
+;;; distance still needs DIMLFAC applied.
+(defun swdt-dim-measurement (ent data / value)
+  (setq value (swdt-safe-prop (vlax-ename->vla-object ent) 'Measurement))
+  (if (not (swdt-positive-real-p value))
+    (setq value (cdr (assoc 42 data)))
   )
+  (if (swdt-positive-real-p value)
+    (float value)
+    (progn
+      (setq value (swdt-dim-point-distance-measurement data))
+      (if (swdt-positive-real-p value)
+        (* value (swdt-dim-linear-scale ent data))
+        0.0
+      )
+    )
+  )
+)
+
+;;; Signed deviation text. DIMTM holds the amount below nominal, so the lower
+;;; deviation shown is -DIMTM: D10 has DIMTM -0.030 and shows +0.030.
+(defun swdt-mech-fit-signed (value negate / v)
+  (setq v (if negate (- (float value)) (float value)))
+  (strcat (if (< v 0.0) "-" "+") (swdt-trim-tol-real v))
 )
 
 (defun swdt-mech-fit-tolstack (upper lower / up low)
@@ -1950,7 +2048,7 @@
       "\\S0^0;"
     )
     (T
-      (strcat "\\S+" up "^-" low ";")
+      (strcat "\\S" (swdt-mech-fit-signed upper nil) "^" (swdt-mech-fit-signed lower T) ";")
     )
   )
 )
@@ -1989,6 +2087,20 @@
           (list
             (cons 1070 code)
             (cons 1040 (float value))
+          )
+        )
+      )
+    )
+  )
+  ;; Keep the rounding and decimal places (DIMRND, DIMADEC, DIMDEC) the dimension had.
+  (foreach code '(45 179 271)
+    (setq value (swdt-dimstyle-or-override-value data code))
+    (if (numberp value)
+      (setq result
+        (append result
+          (list
+            (cons 1070 code)
+            (if (= code 45) (cons 1040 (float value)) (cons 1070 (fix value)))
           )
         )
       )
@@ -2086,7 +2198,7 @@
       (swdt-mechfit-stage "apply:display-prefix")
       (setq prefix (swdt-dim-display-prefix data))
       (swdt-mechfit-stage "apply:display-string")
-      (setq newtext (swdt-mech-fit-display prefix fit upper lower))
+      (setq newtext (strcat (swdt-mech-fit-display prefix fit upper lower) (swdt-dim-fit-suffix data fit)))
       (swdt-mechfit-stage "apply:dstyle-pairs")
       (setq dstyle (swdt-mech-dstyle-pairs data upper lower dimlfac))
       (swdt-mechfit-stage "apply:combined-build")
@@ -2539,7 +2651,7 @@
             (setq changed (1+ changed))
             (setq tolonly (1+ tolonly))
           )
-          ((eq result 'style-only)
+          ((member result '(style-only value-keep))
             (setq changed (1+ changed))
           )
           (T
@@ -2722,7 +2834,7 @@
   (= residual 0)
 )
 
-(defun swdt-run-dimkeep-amiso-on-ss (ss / normalstyle diamstyle doc idx ent target result changed normalchanged diamchanged tolonly failed missing)
+(defun swdt-run-dimkeep-amiso-on-ss (ss / normalstyle diamstyle doc idx ent target result changed normalchanged diamchanged tolonly valuekeep failed missing)
   (setq normalstyle (swdt-amiso-normal-style))
   (setq diamstyle (swdt-amiso-diameter-style normalstyle))
   (setq missing nil)
@@ -2753,6 +2865,7 @@
       (setq normalchanged 0)
       (setq diamchanged 0)
       (setq tolonly 0)
+      (setq valuekeep 0)
       (setq failed 0)
       (while (< idx (sslength ss))
         (setq ent (ssname ss idx))
@@ -2770,8 +2883,11 @@
               (setq normalchanged (1+ normalchanged))
             )
           )
-          ((eq result 'style-only)
+          ((member result '(style-only value-keep))
             (setq changed (1+ changed))
+            (if (eq result 'value-keep)
+              (setq valuekeep (1+ valuekeep))
+            )
             (if (equal target diamstyle)
               (setq diamchanged (1+ diamchanged))
               (setq normalchanged (1+ normalchanged))
@@ -2791,6 +2907,7 @@
       (princ (strcat "\n  Normal dimensions changed: " (itoa normalchanged)))
       (princ (strcat "\n  Diameter dimensions changed: " (itoa diamchanged)))
       (princ (strcat "\n  Dimensions with preserved overrides: " (itoa tolonly)))
+      (princ (strcat "\n  Dimensions keeping DIMLFAC/tolerance-off values: " (itoa valuekeep)))
       (princ (strcat "\n  Failed: " (itoa failed)))
       (princ "\nRun REGENALL and visually check several diameter/tolerance dimensions.")
       (= failed 0)
@@ -3087,9 +3204,521 @@
   ok
 )
 
-(defun swdt-run-autofix-core (ss / styleok fitok auditok fitauditok cleanupok normalstyle diamstyle)
+;;; Dimension value guard. The first six fields match the SWCAD workflow check
+;;; (measurement, DIMLFAC, DIMTP, DIMTM, DIMTOL, DIMLIM); the rest cover decimal
+;;; places and rounding (DIMDEC, DIMRND, DIMADEC). A dimension converted to a
+;;; Mechanical fit may move its tolerance display (DIMTOL/DIMLIM) into the fit
+;;; data, so only that change is accepted. Every other change is restored.
+(setq *swdt-semantic-restore-codes* '(47 48 71 72 144 146 272 283 284 286 271 45 179))
+(setq *swdt-semantic-field-labels*
+  '("측정값" "DIMLFAC" "위 공차" "아래 공차" "공차 표시" "한계 표시" "소수 자리" "반올림" "각도 소수 자리")
+)
+
+(defun swdt-semantic-number (value)
+  (cond
+    ((numberp value) (rtos (float value) 2 8))
+    ((null value) "<nil>")
+    (T (vl-princ-to-string value))
+  )
+)
+
+(defun swdt-semantic-show (value / s)
+  (if (numberp value)
+    (progn
+      (setq s (rtos (float value) 2 6))
+      (if (vl-string-search "." s)
+        (setq s (vl-string-right-trim "." (vl-string-right-trim "0" s)))
+      )
+      (if (member s '("" "-")) "0" s)
+    )
+    (if value (vl-princ-to-string value) "-")
+  )
+)
+
+;;; --- Shown number: the first number GstarCAD actually draws for a dimension ---
+
+(defun swdt-strip-unicode-escapes (text / out idx len)
+  (setq out "")
+  (setq idx 1)
+  (setq len (strlen text))
+  (while (<= idx len)
+    (if
+      (and
+        (<= (+ idx 6) len)
+        (= (substr text idx 1) "\\")
+        (member (substr text (1+ idx) 2) '("U+" "u+"))
+      )
+      (progn
+        (setq out (strcat out " "))
+        (setq idx (+ idx 7))
+      )
+      (progn
+        (setq out (strcat out (substr text idx 1)))
+        (setq idx (1+ idx))
+      )
+    )
+  )
+  out
+)
+
+(defun swdt-remove-percent-codes (text / out idx len)
+  (setq out "")
+  (setq idx 1)
+  (setq len (strlen text))
+  (while (<= idx len)
+    (if
+      (and
+        (<= (+ idx 2) len)
+        (member (strcase (substr text idx 3)) '("%%C" "%%D" "%%P"))
+      )
+      (progn
+        (setq out (strcat out " "))
+        (setq idx (+ idx 3))
+      )
+      (progn
+        (setq out (strcat out (substr text idx 1)))
+        (setq idx (1+ idx))
+      )
+    )
+  )
+  out
+)
+
+;;; First number token in a dimension text ("68", "0.5", ".5"), or nil.
+(defun swdt-shown-number (text / plain idx len start out)
+  (setq plain (swdt-remove-percent-codes (swdt-mtext-plain (swdt-strip-unicode-escapes (swdt-text-value-string text)))))
+  (setq idx 1)
+  (setq len (strlen plain))
+  (setq out nil)
+  (while (and (<= idx len) (not out))
+    (if
+      (or
+        (swdt-digit-char-p (substr plain idx 1))
+        (and (= (substr plain idx 1) ".") (< idx len) (swdt-digit-char-p (substr plain (1+ idx) 1)))
+      )
+      (progn
+        (setq start idx)
+        (while
+          (and
+            (<= idx len)
+            (or (swdt-digit-char-p (substr plain idx 1)) (= (substr plain idx 1) "."))
+          )
+          (setq idx (1+ idx))
+        )
+        (setq out (vl-string-right-trim "." (substr plain start (- idx start))))
+      )
+      (setq idx (1+ idx))
+    )
+  )
+  out
+)
+
+;;; Every TEXT/MTEXT GstarCAD drew in the dimension block, in order.
+(defun swdt-dim-drawn-text (data / name header ent ed kind out chunk item)
+  (setq out "")
+  (setq name (cdr (assoc 2 data)))
+  (setq header (if (swdt-string-p name) (tblobjname "BLOCK" name) nil))
+  (setq ent (if header (entnext header) nil))
+  (while ent
+    (setq ed (entget ent))
+    (setq kind (cdr (assoc 0 ed)))
+    (if (or (null ed) (member kind '("ENDBLK" "SEQEND")))
+      (setq ent nil)
+      (progn
+        (if (member kind '("MTEXT" "TEXT"))
+          (progn
+            (setq chunk "")
+            (foreach item ed
+              (if (= (car item) 3) (setq chunk (strcat chunk (cdr item))))
+            )
+            (setq out (strcat out " " chunk (swdt-text-value-string (cdr (assoc 1 ed)))))
+          )
+        )
+        (setq ent (entnext ent))
+      )
+    )
+  )
+  out
+)
+
+(defun swdt-token-decimals (token / pos)
+  (setq pos (vl-string-search "." token))
+  (if pos (- (strlen token) pos 1) 0)
+)
+
+(defun swdt-shown-same-p (before after)
+  (equal (atof before) (atof after) 1e-9)
+)
+
+;;; SOLIDWORKS draws some diameters as twice a centreline distance (shows 68 for
+;;; a measured 34). The DWG has no setting for that, so GstarCAD redraws 34.
+(defun swdt-shown-double-p (before after)
+  (<=
+    (abs (- (* 2.0 (atof after)) (atof before)))
+    (+ (* 0.5 (expt 10.0 (- (swdt-token-decimals before)))) 1e-9)
+  )
+)
+
+;;; Only a text that is just the measurement (optionally with a diameter sign)
+;;; is safe to rescale; "3-<>" style texts carry other numbers.
+(defun swdt-plain-measure-override-p (text / plain)
+  (setq plain (swdt-remove-percent-codes (swdt-mtext-plain (swdt-strip-unicode-escapes (swdt-text-value-string text)))))
+  (setq plain (vl-string-subst "" "<>" plain))
+  (= (vl-string-trim " " plain) "")
+)
+
+(defun swdt-semantic-double-dimlfac (handle / ename data overrides newdata ok)
+  (setq ename (handent handle))
+  (setq data (if ename (entget ename '("*")) nil))
+  (if data
+    (progn
+      (setq overrides
+        (swdt-dxf-put
+          (swdt-get-dstyle-overrides data)
+          144
+          (* 2.0 (swdt-dim-linear-scale ename data))
+        )
+      )
+      (setq newdata (swdt-set-dstyle-xdata data overrides))
+      (regapp "ACAD")
+      (setq ok (entmod newdata))
+      (if ok (entupd ename))
+      ok
+    )
+    nil
+  )
+)
+
+;;; GstarCAD reports -1 for a dimension exported by SOLIDWORKS until the
+;;; dimension is first updated, so an unknown measurement is nil and skipped.
+(defun swdt-semantic-measurement (ent / value)
+  (setq value (swdt-safe-prop (vlax-ename->vla-object ent) 'Measurement))
+  (if (swdt-positive-real-p value) (float value) nil)
+)
+
+;;; (handle (measurement dimlfac dimtp dimtm dimtol dimlim dimdec dimrnd dimadec)
+;;;  restore-values fit-p shown-number override-text)
+(defun swdt-semantic-entry (ent / data values restore code pair)
+  (setq data (entget ent '("*")))
+  (if (and data (equal (cdr (assoc 0 data)) "DIMENSION") (assoc 5 data))
+    (progn
+      (setq values (swdt-effective-tolerance-values data))
+      (setq restore nil)
+      (foreach code *swdt-semantic-restore-codes*
+        (setq pair (assoc code values))
+        (if pair (setq restore (append restore (list pair))))
+      )
+      (list
+        (cdr (assoc 5 data))
+        (list
+          (swdt-semantic-measurement ent)
+          (swdt-dim-linear-scale ent data)
+          (cdr (assoc 47 values))
+          (cdr (assoc 48 values))
+          (cdr (assoc 71 values))
+          (cdr (assoc 72 values))
+          (cdr (assoc 271 values))
+          (cdr (assoc 45 values))
+          (cdr (assoc 179 values))
+        )
+        restore
+        (swdt-xdata-app-present-p data "GENIUS_GENDTOL_13")
+        (swdt-shown-number (swdt-dim-drawn-text data))
+        (cdr (assoc 1 data))
+      )
+    )
+    nil
+  )
+)
+
+(defun swdt-semantic-capture (ss / idx entry result)
+  (setq result nil)
+  (if ss
+    (progn
+      (setq idx 0)
+      (while (< idx (sslength ss))
+        (setq entry (swdt-semantic-entry (ssname ss idx)))
+        (if entry (setq result (cons entry result)))
+        (setq idx (1+ idx))
+      )
+    )
+  )
+  (reverse result)
+)
+
+(defun swdt-semantic-current (entry / ename)
+  (setq ename (handent (car entry)))
+  (if ename (swdt-semantic-entry ename) nil)
+)
+
+(defun swdt-semantic-changed-fields (before after / idx result value other)
+  (setq result nil)
+  (setq idx 0)
+  (foreach value (cadr before)
+    (setq other (nth idx (cadr after)))
+    (if
+      (and
+        (not (and (= idx 0) (or (null value) (null other))))
+        (not (equal (swdt-semantic-number value) (swdt-semantic-number other)))
+      )
+      (setq result (append result (list idx)))
+    )
+    (setq idx (1+ idx))
+  )
+  result
+)
+
+(defun swdt-semantic-flag-on-p (value)
+  (and (numberp value) (= (fix value) 1))
+)
+
+(defun swdt-semantic-only-fields-p (fields allowed / ok idx)
+  (setq ok T)
+  (foreach idx fields
+    (if (not (member idx allowed)) (setq ok nil))
+  )
+  ok
+)
+
+(defun swdt-semantic-visible-change-p (before after fields)
+  (or
+    (not (swdt-semantic-only-fields-p fields '(2 3)))
+    (and
+      (or (member 2 fields) (member 3 fields))
+      (or
+        (swdt-semantic-flag-on-p (nth 4 (cadr before)))
+        (swdt-semantic-flag-on-p (nth 5 (cadr before)))
+        (swdt-semantic-flag-on-p (nth 4 (cadr after)))
+        (swdt-semantic-flag-on-p (nth 5 (cadr after)))
+      )
+    )
+  )
+)
+
+(defun swdt-semantic-change-text (before after fields / text idx)
+  (setq text (strcat "#" (car before)))
+  (foreach idx fields
+    (setq text
+      (strcat
+        text
+        " "
+        (nth idx *swdt-semantic-field-labels*)
+        " "
+        (swdt-semantic-show (nth idx (cadr before)))
+        "->"
+        (swdt-semantic-show (nth idx (cadr after)))
+      )
+    )
+  )
+  text
+)
+
+(defun swdt-semantic-add-example (examples text)
+  (if (< (length examples) 8)
+    (append examples (list text))
+    examples
+  )
+)
+
+(defun swdt-semantic-print-examples (label examples total / item)
+  (if examples
+    (progn
+      (princ (strcat "\n  " label))
+      (foreach item examples
+        (princ (strcat "\n    " item))
+      )
+      (if (> total (length examples))
+        (princ (strcat "\n    ... 외 " (itoa (- total (length examples))) "개"))
+      )
+    )
+  )
+)
+
+(defun swdt-semantic-restore-entry (entry / ename data overrides pair newdata ok)
+  (setq ename (handent (car entry)))
+  (setq data (if ename (entget ename '("*")) nil))
+  (if data
+    (progn
+      (setq overrides (swdt-get-dstyle-overrides data))
+      (foreach pair (caddr entry)
+        (setq overrides (swdt-dxf-put overrides (car pair) (cdr pair)))
+      )
+      (setq newdata (swdt-set-dstyle-xdata data overrides))
+      (regapp "ACAD")
+      (setq ok (entmod newdata))
+      (if ok (entupd ename))
+      ok
+    )
+    nil
+  )
+)
+
+(defun swdt-semantic-guard (before / doc same fitmoved oddcount oddexamples fixable visible hidden examples entry after fields restored failed remaining ok)
+  (princ "\n--- 치수 값 보존 검사: SWAUTO 전후 비교 ---")
+  (setq same 0)
+  (setq fitmoved 0)
+  (setq oddcount 0)
+  (setq visible 0)
+  (setq hidden 0)
+  (setq oddexamples nil)
+  (setq fixable nil)
+  (setq examples nil)
+  (foreach entry before
+    (setq after (swdt-semantic-current entry))
+    (setq fields (if after (swdt-semantic-changed-fields entry after) nil))
+    (cond
+      ((not after)
+        (setq oddcount (1+ oddcount))
+        (setq oddexamples (swdt-semantic-add-example oddexamples (strcat "#" (car entry) " 치수를 찾을 수 없음")))
+      )
+      ((not fields)
+        (setq same (1+ same))
+      )
+      ((and (cadddr after) (swdt-semantic-only-fields-p fields '(4 5)))
+        (setq fitmoved (1+ fitmoved))
+      )
+      ((cadddr after)
+        (setq oddcount (1+ oddcount))
+        (setq oddexamples (swdt-semantic-add-example oddexamples (swdt-semantic-change-text entry after fields)))
+      )
+      (T
+        (setq fixable (append fixable (list entry)))
+        (if (swdt-semantic-visible-change-p entry after fields)
+          (setq visible (1+ visible))
+          (setq hidden (1+ hidden))
+        )
+        (setq examples (swdt-semantic-add-example examples (swdt-semantic-change-text entry after fields)))
+      )
+    )
+  )
+  (setq restored 0)
+  (setq failed 0)
+  (setq remaining 0)
+  (if fixable
+    (progn
+      (setq doc (swdt-doc))
+      (swdt-safe-call 'vla-StartUndoMark (list doc))
+      (foreach entry fixable
+        (if (swdt-semantic-restore-entry entry)
+          (setq restored (1+ restored))
+          (setq failed (1+ failed))
+        )
+      )
+      (swdt-safe-call 'vla-EndUndoMark (list doc))
+      (swdt-safe-call 'vla-Regen (list doc 1))
+      (foreach entry fixable
+        (setq after (swdt-semantic-current entry))
+        (if (or (not after) (swdt-semantic-changed-fields entry after))
+          (setq remaining (1+ remaining))
+        )
+      )
+    )
+  )
+  (princ (strcat "\n  검사한 치수: " (itoa (length before)) "개"))
+  (princ (strcat "\n  변화 없음: " (itoa same) "개"))
+  (if (> fitmoved 0)
+    (princ (strcat "\n  맞춤공차 변환으로 공차 표시가 Mechanical 방식으로 바뀐 치수: " (itoa fitmoved) "개 (기존 SWAUTO 동작, 되돌리지 않음)"))
+  )
+  (if fixable
+    (progn
+      (princ
+        (strcat
+          "\n  달라져서 되돌린 치수: " (itoa (length fixable)) "개"
+          " (보이는 값 변화 " (itoa visible) "개, 숨은 설정 변화 " (itoa hidden) "개)"
+        )
+      )
+      (swdt-semantic-print-examples "변화 예:" examples (length fixable))
+      (princ
+        (strcat
+          "\n  되돌림 결과: 성공 " (itoa restored) "개, 실패 " (itoa failed)
+          "개, 되돌린 뒤에도 남은 차이 " (itoa remaining) "개"
+        )
+      )
+    )
+    (princ "\n  달라져서 되돌린 치수: 0개")
+  )
+  (if (> oddcount 0)
+    (swdt-semantic-print-examples
+      (strcat "확인 필요 (자동으로 되돌리지 않음): " (itoa oddcount) "개")
+      oddexamples
+      oddcount
+    )
+  )
+  (setq ok (and (= oddcount 0) (= failed 0) (= remaining 0) (swdt-shown-guard before)))
+  (princ (strcat "\n  치수 값 보존: " (if ok "OK" "CHECK NEEDED")))
+  ok
+)
+
+;;; Compares the first number drawn for every dimension. A SOLIDWORKS double
+;;; distance diameter gets DIMLFAC x2 so it shows its number again; any other
+;;; difference is reported and left alone.
+(defun swdt-shown-guard (before / doc entry after tried doubled doubledexamples odd oddexamples)
+  (setq tried nil)
+  (setq doubled 0)
+  (setq doubledexamples nil)
+  (setq odd 0)
+  (setq oddexamples nil)
+  (setq doc (swdt-doc))
+  (swdt-safe-call 'vla-StartUndoMark (list doc))
+  (foreach entry before
+    (setq after (swdt-semantic-current entry))
+    (if (and after (nth 4 entry) (nth 4 after) (not (swdt-shown-same-p (nth 4 entry) (nth 4 after))))
+      (if
+        (and
+          (not (cadddr after))
+          (swdt-plain-measure-override-p (nth 5 after))
+          (swdt-shown-double-p (nth 4 entry) (nth 4 after))
+          (swdt-semantic-double-dimlfac (car entry))
+        )
+        (setq tried (append tried (list entry)))
+        (progn
+          (setq odd (1+ odd))
+          (setq oddexamples (swdt-semantic-add-example oddexamples (strcat "#" (car entry) " " (nth 4 entry) "->" (nth 4 after))))
+        )
+      )
+    )
+  )
+  (swdt-safe-call 'vla-EndUndoMark (list doc))
+  (if tried
+    (progn
+      (swdt-safe-call 'vla-Regen (list doc 1))
+      (foreach entry tried
+        (setq after (swdt-semantic-current entry))
+        (if (and after (nth 4 after) (swdt-shown-same-p (nth 4 entry) (nth 4 after)))
+          (progn
+            (setq doubled (1+ doubled))
+            (setq doubledexamples (swdt-semantic-add-example doubledexamples (strcat "#" (car entry) " " (nth 4 entry))))
+          )
+          (progn
+            (setq odd (1+ odd))
+            (setq oddexamples (swdt-semantic-add-example oddexamples (strcat "#" (car entry) " " (nth 4 entry) "->" (if after (swdt-text-value-string (nth 4 after)) "?") " (DIMLFAC x2 뒤에도 다름)")))
+          )
+        )
+      )
+    )
+  )
+  (if (> doubled 0)
+    (swdt-semantic-print-examples
+      (strcat "SolidWorks 지름(중심선 거리 x2) 표시를 살리려고 DIMLFAC x2를 넣은 치수: " (itoa doubled) "개")
+      doubledexamples
+      doubled
+    )
+  )
+  (if (> odd 0)
+    (swdt-semantic-print-examples
+      (strcat "확인 필요: 화면에 보이는 숫자가 바뀐 치수 " (itoa odd) "개 (자동으로 되돌리지 않음)")
+      oddexamples
+      odd
+    )
+    (princ "\n  화면에 보이는 숫자: 모두 같음")
+  )
+  (= odd 0)
+)
+
+(defun swdt-run-autofix-core (ss / styleok fitok auditok fitauditok cleanupok valueok normalstyle diamstyle before)
   (setq normalstyle (swdt-amiso-normal-style))
   (setq diamstyle (swdt-amiso-diameter-style normalstyle))
+  (setq before (swdt-semantic-capture ss))
   (princ "\n--- Step 1/5: AM_ISO smart style mapping ---")
   (setq styleok (swdt-run-dimkeep-amiso-on-ss ss))
   (if styleok
@@ -3101,11 +3730,12 @@
       (setq fitok (swdt-run-mechfit-on-ss ss "SWAUTO Mechanical fit phase"))
       (princ "\n--- Step 4/5: REGENALL and final audit ---")
       (vl-cmdf "_.REGENALL")
+      (setq valueok (swdt-semantic-guard before))
       (setq auditok (swdt-swauto-final-audit))
       (setq fitauditok (swdt-swauto-fit-audit))
       (setq cleanupok (swdt-cleanup-old-dimstyles-core))
       (princ "\nSWAUTO finished.")
-      (if (and fitok auditok fitauditok cleanupok)
+      (if (and fitok auditok fitauditok cleanupok valueok)
         (progn
           (princ "\nSWAUTO RESULT: OK")
           (princ "\nVerify several dimensions with GMPOWEREDIT, then save.")
@@ -3113,12 +3743,16 @@
         )
         (progn
           (princ "\nSWAUTO RESULT: CHECK NEEDED")
+          (if (not valueok)
+            (princ "\n치수 값 보존 검사에 확인이 필요한 치수가 있습니다. 위 목록의 치수를 먼저 확인하세요.")
+          )
           (princ "\nReview failed conversions, style mismatches, or cleanup notes above. Use SWDEBUG or SWFINDSTYLE only if needed.")
           nil
         )
       )
     )
     (progn
+      (swdt-semantic-guard before)
       (princ "\nSWAUTO stopped before Mechanical fit conversion.")
       (princ "\nSWAUTO RESULT: CHECK NEEDED")
       nil
@@ -3172,7 +3806,8 @@
   (princ "\n  - Normal dimensions  -> AM_ISO$0, or AM_ISO/ISO-25/AM_ISO$3 if AM_ISO$0 is missing")
   (princ "\n  - Diameter dimensions -> AM_ISO$3, or the nearest available AM_ISO fallback")
   (princ "\n  - Converts embedded H7/h6/H9 fit tolerances to Mechanical fit data")
-  (princ "\n  - Preserves tolerance and DIMLFAC, while normalizing text/arrow/gap size to the target style")
+  (princ "\n  - Preserves tolerance, DIMLFAC and decimal places, while normalizing text/arrow/gap size to the target style")
+  (princ "\n  - Compares every dimension value before/after and restores unexpected changes")
   (princ "\n  - Purges unused old styles and safely deletes leftover SLD styles if CAD allows it")
   (princ "\n")
   (princ "\nTroubleshooting commands:")

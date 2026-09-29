@@ -105,6 +105,8 @@ DIMENSION_SEMANTICS=PRESERVED
 
 복원 후에도 기존 스타일 감사와 Mechanical fit 감사가 모두 통과해야 한다.
 
+2026-09-29부터는 SWAUTO 모듈이 같은 값을 직접 지킨다. `37C1` 사례의 원인은 맞춤공차 적용이 아니라 1단계 스타일 변경이었다. 공차가 없는 치수는 DSTYLE override가 통째로 지워져 `DIMLFAC`와 숨은 공차값이 대상 스타일 값으로 돌아갔다. 지금은 이런 치수도 대상 스타일과 다른 `DIMLFAC`, `DIMTOL`, `DIMLIM`, `DIMTP`, `DIMTM`, 소수 자리(`DIMDEC`, `DIMRND`, `DIMADEC`)를 유지한다. `swdt-run-autofix-core`가 실행 전후 값을 같은 방식으로 비교해 달라진 치수를 되돌린다. 맞춤공차로 변환된 치수의 `DIMTOL`/`DIMLIM` 변화만 되돌리지 않는다. 통합 앱의 전후 비교와 복원은 검증 단계로 그대로 둔다. 통합 앱은 맞춤공차 치수의 `DIMTOL`도 기존처럼 되돌리므로, 두 경로의 결과에서 이 값 하나가 다를 수 있다. 상세 기록은 `docs/history/swauto-value-guard-2026-09-29.md`에 있다.
+
 ## 전체 미사용 이름 정의 정리 계약
 
 Layout 생성 뒤 실제 참조 관계가 확정되면 native `-PURGE`를 이름 정의 범주별로 반복한다. `-PURGE All`은 사용하지 않는다.
