@@ -40,7 +40,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260929-small-fixes-1")
+(setq *swcad-title-scale-version* "260929-small-fixes-2")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -299,8 +299,8 @@
         ("ABORT_MULTIPLE_OPEN_DWGS" . "여러 도면이 열려 있어 현재 활성 도면 확인이 필요해 중단했습니다.")
         ("ABORT_READ_ONLY_DOCUMENT" . "읽기 전용 도면이라 중단했습니다.")
         ("ABORT_USER_CANCEL" . "사용자가 취소했습니다.")
-        ("ABORT_SOURCE_ON_LOCKED_LAYER" . "기존 표제란/도면틀/글자가 잠긴 레이어에 있어 GMTITLE을 만들기 전에 중단했습니다. 도면은 바꾸지 않았습니다.")
-        ("REVIEW_OLD_TITLE_NOT_DELETED" . "새 GMTITLE은 만들었지만 기존 표제란/도면틀/글자 일부를 지우지 못했습니다. 남은 객체를 확인하세요.")
+        ("ABORT_SOURCE_ON_LOCKED_LAYER" . "지울 기존 표제란/도면틀/글자/선이 잠긴 레이어에 있어 GMTITLE을 만들기 전에 중단했습니다. 도면은 바꾸지 않았습니다.")
+        ("REVIEW_OLD_TITLE_NOT_DELETED" . "새 GMTITLE은 만들었지만 기존 표제란/도면틀/글자/선 일부를 지우지 못했습니다. 남은 객체를 확인하세요.")
         ("SWTITLEVERIFY_WARN_TITLE_VALUES" . "제목블록 값에 GMTITLE 기본값(XXX, 파일 경로)이나 서식 코드가 남아 있습니다. 원본 도면과 비교해 고치세요.")
         ("REVIEW_CONVERT_RESULT_UNKNOWN" . "변환 단계가 결과 상태를 남기지 않았습니다. 완료로 보지 않고 멈췄습니다.")
         ("ERROR_CONVERT_NEXT_FATAL" . "변환 중 오류나 ESC로 멈췄습니다. 도면을 저장하지 말고 상태를 확인하세요.")
@@ -2682,9 +2682,22 @@
   )
 )
 
-;;; Old title insert, old frame insert and loose title texts: they must be deleted,
-;;; otherwise they stay under the new GMTITLE. Returns the handles on locked layers.
-(defun swcad-title-locked-old-sheet-handles (source-ename source-frame-ename records / result ename record)
+;;; The other pieces a transfer deletes with the old title: title shell inserts,
+;;; title lines and hatches, loose frame lines (deleted only when there is no frame
+;;; insert) and sheet residue.
+(defun swcad-title-queued-cleanup-handles (source-frame-ename title-shell-handles title-graphic-handles frame-graphic-handles residue-handles)
+  (append
+    title-shell-handles
+    title-graphic-handles
+    (if source-frame-ename nil frame-graphic-handles)
+    residue-handles
+  )
+)
+
+;;; Everything the transfer deletes: the old title insert, old frame insert, loose
+;;; title texts and cleanup-handles (see swcad-title-queued-cleanup-handles).  What is
+;;; not deleted stays under the new GMTITLE.  Returns the handles on locked layers.
+(defun swcad-title-locked-old-sheet-handles (source-ename source-frame-ename records cleanup-handles / result ename record handle)
   (setq result nil)
   (foreach ename (list source-ename source-frame-ename)
     (if (swcad-title-ename-on-locked-layer-p ename)
@@ -2700,17 +2713,26 @@
       (setq result (append result (list (strcase (swcad-title-string (nth 3 record))))))
     )
   )
+  (foreach handle cleanup-handles
+    (if
+      (and
+        (swcad-title-ename-on-locked-layer-p (handent (swcad-title-string handle)))
+        (not (member (strcase (swcad-title-string handle)) result))
+      )
+      (setq result (append result (list (strcase (swcad-title-string handle)))))
+    )
+  )
   result
 )
 
-;;; After a transfer: T when the old title insert, old frame insert and loose title
-;;; texts are gone. Otherwise lists them and sets REVIEW_OLD_TITLE_NOT_DELETED, which
-;;; stops SWCADRUN, instead of reporting success.
-(defun swcad-title-old-sheet-deleted-p (source-ename source-frame-ename records / remaining)
-  (setq remaining (swcad-title-remaining-old-sheet-handles source-ename source-frame-ename records))
+;;; After a transfer: T when everything it deleted is gone.  Otherwise lists what
+;;; remains and sets REVIEW_OLD_TITLE_NOT_DELETED, which stops SWCADRUN, instead of
+;;; reporting success.
+(defun swcad-title-old-sheet-deleted-p (source-ename source-frame-ename records cleanup-handles / remaining)
+  (setq remaining (swcad-title-remaining-old-sheet-handles source-ename source-frame-ename records cleanup-handles))
   (if remaining
     (progn
-      (swcad-title-princ-raw-line (strcat "지우지 못한 기존 표제란/도면틀/글자: " (swcad-title-list-string remaining)))
+      (swcad-title-princ-raw-line (strcat "지우지 못한 기존 표제란/도면틀/글자/선: " (swcad-title-list-string remaining)))
       (swcad-title-princ-raw-line "새 GMTITLE은 만들어졌습니다. 남은 객체(잠긴 레이어 등)를 확인해 지운 뒤 SWTITLEVERIFY를 실행하세요.")
       (swcad-title-apply-result "REVIEW_OLD_TITLE_NOT_DELETED")
       nil
@@ -2719,9 +2741,8 @@
   )
 )
 
-;;; Handles of the old title insert, old frame insert and loose title texts that are
-;;; still in the drawing after the transfer deleted them.
-(defun swcad-title-remaining-old-sheet-handles (source-ename source-frame-ename records / result ename record)
+;;; Handles of what the transfer deleted that are still in the drawing.
+(defun swcad-title-remaining-old-sheet-handles (source-ename source-frame-ename records cleanup-handles / result ename record handle)
   (setq result nil)
   (foreach ename (list source-ename source-frame-ename)
     (if (and ename (entget ename))
@@ -2736,6 +2757,17 @@
           (setq result (append result (list (strcase (swcad-title-string (nth 3 record))))))
         )
       )
+    )
+  )
+  (foreach handle cleanup-handles
+    (setq ename (handent (swcad-title-string handle)))
+    (if
+      (and
+        ename
+        (entget ename)
+        (not (member (strcase (swcad-title-string handle)) result))
+      )
+      (setq result (append result (list (strcase (swcad-title-string handle)))))
     )
   )
   result
@@ -14294,7 +14326,7 @@
       (swcad-title-princ-line (strcat "Old frame insert deleted: " old-frame-deleted))
       (swcad-title-princ-line (strcat "Old loose frame graphics deleted: " (itoa deleted-frame-graphic-count)))
       (swcad-title-princ-line (strcat "Old SOLIDWORKS sheet residue deleted: " (itoa deleted-residue-count)))
-      (if (swcad-title-old-sheet-deleted-p source-ename source-frame-ename records)
+      (if (swcad-title-old-sheet-deleted-p source-ename source-frame-ename records (swcad-title-queued-cleanup-handles source-frame-ename title-shell-handles title-graphic-handles frame-graphic-handles residue-handles))
         (progn
           (swcad-title-apply-result "ADOPTED_EXISTING_NATIVE_GMTITLE_TRANSFER")
           (swcad-title-princ-line "최종 수동 확인: 채택된 GMTITLE 제목블록을 더블클릭해서 GMTITLE 표 편집창이 열리는지 확인하세요.")
@@ -16425,7 +16457,7 @@
   (princ)
 )
 
-(defun swcad-title-transfer-apply (/ source source-data source-bbox source-ename source-block source-kind source-frame source-frame-ename source-frame-data source-frame-block source-frame-bbox frame-block title-block adopt-pair gmtitle-result gmtitle-title-ename gmtitle-frame-ename gmtitle-new-enames title-ref build mappings records unmapped duplicates values block-sheet answer attr-count attr-errors deleted-text-count skipped-block-text-count old-frame-deleted record doc pair inferred-frame-bbox text-sheet frame-sheet detected-sheet title-shell-handles title-graphic-handles frame-graphic-handles residue-records residue-handles deleted-title-shell-count deleted-title-graphic-count deleted-frame-graphic-count deleted-residue-count actual-title-name actual-frame-name geometry-warning deleted-new-gmtitle-count align-result align-count align-dx align-dy align-needed marker-role marker-ok locked-handles)
+(defun swcad-title-transfer-apply (/ source source-data source-bbox source-ename source-block source-kind source-frame source-frame-ename source-frame-data source-frame-block source-frame-bbox frame-block title-block adopt-pair gmtitle-result gmtitle-title-ename gmtitle-frame-ename gmtitle-new-enames title-ref build mappings records unmapped duplicates values block-sheet answer attr-count attr-errors deleted-text-count skipped-block-text-count old-frame-deleted record doc pair inferred-frame-bbox text-sheet frame-sheet detected-sheet title-shell-handles title-graphic-handles frame-graphic-handles residue-records residue-handles deleted-title-shell-count deleted-title-graphic-count deleted-frame-graphic-count deleted-residue-count actual-title-name actual-frame-name geometry-warning deleted-new-gmtitle-count align-result align-count align-dx align-dy align-needed marker-role marker-ok locked-handles cleanup-handles)
   (swcad-title-open-apply-log)
   (setq *swcad-title-last-apply-status* nil)
   (setq source (swcad-title-transfer-source-bbox))
@@ -16622,12 +16654,21 @@
         )
         (swcad-title-princ-line "Existing native GMTITLE adoption candidate: <none>")
       )
-      ;; The old title, frame and texts must be deletable before GMTITLE is created;
-      ;; otherwise they would stay under the new title.
-      (setq locked-handles (swcad-title-locked-old-sheet-handles source-ename source-frame-ename records))
+      ;; Everything queued for deletion must be deletable before GMTITLE is created;
+      ;; otherwise it would stay under the new title.
+      (setq cleanup-handles
+        (swcad-title-queued-cleanup-handles
+          source-frame-ename
+          title-shell-handles
+          title-graphic-handles
+          frame-graphic-handles
+          residue-handles
+        )
+      )
+      (setq locked-handles (swcad-title-locked-old-sheet-handles source-ename source-frame-ename records cleanup-handles))
       (if locked-handles
         (progn
-          (swcad-title-princ-raw-line (strcat "잠긴 레이어에 있어 지울 수 없는 기존 표제란/도면틀/글자: " (swcad-title-list-string locked-handles)))
+          (swcad-title-princ-raw-line (strcat "잠긴 레이어에 있어 지울 수 없는 기존 표제란/도면틀/글자/선: " (swcad-title-list-string locked-handles)))
           (swcad-title-princ-raw-line "레이어 잠금을 풀고 다시 실행하세요. 도면은 바꾸지 않았습니다.")
         )
       )
@@ -16828,7 +16869,7 @@
                         (swcad-title-princ-line (strcat "Old frame insert deleted: " old-frame-deleted))
                         (swcad-title-princ-line (strcat "Old loose frame graphics deleted: " (itoa deleted-frame-graphic-count)))
                         (swcad-title-princ-line (strcat "Old SOLIDWORKS sheet residue deleted: " (itoa deleted-residue-count)))
-                        (if (swcad-title-old-sheet-deleted-p source-ename source-frame-ename records)
+                        (if (swcad-title-old-sheet-deleted-p source-ename source-frame-ename records (swcad-title-queued-cleanup-handles source-frame-ename title-shell-handles title-graphic-handles frame-graphic-handles residue-handles))
                           (progn
                             (swcad-title-apply-result "APPLIED_TITLE_TRANSFER")
                             (swcad-title-princ-line "최종 수동 확인: 새 GMTITLE 제목블록을 더블클릭해서 GMTITLE 표 편집창이 열리는지 확인하세요.")
@@ -17248,7 +17289,7 @@
               (swcad-title-princ-line (strcat "Old loose frame graphics deleted: " (itoa deleted-frame-graphic-count)))
               (swcad-title-princ-line (strcat "Old SOLIDWORKS sheet residue deleted: " (itoa deleted-residue-count)))
               (cond
-                ((not (swcad-title-old-sheet-deleted-p source-ename source-frame-ename records)) nil)
+                ((not (swcad-title-old-sheet-deleted-p source-ename source-frame-ename records (swcad-title-queued-cleanup-handles source-frame-ename title-shell-handles title-graphic-handles frame-graphic-handles residue-handles))) nil)
                 ((equal (strcase marker-role) "CLONE")
                   (swcad-title-apply-result "FINALIZED_CLONED_GMTITLE_TRANSFER")
                   (swcad-title-princ-line "다음: 최종 더블클릭 확인 전에 SWTITLESTATUS를 실행하고, 남은 A2/A3/A4 교체 후보를 SWTITLECONVERTNEXT로 처리하세요.")
@@ -20645,7 +20686,7 @@
                     (swcad-title-princ-line "Old cloned title deleted: yes")
                     (swcad-title-princ-line "Old cloned frame deleted: yes")
                     (swcad-title-princ-line (strcat "Remaining A2/A3/A4 native upgrade candidates: " (itoa remaining-a3a4-count)))
-                    (if (swcad-title-old-sheet-deleted-p old-title old-frame nil)
+                    (if (swcad-title-old-sheet-deleted-p old-title old-frame nil nil)
                       (swcad-title-apply-result "UPGRADED_CLONE_TO_NATIVE_GMTITLE")
                     )
                     (swcad-title-princ-line "Manual check: double-click the upgraded title block and confirm the GMTITLE table editor opens.")
@@ -20947,7 +20988,7 @@
               (swcad-title-princ-line "Old cloned/untrusted title deleted: yes")
               (swcad-title-princ-line "Old cloned/untrusted frame deleted: yes")
               (swcad-title-princ-line (strcat "Remaining A2/A3/A4 native upgrade candidates: " (itoa remaining-a3a4-count)))
-              (if (swcad-title-old-sheet-deleted-p old-title old-frame nil)
+              (if (swcad-title-old-sheet-deleted-p old-title old-frame nil nil)
                 (swcad-title-apply-result "FINISHED_MANUAL_NATIVE_GMTITLE_UPGRADE")
               )
               (if (> remaining-a3a4-count 0)

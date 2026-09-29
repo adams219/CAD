@@ -68,6 +68,26 @@ GMTITLE 변환(`src/tools/gmtitle/swcad_title_scale.lsp`)이 옛 표제란과 �
 - 지워진 모델 공간 객체를 변환 전 도면과 비교했다. 1단계 코드 1693개, 2단계 코드 1693개였고 한쪽만 지운 객체는 0개다. 내역은 선 1215, 표제란 글자 223, 해치 195, 옛 표제란·도면틀 INSERT 60이다.
 - 최종 실행: `tmp/gmtitle-value-test/260929_step2_final/summary.txt`, `RESULT: OK`. 이 실행에는 삭제 안전장치 단위 검사 18개가 포함된다. 모듈 SHA-256 `FB39B48C33D79AF6D7ED698024B0B83D7FA18199125981A659417C4711A471F4`는 `diagnostics/swcad-workflow/module-baseline.sha256`와 같다.
 
+## 추가 수정: 함께 지우는 선·잔여물도 확인 (PR #4 리뷰)
+
+PR #4(adams219/CAD#4)의 Codex 자동 리뷰가 빈틈을 지적했다. 3절의 잠긴 레이어 사전 확인과 변환 뒤 확인은 옛 표제란 INSERT, 도면틀 INSERT, 표제란 글자만 봤다. 변환은 다음도 함께 지운다.
+
+- 표제란 안의 선·해치(표제란 그래픽)
+- loose-text 표제란의 셸 INSERT
+- 도면틀 INSERT가 없는 시트의 도면틀 선
+- 시트 잔여물
+
+이것들이 잠긴 레이어에 있으면 지워지지 않는데도 `APPLIED_TITLE_TRANSFER`로 끝나고 `SWCADRUN`이 계속 진행했다. 옛 표제란 선이 새 GMTITLE 밑에 남는다.
+
+수정: 이 목록 전체(`swcad-title-queued-cleanup-handles`)를 잠긴 레이어 사전 확인과 변환 뒤 확인에 넣었다. 도면틀 선은 실제로 지울 때(도면틀 INSERT가 없을 때)만 넣는다. 적용 경로는 새 GMTITLE 값 옮기기, 기존 쌍 채택, 복제 마무리다. 모듈 버전은 `260929-small-fixes-2`다.
+
+테스트(`diagnostics/gmtitle-values/title_delete_safety_probe.lsp`, 검사 27개 모두 통과):
+
+- 잠긴 레이어의 선을 정리 목록으로 넘기면 사전 확인과 변환 뒤 확인 모두 그 선을 보고한다. 지워진 선은 보고하지 않는다.
+- 도면틀 INSERT가 있으면 도면틀 선은 목록에서 빠진다.
+- 실제 변환 경로: 30장 fixture 복사본의 2번 시트에서 옛 표제란 선 54개 중 1개를 잠긴 레이어로 옮겼다. 변환은 GMTITLE을 만들기 전에 `ABORT_SOURCE_ON_LOCKED_LAYER`로 멈췄다. 옛 표제란과 선 54개가 모두 남았다. 수정 전 코드는 이 경우 변환을 계속했다.
+- 30장 워크플로 전체 테스트: `SWCADRUN` 4회로 `COMPLETE`, `SWCADVERIFY_FINAL_OK`, 제목블록 값 330칸 모두 계획과 같음, 지워진 모델 공간 객체 1693개로 같음(fixture에는 잠긴 레이어가 없어 정상 변환은 이전과 같다). 결과 파일 `tmp/gmtitle-value-test/260929_lockfix/summary.txt`, `RESULT: OK`, 모듈 SHA-256 `8F32FB7B6F8D75C0FED5CA28E87D7209A86608FC9DFA23F85F9D54EAFCE8AC7F`.
+
 ## 남은 것
 
 - 시트 잔여물 정리는 바꾸지 않았다. 도면틀 크기에 비례하는 영역을 쓰기 때문에 다음 문제가 남는다.
