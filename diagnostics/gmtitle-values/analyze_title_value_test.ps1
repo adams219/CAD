@@ -142,6 +142,18 @@ if (Test-Path -LiteralPath $safetyPath) {
   if ($failed.Count -gt 0 -or $ok -eq 0) { $problems++ }
 }
 
+# ---- errors and ESC stop SWCADRUN ----
+$stopPath = Join-Path $OutputRoot "stop_on_error.log"
+if (Test-Path -LiteralPath $stopPath) {
+  $stop = Read-Lines $stopPath
+  $ok = @($stop | Where-Object { $_.StartsWith("UNIT_OK") }).Count
+  $failed = @($stop | Where-Object { $_.StartsWith("UNIT_FAIL") })
+  $finished = [bool]($stop -contains "Step3 probe completed: yes")
+  "== Stop on error: unit checks $($ok + $failed.Count) (failed $($failed.Count)), finished: $(if ($finished) { 'yes' } else { 'no' })"
+  $failed | ForEach-Object { "  $_" }
+  if ($failed.Count -gt 0 -or $ok -eq 0 -or -not $finished) { $problems++ }
+}
+
 # ---- end to end ----
 $dumpPath = Join-Path $OutputRoot "e2e_dump.log"
 if (Test-Path -LiteralPath $dumpPath) {
