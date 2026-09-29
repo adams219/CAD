@@ -3,7 +3,7 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "260719-cleanup-zero-pass-fast-17")
+(setq *swapp-version* "260929-title-stop-1")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-legacy-layout-prefix* "SWCAD-SHEET")
 (setq *swapp-layout-placement-mode* "XREF_SOURCE_FILENAME_COORDINATES")
@@ -4466,13 +4466,21 @@
       (princ "\n진행 중지: 판정되지 않은 상태에서 SWCADRUN을 반복하지 마세요.")
       nil
     )
+    ;; A sub-step that left no result may have stopped part way.  Record a
+    ;; stop so the status below does not recommend SWCADRUN again.
+    ((= (strlen status) 0)
+      (setq *swcad-title-last-apply-status* "REVIEW_TITLE_STEP_NO_RESULT")
+      (princ "\n진행 중지: GMTITLE 하위 단계가 결과 상태를 남기지 않았습니다.")
+      (princ "\n오류나 ESC로 중간에 멈췄을 수 있습니다. 현재 도면을 저장하지 말고 SWTITLESTATUS로 확인하세요.")
+      nil
+    )
     ((swapp-title-blocking-status-p status)
       (princ (strcat "\n진행 중지: GMTITLE 결과가 " status " 입니다."))
       (princ "\n현재 도면을 저장하지 말고 원인을 확인하세요. SWCADRUN을 반복하지 마세요.")
       nil
     )
     (T
-      (princ (strcat "\n이번 GMTITLE 하위 단계 완료. 결과=" (if (> (strlen status) 0) status "<상태 없음>")))
+      (princ (strcat "\n이번 GMTITLE 하위 단계 완료. 결과=" status))
       (princ "\nSWCADSTATUS에서 단계 변화를 확인한 뒤 안내가 SWCADRUN일 때만 계속하세요.")
       T
     )
@@ -4491,7 +4499,25 @@
   (princ)
 )
 
-(defun c:SWCADRUN (/ stage after-stage run-result mutating-stage cleanup-retry-blocked)
+(defun c:SWCADRUN (/ *error* stage after-stage run-result mutating-stage cleanup-retry-blocked)
+  ;; An error or ESC that no step caught.  Put back what the GMTITLE steps
+  ;; change for a while, and say clearly that the run stopped.
+  (defun *error* (msg)
+    (vl-catch-all-apply 'swcad-title-recover-after-caught-error nil)
+    (if *swcad-title-debug-log-handle*
+      (vl-catch-all-apply 'swcad-title-close-log nil)
+    )
+    (if *swapp-read-cache-enabled*
+      (vl-catch-all-apply 'swapp-read-cache-end nil)
+    )
+    (setq *swapp-command-performance-active* nil)
+    (if (equal stage "TITLE")
+      (setq *swcad-title-last-apply-status* "ERROR_SWCADRUN_INTERRUPTED")
+    )
+    (princ (strcat "\nSWCADRUN 중단: " (if msg msg "")))
+    (princ "\n진행 중지: 현재 도면을 저장하지 말고 원인을 확인하세요. SWCADRUN을 반복하지 마세요.")
+    (princ)
+  )
   (swapp-command-performance-begin)
   (swapp-read-cache-begin)
   (setq stage (swapp-workflow-stage))

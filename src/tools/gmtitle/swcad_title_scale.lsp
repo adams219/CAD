@@ -1,4 +1,4 @@
-﻿;;; Read-only title-block and scale diagnostic module.
+;;; Read-only title-block and scale diagnostic module.
 ;;;
 ;;; Main workflow:
 ;;;   APPLOAD this file directly, then run:
@@ -40,7 +40,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260929-delete-safety-1")
+(setq *swcad-title-scale-version* "260929-title-stop-1")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -94,6 +94,7 @@
 (setq *swcad-title-skip-native-upgrade-confirmation* nil)
 (setq *swcad-title-a3a4-batch-default-all* nil)
 (setq *swcad-title-pending-manual-native-upgrade* nil)
+(setq *swcad-title-gmtitle-input-restore* nil)
 (setq *swcad-title-native-placement-trust-tolerance* 0.5)
 (setq *swcad-title-frame-style-structural-edge-band* 25.0)
 (setq *swcad-title-frame-style-contained-margin* 0.5)
@@ -301,6 +302,15 @@
         ("ABORT_SOURCE_ON_LOCKED_LAYER" . "기존 표제란/도면틀/글자가 잠긴 레이어에 있어 GMTITLE을 만들기 전에 중단했습니다. 도면은 바꾸지 않았습니다.")
         ("REVIEW_OLD_TITLE_NOT_DELETED" . "새 GMTITLE은 만들었지만 기존 표제란/도면틀/글자 일부를 지우지 못했습니다. 남은 객체를 확인하세요.")
         ("SWTITLEVERIFY_WARN_TITLE_VALUES" . "제목블록 값에 GMTITLE 기본값(XXX, 파일 경로)이나 서식 코드가 남아 있습니다. 원본 도면과 비교해 고치세요.")
+        ("REVIEW_CONVERT_RESULT_UNKNOWN" . "변환 단계가 결과 상태를 남기지 않았습니다. 완료로 보지 않고 멈췄습니다.")
+        ("ERROR_CONVERT_NEXT_FATAL" . "변환 중 오류나 ESC로 멈췄습니다. 도면을 저장하지 말고 상태를 확인하세요.")
+        ("ERROR_BATCH_APPLY" . "시트 변환 중 오류나 ESC로 멈췄습니다. 이 시트부터 남은 시트는 바꾸지 않았습니다.")
+        ("ERROR_NATIVE_AUTOSELECT_BATCH" . "연속 native 변환 중 오류로 멈췄습니다.")
+        ("ERROR_TITLE_MISSING_OUTLINE_BATCH_APPLY" . "표제란 없는 도면틀 시트 변환 중 오류나 ESC로 멈췄습니다.")
+        ("REVIEW_TITLE_MISSING_OUTLINE_NOT_REDUCED" . "표제란 없는 도면틀 시트를 변환했지만 남은 시트 수가 줄지 않아 멈췄습니다.")
+        ("ERROR_NATIVE_GMTITLE_UPGRADE_OPEN" . "A2/A3/A4 native 교체 1장 처리 중 오류나 ESC로 멈췄습니다.")
+        ("ABORT_WORK_COPY_NOT_CREATED" . "작업본을 만들지 않아 원본을 바꾸지 않고 멈췄습니다.")
+        ("OK_PREPARE_DONE" . "SWTITLEPREPARE 정리 단계가 끝났습니다.")
         ("ABORT_EXISTING_GMTITLE_NOT_FOUND" . "필요한 GMTITLE 쌍을 찾지 못했습니다.")
         ("ABORT_EXISTING_GMTITLE_WRONG_SELECTION" . "GMTITLE 용지/제목블록 선택이 예상과 다릅니다.")
         ("ABORT_NATIVE_UPGRADE_WRONG_GMTITLE_SELECTION" . "native 교체 중 잘못된 용지/제목블록이 선택되어 새 객체를 제거하고 기존 객체를 보존했습니다.")
@@ -1801,6 +1811,72 @@
   (swcad-title-princ-line (strcat "Result: " status))
 )
 
+;;; Statuses that stop SWCADRUN.  swapp-title-blocking-status-p in the
+;;; workflow checks the same prefixes.
+(defun swcad-title-stop-status-p (status / upper)
+  (setq upper (strcase (swcad-title-string status)))
+  (or
+    (swcad-title-string-prefix-p "ABORT_" upper)
+    (swcad-title-string-prefix-p "ERROR_" upper)
+    (swcad-title-string-prefix-p "WARN_" upper)
+    (swcad-title-string-prefix-p "BLOCKED_" upper)
+    (swcad-title-string-prefix-p "REVIEW_" upper)
+  )
+)
+
+;;; vl-catch-all-apply skips the *error* handler of the function it calls, and
+;;; ESC at a GMTITLE pause ends in such a catch.  Put back what a conversion
+;;; step changes only for a while: object snap and dynamic input, an open undo
+;;; group, and the new GMTITLE pair waiting for its finalize step.
+;;; GstarCAD does not show a vla-StartUndoMark group in UNDOCTL, so the group
+;;; is ended without checking; EndUndoMark with no open group does nothing.
+(defun swcad-title-recover-after-caught-error (/ restore)
+  (setq restore *swcad-title-gmtitle-input-restore*)
+  (if restore
+    (swcad-title-restore-gmtitle-input-vars (car restore) (cadr restore))
+  )
+  (vl-catch-all-apply 'vla-EndUndoMark (list (swcad-title-doc)))
+  (swcad-title-clear-pending-native-gmtitle-pair)
+  T
+)
+
+;;; Reports an error caught by vl-catch-all-apply as a stop status.
+(defun swcad-title-stop-after-caught-error (status label result)
+  (swcad-title-recover-after-caught-error)
+  (swcad-title-princ-line (strcat label ": " (vl-catch-all-error-message result)))
+  (swcad-title-apply-result status)
+)
+
+;;; Each SWTITLE command starts from a clean state.  A command stopped part way
+;;; by an error or ESC can leave object snap off, an undo group or a log file
+;;; open, batch flags set, or read caches that still hold entities from before.
+(defun swcad-title-command-entry-reset ()
+  (swcad-title-recover-after-caught-error)
+  (if *swcad-title-read-scan-cache-enabled*
+    (swcad-title-read-scan-cache-end)
+  )
+  (if *swcad-title-frame-style-analysis-cache-enabled*
+    (swcad-title-frame-style-analysis-cache-end)
+  )
+  (if *swcad-title-debug-log-handle*
+    (progn
+      (vl-catch-all-apply 'close (list *swcad-title-debug-log-handle*))
+      (setq *swcad-title-debug-log-handle* nil)
+    )
+  )
+  (setq *swcad-title-batch-mode* nil)
+  (setq *swcad-title-convert-next-mode* nil)
+  (setq *swcad-title-native-upgrade-batch-mode* nil)
+  (setq *swcad-title-native-upgrade-selected-pair* nil)
+  (setq *swcad-title-native-upgrade-batch-remaining-hint* nil)
+  (setq *swcad-title-allow-batch-interactive-native-gmtitle* nil)
+  (setq *swcad-title-skip-native-upgrade-confirmation* nil)
+  (setq *swcad-title-a3a4-batch-default-all* nil)
+  (setq *swcad-title-batch-source-record* nil)
+  (setq *swcad-title-batch-frame-record* nil)
+  T
+)
+
 (defun swcad-title-open-gmtitle-verify-log ()
   (swcad-title-open-log "swcad_title_gmtitle_verify_last.txt" "SWTITLEVERIFY 내부 GMTITLE 검증 로그")
 )
@@ -2135,6 +2211,13 @@
   )
 )
 
+;;; The GMTITLE runners turn object snap off while GMTITLE runs.  The old
+;;; values are also kept here, so they can be put back when an error or ESC
+;;; stops the runner before it restores them.
+(defun swcad-title-remember-gmtitle-input-vars (old-osmode old-dynmode)
+  (setq *swcad-title-gmtitle-input-restore* (list old-osmode old-dynmode))
+)
+
 (defun swcad-title-restore-gmtitle-input-vars (old-osmode old-dynmode)
   (if old-osmode
     (swcad-title-safe-setvar "OSMODE" old-osmode)
@@ -2142,6 +2225,7 @@
   (if old-dynmode
     (swcad-title-safe-setvar "DYNMODE" old-dynmode)
   )
+  (setq *swcad-title-gmtitle-input-restore* nil)
 )
 
 (defun swcad-title-command-prompt-string (/ result)
@@ -11541,11 +11625,11 @@
   (setq any-contaminated nil)
   (cond
     ((swcad-title-document-read-only-p)
-      (swcad-title-princ-line "Result: ABORT_READ_ONLY_DOCUMENT")
+      (swcad-title-apply-result "ABORT_READ_ONLY_DOCUMENT")
       (swcad-title-princ-line "Open a writable work copy before cleaning frame definitions.")
     )
     ((not (swcad-title-apply-work-copy-confirmed-p))
-      (swcad-title-princ-line "Result: ABORT_NOT_WORK_COPY")
+      (swcad-title-apply-result "ABORT_NOT_WORK_COPY")
       (swcad-title-princ-line "Open or create a copy under Documents/CAD tool/work before cleaning.")
     )
     (T
@@ -11559,7 +11643,7 @@
       )
       (if (not (equal (strcase answer) "YES"))
         (progn
-          (swcad-title-princ-line "Result: ABORT_USER_CANCEL")
+          (swcad-title-apply-result "ABORT_USER_CANCEL")
           (swcad-title-princ-line "No drawing data was changed.")
         )
         (progn
@@ -11685,16 +11769,13 @@
               (itoa failed)
             )
           )
-          (swcad-title-princ-line
-            (strcat
-              "Result: "
-              (cond
-                ((> failed 0) "WARN_FRAME_DEF_CLEAN_PARTIAL_FAILURE")
-                ((> skipped-referenced 0) "SKIP_REFERENCED_CONTAMINATED_FRAME_DEFS")
-                ((> cleaned 0) "CLEANED_UNUSED_CONTAMINATED_FRAME_DEFS")
-                (any-contaminated "WARN_CONTAMINATED_FRAME_DEFS_NOT_CLEANED")
-                (T "OK_FRAME_DEFS_ALREADY_CLEAN")
-              )
+          (swcad-title-apply-result
+            (cond
+              ((> failed 0) "WARN_FRAME_DEF_CLEAN_PARTIAL_FAILURE")
+              ((> skipped-referenced 0) "SKIP_REFERENCED_CONTAMINATED_FRAME_DEFS")
+              ((> cleaned 0) "CLEANED_UNUSED_CONTAMINATED_FRAME_DEFS")
+              (any-contaminated "WARN_CONTAMINATED_FRAME_DEFS_NOT_CLEANED")
+              (T "OK_FRAME_DEFS_ALREADY_CLEAN")
             )
           )
         )
@@ -14356,6 +14437,7 @@
   )
   (setq old-osmode (swcad-title-safe-getvar "OSMODE"))
   (setq old-dynmode (swcad-title-safe-getvar "DYNMODE"))
+  (swcad-title-remember-gmtitle-input-vars old-osmode old-dynmode)
   (if old-osmode
     (swcad-title-safe-setvar "OSMODE" 0)
   )
@@ -14616,6 +14698,7 @@
   (swcad-title-princ-line "이 명령은 FILEDIA와 CMDDIA를 변경하지 않습니다.")
   (setq old-osmode (swcad-title-safe-getvar "OSMODE"))
   (setq old-dynmode (swcad-title-safe-getvar "DYNMODE"))
+  (swcad-title-remember-gmtitle-input-vars old-osmode old-dynmode)
   (if old-osmode
     (swcad-title-safe-setvar "OSMODE" 0)
   )
@@ -17795,6 +17878,13 @@
             (setq apply-result
               (vl-catch-all-apply 'swcad-title-transfer-title-missing-outline-apply nil)
             )
+            (if (vl-catch-all-error-p apply-result)
+              (swcad-title-stop-after-caught-error
+                "ERROR_TITLE_MISSING_OUTLINE_BATCH_APPLY"
+                "title-missing 연속 변환 오류"
+                apply-result
+              )
+            )
             (setq after-count (length (swcad-title-frame-only-source-candidates)))
             (if
               (or
@@ -17803,13 +17893,13 @@
                 (>= after-count before-count)
               )
               (progn
-                (if (vl-catch-all-error-p apply-result)
-                  (swcad-title-princ-line
-                    (strcat
-                      "title-missing 연속 변환 오류: "
-                      (vl-catch-all-error-message apply-result)
-                    )
+                ;; No status, or finalized while the sheet count did not drop.
+                (if
+                  (or
+                    (not *swcad-title-last-apply-status*)
+                    (equal *swcad-title-last-apply-status* "FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER")
                   )
+                  (swcad-title-apply-result "REVIEW_TITLE_MISSING_OUTLINE_NOT_REDUCED")
                 )
                 (swcad-title-princ-line
                   (strcat
@@ -17829,7 +17919,12 @@
   (setq *swcad-title-batch-mode* old-batch-mode)
   (setq *swcad-title-allow-batch-interactive-native-gmtitle* old-allow-interactive)
   (setq remaining (length (swcad-title-frame-only-source-candidates)))
-  (if (and (> count 0) (= remaining 0))
+  (if
+    (and
+      (> count 0)
+      (= remaining 0)
+      (not (swcad-title-stop-status-p *swcad-title-last-apply-status*))
+    )
     (swcad-title-apply-result "OK_TITLE_MISSING_OUTLINE_BATCH_COMPLETE")
     (if (> remaining 0)
       (swcad-title-princ-line
@@ -17948,6 +18043,7 @@
               (setq finalize-result (vl-catch-all-apply 'swcad-title-transfer-frame-only-finalize nil))
               (if (vl-catch-all-error-p finalize-result)
                 (progn
+                  (swcad-title-recover-after-caught-error)
                   (swcad-title-open-apply-log)
                   (swcad-title-princ-line "----- SWTITLECONVERT frame-only finalize 오류 -----")
                   (swcad-title-princ-line (vl-catch-all-error-message finalize-result))
@@ -18014,13 +18110,7 @@
         (setq *swcad-title-batch-frame-record* nil)
         (if (vl-catch-all-error-p apply-result)
           (progn
-            (setq *swcad-title-last-apply-status* "ERROR_BATCH_APPLY")
-            (princ
-              (strcat
-                "\nBatch apply error: "
-                (vl-catch-all-error-message apply-result)
-              )
-            )
+            (swcad-title-stop-after-caught-error "ERROR_BATCH_APPLY" "Batch apply error" apply-result)
             (swcad-title-close-log)
           )
         )
@@ -18084,14 +18174,10 @@
       (setq *swcad-title-batch-mode* old-batch-mode)
       (setq *swcad-title-allow-batch-interactive-native-gmtitle* old-allow-interactive)
       (if (vl-catch-all-error-p batch-result)
-        (progn
-          (swcad-title-apply-result "ERROR_NATIVE_AUTOSELECT_BATCH")
-          (swcad-title-princ-line
-            (strcat
-              "native 자동 일괄 변환 오류: "
-              (vl-catch-all-error-message batch-result)
-            )
-          )
+        (swcad-title-stop-after-caught-error
+          "ERROR_NATIVE_AUTOSELECT_BATCH"
+          "native 자동 일괄 변환 오류"
+          batch-result
         )
         (progn
           (setq remaining (length (swcad-title-source-title-candidates)))
@@ -18101,7 +18187,12 @@
               (itoa remaining)
             )
           )
-          (if (= remaining 0)
+          ;; An error or review stop on the last sheet must not become OK.
+          (if
+            (and
+              (= remaining 0)
+              (not (swcad-title-stop-status-p *swcad-title-last-apply-status*))
+            )
             (swcad-title-apply-result "OK_NATIVE_AUTOSELECT_BATCH_COMPLETE")
             (swcad-title-princ-line
               (strcat
@@ -18158,6 +18249,7 @@
       (setq *swcad-title-batch-mode* old-batch-mode)
       (if (vl-catch-all-error-p batch-result)
         (progn
+          (swcad-title-recover-after-caught-error)
           (setq *swcad-title-last-apply-status* "ERROR_BATCH_FATAL")
           (princ
             (strcat
@@ -18190,6 +18282,9 @@
     )
     (progn
       (setq clone-result (vl-catch-all-apply 'swcad-title-create-cloned-gmtitle-for-next-source nil))
+      (if (vl-catch-all-error-p clone-result)
+        (swcad-title-recover-after-caught-error)
+      )
       (if (or (vl-catch-all-error-p clone-result) (not clone-result))
         (progn
           (setq *swcad-title-last-apply-status* "ABORT_CLONE_GMTITLE_PAIR_FAILED")
@@ -18226,6 +18321,7 @@
           (setq finalize-result (vl-catch-all-apply 'swcad-title-transfer-finalize nil))
           (if (vl-catch-all-error-p finalize-result)
             (progn
+              (swcad-title-recover-after-caught-error)
               (setq *swcad-title-last-apply-status* "ERROR_CLONE_FINALIZE")
               (swcad-title-open-apply-log)
               (swcad-title-princ-line "----- SWTITLECONVERT 내부 clone 마무리 오류 -----")
@@ -18278,6 +18374,7 @@
             (setq apply-result (vl-catch-all-apply 'swcad-title-transfer-clone-apply nil))
             (if (vl-catch-all-error-p apply-result)
               (progn
+                (swcad-title-recover-after-caught-error)
                 (setq *swcad-title-last-apply-status* "ERROR_CLONE_BATCH_APPLY")
                 (swcad-title-princ-text
                   (strcat
@@ -18348,6 +18445,7 @@
       (setq *swcad-title-batch-mode* old-batch-mode)
       (if (vl-catch-all-error-p batch-result)
         (progn
+          (swcad-title-recover-after-caught-error)
           (setq *swcad-title-last-apply-status* "ERROR_CLONE_BATCH_FATAL")
           (princ
             (strcat
@@ -18393,6 +18491,9 @@
               (list source-frame)
             )
           )
+          (if (vl-catch-all-error-p clone-result)
+            (swcad-title-recover-after-caught-error)
+          )
           (if (or (vl-catch-all-error-p clone-result) (not clone-result))
             (progn
               (setq *swcad-title-last-apply-status* "ABORT_FRAME_ONLY_CLONE_FAILED")
@@ -18435,6 +18536,7 @@
               (setq finalize-result (vl-catch-all-apply 'swcad-title-transfer-frame-only-finalize nil))
               (if (vl-catch-all-error-p finalize-result)
                 (progn
+                  (swcad-title-recover-after-caught-error)
                   (setq *swcad-title-last-apply-status* "ERROR_FRAME_ONLY_CLONE_FINALIZE")
                   (swcad-title-open-apply-log)
                   (swcad-title-princ-line "----- SWTITLECONVERT 내부 frame-only clone 마무리 오류 -----")
@@ -18495,6 +18597,7 @@
             (setq apply-result (vl-catch-all-apply 'swcad-title-transfer-frame-only-clone-apply nil))
             (if (vl-catch-all-error-p apply-result)
               (progn
+                (swcad-title-recover-after-caught-error)
                 (setq *swcad-title-last-apply-status* "ERROR_FRAME_ONLY_CLONE_BATCH_APPLY")
                 (princ
                   (strcat
@@ -18620,6 +18723,7 @@
       )
       (if (vl-catch-all-error-p source-result)
         (progn
+          (swcad-title-recover-after-caught-error)
           (setq *swcad-title-last-apply-status* "ERROR_FAST_BATCH_TITLE_FATAL")
           (swcad-title-princ-text
             (strcat
@@ -18711,6 +18815,11 @@
     (contaminated
       (setq *swcad-title-last-apply-status* "WARN_FAST_BATCH_FRAME_DEFS_CONTAMINATED")
       (swcad-title-princ-text "\nResult: WARN_FAST_BATCH_FRAME_DEFS_CONTAMINATED")
+    )
+    ;; A stop on the last sheet must not become OK.
+    ((swcad-title-stop-status-p *swcad-title-last-apply-status*)
+      (swcad-title-princ-text (strcat "\nResult: " *swcad-title-last-apply-status*))
+      (swcad-title-princ-text "\n빠른 일괄 변환이 멈춤 상태로 끝났습니다. 위 결과를 확인하세요.")
     )
     (T
       (setq *swcad-title-last-apply-status* "OK_FAST_BATCH_COMPLETE")
@@ -18968,6 +19077,7 @@
           (setq *swcad-title-batch-mode* old-batch-mode)
           (if (vl-catch-all-error-p apply-result)
             (progn
+              (swcad-title-recover-after-caught-error)
               (setq *swcad-title-last-apply-status* "ERROR_BOOTSTRAP_FIRST_NATIVE_FATAL")
               (princ
                 (strcat
@@ -20936,13 +21046,13 @@
           (setq *swcad-title-skip-native-upgrade-confirmation* old-skip)
           (if (vl-catch-all-error-p result)
             (progn
-              (swcad-title-princ-line
-                (strcat
-                  "SWTITLECONVERT A2/A3/A4 native replacement error: "
-                  (vl-catch-all-error-message result)
-                )
+              (setq *swcad-title-native-upgrade-selected-pair* nil)
+              (swcad-title-stop-after-caught-error
+                "ERROR_NATIVE_GMTITLE_UPGRADE_OPEN"
+                "SWTITLECONVERT A2/A3/A4 native replacement error"
+                result
               )
-              (princ)
+              (swcad-title-close-log)
             )
           )
         )
@@ -21070,6 +21180,7 @@
                 (setq result (vl-catch-all-apply 'swcad-title-upgrade-native-one nil))
                 (if (vl-catch-all-error-p result)
                   (progn
+                    (swcad-title-recover-after-caught-error)
                     (setq *swcad-title-last-apply-status* "ERROR_NATIVE_UPGRADE_BATCH_APPLY")
                     (swcad-title-princ-line
                       (strcat
@@ -21098,7 +21209,11 @@
           (setq *swcad-title-native-upgrade-batch-mode* old-batch-mode)
           (setq remaining (swcad-title-cloned-gmtitle-pair-total))
           (swcad-title-princ-line (strcat "Remaining cloned GMTITLE pairs after batch: " (itoa remaining)))
-          (if (= remaining 0)
+          (if
+            (and
+              (= remaining 0)
+              (not (swcad-title-stop-status-p *swcad-title-last-apply-status*))
+            )
             (swcad-title-apply-result "OK_NATIVE_UPGRADE_BATCH_COMPLETE")
             (if (equal *swcad-title-last-apply-status* "UPGRADED_CLONE_TO_NATIVE_GMTITLE")
               (swcad-title-apply-result "WARN_NATIVE_UPGRADE_BATCH_REMAINING_CLONES")
@@ -21270,6 +21385,7 @@
                 (setq *swcad-title-native-upgrade-batch-remaining-hint* nil)
                 (if (vl-catch-all-error-p result)
                   (progn
+                    (swcad-title-recover-after-caught-error)
                     (setq *swcad-title-last-apply-status* "ERROR_NATIVE_GMTITLE_UPGRADE_BATCH_APPLY")
                     (swcad-title-princ-line
                       (strcat
@@ -21300,7 +21416,11 @@
           (setq *swcad-title-native-upgrade-batch-mode* old-batch-mode)
           (setq remaining (length (swcad-title-a3a4-native-upgrade-candidate-records)))
           (swcad-title-princ-line (strcat "Remaining A2/A3/A4 native upgrade candidates after batch: " (itoa remaining)))
-          (if (= remaining 0)
+          (if
+            (and
+              (= remaining 0)
+              (not (swcad-title-stop-status-p *swcad-title-last-apply-status*))
+            )
             (swcad-title-apply-result "OK_NATIVE_GMTITLE_UPGRADE_BATCH_COMPLETE")
             (if (equal *swcad-title-last-apply-status* "UPGRADED_CLONE_TO_NATIVE_GMTITLE")
               (swcad-title-apply-result "WARN_NATIVE_GMTITLE_UPGRADE_BATCH_REMAINING")
@@ -21329,40 +21449,37 @@
   (princ)
 )
 
+;;; An error outside the per-sheet catch of swcad-title-upgrade-native-a3a4-batch.
+;;; Its *error* handler did not run, so reset its flags here.  Without this the
+;;; status of the last finished sheet would stay and SWCADRUN would continue.
+(defun swcad-title-a3a4-batch-caught-error (label result)
+  (setq *swcad-title-native-upgrade-batch-mode* nil)
+  (setq *swcad-title-native-upgrade-selected-pair* nil)
+  (setq *swcad-title-native-upgrade-batch-remaining-hint* nil)
+  (swcad-title-stop-after-caught-error "ERROR_NATIVE_GMTITLE_UPGRADE_BATCH" label result)
+  (swcad-title-close-log)
+)
+
 (defun swcad-title-upgrade-native-a3a4-batch-manual (/ old-allow result)
   (setq old-allow *swcad-title-allow-batch-interactive-native-gmtitle*)
   (setq *swcad-title-allow-batch-interactive-native-gmtitle* T)
   (setq result (vl-catch-all-apply 'swcad-title-upgrade-native-a3a4-batch nil))
   (setq *swcad-title-allow-batch-interactive-native-gmtitle* old-allow)
   (if (vl-catch-all-error-p result)
-    (progn
-      (swcad-title-princ-line
-        (strcat
-          "SWTITLECONVERT A2/A3/A4 대화식 교체 오류: "
-          (vl-catch-all-error-message result)
-        )
-      )
-      (princ)
-    )
+    (swcad-title-a3a4-batch-caught-error "SWTITLECONVERT A2/A3/A4 대화식 교체 오류" result)
   )
   (princ)
 )
 
-(defun swcad-title-upgrade-native-a3a4-all (/ old-default-all result)
+(defun swcad-title-upgrade-native-a3a4-all (/ old-default-all old-allow result)
   (setq old-default-all *swcad-title-a3a4-batch-default-all*)
+  (setq old-allow *swcad-title-allow-batch-interactive-native-gmtitle*)
   (setq *swcad-title-a3a4-batch-default-all* T)
   (setq result (vl-catch-all-apply 'swcad-title-upgrade-native-a3a4-batch nil))
   (setq *swcad-title-a3a4-batch-default-all* old-default-all)
+  (setq *swcad-title-allow-batch-interactive-native-gmtitle* old-allow)
   (if (vl-catch-all-error-p result)
-    (progn
-      (swcad-title-princ-line
-        (strcat
-          "SWTITLECONVERT A2/A3/A4 교체 오류: "
-          (vl-catch-all-error-message result)
-        )
-      )
-      (princ)
-    )
+    (swcad-title-a3a4-batch-caught-error "SWTITLECONVERT A2/A3/A4 교체 오류" result)
   )
   (princ)
 )
@@ -21639,8 +21756,19 @@
   (princ)
 )
 
-(defun swcad-title-integrated-prepare (/ summary source-count frame-only-count command-text-records frame-title-records embedded-title-records style-records style-cache-owned frame-definition-blockers contaminated-definition-records definition-raw-risk-records blocking-cleanup-seen title-missing-outline-needed orphan-records duplicate-pair-records)
+;;; SWTITLEPREPARE runs several clean-ups in a row.  Keeps the first stop, so a
+;;; later OK does not hide a cancelled or failed clean-up.
+(defun swcad-title-first-stop-status (kept)
+  (if (and (not kept) (swcad-title-stop-status-p *swcad-title-last-apply-status*))
+    *swcad-title-last-apply-status*
+    kept
+  )
+)
+
+(defun swcad-title-integrated-prepare (/ summary source-count frame-only-count command-text-records frame-title-records embedded-title-records style-records style-cache-owned frame-definition-blockers contaminated-definition-records definition-raw-risk-records blocking-cleanup-seen title-missing-outline-needed orphan-records duplicate-pair-records stop-status)
   (swcad-title-integrated-command-header "SWTITLEPREPARE" "도면틀/블록 정의 정규화")
+  (setq *swcad-title-last-apply-status* nil)
+  (setq stop-status nil)
   (if (swcad-title-script-active-p)
     (progn
       (swcad-title-apply-result "ABORT_PREPARE_SCRIPT_ACTIVE")
@@ -21717,14 +21845,17 @@
         (swcad-title-command-text-clean-safe)
         (swcad-title-princ-text "\n실수 명령어 텍스트 정리: 후보 없음")
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (if frame-title-records
         (swcad-title-clean-frame-def-title-children)
         (swcad-title-princ-text "\n도면틀 정의 안 중첩 제목블록 정리: 후보 없음")
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (if embedded-title-records
         (swcad-title-frame-embedded-title-clean)
         (swcad-title-princ-text "\nDR 도면틀 내부 표제란 형상 정리: 후보 없음")
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (if style-records
         (progn
           (setq style-cache-owned (not *swcad-title-frame-style-analysis-cache-enabled*))
@@ -21739,22 +21870,26 @@
         )
         (swcad-title-princ-text "\n도면틀 스타일 정규화: 후보 없음")
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (setq contaminated-definition-records (swcad-title-frame-definition-blocking-records-by-class "source-contaminated"))
       (setq definition-raw-risk-records (swcad-title-frame-definition-raw-bbox-risk-records))
       (if (or contaminated-definition-records definition-raw-risk-records)
         (swcad-title-frame-def-clean-safe)
         (swcad-title-princ-text "\n오염된 DR 도면틀 정의 복구: 후보 없음")
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (setq orphan-records (swcad-title-orphan-target-frame-records))
       (setq duplicate-pair-records (swcad-title-duplicate-target-pair-records))
       (if orphan-records
         (swcad-title-clean-orphan-target-frames)
         (swcad-title-princ-text "\n고아 GMTITLE 도면틀 정리: 후보 없음")
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (if duplicate-pair-records
         (swcad-title-clean-duplicate-target-pairs)
         (swcad-title-princ-text "\n겹친 GMTITLE target 쌍 정리: 후보 없음")
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (setq blocking-cleanup-seen
         (or
           blocking-cleanup-seen
@@ -21783,8 +21918,18 @@
           (swcad-title-princ-text "\ntitle-missing/frame-only DR 도면틀 정의 준비: 후보 없음")
         )
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (swcad-title-frame-def-check)
       (swcad-title-native-frame-completion-check)
+      (cond
+        (stop-status
+          (swcad-title-apply-result stop-status)
+          (swcad-title-princ-text "\nSWTITLEPREPARE 정리 중 취소/실패/경고가 있었습니다. 첫 결과를 최종 결과로 남깁니다.")
+        )
+        ((not *swcad-title-last-apply-status*)
+          (swcad-title-apply-result "OK_PREPARE_DONE")
+        )
+      )
       (swcad-title-princ-text "\nSWTITLEPREPARE 완료: 경고가 줄었는지 확인한 뒤 SWTITLESTATUS 또는 SWTITLECONVERTNEXT를 실행하세요.")
       )
       (swcad-title-abort-multiple-open-dwgs)
@@ -21805,6 +21950,7 @@
 
 (defun swcad-title-integrated-convert (/ summary source-count frame-only-count command-text-records command-text-count a3a4-count style-records frame-definition-blockers definition-raw-risk-records orphan-records missing-required-native example-title old-batch-mode apply-result answer)
   (swcad-title-integrated-command-header "SWTITLECONVERT" "변환 실행")
+  (setq *swcad-title-last-apply-status* nil)
   (if (swcad-title-script-active-p)
     (swcad-title-abort-interactive-gmtitle-script-active
       "SWTITLECONVERT는 도면을 변경할 수 있고 GMTITLE 창 선택이 필요할 수 있어 자동 실행에서는 진행하지 않습니다."
@@ -21899,6 +22045,7 @@
           )
         )
         ((and (= source-count 0) (= frame-only-count 0))
+          (swcad-title-apply-result "OK_NO_REMAINING_SOURCES")
           (swcad-title-princ-text "\n변환할 원본 SolidWorks 시트가 없습니다. SWTITLEVERIFY를 실행하세요.")
         )
         ((and (= source-count 0) (> frame-only-count 0))
@@ -22006,6 +22153,7 @@
                   (setq *swcad-title-batch-mode* old-batch-mode)
                   (if (vl-catch-all-error-p apply-result)
                     (progn
+                      (swcad-title-recover-after-caught-error)
                       (setq *swcad-title-last-apply-status* "ERROR_MISSING_NATIVE_EXEMPLAR_FATAL")
                       (princ
                         (strcat
@@ -22041,6 +22189,7 @@
               (setq *swcad-title-batch-mode* old-batch-mode)
               (if (vl-catch-all-error-p apply-result)
                 (progn
+                  (swcad-title-recover-after-caught-error)
                   (setq *swcad-title-last-apply-status* "ERROR_CONVERT_NEXT_SINGLE_CLONE_FATAL")
                   (princ
                     (strcat
@@ -22060,8 +22209,12 @@
                       "개 생겼습니다."
                     )
                   )
-                  (if (vl-catch-all-error-p apply-result)
-                    (swcad-title-princ-text "\nclone 변환 오류가 있어 native 교체 단계는 실행하지 않습니다.")
+                  (if
+                    (or
+                      (vl-catch-all-error-p apply-result)
+                      (swcad-title-stop-status-p *swcad-title-last-apply-status*)
+                    )
+                    (swcad-title-princ-text "\nclone 변환이 오류나 멈춤 상태로 끝나 native 교체 단계는 실행하지 않습니다.")
                     (progn
                       (swcad-title-princ-text "\nSWTITLECONVERTNEXT가 이어서 다음 native 교체 후보 1장을 처리합니다.")
                       (if (swcad-title-script-active-p)
@@ -22088,12 +22241,19 @@
                       "개 생겼습니다."
                     )
                   )
-                  (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 이어서 A2/A3/A4 native 교체 단계를 한 장만 안전하게 실행합니다.")
-                  (if (swcad-title-script-active-p)
-                    (swcad-title-abort-interactive-gmtitle-script-active
-                      "빠른 변환 뒤 생긴 A2/A3/A4 native 교체 후보는 GMTITLE 창 확인이 필요합니다."
+                  (cond
+                    ((swcad-title-stop-status-p *swcad-title-last-apply-status*)
+                      (swcad-title-princ-text "\n빠른 변환이 멈춤 상태로 끝나 native 교체 단계는 실행하지 않습니다.")
                     )
-                    (swcad-title-upgrade-native-a3a4-next)
+                    ((swcad-title-script-active-p)
+                      (swcad-title-abort-interactive-gmtitle-script-active
+                        "빠른 변환 뒤 생긴 A2/A3/A4 native 교체 후보는 GMTITLE 창 확인이 필요합니다."
+                      )
+                    )
+                    (T
+                      (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 이어서 A2/A3/A4 native 교체 단계를 한 장만 안전하게 실행합니다.")
+                      (swcad-title-upgrade-native-a3a4-next)
+                    )
                   )
                 )
               )
@@ -22106,6 +22266,13 @@
       )
       )
       (swcad-title-abort-multiple-open-dwgs)
+    )
+  )
+  ;; A step that ends without a result is not treated as done.
+  (if (not *swcad-title-last-apply-status*)
+    (progn
+      (swcad-title-apply-result "REVIEW_CONVERT_RESULT_UNKNOWN")
+      (swcad-title-princ-text "\n변환 단계가 결과 상태를 남기지 않았습니다. 도면을 저장하기 전에 SWTITLESTATUS로 상태를 확인하세요.")
     )
   )
   (swcad-title-princ-text "\nSWTITLECONVERT 완료: 멈춤/경고가 있으면 SWTITLESTATUS를, 완료되면 SWTITLEVERIFY를 실행하세요.")
@@ -22664,23 +22831,29 @@
 )
 
 (defun c:SWTITLESTATUS ()
+  (swcad-title-command-entry-reset)
   (swcad-title-integrated-status)
 )
 
+(defun swcad-title-abort-work-copy-not-created (command-name)
+  (swcad-title-apply-result "ABORT_WORK_COPY_NOT_CREATED")
+  (swcad-title-princ-text (strcat "\n" command-name " 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다."))
+  (princ)
+)
+
 (defun c:SWTITLEPREPARE ()
+  (swcad-title-command-entry-reset)
   (if (swcad-title-script-active-p)
     (swcad-title-integrated-prepare)
     (if (swcad-title-ensure-work-copy-for-mutation)
       (swcad-title-integrated-prepare)
-      (progn
-        (swcad-title-princ-text "\nSWTITLEPREPARE 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
-        (princ)
-      )
+      (swcad-title-abort-work-copy-not-created "SWTITLEPREPARE")
     )
   )
 )
 
 (defun c:SWTITLECONVERT ()
+  (swcad-title-command-entry-reset)
   (if (swcad-title-script-active-p)
     (progn
       (swcad-title-princ-text "\n===== SWTITLECONVERT 변환 실행 =====")
@@ -22693,10 +22866,7 @@
     )
     (if (swcad-title-ensure-work-copy-for-mutation)
       (swcad-title-integrated-convert)
-      (progn
-        (swcad-title-princ-text "\nSWTITLECONVERT 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
-        (princ)
-      )
+      (swcad-title-abort-work-copy-not-created "SWTITLECONVERT")
     )
   )
 )
@@ -22711,19 +22881,22 @@
   (setq *swcad-title-convert-next-mode* old-auto)
   (if (vl-catch-all-error-p result)
     (progn
-      (swcad-title-princ-text
-        (strcat
-          "\nSWTITLECONVERTNEXT 오류: "
-          (vl-catch-all-error-message result)
-        )
-      )
-      (setq *swcad-title-last-apply-status* "ERROR_CONVERT_NEXT_FATAL")
+      ;; Also ESC outside a per-sheet catch.  Batch flags set inside the
+      ;; conversion were not restored by it.
+      (setq *swcad-title-batch-mode* nil)
+      (setq *swcad-title-allow-batch-interactive-native-gmtitle* nil)
+      (setq *swcad-title-native-upgrade-batch-mode* nil)
+      (setq *swcad-title-native-upgrade-selected-pair* nil)
+      (swcad-title-stop-after-caught-error "ERROR_CONVERT_NEXT_FATAL" "SWTITLECONVERTNEXT 오류" result)
+      (swcad-title-close-log)
+      (swcad-title-princ-text "\n도면을 저장하지 말고 SWTITLESTATUS로 상태를 확인하세요.")
     )
   )
   (princ)
 )
 
 (defun c:SWTITLECONVERTNEXT ()
+  (swcad-title-command-entry-reset)
   (if (swcad-title-script-active-p)
     (progn
       (swcad-title-princ-text "\n===== SWTITLECONVERTNEXT 다음 1단계 자동 선택 =====")
@@ -22736,15 +22909,13 @@
     )
     (if (swcad-title-ensure-work-copy-for-mutation)
       (swcad-title-integrated-convert-next)
-      (progn
-        (swcad-title-princ-text "\nSWTITLECONVERTNEXT 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
-        (princ)
-      )
+      (swcad-title-abort-work-copy-not-created "SWTITLECONVERTNEXT")
     )
   )
 )
 
 (defun c:SWTITLEVERIFY ()
+  (swcad-title-command-entry-reset)
   (swcad-title-integrated-verify)
 )
 

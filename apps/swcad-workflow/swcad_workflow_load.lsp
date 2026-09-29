@@ -2,7 +2,7 @@
 
 (vl-load-com)
 
-(setq *swapp-loader-version* "260719-cleanup-zero-pass-fast-17")
+(setq *swapp-loader-version* "260929-title-stop-1")
 
 (defun swapp-loader-source (/ source)
   (setq source nil)
