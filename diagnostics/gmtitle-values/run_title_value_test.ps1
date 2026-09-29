@@ -25,8 +25,8 @@ param(
 #            transfer will write (loaded swcad_title_scale.lsp functions, nothing changed)
 # 2. write : unit checks, then the planned values are written into an attributed title
 #            of a throw-away copy, read back and verified
-#    delete safety / stop on error: unit checks of the step 2 and step 3 changes
-#            (errors are injected with fake functions on a throw-away copy)
+#    delete safety / stop on error / small fixes: unit checks of the step 2, 3 and 4
+#            changes (errors are injected with fake functions on a throw-away copy)
 # 3. verify: SWTITLEVERIFY final summary on -CheckDwg copies
 # 4. e2e   : optional TITLE stage through SWCADRUN, then the converted titles are compared
 #            with the plan
@@ -87,6 +87,7 @@ Invoke-Probe $TitleStageDwg (Join-Path $PSScriptRoot "title_value_plan_probe.lsp
 Invoke-Probe $TitleStageDwg (Join-Path $PSScriptRoot "title_value_write_probe.lsp") "write" "Write verify probe completed: yes" @{ SWT_WRITE_LOG = (Join-Path $OutputRoot "write.log"); SWT_PLAN_MODULE = $module }
 Invoke-Probe $TitleStageDwg (Join-Path $PSScriptRoot "title_delete_safety_probe.lsp") "delete_safety" "Step2 unit probe completed: yes" @{ SWT_STEP2_LOG = (Join-Path $OutputRoot "delete_safety.log"); SWT_PLAN_MODULE = $module }
 Invoke-Probe $TitleStageDwg (Join-Path $PSScriptRoot "title_stop_probe.lsp") "stop_on_error" "Step3 probe completed: yes" @{ SWT_STEP3_LOG = (Join-Path $OutputRoot "stop_on_error.log"); SWT_LOADER = (Join-Path $repoRoot "apps\swcad-workflow\swcad_workflow_load.lsp") } @((Join-Path $PSScriptRoot "title_stop_probe_after.lsp"))
+Invoke-Probe $TitleStageDwg (Join-Path $PSScriptRoot "title_small_fixes_probe.lsp") "small_fixes" "Step4 probe completed: yes" @{ SWT_STEP4_LOG = (Join-Path $OutputRoot "small_fixes.log"); SWT_PLAN_MODULE = $module }
 
 $index = 0
 foreach ($dwg in $CheckDwg) {

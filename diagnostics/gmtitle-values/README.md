@@ -26,6 +26,7 @@ GstarCAD를 닫은 뒤 PowerShell에서 실행한다.
 | write | `title_value_write_probe.lsp` | 서식 코드 제거·빈칸 채우기 단위 검사, 계획 값 쓰기 후 다시 읽기(30장 × 11칸) |
 | delete safety | `title_delete_safety_probe.lsp` | 두 번 지워도 되살아나지 않는지, 잠긴 레이어 보고, 표제란 주변 선·면 규칙(합성 객체), 실제 시트에서 수정 전 규칙과 같은지 |
 | stop on error | `title_stop_probe.lsp`, `title_stop_probe_after.lsp` | 오류·ESC를 가짜 함수로 넣었을 때 멈춤 상태가 남는지, 객체 스냅·일괄 처리 표시·캐시가 복원되는지, 결과 상태가 없으면 `SWCADRUN`이 멈추는지, `SWCADRUN`의 오류 처리(다음 스크립트 줄에서 확인) |
+| small fixes | `title_small_fixes_probe.lsp` | 블록 이름으로 하는 용지 판단(단위 검사, 도면의 모든 블록 이름을 이전 규칙과 비교, 30장 시트 결과가 같은지), 작업본 이름의 날짜와 `_SWTITLE_` 접미사, XREF가 없을 때 XREF 안내가 나오지 않는지 |
 | verify | `title_value_verify_probe.lsp` | `SWTITLEVERIFY` 최종 요약 결과와 값 문제(XXX, 파일 경로, 서식 코드) |
 | e2e | `run_title_stage_e2e.ps1`, `title_value_dump_probe.lsp`, `title_value_entity_dump_probe.lsp` | 실제 변환된 제목블록 값이 계획 값과 같은지, 변환으로 지워진 모델 공간 객체 종류별 개수 |
 
@@ -40,3 +41,4 @@ GstarCAD를 닫은 뒤 PowerShell에서 실행한다.
 - `-FullWorkflow`: `SWCADRUN` 4회로 `COMPLETE`, `SWCADVERIFY_FINAL_OK`(SWAUTO `260929-value-guard-4` 이상)
 - 삭제 안전장치 단위 검사 18개 통과. 지워진 모델 공간 객체 1693개(선 1215, 글자 223, 해치 195, 옛 표제란·도면틀 60).
 - 오류 시 멈춤 단위 검사 60개 통과(`260929-title-stop-1` 이상).
+- 작은 수정 단위 검사 28개 통과, 블록 이름 판단이 이전 규칙과 다른 이름 145개(시트 결과는 30장 모두 같음, `260929-small-fixes-1` 이상).

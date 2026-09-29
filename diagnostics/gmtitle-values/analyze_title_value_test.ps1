@@ -154,6 +154,18 @@ if (Test-Path -LiteralPath $stopPath) {
   if ($failed.Count -gt 0 -or $ok -eq 0 -or -not $finished) { $problems++ }
 }
 
+# ---- step 4: paper size from block names, work-copy name, XREF guidance ----
+$smallPath = Join-Path $OutputRoot "small_fixes.log"
+if (Test-Path -LiteralPath $smallPath) {
+  $small = Read-Lines $smallPath
+  $ok = @($small | Where-Object { $_.StartsWith("UNIT_OK") }).Count
+  $failed = @($small | Where-Object { $_.StartsWith("UNIT_FAIL") })
+  $nameDiffs = @($small | Where-Object { $_.StartsWith("NAMEDIFF") }).Count
+  "== Small fixes: unit checks $($ok + $failed.Count) (failed $($failed.Count)); block names judged differently from the previous rule: $nameDiffs (sheet results must stay the same)"
+  $failed | ForEach-Object { "  $_" }
+  if ($failed.Count -gt 0 -or $ok -eq 0) { $problems++ }
+}
+
 # ---- end to end ----
 $dumpPath = Join-Path $OutputRoot "e2e_dump.log"
 if (Test-Path -LiteralPath $dumpPath) {
