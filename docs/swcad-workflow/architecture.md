@@ -87,6 +87,18 @@ SOURCE_SHEET_STATUS=CAPTURED_BEFORE_BIND
 
 GMTITLE 변환 뒤에는 최종 frame/title 핸들과 출처를 `FINAL_SHEET_*`에 연결한다. 이미 materialize된 구버전 도면은 `GMTITLE File Name → 검증된 $0$ 결합 블록 접두사 → FILE NO → Sheet → frame handle` 순으로 복구한다. 하나의 일반적인 파일명이 여러 시트에 반복되면 그 값은 출처로 채택하지 않고 공간적으로 해당 frame 안에 가장 많이 나타나는 결합 블록 접두사를 사용한다.
 
+## 표제란 값 보존
+
+GMTITLE 단계는 새 `DR_titlea_3rd`의 11칸을 모두 쓴다(2026-09-29, `260929-title-values-1`).
+
+- 원본 표제란 INSERT에 `GEN-TITLE-*` 속성이 있으면(예: 결합된 `...$0$DR_titlea_3rd`) 태그로 읽는다. 같은 칸 위치의 글자보다 우선한다.
+- 일반 TEXT/MTEXT 원본은 기존처럼 칸 위치로 읽는다. MTEXT 서식 코드는 지운다.
+- 원본에 값이 없는 칸은 `DR_titlea_3rd` 속성 기본값으로 채운다. 날짜는 변환한 날, 도면번호·도면명·용지 칸은 빈칸이다. GMTITLE이 넣는 `XXX`, 파일 경로, 로그인 이름, 다른 시트에서 복사된 값은 남기지 않는다.
+- 값을 쓴 뒤 11칸을 다시 읽어 비교하고, 다르면 원본 표제란을 지우기 전에 멈춘다.
+- `SWTITLEVERIFY`(따라서 `SWCADVERIFY`)는 제목블록에 `XXX`, 파일 경로, 서식 코드가 남아 있으면 `SWTITLEVERIFY_WARN_TITLE_VALUES`로 막는다.
+
+회귀 테스트: `diagnostics/gmtitle-values/run_title_value_test.ps1`. 상세 기록: `docs/history/gmtitle-title-values-2026-09-29.md`.
+
 ## 치수 의미 보존
 
 대표 도면에서 기존 SWAUTO는 스타일 감사 자체는 통과했지만, native Mechanical fit 적용 중 핸들 `37C1`의 의미 오버라이드가 다음처럼 달라지는 사례가 발견됐다.
