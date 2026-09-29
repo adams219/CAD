@@ -1,6 +1,6 @@
 # SWAUTO 치수 값 보존 수정 - 2026-09-29
 
-SWAUTO(`src/tools/gstarcad-dimstyle/gstarcad_dimstyle_keep_tolerance.lsp`)가 SolidWorks 치수를 AM_ISO 스타일로 바꿀 때 화면에 보이는 치수 숫자와 공차가 바뀌는 문제를 고쳤다. 모듈 버전은 `260929-value-guard-3`다.
+SWAUTO(`src/tools/gstarcad-dimstyle/gstarcad_dimstyle_keep_tolerance.lsp`)가 SolidWorks 치수를 AM_ISO 스타일로 바꿀 때 화면에 보이는 치수 숫자와 공차가 바뀌는 문제를 고쳤다. 모듈 버전은 `260929-value-guard-3`이고, 아래 8번을 더한 버전은 `260929-value-guard-4`다.
 
 ## 발견 경위
 
@@ -52,6 +52,20 @@ SolidWorks는 중심선까지의 거리를 두 배로 해서 지름으로 보여
 
 - `swdt-trim-tol-real`: `DIMZIN`이 뒤쪽 0을 이미 지운 경우 `10`이 `1`로 잘리던 문제를 고쳤다.
 
+### 8. SolidWorks가 반올림해 그린 숫자 (`260929-value-guard-4`)
+
+SolidWorks는 DWG의 치수 설정보다 적은 소수 자리로 숫자를 그릴 때가 있다. 예: 그려진 글자는 `17`인데 실제 값은 17.3이고 `DIMDEC`는 2다. 이런 치수는 GstarCAD가 다시 그리면 실제 값 `17.3`이 된다. `swdt-shown-guard`는 이 변화를 `CHECK NEEDED`로 멈췄다.
+
+사용자 결정(2026-09-29): 실제 값을 보인다. 구멍 설명의 탭 드릴 `Ø3.3`과 같은 방향이다.
+
+수정: `swdt-shown-rounding-revealed-p`는 다음 조건을 모두 만족하는 치수만 정상으로 보고 `SolidWorks가 반올림해 그린 숫자를 실제 값으로 보이는 치수` 목록에 남긴다.
+
+- SWAUTO 전후 `DIMLFAC`, `DIMDEC`, `DIMRND`, `DIMADEC`가 같다.
+- 새 숫자의 소수 자리가 더 많다.
+- 새 숫자를 원래 자리수로 반올림하면 원래 숫자가 된다.
+
+SWAUTO가 설정을 바꿔서 생긴 변화(예: 옛 SWAUTO의 `0.5`→`0.48`)는 계속 `확인 필요`다.
+
 ## SWAUTO 안의 전후 비교
 
 `swdt-run-autofix-core`가 1단계 전에 치수마다 값을 기록하고 4단계 뒤 비교한다.
@@ -61,7 +75,7 @@ SolidWorks는 중심선까지의 거리를 두 배로 해서 지름으로 보여
 - 맞춤공차로 변환된 치수의 `DIMTOL`/`DIMLIM` 변화는 기존 SWAUTO 동작으로 보고 되돌리지 않는다.
 - 맞춤공차 치수의 다른 값이 바뀌었거나 치수가 사라지면 되돌리지 않고 `SWAUTO RESULT: CHECK NEEDED`로 멈춘다.
 - SolidWorks에서 막 가져온 치수는 GstarCAD 측정값이 `-1`이다. 이 경우 측정값은 비교하지 않는다.
-- 마지막으로 치수 블록에 그려진 첫 숫자를 비교한다(위 6번).
+- 마지막으로 치수 블록에 그려진 첫 숫자를 비교한다(위 6번, 반올림이 풀린 경우는 8번).
 
 ## 테스트
 
@@ -94,6 +108,15 @@ SolidWorks DWG 17장(치수가 있는 도면 12장, 치수 299개)을 복사본�
 | Planetary Gear `#76F` | `29.406` | `29.41` | `29.406` |
 | `0000_A_DRP125` `#884D` (각도) | `120° +.008°/-.003°` | `120° +0°/-0°` | `120° +0.008°/-0.003°` |
 
+`260929-value-guard-4`(8번 추가) 재실행 결과(2026-09-29):
+
+- 대상: 같은 17장, 그리고 30장 fixture를 TITLE 단계까지 만든 도면(치수 254개)
+- 같은 17장: 치수 299개, 결과가 guard-3와 모두 같다. 화면 숫자 변화 0, 탭 드릴 `Ø3.3` 1개, 의도한 x2 보정 1개다.
+- 30장 도면: `CHECK_NEEDED`에서 `OK`로 바뀌었다. 화면 숫자가 바뀐 치수는 실제 값으로 풀린 `17`→`17.3` 3개뿐이다.
+- 두 번째 실행에서 바뀐 치수는 0개다.
+- 30장 워크플로 전체(`SWCADRUN` 4회)가 `COMPLETE`까지 갔다. 결과는 `DIMSTYLE=OK`, `DIMENSION_SEMANTICS=PRESERVED`이고, `SWCADVERIFY` 검사는 `SWCADVERIFY_FINAL_OK`다.
+- 결과 파일: `tmp/swauto-value-test/guard4_260929/summary.txt`, `tmp/gmtitle-value-test/260929_guard4/summary.txt`
+
 실측으로 확인한 사실:
 
 - GstarCAD `Measurement` 속성과 DXF 42는 `DIMLFAC`가 곱해진 값이다(`DIMLFAC` 0.5인 치수 46개 모두 측정값/기하 길이 = 0.5).
@@ -103,5 +126,5 @@ SolidWorks DWG 17장(치수가 있는 도면 12장, 치수 299개)을 복사본�
 
 - 구멍 설명의 탭 드릴 지름: SolidWorks는 `8 x Ø3 ... M4-6H`처럼 정수로 반올림해 보여 주지만 실제 치수값은 3.3이다. SWAUTO 후에는 옛 버전과 새 버전 모두 `Ø3.3`으로 보인다. 사용자 결정(2026-09-29): 실제 값 표시를 유지한다.
 - 통합 워크플로(`SWCADRUN`)는 자체 전후 비교에서 `DIMLFAC` 변화를 되돌리므로, 중심선 거리 x2 지름 보정은 워크플로 안에서 아직 유지되지 않는다. 15장 기준본 워크플로 테스트(`DOWNSTREAM`)는 새 SWAUTO로 `DIMSTYLE=OK`, `PRESERVED`, 복원 1개, `COMPLETE`를 통과했다.
-- 30장 워크플로 전체 테스트(2026-09-29, `sheet_wrapper_source_fixture_260713`, 치수 254개)에서 새 SWAUTO는 치수 3개의 화면 숫자가 `17`→`17.3`으로 바뀐 것을 잡아 `CHECK NEEDED`로 멈췄다. 그래서 워크플로 DIMSTYLE 단계가 `FAILED`(`DIMENSION_SEMANTICS=CHANGED`)가 됐다. 세 치수는 `5560 Shaft Spacer_UP_PEEK_260526_A4` 3장의 같은 치수(`C1B1`, `C257`, `C2FD`)다. SolidWorks가 그린 치수 글자는 소수 0자리(`17`)인데, DWG의 치수 설정(스타일 `ISO-25`, `DIMDEC` 2)으로 다시 그리면 실제 값 17.3이 된다. 같은 도면에서 옛 SWAUTO는 화면 숫자 29개(반올림만 바뀐 6개 별도)와 `DIMLFAC` 18개를 바꾸고도 `OK`였다. 새 SWAUTO에서 바뀐 것은 이 3개뿐이다. `17`을 유지할지 실제 값 `17.3`을 보일지는 사용자 결정을 기다린다.
+- 30장 워크플로 전체 테스트(2026-09-29, `sheet_wrapper_source_fixture_260713`, 치수 254개)에서 새 SWAUTO는 치수 3개의 화면 숫자가 `17`→`17.3`으로 바뀐 것을 잡아 `CHECK NEEDED`로 멈췄다. 그래서 워크플로 DIMSTYLE 단계가 `FAILED`(`DIMENSION_SEMANTICS=CHANGED`)가 됐다. 세 치수는 `5560 Shaft Spacer_UP_PEEK_260526_A4` 3장의 같은 치수(`C1B1`, `C257`, `C2FD`)다. SolidWorks가 그린 치수 글자는 소수 0자리(`17`)인데, DWG의 치수 설정(스타일 `ISO-25`, `DIMDEC` 2)으로 다시 그리면 실제 값 17.3이 된다. 같은 도면에서 옛 SWAUTO는 화면 숫자 29개(반올림만 바뀐 6개 별도)와 `DIMLFAC` 18개를 바꾸고도 `OK`였다. 새 SWAUTO에서 바뀐 것은 이 3개뿐이다. 사용자 결정에 따라 `260929-value-guard-4`부터는 실제 값 `17.3`을 보이고 정상으로 본다(위 8번).
 - 옛 SWAUTO로 이미 처리한 도면에는 위 문제들이 남아 있을 수 있다. 같은 테스트 도구로 해당 원본 DWG에 `-Modes old`를 실행하면 옛 SWAUTO가 바꾼 치수 목록을 얻을 수 있다.

@@ -92,7 +92,7 @@ MTEXT의 DXF 1/3 값을 그대로 썼다.
 
 ## 남은 것
 
-- 30장 워크플로 전체 테스트는 치수 단계에서 멈췄다. 새 SWAUTO가 치수 3개의 `17`→`17.3` 변화를 잡아 `CHECK NEEDED`를 냈기 때문이다(`docs/history/swauto-value-guard-2026-09-29.md`). 그래서 이 도면으로는 Layout·정리·`SWCADVERIFY`까지 확인하지 못했다.
+- 30장 워크플로 전체 테스트는 처음에 치수 단계에서 멈췄다. 새 SWAUTO가 치수 3개의 `17`→`17.3` 변화를 잡아 `CHECK NEEDED`를 냈기 때문이다. 사용자 결정(실제 값 표시)에 따라 SWAUTO `260929-value-guard-4`에서 고친 뒤 다시 돌렸다. `SWCADRUN` 4회로 `COMPLETE`까지 갔고, `SWCADVERIFY` 검사는 `SWCADVERIFY_FINAL_OK`, 제목블록 값은 330칸 모두 계획과 같았다(`tmp/gmtitle-value-test/260929_guard4/summary.txt`, `docs/history/swauto-value-guard-2026-09-29.md` 8번).
 - 원본 작성자 칸에 로그인 이름(`DR-DESIGN`)이 들어 있던 도면(Planetary HL Gear A4)은 원본 값 그대로 옮긴다.
 - 태그가 `GEN-TITLE-*`가 아닌 속성 표제란(다른 회사 양식)은 아직 읽지 않는다. 이런 양식은 기존처럼 일반 글자만 칸 위치로 읽는다.
 - 이미 이전 코드로 변환한 도면은 `SWCADVERIFY`가 이제 `SWTITLEVERIFY_WARN_TITLE_VALUES`로 막는다. 해당 제목블록 값을 원본과 같게 고쳐야 통과한다.

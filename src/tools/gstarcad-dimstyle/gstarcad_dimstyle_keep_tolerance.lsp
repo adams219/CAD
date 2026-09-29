@@ -34,6 +34,9 @@
 ;;; 2-decimal target style; zero suppression (DIMZIN) follows the target style.
 ;;; SWAUTO compares every dimension before and after the run, restores anything
 ;;; that changed, and checks the number actually drawn in each dimension block.
+;;; When SOLIDWORKS drew a number rounded to fewer decimals than the DWG settings
+;;; (drawn 17, value 17.3 with DIMDEC 2), the redrawn real value is kept and listed
+;;; (user decision 2026-09-29, as for tap drill diameters).
 
 (vl-load-com)
 
@@ -71,7 +74,7 @@
 (setq *swdt-fit-review-matches* nil)
 (setq *swdt-fit-review-index* 0)
 (setq *swdt-mechfit-stage* "")
-(setq *swdt-version* "260929-value-guard-3")
+(setq *swdt-version* "260929-value-guard-4")
 
 (defun swdt-mechfit-stage (label)
   (setq *swdt-mechfit-stage* label)
@@ -3649,13 +3652,39 @@
   ok
 )
 
+;;; SOLIDWORKS can draw a number rounded to fewer decimals than the DWG settings
+;;; (drawn 17, value 17.3 with DIMDEC 2), so a redraw shows the real value. That
+;;; is accepted only when SWAUTO kept DIMLFAC and the decimal settings (DIMDEC,
+;;; DIMRND, DIMADEC) and the new number rounds back to the drawn one.
+(defun swdt-shown-rounding-revealed-p (entry after / old new places idx same)
+  (setq old (nth 4 entry))
+  (setq new (nth 4 after))
+  (setq places (if old (swdt-token-decimals old) 0))
+  (setq same T)
+  (foreach idx '(1 6 7 8)
+    (if (not (equal (swdt-semantic-number (nth idx (cadr entry))) (swdt-semantic-number (nth idx (cadr after)))))
+      (setq same nil)
+    )
+  )
+  (and
+    old
+    new
+    same
+    (> (swdt-token-decimals new) places)
+    (<= (abs (- (atof new) (atof old))) (+ (* 0.5 (expt 10.0 (- places))) 1e-9))
+  )
+)
+
 ;;; Compares the first number drawn for every dimension. A SOLIDWORKS double
-;;; distance diameter gets DIMLFAC x2 so it shows its number again; any other
+;;; distance diameter gets DIMLFAC x2 so it shows its number again; a number
+;;; SOLIDWORKS drew rounded keeps its real value and is listed; any other
 ;;; difference is reported and left alone.
-(defun swdt-shown-guard (before / doc entry after tried doubled doubledexamples odd oddexamples)
+(defun swdt-shown-guard (before / doc entry after tried doubled doubledexamples revealed revealedexamples odd oddexamples)
   (setq tried nil)
   (setq doubled 0)
   (setq doubledexamples nil)
+  (setq revealed 0)
+  (setq revealedexamples nil)
   (setq odd 0)
   (setq oddexamples nil)
   (setq doc (swdt-doc))
@@ -3663,15 +3692,20 @@
   (foreach entry before
     (setq after (swdt-semantic-current entry))
     (if (and after (nth 4 entry) (nth 4 after) (not (swdt-shown-same-p (nth 4 entry) (nth 4 after))))
-      (if
-        (and
-          (not (cadddr after))
-          (swdt-plain-measure-override-p (nth 5 after))
-          (swdt-shown-double-p (nth 4 entry) (nth 4 after))
-          (swdt-semantic-double-dimlfac (car entry))
+      (cond
+        ((and
+           (not (cadddr after))
+           (swdt-plain-measure-override-p (nth 5 after))
+           (swdt-shown-double-p (nth 4 entry) (nth 4 after))
+           (swdt-semantic-double-dimlfac (car entry))
+         )
+          (setq tried (append tried (list entry)))
         )
-        (setq tried (append tried (list entry)))
-        (progn
+        ((swdt-shown-rounding-revealed-p entry after)
+          (setq revealed (1+ revealed))
+          (setq revealedexamples (swdt-semantic-add-example revealedexamples (strcat "#" (car entry) " " (nth 4 entry) "->" (nth 4 after))))
+        )
+        (T
           (setq odd (1+ odd))
           (setq oddexamples (swdt-semantic-add-example oddexamples (strcat "#" (car entry) " " (nth 4 entry) "->" (nth 4 after))))
         )
@@ -3702,6 +3736,13 @@
       (strcat "SolidWorks 지름(중심선 거리 x2) 표시를 살리려고 DIMLFAC x2를 넣은 치수: " (itoa doubled) "개")
       doubledexamples
       doubled
+    )
+  )
+  (if (> revealed 0)
+    (swdt-semantic-print-examples
+      (strcat "SolidWorks가 반올림해 그린 숫자를 실제 값으로 보이는 치수: " (itoa revealed) "개 (정상, 실제 값 유지)")
+      revealedexamples
+      revealed
     )
   )
   (if (> odd 0)
@@ -3808,6 +3849,7 @@
   (princ "\n  - Converts embedded H7/h6/H9 fit tolerances to Mechanical fit data")
   (princ "\n  - Preserves tolerance, DIMLFAC and decimal places, while normalizing text/arrow/gap size to the target style")
   (princ "\n  - Compares every dimension value before/after and restores unexpected changes")
+  (princ "\n  - Keeps the real value where SOLIDWORKS drew a rounded number (17 -> 17.3) and lists it")
   (princ "\n  - Purges unused old styles and safely deletes leftover SLD styles if CAD allows it")
   (princ "\n")
   (princ "\nTroubleshooting commands:")
