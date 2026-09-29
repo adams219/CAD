@@ -161,7 +161,7 @@ if ($Modes -contains "MATERIALIZE_WRAPPED_XREF") {
     "Workflow stage: TITLE",
     "Source metadata state: CAPTURED_BEFORE_BIND",
     "Source metadata count: 1",
-    'Source metadata first: (1 "sheet_wrapper_source_fixture_260713"',
+    'Source metadata first: (1 sheet_wrapper_source_fixture_260713 ',
     "Source metadata audit: yes",
     "Runtime check completed: yes"
   )
