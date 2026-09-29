@@ -36,7 +36,7 @@ SWTITLEVERSION
 현재 기준 버전:
 
 ```text
-260714-read-scan-cache-batch-queue-1
+260929-small-fixes-2
 ```
 
 다른 버전이 보이면 변환하지 말고 최신 LSP를 다시 `APPLOAD`합니다.
@@ -88,7 +88,7 @@ LSP와 고정 컨트롤 보조 프로그램이 자동 처리:
 | `SWTITLEPREPARE` | 변환 전에 필요한 정리만 수행합니다. 실수로 들어간 명령어 텍스트, 겹친 GMTITLE target, 오염 의심 도면틀 정의, 위험한 raw bbox 등을 후보로 보여주고 `YES` 확인 뒤 처리합니다. | 있음 |
 | `SWTITLECONVERTNEXT` | 최초 실행 시 작업본 저장 위치를 먼저 선택하고, 승인된 작업본에서는 고정 컨트롤로 DR 용지/제목블록/옵션을 검증하여 남은 시트를 실제 native GMTITLE로 연속 처리합니다. 자동 선택이 불가능하면 원본을 유지하고 중단합니다. | 있음 |
 | `SWTITLECONVERT` | `SWTITLECONVERTNEXT`와 같은 변환 흐름을 사용하되, `YES`/`OPEN`/`BATCH`/`MANUAL` 응답을 사용자가 직접 고릅니다. | 있음 |
-| `SWTITLEVERIFY` | 변환 결과를 읽기 전용으로 검증합니다. 남은 원본, 누락/중복, A2/A3/A4 수량, native-like 상태, 최종 OK/WARN/FAIL을 확인합니다. | 없음 |
+| `SWTITLEVERIFY` | 변환 결과를 읽기 전용으로 검증합니다. 남은 원본, 누락/중복, A2/A3/A4 수량, native-like 상태, 제목블록 값(도면번호 `XXX`, 도면명 파일 경로, 서식 코드), 최종 OK/WARN/FAIL을 확인합니다. 값 문제만 있으면 `SWTITLEVERIFY_WARN_TITLE_VALUES`입니다. | 없음 |
 
 여러 DWG가 열려 있으면 `SWTITLEPREPARE`, `SWTITLECONVERTNEXT`, `SWTITLECONVERT`가 현재 활성 DWG 경로를 먼저 보여주고 `ACTIVE` 확인을 요구할 수 있습니다. 방금 선택 저장한 작업본이 맞을 때만 `ACTIVE`를 입력하고, 조금이라도 다르면 Enter로 중단합니다.
 

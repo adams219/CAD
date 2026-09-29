@@ -87,6 +87,20 @@ SOURCE_SHEET_STATUS=CAPTURED_BEFORE_BIND
 
 GMTITLE 변환 뒤에는 최종 frame/title 핸들과 출처를 `FINAL_SHEET_*`에 연결한다. 이미 materialize된 구버전 도면은 `GMTITLE File Name → 검증된 $0$ 결합 블록 접두사 → FILE NO → Sheet → frame handle` 순으로 복구한다. 하나의 일반적인 파일명이 여러 시트에 반복되면 그 값은 출처로 채택하지 않고 공간적으로 해당 frame 안에 가장 많이 나타나는 결합 블록 접두사를 사용한다.
 
+## 표제란 값 보존
+
+GMTITLE 단계는 새 `DR_titlea_3rd`의 11칸을 모두 쓴다(2026-09-29, `260929-title-values-1`).
+
+- 원본 표제란 INSERT에 `GEN-TITLE-*` 속성이 있으면(예: 결합된 `...$0$DR_titlea_3rd`) 태그로 읽는다. 같은 칸 위치의 글자보다 우선한다.
+- 일반 TEXT/MTEXT 원본은 기존처럼 칸 위치로 읽는다. MTEXT 서식 코드는 지운다.
+- 원본에 값이 없는 칸은 `DR_titlea_3rd` 속성 기본값으로 채운다. 날짜는 변환한 날, 도면번호·도면명·용지 칸은 빈칸이다. GMTITLE이 넣는 `XXX`, 파일 경로, 로그인 이름, 다른 시트에서 복사된 값은 남기지 않는다.
+- 값을 쓴 뒤 11칸을 다시 읽어 비교하고, 다르면 원본 표제란을 지우기 전에 멈춘다.
+- `SWTITLEVERIFY`(따라서 `SWCADVERIFY`)는 제목블록에 `XXX`, 파일 경로, 서식 코드가 남아 있으면 `SWTITLEVERIFY_WARN_TITLE_VALUES`로 막는다.
+
+회귀 테스트: `diagnostics/gmtitle-values/run_title_value_test.ps1`. 상세 기록: `docs/history/gmtitle-title-values-2026-09-29.md`.
+
+옛 표제란 정리는 옛 표제란 상자 안의 선·해치와, 표제란에 닿은 도면틀 테두리 여백(11 mm)의 조각만 지운다. 찾는 범위는 원본 시트가 있는 공간이다. 삭제는 이미 지운 객체를 다시 건드리지 않는다(`entdel` 재호출은 객체를 되살린다). 옛 표제란·도면틀·글자가 잠긴 레이어에 있으면 GMTITLE 생성 전에 `ABORT_SOURCE_ON_LOCKED_LAYER`로 멈추고, 변환 뒤 남아 있으면 `REVIEW_OLD_TITLE_NOT_DELETED`로 멈춘다. 상세 기록: `docs/history/gmtitle-delete-safety-2026-09-29.md`.
+
 ## 치수 의미 보존
 
 대표 도면에서 기존 SWAUTO는 스타일 감사 자체는 통과했지만, native Mechanical fit 적용 중 핸들 `37C1`의 의미 오버라이드가 다음처럼 달라지는 사례가 발견됐다.
@@ -104,6 +118,8 @@ DIMENSION_SEMANTICS=PRESERVED
 ```
 
 복원 후에도 기존 스타일 감사와 Mechanical fit 감사가 모두 통과해야 한다.
+
+2026-09-29부터는 SWAUTO 모듈이 같은 값을 직접 지킨다. `37C1` 사례의 원인은 맞춤공차 적용이 아니라 1단계 스타일 변경이었다. 공차가 없는 치수는 DSTYLE override가 통째로 지워져 `DIMLFAC`와 숨은 공차값이 대상 스타일 값으로 돌아갔다. 지금은 이런 치수도 대상 스타일과 다른 `DIMLFAC`, `DIMTOL`, `DIMLIM`, `DIMTP`, `DIMTM`, 소수 자리(`DIMDEC`, `DIMRND`, `DIMADEC`)를 유지한다. `swdt-run-autofix-core`가 실행 전후 값을 같은 방식으로 비교해 달라진 치수를 되돌린다. 맞춤공차로 변환된 치수의 `DIMTOL`/`DIMLIM` 변화만 되돌리지 않는다. 통합 앱의 전후 비교와 복원은 검증 단계로 그대로 둔다. 통합 앱은 맞춤공차 치수의 `DIMTOL`도 기존처럼 되돌리므로, 두 경로의 결과에서 이 값 하나가 다를 수 있다. SolidWorks가 DWG 설정보다 적은 소수 자리로 그린 숫자(`17`, 실제 값 17.3)는 다시 그리면 실제 값이 보이며, 사용자 결정에 따라 정상으로 보고 목록만 남긴다(`260929-value-guard-4`). 상세 기록은 `docs/history/swauto-value-guard-2026-09-29.md`에 있다.
 
 ## 전체 미사용 이름 정의 정리 계약
 

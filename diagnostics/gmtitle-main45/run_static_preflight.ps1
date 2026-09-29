@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260714-read-scan-cache-batch-queue-1",
+  [string]$ExpectedGmtitleVersion = "260929-small-fixes-2",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )

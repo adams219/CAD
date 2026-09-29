@@ -55,7 +55,7 @@ SWTITLEVERSION
 현재 GMTITLE 기준 버전:
 
 ```text
-260714-read-scan-cache-batch-queue-1
+260929-small-fixes-2
 ```
 
 다른 버전이 보이면 `SWTITLESTATUS` 결과를 믿기 전에 최신 LSP를 다시 APPLOAD 합니다.

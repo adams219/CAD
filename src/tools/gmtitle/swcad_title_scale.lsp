@@ -1,4 +1,4 @@
-﻿;;; Read-only title-block and scale diagnostic module.
+;;; Read-only title-block and scale diagnostic module.
 ;;;
 ;;; Main workflow:
 ;;;   APPLOAD this file directly, then run:
@@ -40,7 +40,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260714-read-scan-cache-batch-queue-1")
+(setq *swcad-title-scale-version* "260929-small-fixes-2")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -94,6 +94,7 @@
 (setq *swcad-title-skip-native-upgrade-confirmation* nil)
 (setq *swcad-title-a3a4-batch-default-all* nil)
 (setq *swcad-title-pending-manual-native-upgrade* nil)
+(setq *swcad-title-gmtitle-input-restore* nil)
 (setq *swcad-title-native-placement-trust-tolerance* 0.5)
 (setq *swcad-title-frame-style-structural-edge-band* 25.0)
 (setq *swcad-title-frame-style-contained-margin* 0.5)
@@ -298,6 +299,19 @@
         ("ABORT_MULTIPLE_OPEN_DWGS" . "여러 도면이 열려 있어 현재 활성 도면 확인이 필요해 중단했습니다.")
         ("ABORT_READ_ONLY_DOCUMENT" . "읽기 전용 도면이라 중단했습니다.")
         ("ABORT_USER_CANCEL" . "사용자가 취소했습니다.")
+        ("ABORT_SOURCE_ON_LOCKED_LAYER" . "지울 기존 표제란/도면틀/글자/선이 잠긴 레이어에 있어 GMTITLE을 만들기 전에 중단했습니다. 도면은 바꾸지 않았습니다.")
+        ("REVIEW_OLD_TITLE_NOT_DELETED" . "새 GMTITLE은 만들었지만 기존 표제란/도면틀/글자/선 일부를 지우지 못했습니다. 남은 객체를 확인하세요.")
+        ("SWTITLEVERIFY_WARN_TITLE_VALUES" . "제목블록 값에 GMTITLE 기본값(XXX, 파일 경로)이나 서식 코드가 남아 있습니다. 원본 도면과 비교해 고치세요.")
+        ("REVIEW_CONVERT_RESULT_UNKNOWN" . "변환 단계가 결과 상태를 남기지 않았습니다. 완료로 보지 않고 멈췄습니다.")
+        ("ERROR_CONVERT_NEXT_FATAL" . "변환 중 오류나 ESC로 멈췄습니다. 도면을 저장하지 말고 상태를 확인하세요.")
+        ("ERROR_BATCH_APPLY" . "시트 변환 중 오류나 ESC로 멈췄습니다. 이 시트부터 남은 시트는 바꾸지 않았습니다.")
+        ("ERROR_NATIVE_AUTOSELECT_BATCH" . "연속 native 변환 중 오류로 멈췄습니다.")
+        ("ERROR_TITLE_MISSING_OUTLINE_BATCH_APPLY" . "표제란 없는 도면틀 시트 변환 중 오류나 ESC로 멈췄습니다.")
+        ("REVIEW_TITLE_MISSING_OUTLINE_NOT_REDUCED" . "표제란 없는 도면틀 시트를 변환했지만 남은 시트 수가 줄지 않아 멈췄습니다.")
+        ("ERROR_NATIVE_GMTITLE_UPGRADE_OPEN" . "A2/A3/A4 native 교체 1장 처리 중 오류나 ESC로 멈췄습니다.")
+        ("ABORT_WORK_COPY_NOT_CREATED" . "작업본을 만들지 않아 원본을 바꾸지 않고 멈췄습니다.")
+        ("OK_PREPARE_DONE" . "SWTITLEPREPARE 정리 단계가 끝났습니다.")
+        ("ABORT_SHEETS_NOT_MATERIALIZED" . "시트가 아직 XREF나 시트 묶음 블록 안에 있어 변환하지 않았습니다. SWCADRUN으로 XREF와 시트 묶음 단계부터 진행하세요.")
         ("ABORT_EXISTING_GMTITLE_NOT_FOUND" . "필요한 GMTITLE 쌍을 찾지 못했습니다.")
         ("ABORT_EXISTING_GMTITLE_WRONG_SELECTION" . "GMTITLE 용지/제목블록 선택이 예상과 다릅니다.")
         ("ABORT_NATIVE_UPGRADE_WRONG_GMTITLE_SELECTION" . "native 교체 중 잘못된 용지/제목블록이 선택되어 새 객체를 제거하고 기존 객체를 보존했습니다.")
@@ -1462,11 +1476,12 @@
   )
 )
 
+;;; DIESEL edtime: MO is the month and MM the minutes.
 (defun swcad-title-work-copy-timestamp (/ result)
   (setq result
     (vl-catch-all-apply
       'menucmd
-      (list "M=$(edtime,$(getvar,date),YYYYMMDD-HHMMSS)")
+      (list "M=$(edtime,$(getvar,date),YYYYMODD-HHMMSS)")
     )
   )
   (if (or (vl-catch-all-error-p result) (/= (type result) 'STR) (= result ""))
@@ -1475,9 +1490,19 @@
   )
 )
 
+;;; File name without an earlier _SWTITLE_<time> suffix, so a work copy made from
+;;; a work copy gets one suffix instead of piling them up.
+(defun swcad-title-work-copy-base-name (base / pos)
+  (setq pos (vl-string-search "_SWTITLE_" (strcase base)))
+  (if (and pos (> pos 0))
+    (substr base 1 pos)
+    base
+  )
+)
+
 (defun swcad-title-default-work-copy-path (/ prefix base)
   (setq prefix (vl-string-translate "\\" "/" (getvar "DWGPREFIX")))
-  (setq base (vl-filename-base (getvar "DWGNAME")))
+  (setq base (swcad-title-work-copy-base-name (vl-filename-base (getvar "DWGNAME"))))
   (strcat
     prefix
     base
@@ -1796,6 +1821,72 @@
 (defun swcad-title-apply-result (status)
   (setq *swcad-title-last-apply-status* status)
   (swcad-title-princ-line (strcat "Result: " status))
+)
+
+;;; Statuses that stop SWCADRUN.  swapp-title-blocking-status-p in the
+;;; workflow checks the same prefixes.
+(defun swcad-title-stop-status-p (status / upper)
+  (setq upper (strcase (swcad-title-string status)))
+  (or
+    (swcad-title-string-prefix-p "ABORT_" upper)
+    (swcad-title-string-prefix-p "ERROR_" upper)
+    (swcad-title-string-prefix-p "WARN_" upper)
+    (swcad-title-string-prefix-p "BLOCKED_" upper)
+    (swcad-title-string-prefix-p "REVIEW_" upper)
+  )
+)
+
+;;; vl-catch-all-apply skips the *error* handler of the function it calls, and
+;;; ESC at a GMTITLE pause ends in such a catch.  Put back what a conversion
+;;; step changes only for a while: object snap and dynamic input, an open undo
+;;; group, and the new GMTITLE pair waiting for its finalize step.
+;;; GstarCAD does not show a vla-StartUndoMark group in UNDOCTL, so the group
+;;; is ended without checking; EndUndoMark with no open group does nothing.
+(defun swcad-title-recover-after-caught-error (/ restore)
+  (setq restore *swcad-title-gmtitle-input-restore*)
+  (if restore
+    (swcad-title-restore-gmtitle-input-vars (car restore) (cadr restore))
+  )
+  (vl-catch-all-apply 'vla-EndUndoMark (list (swcad-title-doc)))
+  (swcad-title-clear-pending-native-gmtitle-pair)
+  T
+)
+
+;;; Reports an error caught by vl-catch-all-apply as a stop status.
+(defun swcad-title-stop-after-caught-error (status label result)
+  (swcad-title-recover-after-caught-error)
+  (swcad-title-princ-line (strcat label ": " (vl-catch-all-error-message result)))
+  (swcad-title-apply-result status)
+)
+
+;;; Each SWTITLE command starts from a clean state.  A command stopped part way
+;;; by an error or ESC can leave object snap off, an undo group or a log file
+;;; open, batch flags set, or read caches that still hold entities from before.
+(defun swcad-title-command-entry-reset ()
+  (swcad-title-recover-after-caught-error)
+  (if *swcad-title-read-scan-cache-enabled*
+    (swcad-title-read-scan-cache-end)
+  )
+  (if *swcad-title-frame-style-analysis-cache-enabled*
+    (swcad-title-frame-style-analysis-cache-end)
+  )
+  (if *swcad-title-debug-log-handle*
+    (progn
+      (vl-catch-all-apply 'close (list *swcad-title-debug-log-handle*))
+      (setq *swcad-title-debug-log-handle* nil)
+    )
+  )
+  (setq *swcad-title-batch-mode* nil)
+  (setq *swcad-title-convert-next-mode* nil)
+  (setq *swcad-title-native-upgrade-batch-mode* nil)
+  (setq *swcad-title-native-upgrade-selected-pair* nil)
+  (setq *swcad-title-native-upgrade-batch-remaining-hint* nil)
+  (setq *swcad-title-allow-batch-interactive-native-gmtitle* nil)
+  (setq *swcad-title-skip-native-upgrade-confirmation* nil)
+  (setq *swcad-title-a3a4-batch-default-all* nil)
+  (setq *swcad-title-batch-source-record* nil)
+  (setq *swcad-title-batch-frame-record* nil)
+  T
 )
 
 (defun swcad-title-open-gmtitle-verify-log ()
@@ -2132,6 +2223,13 @@
   )
 )
 
+;;; The GMTITLE runners turn object snap off while GMTITLE runs.  The old
+;;; values are also kept here, so they can be put back when an error or ESC
+;;; stops the runner before it restores them.
+(defun swcad-title-remember-gmtitle-input-vars (old-osmode old-dynmode)
+  (setq *swcad-title-gmtitle-input-restore* (list old-osmode old-dynmode))
+)
+
 (defun swcad-title-restore-gmtitle-input-vars (old-osmode old-dynmode)
   (if old-osmode
     (swcad-title-safe-setvar "OSMODE" old-osmode)
@@ -2139,6 +2237,7 @@
   (if old-dynmode
     (swcad-title-safe-setvar "DYNMODE" old-dynmode)
   )
+  (setq *swcad-title-gmtitle-input-restore* nil)
 )
 
 (defun swcad-title-command-prompt-string (/ result)
@@ -2535,27 +2634,143 @@
   count
 )
 
-(defun swcad-title-delete-ename (ename / result object delete-result)
-  (if ename
-    (progn
-      (setq result (entdel ename))
-      (if result
-        result
+;;; Deletes one entity. Returns T when it was deleted now, ALREADY when it was
+;;; already gone, and nil when it is still in the drawing (for example on a locked
+;;; layer). An erased entity is never passed to entdel again, because entdel on an
+;;; erased entity restores it.
+(defun swcad-title-delete-ename (ename / object)
+  (cond
+    ((not ename) nil)
+    ((not (entget ename)) 'ALREADY)
+    (T
+      (if (not (entdel ename))
         (progn
           (setq object (swcad-title-safe-vla-object ename))
           (if object
-            (progn
-              (setq delete-result (vl-catch-all-apply 'vla-Delete (list object)))
-              (if (vl-catch-all-error-p delete-result)
-                nil
-                T
-              )
-            )
+            (vl-catch-all-apply 'vla-Delete (list object))
           )
+        )
+      )
+      (if (entget ename) nil T)
+    )
+  )
+)
+
+(defun swcad-title-layer-locked-p (layer / data)
+  (setq data (if (swcad-title-string-p layer) (tblsearch "LAYER" layer) nil))
+  (and data (/= 0 (logand (cdr (assoc 70 data)) 4)))
+)
+
+(defun swcad-title-ename-on-locked-layer-p (ename / data)
+  (setq data (if ename (entget ename) nil))
+  (and data (swcad-title-layer-locked-p (cdr (assoc 8 data))))
+)
+
+;;; Space ("Model" or a layout name) of the sheet being converted: the space of the
+;;; source title insert, else of the source frame insert, else model space.
+(defun swcad-title-sheet-space (source-ename source-frame-ename / data)
+  (setq data
+    (cond
+      ((and source-ename (entget source-ename)) (entget source-ename))
+      ((and source-frame-ename (entget source-frame-ename)) (entget source-frame-ename))
+      (T nil)
+    )
+  )
+  (if (and data (assoc 410 data))
+    (cdr (assoc 410 data))
+    "Model"
+  )
+)
+
+;;; The other pieces a transfer deletes with the old title: title shell inserts,
+;;; title lines and hatches, loose frame lines (deleted only when there is no frame
+;;; insert) and sheet residue.
+(defun swcad-title-queued-cleanup-handles (source-frame-ename title-shell-handles title-graphic-handles frame-graphic-handles residue-handles)
+  (append
+    title-shell-handles
+    title-graphic-handles
+    (if source-frame-ename nil frame-graphic-handles)
+    residue-handles
+  )
+)
+
+;;; Everything the transfer deletes: the old title insert, old frame insert, loose
+;;; title texts and cleanup-handles (see swcad-title-queued-cleanup-handles).  What is
+;;; not deleted stays under the new GMTITLE.  Returns the handles on locked layers.
+(defun swcad-title-locked-old-sheet-handles (source-ename source-frame-ename records cleanup-handles / result ename record handle)
+  (setq result nil)
+  (foreach ename (list source-ename source-frame-ename)
+    (if (swcad-title-ename-on-locked-layer-p ename)
+      (setq result (append result (list (swcad-title-ename-handle ename))))
+    )
+  )
+  (foreach record records
+    (if
+      (and
+        (not (swcad-title-block-text-record-p record))
+        (swcad-title-ename-on-locked-layer-p (handent (swcad-title-string (nth 3 record))))
+      )
+      (setq result (append result (list (strcase (swcad-title-string (nth 3 record))))))
+    )
+  )
+  (foreach handle cleanup-handles
+    (if
+      (and
+        (swcad-title-ename-on-locked-layer-p (handent (swcad-title-string handle)))
+        (not (member (strcase (swcad-title-string handle)) result))
+      )
+      (setq result (append result (list (strcase (swcad-title-string handle)))))
+    )
+  )
+  result
+)
+
+;;; After a transfer: T when everything it deleted is gone.  Otherwise lists what
+;;; remains and sets REVIEW_OLD_TITLE_NOT_DELETED, which stops SWCADRUN, instead of
+;;; reporting success.
+(defun swcad-title-old-sheet-deleted-p (source-ename source-frame-ename records cleanup-handles / remaining)
+  (setq remaining (swcad-title-remaining-old-sheet-handles source-ename source-frame-ename records cleanup-handles))
+  (if remaining
+    (progn
+      (swcad-title-princ-raw-line (strcat "지우지 못한 기존 표제란/도면틀/글자/선: " (swcad-title-list-string remaining)))
+      (swcad-title-princ-raw-line "새 GMTITLE은 만들어졌습니다. 남은 객체(잠긴 레이어 등)를 확인해 지운 뒤 SWTITLEVERIFY를 실행하세요.")
+      (swcad-title-apply-result "REVIEW_OLD_TITLE_NOT_DELETED")
+      nil
+    )
+    T
+  )
+)
+
+;;; Handles of what the transfer deleted that are still in the drawing.
+(defun swcad-title-remaining-old-sheet-handles (source-ename source-frame-ename records cleanup-handles / result ename record handle)
+  (setq result nil)
+  (foreach ename (list source-ename source-frame-ename)
+    (if (and ename (entget ename))
+      (setq result (append result (list (swcad-title-ename-handle ename))))
+    )
+  )
+  (foreach record records
+    (if (not (swcad-title-block-text-record-p record))
+      (progn
+        (setq ename (handent (swcad-title-string (nth 3 record))))
+        (if (and ename (entget ename))
+          (setq result (append result (list (strcase (swcad-title-string (nth 3 record))))))
         )
       )
     )
   )
+  (foreach handle cleanup-handles
+    (setq ename (handent (swcad-title-string handle)))
+    (if
+      (and
+        ename
+        (entget ename)
+        (not (member (strcase (swcad-title-string handle)) result))
+      )
+      (setq result (append result (list (strcase (swcad-title-string handle)))))
+    )
+  )
+  result
 )
 
 (defun swcad-title-delete-vla-object (object)
@@ -2647,10 +2862,12 @@
   )
 )
 
+;;; Counts only entities deleted now; one already deleted by another list is not
+;;; counted twice.
 (defun swcad-title-delete-handle-list (handles / handle count)
   (setq count 0)
   (foreach handle handles
-    (if (swcad-title-delete-handle handle)
+    (if (eq (swcad-title-delete-handle handle) T)
       (setq count (+ count 1))
     )
   )
@@ -2660,7 +2877,7 @@
 (defun swcad-title-delete-ename-list (enames / ename count)
   (setq count 0)
   (foreach ename enames
-    (if (swcad-title-delete-ename ename)
+    (if (eq (swcad-title-delete-ename ename) T)
       (setq count (+ count 1))
     )
   )
@@ -2706,16 +2923,88 @@
   )
 )
 
-(defun swcad-title-sheet-size-from-block-name (block-name / value)
-  (setq value (strcase (swcad-title-string block-name)))
-  (cond
-    ((swcad-title-native-target-title-name-p value) nil)
-    ((wcmatch value "*A0*,*A-0*,*A_0*,*A 0*") "A0")
-    ((wcmatch value "*A1*,*A-1*,*A_1*,*A 1*") "A1")
-    ((wcmatch value "*A2*,*A-2*,*A_2*,*A 2*") "A2")
-    ((wcmatch value "*A3*,*A-3*,*A_3*,*A 3*") "A3")
-    ((wcmatch value "*A4*,*A-4*,*A_4*,*A 4*") "A4")
-    (T nil)
+;;; The block's own name: the part after the last $ or | of a bound or XREF name.
+(defun swcad-title-block-own-name (block-name / value index cut ch)
+  (setq value (swcad-title-string block-name))
+  (setq cut 0)
+  (setq index 1)
+  (while (<= index (strlen value))
+    (setq ch (substr value index 1))
+    (if (or (= ch "$") (= ch "|"))
+      (setq cut index)
+    )
+    (setq index (1+ index))
+  )
+  (substr value (1+ cut))
+)
+
+(defun swcad-title-ascii-digit-p (ch / code)
+  (and (= (strlen ch) 1) (setq code (ascii ch)) (>= code 48) (<= code 57))
+)
+
+(defun swcad-title-ascii-alnum-p (ch / code)
+  (and
+    (= (strlen ch) 1)
+    (setq code (ascii ch))
+    (or
+      (and (>= code 48) (<= code 57))
+      (and (>= code 65) (<= code 90))
+      (and (>= code 97) (<= code 122))
+    )
+  )
+)
+
+;;; Paper size named in a block name, e.g. DR_A3_Outline or "A4 - ISO".
+;;; Only the block's own name counts, because the host and XREF file names in
+;;; front of it can contain anything (a part called Bracket_A1 on an A3 sheet).
+;;; The size must be a token of its own: A0..A4, also written A-3, A_3 or A 3,
+;;; with no letter or digit right before the A and no digit right after the
+;;; number, so DATA1, A12 and DR_titlea_3rd (TITLEA_3RD) do not count.  A name
+;;; with two different sizes gives nil.
+(defun swcad-title-sheet-size-from-block-name (block-name / leaf value index pos digit found result conflict)
+  (setq leaf (swcad-title-block-own-name block-name))
+  (setq value (strcase leaf))
+  (setq result nil)
+  (setq conflict nil)
+  (if
+    (or
+      (swcad-title-native-target-title-name-p block-name)
+      (swcad-title-native-target-title-name-p leaf)
+    )
+    nil
+    (progn
+      (setq index 1)
+      (while (<= index (strlen value))
+        (if
+          (and
+            (= (substr value index 1) "A")
+            (not (swcad-title-ascii-alnum-p (if (> index 1) (substr value (1- index) 1) "")))
+          )
+          (progn
+            (setq pos (1+ index))
+            (if (member (substr value pos 1) '("-" "_" " "))
+              (setq pos (1+ pos))
+            )
+            (setq digit (substr value pos 1))
+            (if
+              (and
+                (member digit '("0" "1" "2" "3" "4"))
+                (not (swcad-title-ascii-digit-p (substr value (1+ pos) 1)))
+              )
+              (progn
+                (setq found (strcat "A" digit))
+                (cond
+                  ((not result) (setq result found))
+                  ((/= result found) (setq conflict T))
+                )
+              )
+            )
+          )
+        )
+        (setq index (1+ index))
+      )
+      (if conflict nil result)
+    )
   )
 )
 
@@ -3450,9 +3739,41 @@
   )
 )
 
-(defun swcad-title-source-title-graphic-handles (source-bbox / ss index total ename data etype bbox handle result)
+;;; Width of the sheet border margin: SOLIDWORKS sheet formats and DR frames keep
+;;; their corner marks and border lines within about 10 mm of the paper edge.
+(setq *swcad-title-sheet-border-margin* 11.0)
+
+;;; True when bbox lies inside the sheet frame and entirely in its border margin.
+(defun swcad-title-frame-margin-bbox-p (bbox frame-bbox / margin)
+  (setq margin *swcad-title-sheet-border-margin*)
+  (and
+    bbox
+    frame-bbox
+    (swcad-title-bbox-contains-bbox-p frame-bbox bbox 1.0)
+    (or
+      (<= (caddr bbox) (+ (car frame-bbox) margin))
+      (>= (car bbox) (- (caddr frame-bbox) margin))
+      (<= (cadddr bbox) (+ (cadr frame-bbox) margin))
+      (>= (cadr bbox) (- (cadddr frame-bbox) margin))
+    )
+  )
+)
+
+;;; Loose lines and hatches of the old title: everything inside the old title box
+;;; (+1 mm), plus pieces that only touch it when they lie entirely in the sheet border
+;;; margin (SOLIDWORKS corner marks). Drawing lines and hatches that merely touch the
+;;; title are kept. Only the sheet's own space is searched.
+(defun swcad-title-source-title-graphic-handles (source-bbox frame-bbox space / ss index total ename data etype bbox handle result title-box)
   (setq result nil)
-  (setq ss (ssget "_X" '((0 . "LINE,LWPOLYLINE,POLYLINE,2DPOLYLINE,HATCH,SOLID,TRACE,WIPEOUT"))))
+  (setq title-box (swcad-title-expand-bbox source-bbox 1.0))
+  (setq ss
+    (ssget "_X"
+      (list
+        '(0 . "LINE,LWPOLYLINE,POLYLINE,2DPOLYLINE,HATCH,SOLID,TRACE,WIPEOUT")
+        (cons 410 (swcad-title-string space))
+      )
+    )
+  )
   (setq total (if ss (sslength ss) 0))
   (setq index 0)
   (while (< index total)
@@ -3465,7 +3786,13 @@
       (and
         (> (strlen handle) 0)
         (swcad-title-frame-cleanup-entity-type-p etype)
-        (swcad-title-bbox-intersects-p bbox (swcad-title-expand-bbox source-bbox 1.0))
+        (or
+          (swcad-title-bbox-contains-bbox-p title-box bbox 0.0)
+          (and
+            (swcad-title-bbox-intersects-p bbox title-box)
+            (swcad-title-frame-margin-bbox-p bbox frame-bbox)
+          )
+        )
       )
       (setq result (swcad-title-list-add-unique handle result))
     )
@@ -3714,11 +4041,18 @@
   )
 )
 
-(defun swcad-title-source-frame-graphic-handles (frame-bbox source-bbox / ss index total ename data etype bbox handle result)
+(defun swcad-title-source-frame-graphic-handles (frame-bbox source-bbox space / ss index total ename data etype bbox handle result)
   (setq result nil)
   (if frame-bbox
     (progn
-      (setq ss (ssget "_X" '((0 . "LINE,LWPOLYLINE,POLYLINE,2DPOLYLINE,HATCH,SOLID,TRACE,WIPEOUT"))))
+      (setq ss
+        (ssget "_X"
+          (list
+            '(0 . "LINE,LWPOLYLINE,POLYLINE,2DPOLYLINE,HATCH,SOLID,TRACE,WIPEOUT")
+            (cons 410 (swcad-title-string space))
+          )
+        )
+      )
       (setq total (if ss (sslength ss) 0))
       (setq index 0)
       (while (< index total)
@@ -3883,7 +4217,14 @@
   )
   (if regions
     (progn
-      (setq ss (ssget "_X" '((0 . "INSERT,LINE,LWPOLYLINE,POLYLINE,2DPOLYLINE,HATCH,SOLID,TRACE,WIPEOUT,CIRCLE,ARC,ELLIPSE,SPLINE,TEXT,MTEXT"))))
+      (setq ss
+        (ssget "_X"
+          (list
+            '(0 . "INSERT,LINE,LWPOLYLINE,POLYLINE,2DPOLYLINE,HATCH,SOLID,TRACE,WIPEOUT,CIRCLE,ARC,ELLIPSE,SPLINE,TEXT,MTEXT")
+            (cons 410 (swcad-title-sheet-space source-ename source-frame-ename))
+          )
+        )
+      )
       (setq total (if ss (sslength ss) 0))
       (setq index 0)
       (while (< index total)
@@ -4048,6 +4389,292 @@
   )
 )
 
+;;; ---------------------------------------------------------------------------
+;;; Title values (2026-09-29)
+;;; Every transfer writes all 11 GEN-TITLE fields:
+;;; - attributes of the source title insert (for example a bound
+;;;   "...$0$DR_titlea_3rd") are read by tag;
+;;; - MTEXT format codes are removed, because title attributes are single-line;
+;;; - a field the source leaves empty gets the DR_titlea_3rd attribute default
+;;;   (HS KANG, KS LEE, 1:1, 0, 1, -), today's date for the date, and an empty
+;;;   drawing number, drawing name and sheet instead of GMTITLE's XXX, file path
+;;;   and block name.  Values of another sheet never stay behind.
+;;; ---------------------------------------------------------------------------
+
+;;; MTEXT contents as plain text:
+;;; "{\FTXT,bigfont|c129;P_eCVT-ICL Gear_RH_260506}" -> "P_eCVT-ICL Gear_RH_260506".
+;;; Paragraph breaks become a space and stacked text "1^2" becomes "1/2".
+;;; %%c/%%d/%%p and \U+xxxx stay, because attributes display them.
+(defun swcad-title-mtext-plain (text / result idx len ch next)
+  (setq text (swcad-title-string text))
+  (setq result "")
+  (setq idx 1)
+  (setq len (strlen text))
+  (while (<= idx len)
+    (setq ch (substr text idx 1))
+    (cond
+      ((and (= ch "\\") (< idx len))
+        (setq next (substr text (1+ idx) 1))
+        (cond
+          ((member next '("P" "N" "~"))
+            (setq result (strcat result " "))
+            (setq idx (+ idx 2))
+          )
+          ((member next '("\\" "{" "}"))
+            (setq result (strcat result next))
+            (setq idx (+ idx 2))
+          )
+          ((member next '("L" "l" "O" "o" "K" "k"))
+            (setq idx (+ idx 2))
+          )
+          ((= next "S")
+            (setq idx (+ idx 2))
+            (while (and (<= idx len) (/= (substr text idx 1) ";"))
+              (setq ch (substr text idx 1))
+              (setq result (strcat result (if (member ch '("^" "#")) "/" ch)))
+              (setq idx (1+ idx))
+            )
+            (setq idx (1+ idx))
+          )
+          ((member next '("A" "C" "c" "F" "f" "H" "h" "p" "Q" "q" "T" "t" "W" "w"))
+            (setq idx (+ idx 2))
+            (while (and (<= idx len) (/= (substr text idx 1) ";"))
+              (setq idx (1+ idx))
+            )
+            (setq idx (1+ idx))
+          )
+          (T
+            (setq result (strcat result ch))
+            (setq idx (1+ idx))
+          )
+        )
+      )
+      ((member ch '("{" "}"))
+        (setq idx (1+ idx))
+      )
+      (T
+        (setq result (strcat result ch))
+        (setq idx (1+ idx))
+      )
+    )
+  )
+  (vl-string-trim " \t\r\n" result)
+)
+
+;;; True when a written title value still carries MTEXT format codes.
+(defun swcad-title-value-has-format-code-p (value)
+  (or
+    (wcmatch (swcad-title-string value) "*\\[ACcFfHhKkLlOoPpQqSTtWw~]*")
+    (wcmatch (swcad-title-string value) "*{\\*")
+  )
+)
+
+;;; Text of one title source record, ready for a single-line attribute.
+(defun swcad-title-record-plain-text (record)
+  (if (equal (strcase (swcad-title-string (nth 2 record))) "MTEXT")
+    (swcad-title-mtext-plain (nth 6 record))
+    (vl-string-trim " \t\r\n" (swcad-title-string (nth 6 record)))
+  )
+)
+
+(defun swcad-title-mapping-value (preview)
+  (if (nth 8 preview)
+    (swcad-title-record-plain-text (nth 8 preview))
+    (vl-string-trim " \t\r\n" (swcad-title-string (nth 2 preview)))
+  )
+)
+
+;;; Title fields stored as attributes of the source title insert, such as a bound
+;;; "...$0$DR_titlea_3rd", mapped by tag.  They come before text found at the same
+;;; slot, so text on top of such a title is reported as a duplicate.
+(defun swcad-title-source-attribute-mappings (source-ename source-bbox / object attrs attr tag multi point handle record result)
+  (setq result nil)
+  (setq object (if source-ename (swcad-title-safe-vla-object source-ename) nil))
+  (setq attrs (if object (swcad-title-get-insert-attributes object) nil))
+  (foreach attr attrs
+    (setq tag (swcad-title-attribute-tag attr))
+    (if (and (assoc tag *swcad-title-transfer-template*) (not (assoc tag result)))
+      (progn
+        (setq multi (vl-catch-all-apply 'vla-get-MTextAttribute (list attr)))
+        (setq point (vl-catch-all-apply 'vlax-get (list attr 'InsertionPoint)))
+        (if (vl-catch-all-error-p point) (setq point nil))
+        (setq handle (vl-catch-all-apply 'vla-get-Handle (list attr)))
+        (if (vl-catch-all-error-p handle) (setq handle ""))
+        (setq record
+          (list
+            (if point (cadr point) 0.0)
+            (if point (car point) 0.0)
+            (if (equal multi :vlax-true) "MTEXT" "ATTRIB")
+            handle
+            ""
+            point
+            (swcad-title-attribute-value attr)
+            nil
+          )
+        )
+        (setq result
+          (swcad-title-assoc-put
+            tag
+            (list
+              tag
+              "attribute"
+              (nth 6 record)
+              handle
+              point
+              0.0
+              (if (and point source-bbox) (- (car point) (car source-bbox)) 0.0)
+              (if (and point source-bbox) (- (cadr point) (cadr source-bbox)) 0.0)
+              record
+            )
+            result
+          )
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-drive-path-p (text)
+  (wcmatch (swcad-title-string text) "@:\\*,@:/*")
+)
+
+(defun swcad-title-today-date-string ()
+  (menucmd "M=$(edtime,$(getvar,date),YYYY-MO-DD)")
+)
+
+;;; True when the source has no real value for this field.  GMTITLE placeholders
+;;; count as no value: XXX drawing number, file-path drawing name, 0000-00-00 date.
+(defun swcad-title-field-value-missing-p (tag value / text)
+  (setq text (vl-string-trim " \t\r\n" (swcad-title-string value)))
+  (cond
+    ((= text "") T)
+    ((equal tag "GEN-TITLE-NR{23}") (equal (strcase text) "XXX"))
+    ((equal tag "GEN-TITLE-DWG{23}") (swcad-title-drive-path-p text))
+    ((equal tag "GEN-TITLE-DATE{11.7}") (wcmatch text "*-00-*,*-00"))
+    (T nil)
+  )
+)
+
+;;; Attribute default values of a title block definition: (("GEN-TITLE-NAME{10}" . "HS KANG") ...)
+(defun swcad-title-attribute-definition-defaults (block-name / block result item)
+  (setq block (swcad-title-block-definition-object block-name))
+  (setq result nil)
+  (if block
+    (vlax-for item block
+      (if (equal (vla-get-ObjectName item) "AcDbAttributeDefinition")
+        (setq result
+          (append
+            result
+            (list (cons (vla-get-TagString item) (vla-get-TextString item)))
+          )
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-missing-field-value (tag defaults / pair)
+  (cond
+    ((member tag '("GEN-TITLE-NR{23}" "GEN-TITLE-DWG{23}" "GEN-TITLE-SIZ{6.7}")) "")
+    ((equal tag "GEN-TITLE-DATE{11.7}") (swcad-title-today-date-string))
+    (T
+      (setq pair (assoc tag defaults))
+      (if pair (vl-string-trim " \t\r\n" (swcad-title-string (cdr pair))) "")
+    )
+  )
+)
+
+;;; All 11 title fields for writing into title-object.  Source values win; a
+;;; field without one gets swcad-title-missing-field-value.
+(defun swcad-title-complete-title-values (values title-object / block-name defaults result slot tag pair value)
+  (setq block-name (if title-object (swcad-title-vla-block-name title-object) ""))
+  (setq defaults
+    (swcad-title-attribute-definition-defaults
+      (if (> (strlen block-name) 0) block-name (swcad-title-target-title-block-name))
+    )
+  )
+  (setq result nil)
+  (foreach slot *swcad-title-transfer-template*
+    (setq tag (car slot))
+    (setq pair (assoc tag values))
+    (setq value (if pair (vl-string-trim " \t\r\n" (swcad-title-string (cdr pair))) ""))
+    ;; Placeholders first, so a "C:\Program Files\..." path is not read as \P codes.
+    (if (and (not (swcad-title-field-value-missing-p tag value))
+             (swcad-title-value-has-format-code-p value))
+      (setq value (swcad-title-mtext-plain value))
+    )
+    (if (swcad-title-field-value-missing-p tag value)
+      (setq value (swcad-title-missing-field-value tag defaults))
+    )
+    (setq result (append result (list (cons tag value))))
+  )
+  result
+)
+
+;;; Problems in a converted title: (tag value reason) for GMTITLE placeholders
+;;; and leftover format codes.  An empty field is not a problem here.
+(defun swcad-title-title-value-problems (attr-pairs / result pair tag value)
+  (setq result nil)
+  (foreach pair attr-pairs
+    (setq tag (swcad-title-string (car pair)))
+    (setq value (vl-string-trim " \t\r\n" (swcad-title-string (cdr pair))))
+    (cond
+      ((not (assoc tag *swcad-title-transfer-template*)) nil)
+      ((and (equal tag "GEN-TITLE-NR{23}") (equal (strcase value) "XXX"))
+        (setq result (append result (list (list tag value "placeholder-XXX"))))
+      )
+      ((and (equal tag "GEN-TITLE-DWG{23}") (swcad-title-drive-path-p value))
+        (setq result (append result (list (list tag value "file-path"))))
+      )
+      ((swcad-title-value-has-format-code-p value)
+        (setq result (append result (list (list tag value "format-code"))))
+      )
+    )
+  )
+  result
+)
+
+(defun swcad-title-print-written-values (values / pair)
+  (swcad-title-princ-raw-line "제목블록에 쓴 값 (11칸 전체):")
+  (foreach pair values
+    (swcad-title-princ-raw-line
+      (strcat "  " (swcad-title-string (car pair)) " = \"" (swcad-title-string (cdr pair)) "\"")
+    )
+  )
+)
+
+(defun swcad-title-title-value-problem-label (reason)
+  (cond
+    ((equal reason "placeholder-XXX") "도면번호가 GMTITLE 기본값 XXX")
+    ((equal reason "file-path") "도면명에 파일 경로가 들어감")
+    ((equal reason "format-code") "서식 코드가 섞임")
+    (T (swcad-title-string reason))
+  )
+)
+
+;;; records: ((title-ename ((tag value reason) ...)) ...)
+(defun swcad-title-print-title-value-problem-records (records / record problem)
+  (foreach record records
+    (swcad-title-princ-raw-line
+      (strcat
+        "  제목블록 handle=" (swcad-title-ename-handle (car record))
+        ", 위치=" (swcad-title-point-string (swcad-title-dxf-value (entget (car record)) 10))
+      )
+    )
+    (foreach problem (cadr record)
+      (swcad-title-princ-raw-line
+        (strcat
+          "    " (swcad-title-string (car problem))
+          " = \"" (swcad-title-string (cadr problem)) "\" - "
+          (swcad-title-title-value-problem-label (caddr problem))
+        )
+      )
+    )
+  )
+)
+
 (defun swcad-title-transfer-values (mappings / result pair preview)
   (setq result nil)
   (foreach pair mappings
@@ -4055,7 +4682,7 @@
     (setq result
       (swcad-title-assoc-put
         (car pair)
-        (nth 2 preview)
+        (swcad-title-mapping-value preview)
         result
       )
     )
@@ -4106,10 +4733,10 @@
 
 (defun swcad-title-transfer-build-mappings (source-bbox source-ename maxdist / records mappings unmapped duplicates record preview tag existing duplicate-count unmapped-count mapped-count date-record)
   (setq records (swcad-title-transfer-text-records source-bbox source-ename))
-  (setq mappings nil)
+  (setq mappings (swcad-title-source-attribute-mappings source-ename source-bbox))
   (setq unmapped nil)
   (setq duplicates nil)
-  (setq mapped-count 0)
+  (setq mapped-count (length mappings))
   (setq duplicate-count 0)
   (setq unmapped-count 0)
   (foreach record records
@@ -7694,8 +8321,6 @@
           (setq default-values
             (list
               (cons "GEN-TITLE-SIZ{6.7}" (swcad-title-normalized-sheet-size frame-block))
-              (cons "GEN-TITLE-DWG{23}" (swcad-title-current-dwg-full-path))
-              (cons "GEN-TITLE-NR{23}" "XXX")
             )
           )
           (setq clone-result
@@ -11116,11 +11741,11 @@
   (setq any-contaminated nil)
   (cond
     ((swcad-title-document-read-only-p)
-      (swcad-title-princ-line "Result: ABORT_READ_ONLY_DOCUMENT")
+      (swcad-title-apply-result "ABORT_READ_ONLY_DOCUMENT")
       (swcad-title-princ-line "Open a writable work copy before cleaning frame definitions.")
     )
     ((not (swcad-title-apply-work-copy-confirmed-p))
-      (swcad-title-princ-line "Result: ABORT_NOT_WORK_COPY")
+      (swcad-title-apply-result "ABORT_NOT_WORK_COPY")
       (swcad-title-princ-line "Open or create a copy under Documents/CAD tool/work before cleaning.")
     )
     (T
@@ -11134,7 +11759,7 @@
       )
       (if (not (equal (strcase answer) "YES"))
         (progn
-          (swcad-title-princ-line "Result: ABORT_USER_CANCEL")
+          (swcad-title-apply-result "ABORT_USER_CANCEL")
           (swcad-title-princ-line "No drawing data was changed.")
         )
         (progn
@@ -11260,16 +11885,13 @@
               (itoa failed)
             )
           )
-          (swcad-title-princ-line
-            (strcat
-              "Result: "
-              (cond
-                ((> failed 0) "WARN_FRAME_DEF_CLEAN_PARTIAL_FAILURE")
-                ((> skipped-referenced 0) "SKIP_REFERENCED_CONTAMINATED_FRAME_DEFS")
-                ((> cleaned 0) "CLEANED_UNUSED_CONTAMINATED_FRAME_DEFS")
-                (any-contaminated "WARN_CONTAMINATED_FRAME_DEFS_NOT_CLEANED")
-                (T "OK_FRAME_DEFS_ALREADY_CLEAN")
-              )
+          (swcad-title-apply-result
+            (cond
+              ((> failed 0) "WARN_FRAME_DEF_CLEAN_PARTIAL_FAILURE")
+              ((> skipped-referenced 0) "SKIP_REFERENCED_CONTAMINATED_FRAME_DEFS")
+              ((> cleaned 0) "CLEANED_UNUSED_CONTAMINATED_FRAME_DEFS")
+              (any-contaminated "WARN_CONTAMINATED_FRAME_DEFS_NOT_CLEANED")
+              (T "OK_FRAME_DEFS_ALREADY_CLEAN")
             )
           )
         )
@@ -11833,6 +12455,7 @@
               (+ (cadr copied-frame-bbox) (cadr title-offset))
             )
           )
+          (setq values (swcad-title-complete-title-values values (swcad-title-safe-vla-object copied-title)))
           (setq attr-count
             (swcad-title-set-insert-attributes
               (swcad-title-safe-vla-object copied-title)
@@ -13633,7 +14256,9 @@
   (setq doc (swcad-title-doc))
   (vl-catch-all-apply 'vla-StartUndoMark (list doc))
   (setq original-attr-values (swcad-title-title-attribute-pairs title-ref))
+  (setq values (swcad-title-complete-title-values values title-ref))
   (setq attr-count (swcad-title-set-insert-attributes title-ref values))
+  (swcad-title-print-written-values values)
   (setq attr-errors (swcad-title-value-verification-errors title-ref values))
   (swcad-title-print-value-verification-errors attr-errors)
   (if attr-errors
@@ -13701,8 +14326,12 @@
       (swcad-title-princ-line (strcat "Old frame insert deleted: " old-frame-deleted))
       (swcad-title-princ-line (strcat "Old loose frame graphics deleted: " (itoa deleted-frame-graphic-count)))
       (swcad-title-princ-line (strcat "Old SOLIDWORKS sheet residue deleted: " (itoa deleted-residue-count)))
-      (swcad-title-apply-result "ADOPTED_EXISTING_NATIVE_GMTITLE_TRANSFER")
-      (swcad-title-princ-line "최종 수동 확인: 채택된 GMTITLE 제목블록을 더블클릭해서 GMTITLE 표 편집창이 열리는지 확인하세요.")
+      (if (swcad-title-old-sheet-deleted-p source-ename source-frame-ename records (swcad-title-queued-cleanup-handles source-frame-ename title-shell-handles title-graphic-handles frame-graphic-handles residue-handles))
+        (progn
+          (swcad-title-apply-result "ADOPTED_EXISTING_NATIVE_GMTITLE_TRANSFER")
+          (swcad-title-princ-line "최종 수동 확인: 채택된 GMTITLE 제목블록을 더블클릭해서 GMTITLE 표 편집창이 열리는지 확인하세요.")
+        )
+      )
       T
     )
   )
@@ -13924,6 +14553,7 @@
   )
   (setq old-osmode (swcad-title-safe-getvar "OSMODE"))
   (setq old-dynmode (swcad-title-safe-getvar "DYNMODE"))
+  (swcad-title-remember-gmtitle-input-vars old-osmode old-dynmode)
   (if old-osmode
     (swcad-title-safe-setvar "OSMODE" 0)
   )
@@ -14184,6 +14814,7 @@
   (swcad-title-princ-line "이 명령은 FILEDIA와 CMDDIA를 변경하지 않습니다.")
   (setq old-osmode (swcad-title-safe-getvar "OSMODE"))
   (setq old-dynmode (swcad-title-safe-getvar "DYNMODE"))
+  (swcad-title-remember-gmtitle-input-vars old-osmode old-dynmode)
   (if old-osmode
     (swcad-title-safe-setvar "OSMODE" 0)
   )
@@ -15304,16 +15935,12 @@
   )
 )
 
-(defun swcad-title-frame-only-default-values (source-frame / source-block source-sheet target-frame file-base)
-  (setq source-block (cadddr source-frame))
+;;; A sheet without a source title knows only its size.  The other fields are
+;;; filled by swcad-title-complete-title-values when they are written.
+(defun swcad-title-frame-only-default-values (source-frame / source-sheet)
   (setq source-sheet (nth 5 source-frame))
-  (setq target-frame (swcad-title-target-frame-block-name-for-sheet source-sheet))
-  (setq file-base (vl-filename-base (getvar "DWGNAME")))
   (list
     (cons "GEN-TITLE-SIZ{6.7}" (swcad-title-normalized-sheet-size source-sheet))
-    (cons "GEN-TITLE-DWG{23}" file-base)
-    (cons "GEN-TITLE-NR{23}" "XXX")
-    (cons "GEN-TITLE-SCA{6.7}" "1:1")
   )
 )
 
@@ -15535,7 +16162,8 @@
 
 (defun swcad-title-transfer-text-records (bbox source-ename / ss index total ename data raw-text point records record block-records)
   (setq records nil)
-  (setq ss (ssget "_X" '((0 . "TEXT,MTEXT"))))
+  ;; Only the sheet's own space: layout texts at the same coordinates are not title text.
+  (setq ss (ssget "_X" (list '(0 . "TEXT,MTEXT") (cons 410 (swcad-title-sheet-space source-ename nil)))))
   (setq total (if ss (sslength ss) 0))
   (setq index 0)
   (while (< index total)
@@ -15749,11 +16377,17 @@
           nil
         )
       )
-      (setq title-graphic-handles (swcad-title-source-title-graphic-handles source-bbox))
+      (setq title-graphic-handles
+        (swcad-title-source-title-graphic-handles
+          source-bbox
+          inferred-frame-bbox
+          (swcad-title-sheet-space source-ename source-frame-ename)
+        )
+      )
       (setq frame-graphic-handles
         (if source-frame-ename
           nil
-          (swcad-title-source-frame-graphic-handles inferred-frame-bbox source-bbox)
+          (swcad-title-source-frame-graphic-handles inferred-frame-bbox source-bbox (swcad-title-sheet-space source-ename source-frame-ename))
         )
       )
       (setq residue-records
@@ -15823,7 +16457,7 @@
   (princ)
 )
 
-(defun swcad-title-transfer-apply (/ source source-data source-bbox source-ename source-block source-kind source-frame source-frame-ename source-frame-data source-frame-block source-frame-bbox frame-block title-block adopt-pair gmtitle-result gmtitle-title-ename gmtitle-frame-ename gmtitle-new-enames title-ref build mappings records unmapped duplicates values block-sheet answer attr-count attr-errors deleted-text-count skipped-block-text-count old-frame-deleted record doc pair inferred-frame-bbox text-sheet frame-sheet detected-sheet title-shell-handles title-graphic-handles frame-graphic-handles residue-records residue-handles deleted-title-shell-count deleted-title-graphic-count deleted-frame-graphic-count deleted-residue-count actual-title-name actual-frame-name geometry-warning deleted-new-gmtitle-count align-result align-count align-dx align-dy align-needed marker-role marker-ok)
+(defun swcad-title-transfer-apply (/ source source-data source-bbox source-ename source-block source-kind source-frame source-frame-ename source-frame-data source-frame-block source-frame-bbox frame-block title-block adopt-pair gmtitle-result gmtitle-title-ename gmtitle-frame-ename gmtitle-new-enames title-ref build mappings records unmapped duplicates values block-sheet answer attr-count attr-errors deleted-text-count skipped-block-text-count old-frame-deleted record doc pair inferred-frame-bbox text-sheet frame-sheet detected-sheet title-shell-handles title-graphic-handles frame-graphic-handles residue-records residue-handles deleted-title-shell-count deleted-title-graphic-count deleted-frame-graphic-count deleted-residue-count actual-title-name actual-frame-name geometry-warning deleted-new-gmtitle-count align-result align-count align-dx align-dy align-needed marker-role marker-ok locked-handles cleanup-handles)
   (swcad-title-open-apply-log)
   (setq *swcad-title-last-apply-status* nil)
   (setq source (swcad-title-transfer-source-bbox))
@@ -15925,11 +16559,17 @@
           nil
         )
       )
-      (setq title-graphic-handles (swcad-title-source-title-graphic-handles source-bbox))
+      (setq title-graphic-handles
+        (swcad-title-source-title-graphic-handles
+          source-bbox
+          inferred-frame-bbox
+          (swcad-title-sheet-space source-ename source-frame-ename)
+        )
+      )
       (setq frame-graphic-handles
         (if source-frame-ename
           nil
-          (swcad-title-source-frame-graphic-handles inferred-frame-bbox source-bbox)
+          (swcad-title-source-frame-graphic-handles inferred-frame-bbox source-bbox (swcad-title-sheet-space source-ename source-frame-ename))
         )
       )
       (setq residue-records
@@ -15958,11 +16598,17 @@
           (itoa (length unmapped))
         )
       )
+      (foreach record unmapped
+        (swcad-title-transfer-print-unmapped record source-bbox)
+      )
       (swcad-title-princ-line
         (strcat
           "Duplicate source texts not mapped: "
           (itoa (length duplicates))
         )
+      )
+      (foreach record duplicates
+        (swcad-title-transfer-print-unmapped record source-bbox)
       )
       (swcad-title-princ-line (strcat "삭제 예정 기존 loose-text 제목 셸 INSERT: " (itoa (length title-shell-handles))))
       (swcad-title-princ-line (strcat "Old loose title graphics queued for cleanup: " (itoa (length title-graphic-handles))))
@@ -16008,20 +16654,41 @@
         )
         (swcad-title-princ-line "Existing native GMTITLE adoption candidate: <none>")
       )
+      ;; Everything queued for deletion must be deletable before GMTITLE is created;
+      ;; otherwise it would stay under the new title.
+      (setq cleanup-handles
+        (swcad-title-queued-cleanup-handles
+          source-frame-ename
+          title-shell-handles
+          title-graphic-handles
+          frame-graphic-handles
+          residue-handles
+        )
+      )
+      (setq locked-handles (swcad-title-locked-old-sheet-handles source-ename source-frame-ename records cleanup-handles))
+      (if locked-handles
+        (progn
+          (swcad-title-princ-raw-line (strcat "잠긴 레이어에 있어 지울 수 없는 기존 표제란/도면틀/글자/선: " (swcad-title-list-string locked-handles)))
+          (swcad-title-princ-raw-line "레이어 잠금을 풀고 다시 실행하세요. 도면은 바꾸지 않았습니다.")
+        )
+      )
       (setq answer
-        (if *swcad-title-batch-mode*
-          "YES"
-          (getstring
-            T
-            "\nnative GMTITLE을 실행하고 새 제목블록 속성을 채운 뒤 기존 표제란 내용을 제거하려면 YES를 입력하세요: "
+        (cond
+          (locked-handles "LOCKED")
+          (*swcad-title-batch-mode* "YES")
+          (T
+            (getstring
+              T
+              "\nnative GMTITLE을 실행하고 새 제목블록 속성을 채운 뒤 기존 표제란 내용을 제거하려면 YES를 입력하세요: "
+            )
           )
         )
       )
-      (if *swcad-title-batch-mode*
+      (if (and *swcad-title-batch-mode* (not locked-handles))
         (swcad-title-princ-line "Confirmation: batch mode")
       )
       (if (/= (strcase answer) "YES")
-        (swcad-title-apply-result "ABORT_USER_CANCEL")
+        (swcad-title-apply-result (if locked-handles "ABORT_SOURCE_ON_LOCKED_LAYER" "ABORT_USER_CANCEL"))
         (progn
           (if adopt-pair
             (swcad-title-adopt-existing-native-gmtitle-transfer
@@ -16114,7 +16781,9 @@
                       (swcad-title-princ-line "다음: Frame positioning ON, Object move OFF 상태로 다시 실행하고 GMTITLE이 왼쪽 아래 배치점을 받도록 하세요.")
                     )
                     (progn
+                    (setq values (swcad-title-complete-title-values values title-ref))
                     (setq attr-count (swcad-title-set-insert-attributes title-ref values))
+                    (swcad-title-print-written-values values)
                     (setq attr-errors (swcad-title-value-verification-errors title-ref values))
                     (swcad-title-print-value-verification-errors attr-errors)
                     (if attr-errors
@@ -16200,8 +16869,12 @@
                         (swcad-title-princ-line (strcat "Old frame insert deleted: " old-frame-deleted))
                         (swcad-title-princ-line (strcat "Old loose frame graphics deleted: " (itoa deleted-frame-graphic-count)))
                         (swcad-title-princ-line (strcat "Old SOLIDWORKS sheet residue deleted: " (itoa deleted-residue-count)))
-                        (swcad-title-apply-result "APPLIED_TITLE_TRANSFER")
-                        (swcad-title-princ-line "최종 수동 확인: 새 GMTITLE 제목블록을 더블클릭해서 GMTITLE 표 편집창이 열리는지 확인하세요.")
+                        (if (swcad-title-old-sheet-deleted-p source-ename source-frame-ename records (swcad-title-queued-cleanup-handles source-frame-ename title-shell-handles title-graphic-handles frame-graphic-handles residue-handles))
+                          (progn
+                            (swcad-title-apply-result "APPLIED_TITLE_TRANSFER")
+                            (swcad-title-princ-line "최종 수동 확인: 새 GMTITLE 제목블록을 더블클릭해서 GMTITLE 표 편집창이 열리는지 확인하세요.")
+                          )
+                        )
                       )
                     )
                     )
@@ -16379,12 +17052,18 @@
           nil
         )
       )
-      (setq title-graphic-handles (swcad-title-source-title-graphic-handles source-bbox))
+      (setq title-graphic-handles
+        (swcad-title-source-title-graphic-handles
+          source-bbox
+          inferred-frame-bbox
+          (swcad-title-sheet-space source-ename source-frame-ename)
+        )
+      )
       (swcad-title-princ-line "Finalize step: title graphics scanned.")
       (setq frame-graphic-handles
         (if source-frame-ename
           nil
-          (swcad-title-source-frame-graphic-handles inferred-frame-bbox source-bbox)
+          (swcad-title-source-frame-graphic-handles inferred-frame-bbox source-bbox (swcad-title-sheet-space source-ename source-frame-ename))
         )
       )
       (swcad-title-princ-line "Finalize step: frame graphics scanned.")
@@ -16431,11 +17110,17 @@
           (itoa (length unmapped))
         )
       )
+      (foreach record unmapped
+        (swcad-title-transfer-print-unmapped record source-bbox)
+      )
       (swcad-title-princ-line
         (strcat
           "Duplicate source texts not mapped: "
           (itoa (length duplicates))
         )
+      )
+      (foreach record duplicates
+        (swcad-title-transfer-print-unmapped record source-bbox)
       )
       (swcad-title-princ-line (strcat "삭제 예정 기존 loose-text 제목 셸 INSERT: " (itoa (length title-shell-handles))))
       (swcad-title-princ-line (strcat "Old loose title graphics queued for cleanup: " (itoa (length title-graphic-handles))))
@@ -16503,7 +17188,9 @@
               )
               (progn
               (setq original-attr-values (swcad-title-title-attribute-pairs title-ref))
+              (setq values (swcad-title-complete-title-values values title-ref))
               (setq attr-count (swcad-title-set-insert-attributes title-ref values))
+              (swcad-title-print-written-values values)
               (setq attr-errors (swcad-title-value-verification-errors title-ref values))
               (swcad-title-print-value-verification-errors attr-errors)
               (if attr-errors
@@ -16601,12 +17288,13 @@
               (swcad-title-princ-line (strcat "Old frame insert deleted: " old-frame-deleted))
               (swcad-title-princ-line (strcat "Old loose frame graphics deleted: " (itoa deleted-frame-graphic-count)))
               (swcad-title-princ-line (strcat "Old SOLIDWORKS sheet residue deleted: " (itoa deleted-residue-count)))
-              (if (equal (strcase marker-role) "CLONE")
-                (progn
+              (cond
+                ((not (swcad-title-old-sheet-deleted-p source-ename source-frame-ename records (swcad-title-queued-cleanup-handles source-frame-ename title-shell-handles title-graphic-handles frame-graphic-handles residue-handles))) nil)
+                ((equal (strcase marker-role) "CLONE")
                   (swcad-title-apply-result "FINALIZED_CLONED_GMTITLE_TRANSFER")
                   (swcad-title-princ-line "다음: 최종 더블클릭 확인 전에 SWTITLESTATUS를 실행하고, 남은 A2/A3/A4 교체 후보를 SWTITLECONVERTNEXT로 처리하세요.")
                 )
-                (progn
+                (T
                   (swcad-title-apply-result "FINALIZED_EXISTING_GMTITLE_TRANSFER")
                   (swcad-title-princ-line "최종 수동 확인: GMTITLE 제목블록을 더블클릭해서 표 편집창이 열리는지 확인하세요.")
                 )
@@ -16648,7 +17336,7 @@
   (princ)
 )
 
-(defun swcad-title-transfer-frame-only-finalize (/ *error* source-frame source-frame-ename source-frame-data source-frame-bbox source-frame-block source-sheet frame-block title-block gmtitle-title-ename gmtitle-frame-ename title-ref values attr-count doc align-result align-count align-dx align-dy align-needed residue-records residue-handles deleted-residue-count actual-title-name actual-frame-name frame-effective-bbox geometry-warning raw-selection-warning marker-ok pending-pair pending-role marker-role deleted-new-count)
+(defun swcad-title-transfer-frame-only-finalize (/ *error* source-frame source-frame-ename source-frame-data source-frame-bbox source-frame-block source-sheet frame-block title-block gmtitle-title-ename gmtitle-frame-ename title-ref values attr-count doc align-result align-count align-dx align-dy align-needed residue-records residue-handles deleted-residue-count actual-title-name actual-frame-name frame-effective-bbox geometry-warning raw-selection-warning marker-ok pending-pair pending-role marker-role deleted-new-count original-attr-values attr-errors)
   (swcad-title-open-apply-log)
   (defun *error* (msg)
     (if msg
@@ -16835,7 +17523,26 @@
                 (swcad-title-princ-line "다음: Frame positioning ON, Object move OFF 상태로 다시 실행하고 GMTITLE이 왼쪽 아래 배치점을 받도록 하세요.")
               )
               (progn
+              (setq original-attr-values (swcad-title-title-attribute-pairs title-ref))
+              (setq values (swcad-title-complete-title-values values title-ref))
               (setq attr-count (swcad-title-set-insert-attributes title-ref values))
+              (swcad-title-print-written-values values)
+              (setq attr-errors (swcad-title-value-verification-errors title-ref values))
+              (swcad-title-print-value-verification-errors attr-errors)
+              (if attr-errors
+                (progn
+                  (swcad-title-set-insert-attributes title-ref original-attr-values)
+                  (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+                  (if pending-pair
+                    (progn
+                      (setq deleted-new-count (swcad-title-delete-ename-list (list gmtitle-title-ename gmtitle-frame-ename)))
+                      (swcad-title-princ-line (strcat "값 검증에 실패한 대기 GMTITLE INSERT 삭제: " (itoa deleted-new-count)))
+                    )
+                  )
+                  (swcad-title-apply-result "ABORT_TITLE_ATTRIBUTE_VERIFICATION")
+                  (swcad-title-princ-line "기존 frame-only 시트 내용은 삭제하지 않았습니다.")
+                )
+                (progn
               (swcad-title-delete-ename source-frame-ename)
               (setq deleted-residue-count (swcad-title-delete-handle-list residue-handles))
               (setq marker-role
@@ -16907,6 +17614,8 @@
                 (progn
                   (swcad-title-apply-result "FINALIZED_FRAME_ONLY_GMTITLE_TRANSFER")
                   (swcad-title-princ-line "최종 수동 확인: GMTITLE 제목블록을 더블클릭해서 표 편집창이 열리는지 확인하세요.")
+                )
+              )
                 )
               )
               )
@@ -17294,6 +18003,13 @@
             (setq apply-result
               (vl-catch-all-apply 'swcad-title-transfer-title-missing-outline-apply nil)
             )
+            (if (vl-catch-all-error-p apply-result)
+              (swcad-title-stop-after-caught-error
+                "ERROR_TITLE_MISSING_OUTLINE_BATCH_APPLY"
+                "title-missing 연속 변환 오류"
+                apply-result
+              )
+            )
             (setq after-count (length (swcad-title-frame-only-source-candidates)))
             (if
               (or
@@ -17302,13 +18018,13 @@
                 (>= after-count before-count)
               )
               (progn
-                (if (vl-catch-all-error-p apply-result)
-                  (swcad-title-princ-line
-                    (strcat
-                      "title-missing 연속 변환 오류: "
-                      (vl-catch-all-error-message apply-result)
-                    )
+                ;; No status, or finalized while the sheet count did not drop.
+                (if
+                  (or
+                    (not *swcad-title-last-apply-status*)
+                    (equal *swcad-title-last-apply-status* "FINALIZED_TITLE_MISSING_OUTLINE_TRANSFER")
                   )
+                  (swcad-title-apply-result "REVIEW_TITLE_MISSING_OUTLINE_NOT_REDUCED")
                 )
                 (swcad-title-princ-line
                   (strcat
@@ -17328,7 +18044,12 @@
   (setq *swcad-title-batch-mode* old-batch-mode)
   (setq *swcad-title-allow-batch-interactive-native-gmtitle* old-allow-interactive)
   (setq remaining (length (swcad-title-frame-only-source-candidates)))
-  (if (and (> count 0) (= remaining 0))
+  (if
+    (and
+      (> count 0)
+      (= remaining 0)
+      (not (swcad-title-stop-status-p *swcad-title-last-apply-status*))
+    )
     (swcad-title-apply-result "OK_TITLE_MISSING_OUTLINE_BATCH_COMPLETE")
     (if (> remaining 0)
       (swcad-title-princ-line
@@ -17447,6 +18168,7 @@
               (setq finalize-result (vl-catch-all-apply 'swcad-title-transfer-frame-only-finalize nil))
               (if (vl-catch-all-error-p finalize-result)
                 (progn
+                  (swcad-title-recover-after-caught-error)
                   (swcad-title-open-apply-log)
                   (swcad-title-princ-line "----- SWTITLECONVERT frame-only finalize 오류 -----")
                   (swcad-title-princ-line (vl-catch-all-error-message finalize-result))
@@ -17513,13 +18235,7 @@
         (setq *swcad-title-batch-frame-record* nil)
         (if (vl-catch-all-error-p apply-result)
           (progn
-            (setq *swcad-title-last-apply-status* "ERROR_BATCH_APPLY")
-            (princ
-              (strcat
-                "\nBatch apply error: "
-                (vl-catch-all-error-message apply-result)
-              )
-            )
+            (swcad-title-stop-after-caught-error "ERROR_BATCH_APPLY" "Batch apply error" apply-result)
             (swcad-title-close-log)
           )
         )
@@ -17583,14 +18299,10 @@
       (setq *swcad-title-batch-mode* old-batch-mode)
       (setq *swcad-title-allow-batch-interactive-native-gmtitle* old-allow-interactive)
       (if (vl-catch-all-error-p batch-result)
-        (progn
-          (swcad-title-apply-result "ERROR_NATIVE_AUTOSELECT_BATCH")
-          (swcad-title-princ-line
-            (strcat
-              "native 자동 일괄 변환 오류: "
-              (vl-catch-all-error-message batch-result)
-            )
-          )
+        (swcad-title-stop-after-caught-error
+          "ERROR_NATIVE_AUTOSELECT_BATCH"
+          "native 자동 일괄 변환 오류"
+          batch-result
         )
         (progn
           (setq remaining (length (swcad-title-source-title-candidates)))
@@ -17600,7 +18312,12 @@
               (itoa remaining)
             )
           )
-          (if (= remaining 0)
+          ;; An error or review stop on the last sheet must not become OK.
+          (if
+            (and
+              (= remaining 0)
+              (not (swcad-title-stop-status-p *swcad-title-last-apply-status*))
+            )
             (swcad-title-apply-result "OK_NATIVE_AUTOSELECT_BATCH_COMPLETE")
             (swcad-title-princ-line
               (strcat
@@ -17657,6 +18374,7 @@
       (setq *swcad-title-batch-mode* old-batch-mode)
       (if (vl-catch-all-error-p batch-result)
         (progn
+          (swcad-title-recover-after-caught-error)
           (setq *swcad-title-last-apply-status* "ERROR_BATCH_FATAL")
           (princ
             (strcat
@@ -17689,6 +18407,9 @@
     )
     (progn
       (setq clone-result (vl-catch-all-apply 'swcad-title-create-cloned-gmtitle-for-next-source nil))
+      (if (vl-catch-all-error-p clone-result)
+        (swcad-title-recover-after-caught-error)
+      )
       (if (or (vl-catch-all-error-p clone-result) (not clone-result))
         (progn
           (setq *swcad-title-last-apply-status* "ABORT_CLONE_GMTITLE_PAIR_FAILED")
@@ -17725,6 +18446,7 @@
           (setq finalize-result (vl-catch-all-apply 'swcad-title-transfer-finalize nil))
           (if (vl-catch-all-error-p finalize-result)
             (progn
+              (swcad-title-recover-after-caught-error)
               (setq *swcad-title-last-apply-status* "ERROR_CLONE_FINALIZE")
               (swcad-title-open-apply-log)
               (swcad-title-princ-line "----- SWTITLECONVERT 내부 clone 마무리 오류 -----")
@@ -17777,6 +18499,7 @@
             (setq apply-result (vl-catch-all-apply 'swcad-title-transfer-clone-apply nil))
             (if (vl-catch-all-error-p apply-result)
               (progn
+                (swcad-title-recover-after-caught-error)
                 (setq *swcad-title-last-apply-status* "ERROR_CLONE_BATCH_APPLY")
                 (swcad-title-princ-text
                   (strcat
@@ -17847,6 +18570,7 @@
       (setq *swcad-title-batch-mode* old-batch-mode)
       (if (vl-catch-all-error-p batch-result)
         (progn
+          (swcad-title-recover-after-caught-error)
           (setq *swcad-title-last-apply-status* "ERROR_CLONE_BATCH_FATAL")
           (princ
             (strcat
@@ -17892,6 +18616,9 @@
               (list source-frame)
             )
           )
+          (if (vl-catch-all-error-p clone-result)
+            (swcad-title-recover-after-caught-error)
+          )
           (if (or (vl-catch-all-error-p clone-result) (not clone-result))
             (progn
               (setq *swcad-title-last-apply-status* "ABORT_FRAME_ONLY_CLONE_FAILED")
@@ -17934,6 +18661,7 @@
               (setq finalize-result (vl-catch-all-apply 'swcad-title-transfer-frame-only-finalize nil))
               (if (vl-catch-all-error-p finalize-result)
                 (progn
+                  (swcad-title-recover-after-caught-error)
                   (setq *swcad-title-last-apply-status* "ERROR_FRAME_ONLY_CLONE_FINALIZE")
                   (swcad-title-open-apply-log)
                   (swcad-title-princ-line "----- SWTITLECONVERT 내부 frame-only clone 마무리 오류 -----")
@@ -17994,6 +18722,7 @@
             (setq apply-result (vl-catch-all-apply 'swcad-title-transfer-frame-only-clone-apply nil))
             (if (vl-catch-all-error-p apply-result)
               (progn
+                (swcad-title-recover-after-caught-error)
                 (setq *swcad-title-last-apply-status* "ERROR_FRAME_ONLY_CLONE_BATCH_APPLY")
                 (princ
                   (strcat
@@ -18119,6 +18848,7 @@
       )
       (if (vl-catch-all-error-p source-result)
         (progn
+          (swcad-title-recover-after-caught-error)
           (setq *swcad-title-last-apply-status* "ERROR_FAST_BATCH_TITLE_FATAL")
           (swcad-title-princ-text
             (strcat
@@ -18210,6 +18940,11 @@
     (contaminated
       (setq *swcad-title-last-apply-status* "WARN_FAST_BATCH_FRAME_DEFS_CONTAMINATED")
       (swcad-title-princ-text "\nResult: WARN_FAST_BATCH_FRAME_DEFS_CONTAMINATED")
+    )
+    ;; A stop on the last sheet must not become OK.
+    ((swcad-title-stop-status-p *swcad-title-last-apply-status*)
+      (swcad-title-princ-text (strcat "\nResult: " *swcad-title-last-apply-status*))
+      (swcad-title-princ-text "\n빠른 일괄 변환이 멈춤 상태로 끝났습니다. 위 결과를 확인하세요.")
     )
     (T
       (setq *swcad-title-last-apply-status* "OK_FAST_BATCH_COMPLETE")
@@ -18467,6 +19202,7 @@
           (setq *swcad-title-batch-mode* old-batch-mode)
           (if (vl-catch-all-error-p apply-result)
             (progn
+              (swcad-title-recover-after-caught-error)
               (setq *swcad-title-last-apply-status* "ERROR_BOOTSTRAP_FIRST_NATIVE_FATAL")
               (princ
                 (strcat
@@ -19705,7 +20441,7 @@
   (princ)
 )
 
-(defun swcad-title-upgrade-native-one (/ *error* opened-log pair old-title old-frame frame-block target-sheet target-reason old-title-bbox old-frame-bbox old-title-role old-frame-role old-title-object values answer placement-point gmtitle-result new-title new-frame new-enames actual-title-name actual-frame-name geometry-warning doc align-result align-count align-dx align-dy align-needed new-title-object attr-count marker-role marker-ok deleted-new-count remaining-a3a4-count)
+(defun swcad-title-upgrade-native-one (/ *error* opened-log pair old-title old-frame frame-block target-sheet target-reason old-title-bbox old-frame-bbox old-title-role old-frame-role old-title-object values answer placement-point gmtitle-result new-title new-frame new-enames actual-title-name actual-frame-name geometry-warning doc align-result align-count align-dx align-dy align-needed new-title-object attr-count marker-role marker-ok deleted-new-count remaining-a3a4-count attr-errors)
   (setq opened-log nil)
   (if (not *swcad-title-native-upgrade-batch-mode*)
     (progn
@@ -19886,7 +20622,20 @@
                   )
                   (progn
                     (setq new-title-object (swcad-title-safe-vla-object new-title))
+                    (setq values (swcad-title-complete-title-values values new-title-object))
                     (setq attr-count (swcad-title-set-insert-attributes new-title-object values))
+                    (swcad-title-print-written-values values)
+                    (setq attr-errors (swcad-title-value-verification-errors new-title-object values))
+                    (swcad-title-print-value-verification-errors attr-errors)
+                    (if attr-errors
+                      (progn
+                        (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+                        (setq deleted-new-count (swcad-title-delete-ename-list new-enames))
+                        (swcad-title-apply-result "ABORT_TITLE_ATTRIBUTE_VERIFICATION")
+                        (swcad-title-princ-line (strcat "값 검증에 실패한 새 GMTITLE INSERT 삭제: " (itoa deleted-new-count)))
+                        (swcad-title-princ-line "기존 GMTITLE 쌍은 유지했습니다.")
+                      )
+                      (progn
                     (swcad-title-delete-ename old-title)
                     (swcad-title-delete-ename old-frame)
                     (setq marker-role
@@ -19937,11 +20686,15 @@
                     (swcad-title-princ-line "Old cloned title deleted: yes")
                     (swcad-title-princ-line "Old cloned frame deleted: yes")
                     (swcad-title-princ-line (strcat "Remaining A2/A3/A4 native upgrade candidates: " (itoa remaining-a3a4-count)))
-                    (swcad-title-apply-result "UPGRADED_CLONE_TO_NATIVE_GMTITLE")
+                    (if (swcad-title-old-sheet-deleted-p old-title old-frame nil nil)
+                      (swcad-title-apply-result "UPGRADED_CLONE_TO_NATIVE_GMTITLE")
+                    )
                     (swcad-title-princ-line "Manual check: double-click the upgraded title block and confirm the GMTITLE table editor opens.")
                     (if (> remaining-a3a4-count 0)
                       (swcad-title-princ-line "이 시트가 정상이라면 SWTITLESTATUS를 실행한 뒤 다음 A2/A3/A4 후보를 SWTITLECONVERTNEXT로 처리하세요.")
                       (swcad-title-princ-line "모든 A2/A3/A4 교체 후보가 정리됐습니다. SWTITLEVERIFY를 실행하세요.")
+                    )
+                      )
                     )
                   )
                 )
@@ -20088,7 +20841,7 @@
   (princ)
 )
 
-(defun swcad-title-upgrade-native-a3a4-finish (/ old-title-handle old-frame-handle old-title old-frame frame-block target-sheet target-reason old-frame-bbox values before-handles new-enames new-title new-frame actual-title-name actual-frame-name geometry-warning doc align-result align-count align-dx align-dy align-needed new-title-object attr-count marker-ok deleted-new-count remaining-a3a4-count)
+(defun swcad-title-upgrade-native-a3a4-finish (/ old-title-handle old-frame-handle old-title old-frame frame-block target-sheet target-reason old-frame-bbox values before-handles new-enames new-title new-frame actual-title-name actual-frame-name geometry-warning doc align-result align-count align-dx align-dy align-needed new-title-object attr-count marker-ok deleted-new-count remaining-a3a4-count attr-errors)
   (swcad-title-open-native-upgrade-log)
   (setq old-title-handle (swcad-title-pending-manual-native-value "old-title-handle"))
   (setq old-frame-handle (swcad-title-pending-manual-native-value "old-frame-handle"))
@@ -20188,7 +20941,20 @@
             )
             (progn
               (setq new-title-object (swcad-title-safe-vla-object new-title))
+              (setq values (swcad-title-complete-title-values values new-title-object))
               (setq attr-count (swcad-title-set-insert-attributes new-title-object values))
+              (swcad-title-print-written-values values)
+              (setq attr-errors (swcad-title-value-verification-errors new-title-object values))
+              (swcad-title-print-value-verification-errors attr-errors)
+              (if attr-errors
+                (progn
+                  (vl-catch-all-apply 'vla-EndUndoMark (list doc))
+                  (setq deleted-new-count (swcad-title-delete-ename-list new-enames))
+                  (swcad-title-apply-result "ABORT_TITLE_ATTRIBUTE_VERIFICATION")
+                  (swcad-title-princ-line (strcat "값 검증에 실패한 새 GMTITLE INSERT 삭제: " (itoa deleted-new-count)))
+                  (swcad-title-princ-line "대기 중이던 기존 대상 쌍은 보존됐습니다.")
+                )
+                (progn
               (swcad-title-delete-ename old-title)
               (swcad-title-delete-ename old-frame)
               (setq marker-ok
@@ -20222,10 +20988,14 @@
               (swcad-title-princ-line "Old cloned/untrusted title deleted: yes")
               (swcad-title-princ-line "Old cloned/untrusted frame deleted: yes")
               (swcad-title-princ-line (strcat "Remaining A2/A3/A4 native upgrade candidates: " (itoa remaining-a3a4-count)))
-              (swcad-title-apply-result "FINISHED_MANUAL_NATIVE_GMTITLE_UPGRADE")
+              (if (swcad-title-old-sheet-deleted-p old-title old-frame nil nil)
+                (swcad-title-apply-result "FINISHED_MANUAL_NATIVE_GMTITLE_UPGRADE")
+              )
               (if (> remaining-a3a4-count 0)
                 (swcad-title-princ-line "다음: SWTITLESTATUS를 실행한 뒤 SWTITLECONVERTNEXT로 다음 후보를 처리하세요.")
                 (swcad-title-princ-line "모든 A2/A3/A4 native 교체 후보가 정리됐습니다. SWTITLEVERIFY를 실행하세요.")
+              )
+                )
               )
             )
           )
@@ -20401,13 +21171,13 @@
           (setq *swcad-title-skip-native-upgrade-confirmation* old-skip)
           (if (vl-catch-all-error-p result)
             (progn
-              (swcad-title-princ-line
-                (strcat
-                  "SWTITLECONVERT A2/A3/A4 native replacement error: "
-                  (vl-catch-all-error-message result)
-                )
+              (setq *swcad-title-native-upgrade-selected-pair* nil)
+              (swcad-title-stop-after-caught-error
+                "ERROR_NATIVE_GMTITLE_UPGRADE_OPEN"
+                "SWTITLECONVERT A2/A3/A4 native replacement error"
+                result
               )
-              (princ)
+              (swcad-title-close-log)
             )
           )
         )
@@ -20535,6 +21305,7 @@
                 (setq result (vl-catch-all-apply 'swcad-title-upgrade-native-one nil))
                 (if (vl-catch-all-error-p result)
                   (progn
+                    (swcad-title-recover-after-caught-error)
                     (setq *swcad-title-last-apply-status* "ERROR_NATIVE_UPGRADE_BATCH_APPLY")
                     (swcad-title-princ-line
                       (strcat
@@ -20563,7 +21334,11 @@
           (setq *swcad-title-native-upgrade-batch-mode* old-batch-mode)
           (setq remaining (swcad-title-cloned-gmtitle-pair-total))
           (swcad-title-princ-line (strcat "Remaining cloned GMTITLE pairs after batch: " (itoa remaining)))
-          (if (= remaining 0)
+          (if
+            (and
+              (= remaining 0)
+              (not (swcad-title-stop-status-p *swcad-title-last-apply-status*))
+            )
             (swcad-title-apply-result "OK_NATIVE_UPGRADE_BATCH_COMPLETE")
             (if (equal *swcad-title-last-apply-status* "UPGRADED_CLONE_TO_NATIVE_GMTITLE")
               (swcad-title-apply-result "WARN_NATIVE_UPGRADE_BATCH_REMAINING_CLONES")
@@ -20735,6 +21510,7 @@
                 (setq *swcad-title-native-upgrade-batch-remaining-hint* nil)
                 (if (vl-catch-all-error-p result)
                   (progn
+                    (swcad-title-recover-after-caught-error)
                     (setq *swcad-title-last-apply-status* "ERROR_NATIVE_GMTITLE_UPGRADE_BATCH_APPLY")
                     (swcad-title-princ-line
                       (strcat
@@ -20765,7 +21541,11 @@
           (setq *swcad-title-native-upgrade-batch-mode* old-batch-mode)
           (setq remaining (length (swcad-title-a3a4-native-upgrade-candidate-records)))
           (swcad-title-princ-line (strcat "Remaining A2/A3/A4 native upgrade candidates after batch: " (itoa remaining)))
-          (if (= remaining 0)
+          (if
+            (and
+              (= remaining 0)
+              (not (swcad-title-stop-status-p *swcad-title-last-apply-status*))
+            )
             (swcad-title-apply-result "OK_NATIVE_GMTITLE_UPGRADE_BATCH_COMPLETE")
             (if (equal *swcad-title-last-apply-status* "UPGRADED_CLONE_TO_NATIVE_GMTITLE")
               (swcad-title-apply-result "WARN_NATIVE_GMTITLE_UPGRADE_BATCH_REMAINING")
@@ -20794,40 +21574,37 @@
   (princ)
 )
 
+;;; An error outside the per-sheet catch of swcad-title-upgrade-native-a3a4-batch.
+;;; Its *error* handler did not run, so reset its flags here.  Without this the
+;;; status of the last finished sheet would stay and SWCADRUN would continue.
+(defun swcad-title-a3a4-batch-caught-error (label result)
+  (setq *swcad-title-native-upgrade-batch-mode* nil)
+  (setq *swcad-title-native-upgrade-selected-pair* nil)
+  (setq *swcad-title-native-upgrade-batch-remaining-hint* nil)
+  (swcad-title-stop-after-caught-error "ERROR_NATIVE_GMTITLE_UPGRADE_BATCH" label result)
+  (swcad-title-close-log)
+)
+
 (defun swcad-title-upgrade-native-a3a4-batch-manual (/ old-allow result)
   (setq old-allow *swcad-title-allow-batch-interactive-native-gmtitle*)
   (setq *swcad-title-allow-batch-interactive-native-gmtitle* T)
   (setq result (vl-catch-all-apply 'swcad-title-upgrade-native-a3a4-batch nil))
   (setq *swcad-title-allow-batch-interactive-native-gmtitle* old-allow)
   (if (vl-catch-all-error-p result)
-    (progn
-      (swcad-title-princ-line
-        (strcat
-          "SWTITLECONVERT A2/A3/A4 대화식 교체 오류: "
-          (vl-catch-all-error-message result)
-        )
-      )
-      (princ)
-    )
+    (swcad-title-a3a4-batch-caught-error "SWTITLECONVERT A2/A3/A4 대화식 교체 오류" result)
   )
   (princ)
 )
 
-(defun swcad-title-upgrade-native-a3a4-all (/ old-default-all result)
+(defun swcad-title-upgrade-native-a3a4-all (/ old-default-all old-allow result)
   (setq old-default-all *swcad-title-a3a4-batch-default-all*)
+  (setq old-allow *swcad-title-allow-batch-interactive-native-gmtitle*)
   (setq *swcad-title-a3a4-batch-default-all* T)
   (setq result (vl-catch-all-apply 'swcad-title-upgrade-native-a3a4-batch nil))
   (setq *swcad-title-a3a4-batch-default-all* old-default-all)
+  (setq *swcad-title-allow-batch-interactive-native-gmtitle* old-allow)
   (if (vl-catch-all-error-p result)
-    (progn
-      (swcad-title-princ-line
-        (strcat
-          "SWTITLECONVERT A2/A3/A4 교체 오류: "
-          (vl-catch-all-error-message result)
-        )
-      )
-      (princ)
-    )
+    (swcad-title-a3a4-batch-caught-error "SWTITLECONVERT A2/A3/A4 교체 오류" result)
   )
   (princ)
 )
@@ -21077,7 +21854,7 @@
   next-action
 )
 
-(defun swcad-title-integrated-status (/ cache-owned read-cache-owned)
+(defun swcad-title-integrated-status (/ cache-owned read-cache-owned nested-sheets)
   (setq cache-owned (not *swcad-title-frame-style-analysis-cache-enabled*))
   (setq read-cache-owned (not *swcad-title-read-scan-cache-enabled*))
   (if cache-owned
@@ -21094,18 +21871,33 @@
   (swcad-title-native-frame-completion-check)
   (swcad-title-integrated-structure-diagnosis)
   (swcad-title-next-step)
+  (setq nested-sheets (swcad-title-print-nested-sheet-guidance))
   (if cache-owned
     (swcad-title-frame-style-analysis-cache-end)
   )
   (if read-cache-owned
     (swcad-title-read-scan-cache-end)
   )
-  (swcad-title-princ-text "\nSWTITLESTATUS 완료: 위 결과에서 다음 명령이 SWTITLEPREPARE인지 SWTITLECONVERTNEXT인지 확인하세요.")
+  (if nested-sheets
+    (swcad-title-princ-text "\nSWTITLESTATUS 완료: XREF와 시트 묶음 단계가 먼저입니다. SWTITLE 명령 대신 SWCADRUN을 실행하세요.")
+    (swcad-title-princ-text "\nSWTITLESTATUS 완료: 위 결과에서 다음 명령이 SWTITLEPREPARE인지 SWTITLECONVERTNEXT인지 확인하세요.")
+  )
   (princ)
 )
 
-(defun swcad-title-integrated-prepare (/ summary source-count frame-only-count command-text-records frame-title-records embedded-title-records style-records style-cache-owned frame-definition-blockers contaminated-definition-records definition-raw-risk-records blocking-cleanup-seen title-missing-outline-needed orphan-records duplicate-pair-records)
+;;; SWTITLEPREPARE runs several clean-ups in a row.  Keeps the first stop, so a
+;;; later OK does not hide a cancelled or failed clean-up.
+(defun swcad-title-first-stop-status (kept)
+  (if (and (not kept) (swcad-title-stop-status-p *swcad-title-last-apply-status*))
+    *swcad-title-last-apply-status*
+    kept
+  )
+)
+
+(defun swcad-title-integrated-prepare (/ summary source-count frame-only-count command-text-records frame-title-records embedded-title-records style-records style-cache-owned frame-definition-blockers contaminated-definition-records definition-raw-risk-records blocking-cleanup-seen title-missing-outline-needed orphan-records duplicate-pair-records stop-status)
   (swcad-title-integrated-command-header "SWTITLEPREPARE" "도면틀/블록 정의 정규화")
+  (setq *swcad-title-last-apply-status* nil)
+  (setq stop-status nil)
   (if (swcad-title-script-active-p)
     (progn
       (swcad-title-apply-result "ABORT_PREPARE_SCRIPT_ACTIVE")
@@ -21182,14 +21974,17 @@
         (swcad-title-command-text-clean-safe)
         (swcad-title-princ-text "\n실수 명령어 텍스트 정리: 후보 없음")
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (if frame-title-records
         (swcad-title-clean-frame-def-title-children)
         (swcad-title-princ-text "\n도면틀 정의 안 중첩 제목블록 정리: 후보 없음")
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (if embedded-title-records
         (swcad-title-frame-embedded-title-clean)
         (swcad-title-princ-text "\nDR 도면틀 내부 표제란 형상 정리: 후보 없음")
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (if style-records
         (progn
           (setq style-cache-owned (not *swcad-title-frame-style-analysis-cache-enabled*))
@@ -21204,22 +21999,26 @@
         )
         (swcad-title-princ-text "\n도면틀 스타일 정규화: 후보 없음")
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (setq contaminated-definition-records (swcad-title-frame-definition-blocking-records-by-class "source-contaminated"))
       (setq definition-raw-risk-records (swcad-title-frame-definition-raw-bbox-risk-records))
       (if (or contaminated-definition-records definition-raw-risk-records)
         (swcad-title-frame-def-clean-safe)
         (swcad-title-princ-text "\n오염된 DR 도면틀 정의 복구: 후보 없음")
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (setq orphan-records (swcad-title-orphan-target-frame-records))
       (setq duplicate-pair-records (swcad-title-duplicate-target-pair-records))
       (if orphan-records
         (swcad-title-clean-orphan-target-frames)
         (swcad-title-princ-text "\n고아 GMTITLE 도면틀 정리: 후보 없음")
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (if duplicate-pair-records
         (swcad-title-clean-duplicate-target-pairs)
         (swcad-title-princ-text "\n겹친 GMTITLE target 쌍 정리: 후보 없음")
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (setq blocking-cleanup-seen
         (or
           blocking-cleanup-seen
@@ -21248,8 +22047,18 @@
           (swcad-title-princ-text "\ntitle-missing/frame-only DR 도면틀 정의 준비: 후보 없음")
         )
       )
+      (setq stop-status (swcad-title-first-stop-status stop-status))
       (swcad-title-frame-def-check)
       (swcad-title-native-frame-completion-check)
+      (cond
+        (stop-status
+          (swcad-title-apply-result stop-status)
+          (swcad-title-princ-text "\nSWTITLEPREPARE 정리 중 취소/실패/경고가 있었습니다. 첫 결과를 최종 결과로 남깁니다.")
+        )
+        ((not *swcad-title-last-apply-status*)
+          (swcad-title-apply-result "OK_PREPARE_DONE")
+        )
+      )
       (swcad-title-princ-text "\nSWTITLEPREPARE 완료: 경고가 줄었는지 확인한 뒤 SWTITLESTATUS 또는 SWTITLECONVERTNEXT를 실행하세요.")
       )
       (swcad-title-abort-multiple-open-dwgs)
@@ -21270,6 +22079,7 @@
 
 (defun swcad-title-integrated-convert (/ summary source-count frame-only-count command-text-records command-text-count a3a4-count style-records frame-definition-blockers definition-raw-risk-records orphan-records missing-required-native example-title old-batch-mode apply-result answer)
   (swcad-title-integrated-command-header "SWTITLECONVERT" "변환 실행")
+  (setq *swcad-title-last-apply-status* nil)
   (if (swcad-title-script-active-p)
     (swcad-title-abort-interactive-gmtitle-script-active
       "SWTITLECONVERT는 도면을 변경할 수 있고 GMTITLE 창 선택이 필요할 수 있어 자동 실행에서는 진행하지 않습니다."
@@ -21364,7 +22174,13 @@
           )
         )
         ((and (= source-count 0) (= frame-only-count 0))
-          (swcad-title-princ-text "\n변환할 원본 SolidWorks 시트가 없습니다. SWTITLEVERIFY를 실행하세요.")
+          (if (swcad-title-print-nested-sheet-guidance)
+            (swcad-title-apply-result "ABORT_SHEETS_NOT_MATERIALIZED")
+            (progn
+              (swcad-title-apply-result "OK_NO_REMAINING_SOURCES")
+              (swcad-title-princ-text "\n변환할 원본 SolidWorks 시트가 없습니다. SWTITLEVERIFY를 실행하세요.")
+            )
+          )
         )
         ((and (= source-count 0) (> frame-only-count 0))
           (swcad-title-princ-text
@@ -21471,6 +22287,7 @@
                   (setq *swcad-title-batch-mode* old-batch-mode)
                   (if (vl-catch-all-error-p apply-result)
                     (progn
+                      (swcad-title-recover-after-caught-error)
                       (setq *swcad-title-last-apply-status* "ERROR_MISSING_NATIVE_EXEMPLAR_FATAL")
                       (princ
                         (strcat
@@ -21506,6 +22323,7 @@
               (setq *swcad-title-batch-mode* old-batch-mode)
               (if (vl-catch-all-error-p apply-result)
                 (progn
+                  (swcad-title-recover-after-caught-error)
                   (setq *swcad-title-last-apply-status* "ERROR_CONVERT_NEXT_SINGLE_CLONE_FATAL")
                   (princ
                     (strcat
@@ -21525,8 +22343,12 @@
                       "개 생겼습니다."
                     )
                   )
-                  (if (vl-catch-all-error-p apply-result)
-                    (swcad-title-princ-text "\nclone 변환 오류가 있어 native 교체 단계는 실행하지 않습니다.")
+                  (if
+                    (or
+                      (vl-catch-all-error-p apply-result)
+                      (swcad-title-stop-status-p *swcad-title-last-apply-status*)
+                    )
+                    (swcad-title-princ-text "\nclone 변환이 오류나 멈춤 상태로 끝나 native 교체 단계는 실행하지 않습니다.")
                     (progn
                       (swcad-title-princ-text "\nSWTITLECONVERTNEXT가 이어서 다음 native 교체 후보 1장을 처리합니다.")
                       (if (swcad-title-script-active-p)
@@ -21553,12 +22375,19 @@
                       "개 생겼습니다."
                     )
                   )
-                  (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 이어서 A2/A3/A4 native 교체 단계를 한 장만 안전하게 실행합니다.")
-                  (if (swcad-title-script-active-p)
-                    (swcad-title-abort-interactive-gmtitle-script-active
-                      "빠른 변환 뒤 생긴 A2/A3/A4 native 교체 후보는 GMTITLE 창 확인이 필요합니다."
+                  (cond
+                    ((swcad-title-stop-status-p *swcad-title-last-apply-status*)
+                      (swcad-title-princ-text "\n빠른 변환이 멈춤 상태로 끝나 native 교체 단계는 실행하지 않습니다.")
                     )
-                    (swcad-title-upgrade-native-a3a4-next)
+                    ((swcad-title-script-active-p)
+                      (swcad-title-abort-interactive-gmtitle-script-active
+                        "빠른 변환 뒤 생긴 A2/A3/A4 native 교체 후보는 GMTITLE 창 확인이 필요합니다."
+                      )
+                    )
+                    (T
+                      (swcad-title-princ-text "\nSWTITLECONVERT 내부에서 이어서 A2/A3/A4 native 교체 단계를 한 장만 안전하게 실행합니다.")
+                      (swcad-title-upgrade-native-a3a4-next)
+                    )
                   )
                 )
               )
@@ -21571,6 +22400,13 @@
       )
       )
       (swcad-title-abort-multiple-open-dwgs)
+    )
+  )
+  ;; A step that ends without a result is not treated as done.
+  (if (not *swcad-title-last-apply-status*)
+    (progn
+      (swcad-title-apply-result "REVIEW_CONVERT_RESULT_UNKNOWN")
+      (swcad-title-princ-text "\n변환 단계가 결과 상태를 남기지 않았습니다. 도면을 저장하기 전에 SWTITLESTATUS로 상태를 확인하세요.")
     )
   )
   (swcad-title-princ-text "\nSWTITLECONVERT 완료: 멈춤/경고가 있으면 SWTITLESTATUS를, 완료되면 SWTITLEVERIFY를 실행하세요.")
@@ -21638,7 +22474,103 @@
   )
 )
 
-(defun swcad-title-integrated-verify-final-summary (/ summary source-titles source-frames command-text-records embedded-title-records style-records style-residue-records style-residue-count frame-definition-records frame-definition-blockers definition-raw-risk-records definition-raw-risk-count orphan-records contaminated frame-records title-enames pair-records geometry-risk-count overlap-risk-count a3a4-count target-title-count target-frame-count pair-count title-missing-outline-count invalid-title-missing-records invalid-title-missing-count frame-only-source-count source-frame-with-title-count missing-title-count extra-title-count title-missing-tags-count title-empty-attrs-count non-native-like-count required-missing-count required-sheets missing-required-sheets target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records count-shortage-count count-excess-count target-title-sheet-counts stored-expected-title-counts expected-title-counts title-count-shortage-records title-count-excess-records title-count-shortage-count title-count-excess-count legacy-compatible-counts status result-code record title-ename attr-pairs)
+;;; True when a block definition directly holds a DR_A*_Outline frame and a
+;;; DR_titlea_3rd title: a whole sheet wrapped in one block.  Same test as the
+;;; SHEET_WRAPPERS stage of SWCADRUN (swapp-sheet-wrapper-definition-evidence).
+(defun swcad-title-sheet-wrapper-definition-p (name / upper entry ename data child frame title)
+  (setq upper (strcase (swcad-title-string name)))
+  (setq entry (tblsearch "BLOCK" name))
+  (if
+    (or
+      (not entry)
+      (vl-string-search "DR_TITLEA_3RD" upper)
+      (wcmatch upper "*DR_A[1234]_OUTLINE*")
+    )
+    nil
+    (progn
+      (setq ename (cdr (assoc -2 entry)))
+      (while ename
+        (setq data (entget ename))
+        (if (= (cdr (assoc 0 data)) "INSERT")
+          (progn
+            (setq child (strcase (swcad-title-string (cdr (assoc 2 data)))))
+            (if (wcmatch child "*DR_A[1234]_OUTLINE*") (setq frame T))
+            (if (vl-string-search "DR_TITLEA_3RD" child) (setq title T))
+          )
+        )
+        (setq ename (entnext ename))
+      )
+      (and frame title)
+    )
+  )
+)
+
+;;; Model-space INSERTs that still hold whole sheets, as (xref-count wrapper-count):
+;;; XREFs, and blocks that wrap a sheet.  SWTITLE commands look only at top-level
+;;; INSERTs, so the titles and frames inside these are not seen.
+(defun swcad-title-model-nested-sheet-counts (/ ss index name upper block pair cache xref-count wrapper-count)
+  (setq xref-count 0)
+  (setq wrapper-count 0)
+  (setq cache nil)
+  (setq ss (ssget "_X" '((0 . "INSERT") (410 . "Model"))))
+  (setq index 0)
+  (while (and ss (< index (sslength ss)))
+    (setq name (cdr (assoc 2 (entget (ssname ss index)))))
+    (setq block (tblsearch "BLOCK" name))
+    (cond
+      ((not block) nil)
+      ((= (logand (cdr (assoc 70 block)) 4) 4)
+        (setq xref-count (1+ xref-count))
+      )
+      (T
+        (setq upper (strcase name))
+        (setq pair (assoc upper cache))
+        (if (not pair)
+          (progn
+            (setq pair (cons upper (swcad-title-sheet-wrapper-definition-p name)))
+            (setq cache (cons pair cache))
+          )
+        )
+        (if (cdr pair) (setq wrapper-count (1+ wrapper-count)))
+      )
+    )
+    (setq index (1+ index))
+  )
+  (list xref-count wrapper-count)
+)
+
+;;; A drawing with no GMTITLE frames and no source sheets of its own, whose
+;;; sheets are still inside XREFs or wrapper blocks.  Says to run SWCADRUN first
+;;; instead of leaving only FAIL_MISSING_TARGET_FRAMES.  Returns T when it printed.
+(defun swcad-title-print-nested-sheet-guidance (/ counts)
+  (if
+    (and
+      (= (swcad-title-source-title-count) 0)
+      (= (swcad-title-frame-only-source-count) 0)
+      (= (length (swcad-title-frame-records)) 0)
+      (setq counts (swcad-title-model-nested-sheet-counts))
+      (> (+ (car counts) (cadr counts)) 0)
+    )
+    (progn
+      (swcad-title-princ-line "다음 단계 코드: RUN_SWCADRUN_FIRST")
+      (swcad-title-princ-line
+        (strcat
+          "이 도면의 시트는 아직 XREF나 시트 묶음 블록 안에 있습니다(XREF "
+          (itoa (car counts))
+          "개, 시트 묶음 블록 "
+          (itoa (cadr counts))
+          "개)."
+        )
+      )
+      (swcad-title-princ-line "SWTITLE 명령은 맨 위에 놓인 블록만 보므로 대상 도면틀이 0개로 나옵니다.")
+      (swcad-title-princ-line "다음: SWCADRUN을 실행해 XREF와 시트 묶음 단계부터 진행하세요.")
+      T
+    )
+    nil
+  )
+)
+
+(defun swcad-title-integrated-verify-final-summary (/ summary source-titles source-frames command-text-records embedded-title-records style-records style-residue-records style-residue-count frame-definition-records frame-definition-blockers definition-raw-risk-records definition-raw-risk-count orphan-records contaminated frame-records title-enames pair-records geometry-risk-count overlap-risk-count a3a4-count target-title-count target-frame-count pair-count title-missing-outline-count invalid-title-missing-records invalid-title-missing-count frame-only-source-count source-frame-with-title-count missing-title-count extra-title-count title-missing-tags-count title-empty-attrs-count non-native-like-count required-missing-count required-sheets missing-required-sheets target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records count-shortage-count count-excess-count target-title-sheet-counts stored-expected-title-counts expected-title-counts title-count-shortage-records title-count-excess-records title-count-shortage-count title-count-excess-count legacy-compatible-counts status result-code record title-ename attr-pairs title-value-problems title-value-problem-count title-value-problem-records value-only-warn)
   (swcad-title-open-verify-summary-log)
   (setq summary (swcad-title-fast-sheet-summary))
   (setq source-titles (swcad-title-source-title-candidates))
@@ -21680,6 +22612,9 @@
   (setq extra-title-count (if (> target-title-count pair-count) (- target-title-count pair-count) 0))
   (setq title-missing-tags-count 0)
   (setq title-empty-attrs-count 0)
+  (setq title-value-problem-count 0)
+  (setq title-value-problem-records nil)
+  (setq value-only-warn nil)
   (foreach title-ename title-enames
     (setq attr-pairs (swcad-title-title-attribute-pairs (swcad-title-safe-vla-object title-ename)))
     (if (> (length (swcad-title-missing-template-tags attr-pairs)) 0)
@@ -21687,6 +22622,15 @@
     )
     (if (= (swcad-title-nonempty-attribute-count attr-pairs) 0)
       (setq title-empty-attrs-count (+ title-empty-attrs-count 1))
+    )
+    (setq title-value-problems (swcad-title-title-value-problems attr-pairs))
+    (if title-value-problems
+      (progn
+        (setq title-value-problem-count (+ title-value-problem-count 1))
+        (setq title-value-problem-records
+          (append title-value-problem-records (list (list title-ename title-value-problems)))
+        )
+      )
     )
   )
   (setq non-native-like-count 0)
@@ -21778,13 +22722,20 @@
         )
         "WARN"
       )
+      ((> title-value-problem-count 0)
+        (setq value-only-warn T)
+        "WARN"
+      )
       (T "OK")
     )
   )
   (setq result-code
-    (if (and (equal status "WARN") (> style-residue-count 0))
-      "SWTITLEVERIFY_WARN_RESIDUE_REMAINS"
-      (strcat "SWTITLEVERIFY_FINAL_" status)
+    (cond
+      ((and (equal status "WARN") (> style-residue-count 0))
+        "SWTITLEVERIFY_WARN_RESIDUE_REMAINS"
+      )
+      (value-only-warn "SWTITLEVERIFY_WARN_TITLE_VALUES")
+      (T (strcat "SWTITLEVERIFY_FINAL_" status))
     )
   )
   (setq *swcad-title-last-apply-status* result-code)
@@ -21812,6 +22763,8 @@
   (swcad-title-princ-line (strcat "도면틀과 짝이 없는 대상 제목블록 수: " (itoa extra-title-count)))
   (swcad-title-princ-line (strcat "속성 태그 누락 제목블록 수: " (itoa title-missing-tags-count)))
   (swcad-title-princ-line (strcat "속성 값이 모두 빈 제목블록 수: " (itoa title-empty-attrs-count)))
+  (swcad-title-princ-line (strcat "값 문제(XXX, 파일 경로, 서식 코드)가 있는 제목블록 수: " (itoa title-value-problem-count)))
+  (swcad-title-print-title-value-problem-records title-value-problem-records)
   (swcad-title-princ-line (strcat "A2/A3/A4 native 교체 필요 쌍: " (itoa a3a4-count)))
   (swcad-title-princ-line (strcat "native-like가 아닌 대상 쌍: " (itoa non-native-like-count)))
   (swcad-title-princ-line (strcat "도면틀 형상 경고 수: " (itoa geometry-risk-count)))
@@ -21855,11 +22808,16 @@
     ((equal status "OK")
       (swcad-title-princ-line "다음: 변환된 대표 용지의 DR_titlea_3rd 제목블록을 더블클릭해 GMTITLE 표 편집창을 확인하세요.")
     )
+    (value-only-warn
+      (swcad-title-princ-line "다음: 위에 나온 제목블록 값(도면번호 XXX, 도면명 파일 경로, 서식 코드)을 원본 도면과 비교해 고치세요.")
+      (swcad-title-princ-line "제목블록을 더블클릭해서 값을 고친 뒤 SWTITLEVERIFY를 다시 실행하세요.")
+    )
     ((equal status "WARN")
       (swcad-title-princ-line "다음: SWTITLESTATUS를 실행해 남은 경고의 다음 조치를 확인하세요. 모양만 보고 완료로 판단하지 마세요.")
     )
     (T
       (cond
+        ((and (= target-frame-count 0) (swcad-title-print-nested-sheet-guidance)))
         ((> a3a4-count 0)
           (swcad-title-princ-line "다음 단계 코드: UPGRADE_NATIVE_GMTITLE")
           (swcad-title-princ-line "다음: 특정 용지 누락이나 title-missing 예외가 있더라도 A2/A3/A4 native 교체 후보가 먼저입니다.")
@@ -22104,23 +23062,29 @@
 )
 
 (defun c:SWTITLESTATUS ()
+  (swcad-title-command-entry-reset)
   (swcad-title-integrated-status)
 )
 
+(defun swcad-title-abort-work-copy-not-created (command-name)
+  (swcad-title-apply-result "ABORT_WORK_COPY_NOT_CREATED")
+  (swcad-title-princ-text (strcat "\n" command-name " 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다."))
+  (princ)
+)
+
 (defun c:SWTITLEPREPARE ()
+  (swcad-title-command-entry-reset)
   (if (swcad-title-script-active-p)
     (swcad-title-integrated-prepare)
     (if (swcad-title-ensure-work-copy-for-mutation)
       (swcad-title-integrated-prepare)
-      (progn
-        (swcad-title-princ-text "\nSWTITLEPREPARE 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
-        (princ)
-      )
+      (swcad-title-abort-work-copy-not-created "SWTITLEPREPARE")
     )
   )
 )
 
 (defun c:SWTITLECONVERT ()
+  (swcad-title-command-entry-reset)
   (if (swcad-title-script-active-p)
     (progn
       (swcad-title-princ-text "\n===== SWTITLECONVERT 변환 실행 =====")
@@ -22133,10 +23097,7 @@
     )
     (if (swcad-title-ensure-work-copy-for-mutation)
       (swcad-title-integrated-convert)
-      (progn
-        (swcad-title-princ-text "\nSWTITLECONVERT 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
-        (princ)
-      )
+      (swcad-title-abort-work-copy-not-created "SWTITLECONVERT")
     )
   )
 )
@@ -22151,19 +23112,22 @@
   (setq *swcad-title-convert-next-mode* old-auto)
   (if (vl-catch-all-error-p result)
     (progn
-      (swcad-title-princ-text
-        (strcat
-          "\nSWTITLECONVERTNEXT 오류: "
-          (vl-catch-all-error-message result)
-        )
-      )
-      (setq *swcad-title-last-apply-status* "ERROR_CONVERT_NEXT_FATAL")
+      ;; Also ESC outside a per-sheet catch.  Batch flags set inside the
+      ;; conversion were not restored by it.
+      (setq *swcad-title-batch-mode* nil)
+      (setq *swcad-title-allow-batch-interactive-native-gmtitle* nil)
+      (setq *swcad-title-native-upgrade-batch-mode* nil)
+      (setq *swcad-title-native-upgrade-selected-pair* nil)
+      (swcad-title-stop-after-caught-error "ERROR_CONVERT_NEXT_FATAL" "SWTITLECONVERTNEXT 오류" result)
+      (swcad-title-close-log)
+      (swcad-title-princ-text "\n도면을 저장하지 말고 SWTITLESTATUS로 상태를 확인하세요.")
     )
   )
   (princ)
 )
 
 (defun c:SWTITLECONVERTNEXT ()
+  (swcad-title-command-entry-reset)
   (if (swcad-title-script-active-p)
     (progn
       (swcad-title-princ-text "\n===== SWTITLECONVERTNEXT 다음 1단계 자동 선택 =====")
@@ -22176,15 +23140,13 @@
     )
     (if (swcad-title-ensure-work-copy-for-mutation)
       (swcad-title-integrated-convert-next)
-      (progn
-        (swcad-title-princ-text "\nSWTITLECONVERTNEXT 중단: 작업본을 만들지 않아 원본을 변경하지 않았습니다.")
-        (princ)
-      )
+      (swcad-title-abort-work-copy-not-created "SWTITLECONVERTNEXT")
     )
   )
 )
 
 (defun c:SWTITLEVERIFY ()
+  (swcad-title-command-entry-reset)
   (swcad-title-integrated-verify)
 )
 
