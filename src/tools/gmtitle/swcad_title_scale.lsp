@@ -40,7 +40,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260929-title-stop-1")
+(setq *swcad-title-scale-version* "260929-small-fixes-1")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -311,6 +311,7 @@
         ("ERROR_NATIVE_GMTITLE_UPGRADE_OPEN" . "A2/A3/A4 native 교체 1장 처리 중 오류나 ESC로 멈췄습니다.")
         ("ABORT_WORK_COPY_NOT_CREATED" . "작업본을 만들지 않아 원본을 바꾸지 않고 멈췄습니다.")
         ("OK_PREPARE_DONE" . "SWTITLEPREPARE 정리 단계가 끝났습니다.")
+        ("ABORT_SHEETS_NOT_MATERIALIZED" . "시트가 아직 XREF나 시트 묶음 블록 안에 있어 변환하지 않았습니다. SWCADRUN으로 XREF와 시트 묶음 단계부터 진행하세요.")
         ("ABORT_EXISTING_GMTITLE_NOT_FOUND" . "필요한 GMTITLE 쌍을 찾지 못했습니다.")
         ("ABORT_EXISTING_GMTITLE_WRONG_SELECTION" . "GMTITLE 용지/제목블록 선택이 예상과 다릅니다.")
         ("ABORT_NATIVE_UPGRADE_WRONG_GMTITLE_SELECTION" . "native 교체 중 잘못된 용지/제목블록이 선택되어 새 객체를 제거하고 기존 객체를 보존했습니다.")
@@ -1475,11 +1476,12 @@
   )
 )
 
+;;; DIESEL edtime: MO is the month and MM the minutes.
 (defun swcad-title-work-copy-timestamp (/ result)
   (setq result
     (vl-catch-all-apply
       'menucmd
-      (list "M=$(edtime,$(getvar,date),YYYYMMDD-HHMMSS)")
+      (list "M=$(edtime,$(getvar,date),YYYYMODD-HHMMSS)")
     )
   )
   (if (or (vl-catch-all-error-p result) (/= (type result) 'STR) (= result ""))
@@ -1488,9 +1490,19 @@
   )
 )
 
+;;; File name without an earlier _SWTITLE_<time> suffix, so a work copy made from
+;;; a work copy gets one suffix instead of piling them up.
+(defun swcad-title-work-copy-base-name (base / pos)
+  (setq pos (vl-string-search "_SWTITLE_" (strcase base)))
+  (if (and pos (> pos 0))
+    (substr base 1 pos)
+    base
+  )
+)
+
 (defun swcad-title-default-work-copy-path (/ prefix base)
   (setq prefix (vl-string-translate "\\" "/" (getvar "DWGPREFIX")))
-  (setq base (vl-filename-base (getvar "DWGNAME")))
+  (setq base (swcad-title-work-copy-base-name (vl-filename-base (getvar "DWGNAME"))))
   (strcat
     prefix
     base
@@ -2879,16 +2891,88 @@
   )
 )
 
-(defun swcad-title-sheet-size-from-block-name (block-name / value)
-  (setq value (strcase (swcad-title-string block-name)))
-  (cond
-    ((swcad-title-native-target-title-name-p value) nil)
-    ((wcmatch value "*A0*,*A-0*,*A_0*,*A 0*") "A0")
-    ((wcmatch value "*A1*,*A-1*,*A_1*,*A 1*") "A1")
-    ((wcmatch value "*A2*,*A-2*,*A_2*,*A 2*") "A2")
-    ((wcmatch value "*A3*,*A-3*,*A_3*,*A 3*") "A3")
-    ((wcmatch value "*A4*,*A-4*,*A_4*,*A 4*") "A4")
-    (T nil)
+;;; The block's own name: the part after the last $ or | of a bound or XREF name.
+(defun swcad-title-block-own-name (block-name / value index cut ch)
+  (setq value (swcad-title-string block-name))
+  (setq cut 0)
+  (setq index 1)
+  (while (<= index (strlen value))
+    (setq ch (substr value index 1))
+    (if (or (= ch "$") (= ch "|"))
+      (setq cut index)
+    )
+    (setq index (1+ index))
+  )
+  (substr value (1+ cut))
+)
+
+(defun swcad-title-ascii-digit-p (ch / code)
+  (and (= (strlen ch) 1) (setq code (ascii ch)) (>= code 48) (<= code 57))
+)
+
+(defun swcad-title-ascii-alnum-p (ch / code)
+  (and
+    (= (strlen ch) 1)
+    (setq code (ascii ch))
+    (or
+      (and (>= code 48) (<= code 57))
+      (and (>= code 65) (<= code 90))
+      (and (>= code 97) (<= code 122))
+    )
+  )
+)
+
+;;; Paper size named in a block name, e.g. DR_A3_Outline or "A4 - ISO".
+;;; Only the block's own name counts, because the host and XREF file names in
+;;; front of it can contain anything (a part called Bracket_A1 on an A3 sheet).
+;;; The size must be a token of its own: A0..A4, also written A-3, A_3 or A 3,
+;;; with no letter or digit right before the A and no digit right after the
+;;; number, so DATA1, A12 and DR_titlea_3rd (TITLEA_3RD) do not count.  A name
+;;; with two different sizes gives nil.
+(defun swcad-title-sheet-size-from-block-name (block-name / leaf value index pos digit found result conflict)
+  (setq leaf (swcad-title-block-own-name block-name))
+  (setq value (strcase leaf))
+  (setq result nil)
+  (setq conflict nil)
+  (if
+    (or
+      (swcad-title-native-target-title-name-p block-name)
+      (swcad-title-native-target-title-name-p leaf)
+    )
+    nil
+    (progn
+      (setq index 1)
+      (while (<= index (strlen value))
+        (if
+          (and
+            (= (substr value index 1) "A")
+            (not (swcad-title-ascii-alnum-p (if (> index 1) (substr value (1- index) 1) "")))
+          )
+          (progn
+            (setq pos (1+ index))
+            (if (member (substr value pos 1) '("-" "_" " "))
+              (setq pos (1+ pos))
+            )
+            (setq digit (substr value pos 1))
+            (if
+              (and
+                (member digit '("0" "1" "2" "3" "4"))
+                (not (swcad-title-ascii-digit-p (substr value (1+ pos) 1)))
+              )
+              (progn
+                (setq found (strcat "A" digit))
+                (cond
+                  ((not result) (setq result found))
+                  ((/= result found) (setq conflict T))
+                )
+              )
+            )
+          )
+        )
+        (setq index (1+ index))
+      )
+      (if conflict nil result)
+    )
   )
 )
 
@@ -21729,7 +21813,7 @@
   next-action
 )
 
-(defun swcad-title-integrated-status (/ cache-owned read-cache-owned)
+(defun swcad-title-integrated-status (/ cache-owned read-cache-owned nested-sheets)
   (setq cache-owned (not *swcad-title-frame-style-analysis-cache-enabled*))
   (setq read-cache-owned (not *swcad-title-read-scan-cache-enabled*))
   (if cache-owned
@@ -21746,13 +21830,17 @@
   (swcad-title-native-frame-completion-check)
   (swcad-title-integrated-structure-diagnosis)
   (swcad-title-next-step)
+  (setq nested-sheets (swcad-title-print-nested-sheet-guidance))
   (if cache-owned
     (swcad-title-frame-style-analysis-cache-end)
   )
   (if read-cache-owned
     (swcad-title-read-scan-cache-end)
   )
-  (swcad-title-princ-text "\nSWTITLESTATUS 완료: 위 결과에서 다음 명령이 SWTITLEPREPARE인지 SWTITLECONVERTNEXT인지 확인하세요.")
+  (if nested-sheets
+    (swcad-title-princ-text "\nSWTITLESTATUS 완료: XREF와 시트 묶음 단계가 먼저입니다. SWTITLE 명령 대신 SWCADRUN을 실행하세요.")
+    (swcad-title-princ-text "\nSWTITLESTATUS 완료: 위 결과에서 다음 명령이 SWTITLEPREPARE인지 SWTITLECONVERTNEXT인지 확인하세요.")
+  )
   (princ)
 )
 
@@ -22045,8 +22133,13 @@
           )
         )
         ((and (= source-count 0) (= frame-only-count 0))
-          (swcad-title-apply-result "OK_NO_REMAINING_SOURCES")
-          (swcad-title-princ-text "\n변환할 원본 SolidWorks 시트가 없습니다. SWTITLEVERIFY를 실행하세요.")
+          (if (swcad-title-print-nested-sheet-guidance)
+            (swcad-title-apply-result "ABORT_SHEETS_NOT_MATERIALIZED")
+            (progn
+              (swcad-title-apply-result "OK_NO_REMAINING_SOURCES")
+              (swcad-title-princ-text "\n변환할 원본 SolidWorks 시트가 없습니다. SWTITLEVERIFY를 실행하세요.")
+            )
+          )
         )
         ((and (= source-count 0) (> frame-only-count 0))
           (swcad-title-princ-text
@@ -22340,6 +22433,102 @@
   )
 )
 
+;;; True when a block definition directly holds a DR_A*_Outline frame and a
+;;; DR_titlea_3rd title: a whole sheet wrapped in one block.  Same test as the
+;;; SHEET_WRAPPERS stage of SWCADRUN (swapp-sheet-wrapper-definition-evidence).
+(defun swcad-title-sheet-wrapper-definition-p (name / upper entry ename data child frame title)
+  (setq upper (strcase (swcad-title-string name)))
+  (setq entry (tblsearch "BLOCK" name))
+  (if
+    (or
+      (not entry)
+      (vl-string-search "DR_TITLEA_3RD" upper)
+      (wcmatch upper "*DR_A[1234]_OUTLINE*")
+    )
+    nil
+    (progn
+      (setq ename (cdr (assoc -2 entry)))
+      (while ename
+        (setq data (entget ename))
+        (if (= (cdr (assoc 0 data)) "INSERT")
+          (progn
+            (setq child (strcase (swcad-title-string (cdr (assoc 2 data)))))
+            (if (wcmatch child "*DR_A[1234]_OUTLINE*") (setq frame T))
+            (if (vl-string-search "DR_TITLEA_3RD" child) (setq title T))
+          )
+        )
+        (setq ename (entnext ename))
+      )
+      (and frame title)
+    )
+  )
+)
+
+;;; Model-space INSERTs that still hold whole sheets, as (xref-count wrapper-count):
+;;; XREFs, and blocks that wrap a sheet.  SWTITLE commands look only at top-level
+;;; INSERTs, so the titles and frames inside these are not seen.
+(defun swcad-title-model-nested-sheet-counts (/ ss index name upper block pair cache xref-count wrapper-count)
+  (setq xref-count 0)
+  (setq wrapper-count 0)
+  (setq cache nil)
+  (setq ss (ssget "_X" '((0 . "INSERT") (410 . "Model"))))
+  (setq index 0)
+  (while (and ss (< index (sslength ss)))
+    (setq name (cdr (assoc 2 (entget (ssname ss index)))))
+    (setq block (tblsearch "BLOCK" name))
+    (cond
+      ((not block) nil)
+      ((= (logand (cdr (assoc 70 block)) 4) 4)
+        (setq xref-count (1+ xref-count))
+      )
+      (T
+        (setq upper (strcase name))
+        (setq pair (assoc upper cache))
+        (if (not pair)
+          (progn
+            (setq pair (cons upper (swcad-title-sheet-wrapper-definition-p name)))
+            (setq cache (cons pair cache))
+          )
+        )
+        (if (cdr pair) (setq wrapper-count (1+ wrapper-count)))
+      )
+    )
+    (setq index (1+ index))
+  )
+  (list xref-count wrapper-count)
+)
+
+;;; A drawing with no GMTITLE frames and no source sheets of its own, whose
+;;; sheets are still inside XREFs or wrapper blocks.  Says to run SWCADRUN first
+;;; instead of leaving only FAIL_MISSING_TARGET_FRAMES.  Returns T when it printed.
+(defun swcad-title-print-nested-sheet-guidance (/ counts)
+  (if
+    (and
+      (= (swcad-title-source-title-count) 0)
+      (= (swcad-title-frame-only-source-count) 0)
+      (= (length (swcad-title-frame-records)) 0)
+      (setq counts (swcad-title-model-nested-sheet-counts))
+      (> (+ (car counts) (cadr counts)) 0)
+    )
+    (progn
+      (swcad-title-princ-line "다음 단계 코드: RUN_SWCADRUN_FIRST")
+      (swcad-title-princ-line
+        (strcat
+          "이 도면의 시트는 아직 XREF나 시트 묶음 블록 안에 있습니다(XREF "
+          (itoa (car counts))
+          "개, 시트 묶음 블록 "
+          (itoa (cadr counts))
+          "개)."
+        )
+      )
+      (swcad-title-princ-line "SWTITLE 명령은 맨 위에 놓인 블록만 보므로 대상 도면틀이 0개로 나옵니다.")
+      (swcad-title-princ-line "다음: SWCADRUN을 실행해 XREF와 시트 묶음 단계부터 진행하세요.")
+      T
+    )
+    nil
+  )
+)
+
 (defun swcad-title-integrated-verify-final-summary (/ summary source-titles source-frames command-text-records embedded-title-records style-records style-residue-records style-residue-count frame-definition-records frame-definition-blockers definition-raw-risk-records definition-raw-risk-count orphan-records contaminated frame-records title-enames pair-records geometry-risk-count overlap-risk-count a3a4-count target-title-count target-frame-count pair-count title-missing-outline-count invalid-title-missing-records invalid-title-missing-count frame-only-source-count source-frame-with-title-count missing-title-count extra-title-count title-missing-tags-count title-empty-attrs-count non-native-like-count required-missing-count required-sheets missing-required-sheets target-sheet-counts stored-expected-sheet-counts expected-sheet-counts count-shortage-records count-excess-records count-shortage-count count-excess-count target-title-sheet-counts stored-expected-title-counts expected-title-counts title-count-shortage-records title-count-excess-records title-count-shortage-count title-count-excess-count legacy-compatible-counts status result-code record title-ename attr-pairs title-value-problems title-value-problem-count title-value-problem-records value-only-warn)
   (swcad-title-open-verify-summary-log)
   (setq summary (swcad-title-fast-sheet-summary))
@@ -22587,6 +22776,7 @@
     )
     (T
       (cond
+        ((and (= target-frame-count 0) (swcad-title-print-nested-sheet-guidance)))
         ((> a3a4-count 0)
           (swcad-title-princ-line "다음 단계 코드: UPGRADE_NATIVE_GMTITLE")
           (swcad-title-princ-line "다음: 특정 용지 누락이나 title-missing 예외가 있더라도 A2/A3/A4 native 교체 후보가 먼저입니다.")
