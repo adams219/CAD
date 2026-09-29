@@ -13,6 +13,7 @@ GstarCAD를 닫은 뒤 PowerShell에서 실행한다.
 - `-TitleStageDwg`: TITLE 단계 도면(원본 표제란이 남아 있는 상태). 생략하면 30장 fixture(`work\_preserved_20260714\fixtures\sheet_wrapper_source_fixture_260713.dwg`)를 통합 테스트(`MATERIALIZE_WRAPPED_XREF`)로 먼저 만든다.
 - `-CheckDwg`, `-CheckListFile`: 이미 변환한 도면의 제목블록 값 검사(`SWTITLEVERIFY` 최종 요약). 복사본만 연다.
 - `-EndToEnd`: 보이는 GstarCAD에서 COM `SendCommand`로 `SWCADRUN`을 실행해 TITLE 단계(실제 GMTITLE 창과 자동 선택기)를 끝까지 돌린다. 작업본은 `work\swcad-workflow-tests\gmtitle_value_e2e_*.dwg`에 저장된다. 실행 중에는 마우스와 키보드를 건드리지 않는다.
+- `-FullWorkflow`(`-EndToEnd`와 함께): `COMPLETE`까지 `SWCADRUN`을 계속 실행한 뒤, 저장된 작업본에서 `SWCADVERIFY`와 같은 검사(`workflow_final_verify_probe.lsp`)를 읽기 전용으로 실행한다.
 - 결과는 `tmp\gmtitle-value-test\<시각>\summary.txt`에 남는다. 문제가 있으면 `RESULT: CHECK NEEDED`로 끝난다.
 
 원본 도면은 복사만 하고 해시로 변경 여부를 확인한다.
@@ -34,3 +35,4 @@ GstarCAD를 닫은 뒤 PowerShell에서 실행한다.
 - 쓰기 후 다시 읽은 값: 330칸 모두 계획과 같음
 - 실제 변환 결과: 330칸 모두 계획과 같음, `SWTITLEVERIFY_FINAL_OK`
 - 이전 코드로 변환한 07-20 도면: `SWTITLEVERIFY_WARN_TITLE_VALUES`, 값 문제가 있는 제목블록 15장
+- `-FullWorkflow`: `SWCADRUN` 4회로 `COMPLETE`, `SWCADVERIFY_FINAL_OK`(SWAUTO `260929-value-guard-4` 이상)

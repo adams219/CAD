@@ -12,6 +12,9 @@ param(
   # Also run the TITLE stage in a visible GstarCAD (real GMTITLE dialog) on a work copy.
   [switch]$EndToEnd,
 
+  # With -EndToEnd: keep running SWCADRUN to COMPLETE, then check the SWCADVERIFY parts.
+  [switch]$FullWorkflow,
+
   [string]$OutputRoot,
 
   [int]$TimeoutSeconds = 300
@@ -85,11 +88,14 @@ foreach ($dwg in $CheckDwg) {
 
 if ($EndToEnd) {
   $driverLog = Join-Path $OutputRoot "e2e_driver.log"
-  & (Join-Path $PSScriptRoot "run_title_stage_e2e.ps1") -SourceDwg $TitleStageDwg -LogPath $driverLog | Out-Null
+  & (Join-Path $PSScriptRoot "run_title_stage_e2e.ps1") -SourceDwg $TitleStageDwg -LogPath $driverLog -FullWorkflow:$FullWorkflow | Out-Null
   $work = ((Get-Content -LiteralPath $driverLog -Encoding UTF8 | Where-Object { $_ -match 'work result: ' } | Select-Object -Last 1) -replace '^.*work result: ', '')
   if (-not $work -or -not (Test-Path -LiteralPath $work)) { throw "End-to-end run left no work drawing. See $driverLog" }
   Invoke-Probe $work (Join-Path $PSScriptRoot "title_value_dump_probe.lsp") "e2e_dump" "Attribute probe completed: yes" @{ SWT_ATTR_LOG = (Join-Path $OutputRoot "e2e_dump.log") }
   Invoke-Probe $work (Join-Path $PSScriptRoot "title_value_verify_probe.lsp") "verify_e2e" "Verify probe completed: yes" @{ SWT_VERIFY_LOG = (Join-Path $OutputRoot "verify_e2e.log"); SWT_PLAN_MODULE = $module }
+  if ($FullWorkflow) {
+    Invoke-Probe $work (Join-Path $PSScriptRoot "workflow_final_verify_probe.lsp") "final_verify" "Final verify probe completed: yes" @{ SWT_FINAL_LOG = (Join-Path $OutputRoot "final_verify.log"); SWT_WORKFLOW_LOADER = (Join-Path $repoRoot "apps\swcad-workflow\swcad_workflow_load.lsp") }
+  }
 }
 
 $summary = Join-Path $OutputRoot "summary.txt"

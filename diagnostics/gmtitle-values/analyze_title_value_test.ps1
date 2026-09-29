@@ -163,6 +163,14 @@ if (Test-Path -LiteralPath $driverPath) {
   "  driver: " + ((Read-Lines $driverPath | Where-Object { $_ -match 'run \d+:|stopped|finished|complete|source unchanged' }) -join " / ")
 }
 
+# ---- full workflow ----
+$finalPath = Join-Path $OutputRoot "final_verify.log"
+if (Test-Path -LiteralPath $finalPath) {
+  $final = @(Read-Lines $finalPath | Where-Object { $_ -match '^[A-Z]+\|' })
+  "== Full workflow: " + ($final -join " / ")
+  if (-not ($final -contains "SWCADVERIFY|SWCADVERIFY_FINAL_OK")) { $problems++ }
+}
+
 # ---- other drawings ----
 foreach ($v in (Get-ChildItem -LiteralPath $OutputRoot -Filter "verify_*.log" -File)) {
   $lines = Read-Lines $v.FullName
