@@ -11,7 +11,11 @@ param(
   [int]$RunTimeoutSeconds = 900,
 
   # Keep running SWCADRUN after the TITLE stage until COMPLETE (or a stop).
-  [switch]$FullWorkflow
+  [switch]$FullWorkflow,
+
+  # Test settings sent as LISP after the workflow is loaded, e.g.
+  # "(setq *swapp-swfmt-test-skip-missing-frames* T)".
+  [string]$SetupLisp
 )
 
 # Opens a copy of a TITLE-stage drawing in a visible GstarCAD and runs SWCADRUN through
@@ -106,6 +110,11 @@ try {
   $rootLisp = $repoRoot.Replace('\', '/')
   Invoke-Com { $doc.SendCommand("(load `"$rootLisp/apps/swcad-workflow/swcad_workflow_load.lsp`")`r") } 120 | Out-Null
   $null = Wait-Idle $doc 300
+  if ($SetupLisp) {
+    Invoke-Com { $doc.SendCommand("$SetupLisp`r") } 60 | Out-Null
+    $null = Wait-Idle $doc 60
+    Log "setup: $SetupLisp"
+  }
   $status = Read-Status $doc
   Log ("before runs: stage=" + $status["STAGE"] + " title=" + $status["TITLE_STATUS"])
 

@@ -34,7 +34,7 @@
     )
   )
   (setq records (swapp-source-sheet-records-read))
-  (mapcar '(lambda (a) (swapp-swfmt-recognize a items records)) anchors)
+  (swapp-swfmt-place-papers (mapcar '(lambda (a) (swapp-swfmt-recognize a items records)) anchors))
 )
 
 (defun swt-sf-sheet-by-stem (sheets stem / found sheet)
@@ -54,7 +54,13 @@
     (swt-sf-line
       (list
         "SHEET" (swapp-swfmt-value sheet "stem") (swapp-swfmt-value sheet "status") (swapp-swfmt-value sheet "size")
+        (if (swapp-swfmt-value sheet "scale") (swcad-title-scale-text (swapp-swfmt-value sheet "scale")) "")
         (length (swapp-swfmt-value sheet "enames")) (swapp-swfmt-value sheet "detail")
+        (if (swapp-swfmt-value sheet "paper")
+          (strcat (rtos (- (caddr (swapp-swfmt-value sheet "paper")) (car (swapp-swfmt-value sheet "paper"))) 2 1) "x"
+                  (rtos (- (cadddr (swapp-swfmt-value sheet "paper")) (cadr (swapp-swfmt-value sheet "paper"))) 2 1))
+          ""
+        )
       )
     )
     (foreach value (swapp-swfmt-value sheet "values")
@@ -93,6 +99,20 @@
   (if (setq sheet (swt-sf-sheet-by-stem sheets "02-09-15-00_Input Locking Unit Flange"))
     ;; The name runs past the title block's right line and the outer border.
     (swt-sf-check "long NR past the title box" (swt-sf-value sheet "GEN-TITLE-NR{23}") "Input Locking Unit Flange")
+  )
+  ;; Custom-size sheets get an enlarged DR frame; the drawing stays 1:1.  These need
+  ;; DR_A0_Outline (installed, or -TestA0Frame).
+  (if (and (setq sheet (swt-sf-sheet-by-stem sheets "06-00-00-00_Base Frame")) (equal (swapp-swfmt-value sheet "status") "OK"))
+    (progn
+      (swt-sf-check "Base Frame frame" (list (swapp-swfmt-value sheet "size") (swapp-swfmt-value sheet "scale")) '("A0" 4.0))
+      (swt-sf-check "Base Frame SCA is the frame scale" (swt-sf-value sheet "GEN-TITLE-SCA{6.7}") "1:4")
+    )
+  )
+  (if (and (setq sheet (swt-sf-sheet-by-stem sheets "07-00-00-00_Brake Base Plate")) (equal (swapp-swfmt-value sheet "status") "OK"))
+    (progn
+      (swt-sf-check "Brake Base Plate frame" (list (swapp-swfmt-value sheet "size") (swapp-swfmt-value sheet "scale")) '("A0" 2.0))
+      (swt-sf-check "Brake Base Plate SCA is the frame scale" (swt-sf-value sheet "GEN-TITLE-SCA{6.7}") "1:2")
+    )
   )
   (if (setq sheet (swt-sf-sheet-by-stem sheets "01-03-00-00_L-Jig"))
     (swt-sf-check "L-Jig SIZ" (swt-sf-value sheet "GEN-TITLE-SIZ{6.7}") "A1")
