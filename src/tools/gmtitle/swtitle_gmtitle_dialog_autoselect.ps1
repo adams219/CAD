@@ -12,6 +12,11 @@ param(
 
   [string]$ExpectedTitle = "DR_titlea_3rd",
 
+  # Frame scale of the scale list (1:1, 1:2, 1:2.5, 1:4, ...).  Always set, because
+  # the dialog can keep the last one.  The drawing itself is never rescaled.
+  [ValidatePattern('^1:\d+(\.\d+)?$')]
+  [string]$ExpectedScale = "1:1",
+
   [int]$WaitSeconds = 60,
 
   [string]$LogPath,
@@ -259,7 +264,9 @@ function Set-CheckState {
 function Find-GmtitleDialog {
   param([int[]]$CandidateProcessIds)
 
-  $requiredIds = @(3010, 3011, 3022, 3024, 1)
+  # 3010 paper, 3011 title block, 3013 scale, 3022 frame positioning, 3023 rescale
+  # objects, 3024 object move, 1 OK.
+  $requiredIds = @(3010, 3011, 3013, 3022, 3023, 3024, 1)
   $candidates = @()
 
   foreach ($candidatePid in $CandidateProcessIds) {
@@ -395,31 +402,41 @@ if ($ApplySelections) {
 
 $paperControl = [IntPtr]$controls[3010]
 $titleControl = [IntPtr]$controls[3011]
+$scaleControl = [IntPtr]$controls[3013]
 $framePositionControl = [IntPtr]$controls[3022]
+$rescaleControl = [IntPtr]$controls[3023]
 $objectMoveControl = [IntPtr]$controls[3024]
 $okControl = [IntPtr]$controls[1]
 
 $paperBefore = Get-ComboState -Handle $paperControl
 $titleBefore = Get-ComboState -Handle $titleControl
+$scaleBefore = Get-ComboState -Handle $scaleControl
 $framePositionBefore = Get-CheckState -Handle $framePositionControl
+$rescaleBefore = Get-CheckState -Handle $rescaleControl
 $objectMoveBefore = Get-CheckState -Handle $objectMoveControl
 
 $logLines.Add("Paper items: " + ($paperBefore.Items -join " | "))
 $logLines.Add("Title items: " + ($titleBefore.Items -join " | "))
 $logLines.Add("Before paper: index=$($paperBefore.SelectedIndex) text=$($paperBefore.SelectedText)")
 $logLines.Add("Before title: index=$($titleBefore.SelectedIndex) text=$($titleBefore.SelectedText)")
+$logLines.Add("Before scale: index=$($scaleBefore.SelectedIndex) text=$($scaleBefore.SelectedText)")
 $logLines.Add("Before Frame positioning: $framePositionBefore")
+$logLines.Add("Before Rescale: $rescaleBefore")
 $logLines.Add("Before Object move: $objectMoveBefore")
 
 if ($ApplySelections) {
   $paperAfter = Set-ComboExactValue -Dialog $dialog -Control $paperControl -ControlId 3010 -ExpectedValue $ExpectedFrame
   $titleAfter = Set-ComboExactValue -Dialog $dialog -Control $titleControl -ControlId 3011 -ExpectedValue $ExpectedTitle
+  $scaleAfter = Set-ComboExactValue -Dialog $dialog -Control $scaleControl -ControlId 3013 -ExpectedValue $ExpectedScale
   $framePositionAfter = Set-CheckState -Handle $framePositionControl -Checked $true
+  $rescaleAfter = Set-CheckState -Handle $rescaleControl -Checked $false
   $objectMoveAfter = Set-CheckState -Handle $objectMoveControl -Checked $false
 
   $logLines.Add("After paper: index=$($paperAfter.SelectedIndex) text=$($paperAfter.SelectedText)")
   $logLines.Add("After title: index=$($titleAfter.SelectedIndex) text=$($titleAfter.SelectedText)")
+  $logLines.Add("After scale: index=$($scaleAfter.SelectedIndex) text=$($scaleAfter.SelectedText)")
   $logLines.Add("After Frame positioning: $framePositionAfter")
+  $logLines.Add("After Rescale: $rescaleAfter")
   $logLines.Add("After Object move: $objectMoveAfter")
   $logLines.Add("Readback validation: PASS")
 

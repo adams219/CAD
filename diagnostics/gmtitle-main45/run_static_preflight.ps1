@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260930-sheet-format-1",
+  [string]$ExpectedGmtitleVersion = "260930-sheet-format-2",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -1065,7 +1065,7 @@ Assert-NotContains -Text $preserveCopyMatrixProbeText -Needle "swcad-title-trans
 Assert-Contains -Text $preserveCopyMatrixProbeText -Needle "Copy marker policy: inherit source xdata; do not add a new clone marker" -Label "Preserve-copy matrix pure inherited xdata policy"
 Assert-NotContains -Text $preserveCopyMatrixProbeText -Needle "swcad-title-mark-native-exemplar-pair copied-title" -Label "Preserve-copy matrix no new clone marker"
 Assert-Contains -Text $dialogControlProbeText -Needle "swtitle_gmtitle_dialog_autoselect.ps1" -Label "GMTITLE diagnostic wrapper uses production helper"
-Assert-Contains -Text $dialogAutoselectHelperText -Needle '$requiredIds = @(3010, 3011, 3022, 3024, 1)' -Label "GMTITLE fixed control IDs"
+Assert-Contains -Text $dialogAutoselectHelperText -Needle '$requiredIds = @(3010, 3011, 3013, 3022, 3023, 3024, 1)' -Label "GMTITLE fixed control IDs"
 Assert-Contains -Text $dialogAutoselectHelperText -Needle "CB_SETCURSEL" -Label "GMTITLE combo selection without screen coordinates"
 Assert-Contains -Text $dialogAutoselectHelperText -Needle "BM_CLICK" -Label "GMTITLE checkbox and OK control action"
 Assert-Contains -Text $dialogAutoselectHelperText -Needle "Readback validation: PASS" -Label "GMTITLE fixed control readback gate"

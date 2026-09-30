@@ -40,7 +40,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260930-sheet-format-1")
+(setq *swcad-title-scale-version* "260930-sheet-format-2")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -1298,6 +1298,7 @@
       (write-line (strcat "Application HWND: " (swcad-title-string hwnd)) handle)
       (write-line (strcat "Expected frame: " (swcad-title-string frame-block)) handle)
       (write-line (strcat "Expected title: " (swcad-title-target-title-block-name)) handle)
+      (write-line (strcat "Expected scale: " (swcad-title-scale-text *swcad-title-target-frame-scale*)) handle)
       (write-line "Frame positioning: ON" handle)
       (write-line "Object move: OFF" handle)
       (close handle)
@@ -1305,6 +1306,52 @@
     )
     nil
   )
+)
+
+;;; Scale of the frame the running GMTITLE inserts (1.0, or 4.0 for a 1:4 frame).  The
+;;; drawing is never rescaled; only the frame and title are drawn that much larger.
+;;; Callers set *swcad-title-next-gmtitle-scale*; the GMTITLE entry takes it once.
+(setq *swcad-title-target-frame-scale* 1.0)
+(setq *swcad-title-next-gmtitle-scale* nil)
+
+;;; GMTITLE scale list values above 1:1 that a frame may be enlarged by.
+(setq *swcad-title-frame-scales* '(2.0 2.5 4.0 5.0 10.0 15.0 20.0 25.0 40.0 50.0 75.0 100.0))
+
+;;; GMTITLE scale of a SHEET_FORMAT source frame: SWFMT_A0_OUTLINE_S4_05 -> 4.0,
+;;; SWFMT_A1_OUTLINE_S2P5_03 -> 2.5; any other frame 1.0.
+(defun swcad-title-sheet-format-scale-from-name (block-name / upper pos rest end token)
+  (setq upper (strcase (swcad-title-block-own-name (swcad-title-string block-name))))
+  (if (and (wcmatch upper "SWFMT_*_OUTLINE_S*") (setq pos (vl-string-search "_OUTLINE_S" upper)))
+    (progn
+      (setq rest (substr upper (+ pos 11)))
+      (setq end (vl-string-search "_" rest))
+      (setq token (vl-string-translate "P" "." (if end (substr rest 1 end) rest)))
+      (if (> (atof token) 0.0) (atof token) 1.0)
+    )
+    1.0
+  )
+)
+
+;;; The frame scale that explains a bbox (long and short side) of a sheet: a value of
+;;; the scale list when both sides are that multiple of the paper within 1%, else 1.0.
+(defun swcad-title-frame-scale-for-sides (actual-long actual-short expected-long expected-short / found scale)
+  (setq found 1.0)
+  (foreach scale *swcad-title-frame-scales*
+    (if
+      (and
+        (= found 1.0)
+        (<= (swcad-title-abs (- actual-long (* expected-long scale))) (* 0.01 expected-long scale))
+        (<= (swcad-title-abs (- actual-short (* expected-short scale))) (* 0.01 expected-short scale))
+      )
+      (setq found scale)
+    )
+  )
+  found
+)
+
+;;; "1:4", "1:2.5" as in the GMTITLE scale list.
+(defun swcad-title-scale-text (scale)
+  (strcat "1:" (if (equal scale (fix scale) 0.0001) (itoa (fix scale)) (rtos scale 2 1)))
 )
 
 (defun swcad-title-start-gmtitle-dialog-autoselect (frame-block / helper request-path log-path hwnd shell command-line launch-result)
@@ -1334,6 +1381,8 @@
               (swcad-title-command-line-quote frame-block)
               " -ExpectedTitle "
               (swcad-title-command-line-quote (swcad-title-target-title-block-name))
+              " -ExpectedScale "
+              (swcad-title-scale-text *swcad-title-target-frame-scale*)
               " -WaitSeconds 90 -LogPath "
               (swcad-title-command-line-quote log-path)
               " -ApplySelections -ClickOk"
@@ -1370,7 +1419,9 @@
                       frame-block
                       ", 제목블록="
                       (swcad-title-target-title-block-name)
-                      ", Frame positioning=ON, Object move=OFF."
+                      ", 축척="
+                      (swcad-title-scale-text *swcad-title-target-frame-scale*)
+                      ", Frame positioning=ON, 재축척 OFF, Object move=OFF."
                     )
                   )
                 )
@@ -3159,7 +3210,7 @@
   )
 )
 
-(defun swcad-title-target-frame-bbox-size-warning (sheet bbox / dims width height actual-long actual-short expected-long expected-short long-delta short-delta)
+(defun swcad-title-target-frame-bbox-size-warning (sheet bbox / dims width height actual-long actual-short expected-long expected-short long-delta short-delta scale)
   (setq dims (swcad-title-sheet-dimensions sheet))
   (if (and dims bbox)
     (progn
@@ -3169,6 +3220,10 @@
       (setq actual-short (min width height))
       (setq expected-long (max (car dims) (cadr dims)))
       (setq expected-short (min (car dims) (cadr dims)))
+      ;; A frame GMTITLE drew at 1:4 is four times the paper (drawing kept 1:1).
+      (setq scale (swcad-title-frame-scale-for-sides actual-long actual-short expected-long expected-short))
+      (setq expected-long (* expected-long scale))
+      (setq expected-short (* expected-short scale))
       (setq long-delta (/ (swcad-title-abs (- actual-long expected-long)) expected-long))
       (setq short-delta (/ (swcad-title-abs (- actual-short expected-short)) expected-short))
       (if (or (> long-delta 0.08) (> short-delta 0.08))
@@ -14641,17 +14696,24 @@
 ;;; GMTITLE shows only the frames whose DWG is in the Format folder (DR_A0_Outline
 ;;; is not installed by default).  Without it the dialog helper cannot pick the
 ;;; frame, so stop before GMTITLE opens.
-(defun swcad-title-run-native-gmtitle-prefer-commandline (frame-block placement-point / path)
+(defun swcad-title-run-native-gmtitle-prefer-commandline (frame-block placement-point / path result)
+  ;; Every GMTITLE run sets its scale: the one asked for this run, else 1:1.
+  (setq *swcad-title-target-frame-scale* (if *swcad-title-next-gmtitle-scale* *swcad-title-next-gmtitle-scale* 1.0))
+  (setq *swcad-title-next-gmtitle-scale* nil)
   (setq path (swcad-title-frame-dwg-path frame-block))
-  (if (findfile path)
-    (swcad-title-run-native-gmtitle-prefer-commandline-run frame-block placement-point)
-    (progn
-      (setq *swcad-title-last-native-gmtitle-abort-reason* "TARGET_FRAME_FILE_MISSING")
-      (setq *swcad-title-last-native-gmtitle-placement-used* nil)
-      (swcad-title-princ-line (strcat "GstarCAD 도면틀 파일이 없어 GMTITLE을 실행하지 않습니다: " path))
-      (list nil nil nil)
+  (setq result
+    (if (findfile path)
+      (swcad-title-run-native-gmtitle-prefer-commandline-run frame-block placement-point)
+      (progn
+        (setq *swcad-title-last-native-gmtitle-abort-reason* "TARGET_FRAME_FILE_MISSING")
+        (setq *swcad-title-last-native-gmtitle-placement-used* nil)
+        (swcad-title-princ-line (strcat "GstarCAD 도면틀 파일이 없어 GMTITLE을 실행하지 않습니다: " path))
+        (list nil nil nil)
+      )
     )
   )
+  (setq *swcad-title-target-frame-scale* 1.0)
+  result
 )
 
 (defun swcad-title-run-native-gmtitle-prefer-commandline-run (frame-block placement-point / result new-count deleted-count commandline-error interactive-result interactive-error script-active commandline-disabled skip-commandline skip-interactive-batch)
@@ -15825,7 +15887,7 @@
   (swcad-title-source-title-candidates-from-frames frames)
 )
 
-(defun swcad-title-source-frame-candidates (/ ename data block leaf bbox area sheet strong-name result)
+(defun swcad-title-source-frame-candidates (/ ename data block leaf bbox area sheet strong-name scale check-bbox result)
   (setq result nil)
   (foreach ename (swcad-title-all-insert-enames)
     (setq data (entget ename '("*")))
@@ -15842,11 +15904,23 @@
       (progn
         (setq bbox (swcad-title-safe-bbox ename))
         (setq area (swcad-title-bbox-area bbox))
+        ;; A SHEET_FORMAT frame for an enlarged DR frame is its scale times the paper.
+        (setq scale (swcad-title-sheet-format-scale-from-name leaf))
+        (setq check-bbox
+          (if (and bbox (> scale 1.0))
+            (list
+              (car bbox) (cadr bbox)
+              (+ (car bbox) (/ (swcad-title-bbox-width bbox) scale))
+              (+ (cadr bbox) (/ (swcad-title-bbox-height bbox) scale))
+            )
+            bbox
+          )
+        )
         (if
           (and
             bbox
             (> area 1000.0)
-            (swcad-title-source-frame-bbox-plausible-p sheet bbox strong-name)
+            (swcad-title-source-frame-bbox-plausible-p sheet check-bbox strong-name)
           )
           (setq result (append result (list (list ename data bbox block area sheet))))
         )
@@ -16738,6 +16812,9 @@
               residue-handles
             )
             (progn
+              ;; A SHEET_FORMAT frame of a custom-size sheet asks for its enlarged
+              ;; DR frame (SWFMT_A0_OUTLINE_S4_nn -> 1:4); every other source 1:1.
+              (setq *swcad-title-next-gmtitle-scale* (swcad-title-sheet-format-scale-from-name source-frame-block))
               (setq gmtitle-result
                 (swcad-title-run-native-gmtitle-prefer-commandline
                   frame-block
