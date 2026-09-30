@@ -181,6 +181,7 @@ SWCADSTATUS
 | `BLOCKED_NATIVE_GMTITLE_XREF` | 이미 native GMTITLE인 XREF입니다. 자동 분해 대상이 아닙니다. |
 | `STOP_COLLECT_PAPER_SHEET` | 배치 공간에만 그려진 도면을 모델 공간 사본으로 바꾸지 못했습니다. 표시된 파일을 SolidWorks에서 `용지 공간으로 모든 도면 시트 내보내기`를 끄고 다시 저장합니다. |
 | `BLOCKED_COLLECT_SCRIPT_ACTIVE` | SCRIPT 실행 중에는 파일 선택 창을 열지 않습니다. 명령창에 `SWCADRUN`을 직접 입력합니다. |
+| `STOP_SHEET_FORMAT_UNSUPPORTED` | SolidWorks 기본 양식 시트 가운데 자동으로 바꿀 수 없는 것이 있습니다. 아래 "SolidWorks 기본 양식 도면"을 봅니다. |
 | `ABORT_`, `ERROR_`, `WARN_` | 같은 명령을 계속 누르지 말고 표시된 원인을 확인합니다. |
 
 모으기 단계가 `STOP_` 또는 `ERROR_COLLECT_`로 끝나면 그 실행에서 붙인 XREF를 모두 떼어 내므로 도면은 바뀌지 않습니다.
@@ -209,6 +210,7 @@ SWCADRUN
 | --- | --- |
 | 0/6 도면 모으기 | 빈 도면에서만: 고른 DWG를 XREF로 붙이고 파일 이름 순서로 배치합니다. |
 | 1/6 입력 준비 | XREF 파일명·좌표를 기록하고 BIND/EXPLODE합니다. |
+| 1/6 SolidWorks 기본 양식 정리 | 도면틀·표제란이 선과 글자로만 그려진 SolidWorks 기본 양식이면, 그 선·글자를 표제란 값과 함께 임시 블록으로 묶습니다. |
 | 2/6 GMTITLE | 용지 크기를 감지하고 DR 도면틀·제목블록을 만들며 기존 표제란 값을 옮깁니다. |
 | 3/6 치수 | 치수 스타일과 맞춤공차를 통일하고 원래 치수값을 비교합니다. |
 | 4/6 Layout | XREF 배치 순서와 원본 파일명으로 A4 Layout을 만듭니다. |
@@ -225,6 +227,31 @@ SWCADSTATUS
 ```
 
 완료될 때까지 이 순서를 반복합니다. 도면 상태에 따라 `SWCADRUN` 실행 횟수는 달라질 수 있습니다.
+
+### SolidWorks 기본 양식 도면
+
+SolidWorks 기본 한국어 도면 양식(표제란에 `작성`, `검사`, `승인`, `도면 번호`, `배율:`, `시트 1 OF 1`이 있는 양식)은 DWG로 저장하면 도면틀과 표제란이 블록이 아니라 선과 글자로만 들어갑니다. `SWCADRUN`은 GMTITLE 단계 전에 이런 시트를 한 번 정리합니다.
+
+1. 표제란 칸 이름 17개가 기본 양식 자리에 있는지, 두 겹 테두리가 있는지로 시트를 알아봅니다.
+2. 용지 크기는 테두리 크기로 정합니다. 표제란의 크기 칸(`A3`)은 모든 시트에 똑같이 적혀 있어 쓰지 않습니다.
+3. 칸 이름 그대로 값을 읽습니다.
+   - `도면 번호` 칸 → 도면번호(NR). SolidWorks는 이 칸에 SolidWorks 파일 이름을 넣습니다(예: `Bush Inner`).
+   - `제목` 칸 → 도면명(DWG)
+   - `배율:` 뒤 → 척도, `재질:` 뒤 → 재질, `수정본` → 개정
+   - `작성` 줄의 이름·날짜 → 작성자·날짜, `검사`·`승인` 줄의 이름 → 검도·승인
+   - 파일 이름은 쓰지 않습니다. 빈 칸은 위 "표제란 값 옮기기"의 기본값 규칙을 따릅니다.
+4. 양식의 선·글자·주석(일반 공차 안내, 디버링 안내)을 모두 임시 블록 두 개(`SWFMT_A3_OUTLINE_01`, `SWFMT_TITLE_01` 같은 이름)로 옮깁니다. 다음 GMTITLE 단계가 이 블록을 새 DR 도면틀·`DR_titlea_3rd`로 바꾸고 임시 블록을 지웁니다.
+5. 새 표제란에 칸이 없는 글자(무게, 표면 거칠기, 공차 안내 등)는 옮기지 않고 `swcad_sheet_format_last.txt`에 기록만 합니다.
+
+다음 경우에는 아무것도 바꾸지 않고 `STOP_SHEET_FORMAT_UNSUPPORTED`로 멈추며, 해당 파일 목록을 보여 줍니다.
+
+| 표시 | 뜻과 조치 |
+| --- | --- |
+| 테두리 모양이 기본 양식과 다름 | 사용자 크기 용지처럼 표제란이 테두리 오른쪽 아래 모서리에 있지 않습니다. SolidWorks에서 A0~A4 표준 크기로 다시 저장하거나, 그 파일을 빼고 새 도면에서 다시 모읍니다. |
+| 표준 크기 아님 / 용지 방향 다름 | 용지가 A0~A4가 아니거나, A4가 가로·A0~A3가 세로입니다. DR 도면틀은 A4 세로, 나머지 가로입니다. |
+| 도면틀 파일 없음 | A0 도면인데 GstarCAD 도면틀 폴더(`C:\Program Files\Gstarsoft\GstarCAD Mechanical 2024 Korean\Dwg\Format`)에 `DR_A0_Outline.dwg`가 없습니다. `DR_A1_Outline.dwg`처럼 만들어 넣으면 변환됩니다. |
+| 도면틀 없음 | 도면틀 블록도 기본 양식도 없는 도면입니다. |
+| 잠긴 레이어 | 양식 선·글자가 잠긴 레이어에 있습니다. 잠금을 풀고 다시 실행합니다. |
 
 ### 표제란 값 옮기기
 
@@ -249,7 +276,7 @@ GMTITLE 단계는 새 `DR_titlea_3rd`의 11칸을 모두 원본 표제란 값으
 창이 그대로 남거나 수동 확인을 요구하면 다음 값인지 확인합니다.
 
 ```text
-용지/도면틀: 감지된 DR_A2_Outline, DR_A3_Outline 또는 DR_A4_Outline
+용지/도면틀: 감지된 DR_A0_Outline(설치한 경우), DR_A1_Outline, DR_A2_Outline, DR_A3_Outline 또는 DR_A4_Outline
 제목블록: DR_titlea_3rd
 Frame positioning: ON
 Object move: OFF

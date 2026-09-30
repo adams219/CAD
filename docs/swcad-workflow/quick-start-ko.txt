@@ -153,7 +153,15 @@ SWCADRUN은 한 번에 모든 일을 끝내지 않고 아래 단계를 하나씩
 
   0/6 도면 모으기 (빈 도면에서만)
   1/6 XREF와 시트 묶음 준비
+  1/6 SolidWorks 기본 양식(선과 글자로 된 도면틀·표제란) 정리
   2/6 GMTITLE 도면틀·제목블록 변환
+
+SolidWorks 기본 양식 도면: 표제란 칸 이름 그대로 값을 옮깁니다.
+  도면 번호 칸 → 도면번호, 제목 칸 → 도면명, 배율 → 척도
+STOP_SHEET_FORMAT_UNSUPPORTED가 나오면 아무것도 바뀌지 않은 것입니다.
+표시된 파일이 사용자 크기 용지이거나 도면틀이 없으면 SolidWorks에서 A0~A4로
+다시 저장하거나 그 파일을 빼고 새 도면에서 다시 모읍니다. A0 도면은 GstarCAD
+Dwg\Format 폴더에 DR_A0_Outline.dwg가 있어야 합니다.
   3/6 치수 스타일·맞춤공차 통일
   4/6 원본 파일명 Layout 생성
   5/6 사용하지 않는 이름 정의 정리
@@ -166,7 +174,7 @@ SWCADRUN은 한 번에 모든 일을 끝내지 않고 아래 단계를 하나씩
 자동 선택기가 동작하는 동안 마우스와 키보드를 건드리지 마세요.
 창이 남거나 수동 확인을 요구하면 아래 값을 확인합니다.
 
-  용지: 감지된 DR_A2_Outline, DR_A3_Outline 또는 DR_A4_Outline
+  용지: 감지된 DR_A0_Outline(설치한 경우), DR_A1_Outline~DR_A4_Outline
   제목블록: DR_titlea_3rd
   Frame positioning: ON
   Object move: OFF

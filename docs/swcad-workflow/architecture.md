@@ -37,7 +37,7 @@ SWCADVERIFY
 `SWCADRUN`은 현재 상태에서 다음 안전 단계 하나만 실행한다. 중간에 종료해도 DWG의 `SWCAD_WORKFLOW_STATE` XRecord를 읽어 재개한다. 단계는 사용자에게 0/6(빈 도면의 도면 모으기)부터 6/6까지 표시하며, GMTITLE 결과가 `ABORT_`, `ERROR_`, `WARN_`이면 같은 명령의 반복을 권장하지 않는다.
 
 ```text
-COLLECT(빈 도면) → XREF → SHEET_WRAPPERS(필요한 경우) → TITLE → DIMSTYLE → LAYOUT → CLEANUP → COMPLETE
+COLLECT(빈 도면) → XREF → SHEET_WRAPPERS(필요한 경우) → SHEET_FORMAT(필요한 경우) → TITLE → DIMSTYLE → LAYOUT → CLEANUP → COMPLETE
 ```
 
 ## COLLECT: 도면 모으기
@@ -50,6 +50,18 @@ COLLECT(빈 도면) → XREF → SHEET_WRAPPERS(필요한 경우) → TITLE → 
 - 모델 공간이 빈 파일(SolidWorks `용지 공간으로 모든 도면 시트 내보내기`)은 XREF가 비어 보인다. 이런 파일은 `%LOCALAPPDATA%\SWTitle\collect\<시각>\<n>\`에 같은 파일 이름으로 복사하고, 그 사본을 열어 내용이 있는 배치 탭 하나의 객체를 `CopyObjects`로 모델 공간에 옮긴 뒤 저장해 원본 대신 붙인다. 고른 원본은 CAD로 열지 않는다. 파일 이름이 같으므로 `SOURCE_SHEET_*`의 stem과 Layout 이름은 원본 파일명이다. 내용 있는 배치 탭이 둘 이상이거나 음수 `DIMLFAC`(배치 공간에서만 적용) 치수가 있으면 `STOP_COLLECT_PAPER_SHEET`로 멈춘다.
 - GstarCAD 동작(2026-09-30 실측): ObjectDBX(`ObjectDBX.AxDbDocument.24`)는 만들 수 없다. `Documents.Open`은 가끔(28회 중 2회) 파일을 열고도 `Expecting object to be local` 오류를 돌려주므로, 다시 열지 않고 열린 문서 목록에서 찾는다. 다시 열면 "이미 열려 있음" 확인 창에서 멈춘다. `Close`는 다른 도면을 열거나 활성화할 때 끝나므로 닫은 뒤 호스트를 `Activate`한다.
 - 한 장이라도 붙이기·변환·범위 읽기·이동에 실패하면 그 실행에서 붙인 XREF를 모두 떼어 낸다. 모든 메시지는 `swcad_collect_last.txt`에도 남긴다.
+
+## SHEET_FORMAT: 선과 글자로 된 SolidWorks 기본 양식
+
+SolidWorks 기본 한국어 양식은 DWG에서 도면틀·표제란이 LINE과 MTEXT뿐이다. TITLE 단계는 도면틀·표제란 INSERT로만 시트를 찾으므로, 모델 공간에 앵커 글자 `도면의 배율을 변경하지 마시오.`가 있으면 TITLE 전에 `SHEET_FORMAT` 단계가 된다(`swapp-convert-sheet-formats`).
+
+- 인식: 앵커에서 안쪽 테두리 오른쪽 아래 모서리 C를 구하고, 칸 이름 17개가 C 기준 고정 위치(±1 mm)에 있는지, C에서 시작하는 안쪽 테두리와 5 mm 바깥 테두리의 네 변이 모두 있는지 본다. 모든 크기에서 표제란은 C 기준 180×55.25 mm로 같다. 시트마다 `SOURCE_SHEET` 범위 안의 객체만 본다(도면 전체 반복은 수 분이 걸렸다).
+- 용지: 바깥 테두리 + 왼쪽 15, 오른쪽·위·아래 5 mm. DR 도면틀(A1~A4 실측)은 안쪽 테두리가 용지 왼쪽에서 20, 나머지에서 10 mm이고 SolidWorks 양식은 좌우 15, 상하 10 mm라서, 이렇게 잡으면 두 안쪽 테두리가 겹치고 새 표제란 왼쪽 아래가 옛 표제란 왼쪽 아래와 같다. A0~A4(±1 mm)와 DR 도면틀 방향(A4 세로, 나머지 가로)이 맞아야 한다. 해당 `DR_Ax_Outline.dwg`가 GstarCAD `Dwg\Format` 폴더에 있어야 한다(A0는 기본 설치에 없음).
+- 값: C 기준 칸 영역(`*swapp-swfmt-cells*`)으로 읽는다. 글자는 삽입점, 주석 블록은 중심으로 칸을 정한다(긴 도면 번호 글자는 표제란 오른쪽 선을 넘는다). `도면 번호`→NR, `제목`→DWG, `배율:`→SCA, `재질:`→MAT1, `수정본`→REV, `작성` 이름·날짜→NAME·DATE, `검사`·`승인` 이름→CHKM·APPM. 파일 이름은 쓰지 않는다(사용자 결정 2026-09-30). 칸이 없는 글자는 `swcad_sheet_format_last.txt`에만 남긴다.
+- 변환: 테두리 8선, 바깥 테두리에서 시작하는 10.5 mm 이하 눈금선, 테두리 사이 구역 글자, 표제란 안의 선·글자·주석 블록을 `SWFMT_<크기>_OUTLINE_nn` 블록(용지 외곽선 추가, 기준점은 용지 왼쪽 아래)으로 옮긴다. `SWFMT_TITLE_nn`은 표제란 외곽선과 11개 `GEN-TITLE-*` 속성을 `DR_titlea_3rd` 칸 위치에 가진다. 모든 시트의 블록 쌍을 먼저 만들고 성공하면 원래 객체를 지운다. 실패하면 만든 것을 지우고 멈춘다.
+- 인식하지 못한 시트가 하나라도 있으면(사용자 크기, 방향, 도면틀 파일 없음, 잠긴 레이어, 도면틀도 양식도 없는 `SOURCE_SHEET`) 아무것도 바꾸지 않고 `STOP_SHEET_FORMAT_UNSUPPORTED`로 목록을 보여 준다.
+- TITLE 단계는 이 쌍을 결합된 속성 표제란과 도면틀로 보고 변환한다. `SWFMT_*` 도면틀에는 시트 잔여물 영역(왼쪽 아래 로고, 위쪽 노트)을 쓰지 않는다. 양식 객체가 모두 블록 안에 있어 짐작으로 지울 것이 없고, 그 영역에는 도면 내용만 있기 때문이다.
+- XREF 단계 성공 조건은 원본 도면틀 블록 또는 앵커 글자가 있는 것이다.
 
 ## 성능 구조
 

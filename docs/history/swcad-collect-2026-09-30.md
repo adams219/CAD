@@ -47,7 +47,7 @@ XREF는 모델 공간만 보여 주므로 14장은 빈 XREF가 된다. 첫 시�
 - 31장이 SolidWorks 기본 한국어 도면 양식이다. 도면틀, 구역 표시(A~H, 1~12), 표제란(`작성`, `검사`, `승인`, `도면 번호`, `시트 1 OF 1` 등)이 모두 선과 글자다. GMTITLE 단계는 도면틀·표제란 블록(`DR_A3_Outline`, `DR-A3 FROM_HYUN`, `DR_표제란_FTAP` 등)으로 원본 시트를 찾으므로 하나도 찾지 못한다.
 - 도면틀 크기: A4 7, A3 5, A2 9, A1 5, A0 3, 사용자 크기 3(06 Base Frame 약 4746x3354, 07 Brake Base Plate 1990x1590, 08 Drive Base Plate는 테두리 선을 찾지 못함). GMTITLE 단계는 A2·A3·A4 위주다.
 
-이 두 가지는 모으기와 별개의 작업이다.
+이 두 가지는 모으기와 별개의 작업이다. 같은 날 `SHEET_FORMAT` 단계로 표준 크기 시트를 지원했다(`docs/history/swcad-sheet-format-2026-09-30.md`). 사용자 크기 2장과 도면틀 없는 1장은 바꾸기 전에 멈추고, A0 3장은 `DR_A0_Outline.dwg`가 있어야 변환된다.
 
 ## 테스트
 
