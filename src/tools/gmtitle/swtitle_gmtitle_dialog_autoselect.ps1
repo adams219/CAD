@@ -7,7 +7,7 @@ param(
 
   [string]$SessionLogPath,
 
-  [ValidatePattern('^DR_A[1-4]_Outline$')]
+  [ValidatePattern('^DR_A[0-4]_Outline$')]
   [string]$ExpectedFrame = "DR_A3_Outline",
 
   [string]$ExpectedTitle = "DR_titlea_3rd",

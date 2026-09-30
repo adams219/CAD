@@ -1,5 +1,5 @@
 ﻿param(
-  [string]$ExpectedGmtitleVersion = "260929-small-fixes-2",
+  [string]$ExpectedGmtitleVersion = "260930-sheet-format-1",
 
   [string]$ExpectedLoaderVersion = "260706-loader-convert-next-response-guidance"
 )
@@ -843,7 +843,7 @@ Assert-NotContains -Text $mainText -Needle '(swcad-title-apply-result "WARN_A4_F
 Assert-NotContains -Text $mainText -Needle '(swcad-title-apply-result "NEXT_PREPARE_A4_FRAME_ONLY_OUTLINE_DEFINITION")' -Label "No legacy A4 next-prepare status emission"
 Assert-Contains -Text $mainText -Needle "swcad-title-moved-native-placement-allowed-p" -Label "Generic moved-native placement guard"
 Assert-Contains -Text $mainText -Needle "(defun swcad-title-native-upgrade-candidate-records ()" -Label "Generic A2/A3/A4 native-upgrade candidate function"
-Assert-Contains -Text $mainText -Needle "(swcad-title-target-pair-upgrade-candidate-records '(`"A2`" `"A3`" `"A4`"))" -Label "Native-upgrade candidates include A2/A3/A4"
+Assert-Contains -Text $mainText -Needle "(swcad-title-target-pair-upgrade-candidate-records '(`"A0`" `"A1`" `"A2`" `"A3`" `"A4`"))" -Label "Native-upgrade candidates include A0-A4"
 Assert-Contains -Text $mainText -Needle "WARN_A2_A3_A4_TARGET_FRAME_NOT_NATIVE_LIKE" -Label "Generic A2/A3/A4 native-like warning status"
 Assert-Contains -Text $mainText -Needle "A2/A3/A4 native-like completion:" -Label "Generic A2/A3/A4 native-like completion log"
 Assert-Contains -Text $mainText -Needle "다음 단계 코드: UPGRADE_NATIVE_GMTITLE" -Label "Generic native GMTITLE next-step code"

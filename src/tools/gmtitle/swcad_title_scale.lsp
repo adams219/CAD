@@ -40,7 +40,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260929-small-fixes-2")
+(setq *swcad-title-scale-version* "260930-sheet-format-1")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -2575,7 +2575,7 @@
 )
 
 (defun swcad-title-target-frame-block-candidates ()
-  '("DR_A1_Outline" "DR_A2_Outline" "DR_A3_Outline" "DR_A4_Outline")
+  '("DR_A1_Outline" "DR_A2_Outline" "DR_A3_Outline" "DR_A4_Outline" "DR_A0_Outline")
 )
 
 (defun swcad-title-existing-target-frame-block-name (/ result candidate)
@@ -3075,7 +3075,7 @@
       (setq height (swcad-title-bbox-height frame-bbox))
       (setq long (max width height))
       (setq short (min width height))
-      (setq candidates '("A1" "A2" "A3" "A4"))
+      (setq candidates '("A0" "A1" "A2" "A3" "A4"))
       (foreach candidate candidates
         (setq dims (swcad-title-sheet-dimensions candidate))
         (if dims
@@ -3132,7 +3132,7 @@
 
 (defun swcad-title-target-frame-block-name-for-sheet (sheet-size / normalized)
   (setq normalized (swcad-title-normalized-sheet-size sheet-size))
-  (if (and normalized (wcmatch normalized "A1,A2,A3,A4"))
+  (if (and normalized (wcmatch normalized "A0,A1,A2,A3,A4"))
     (strcat "DR_" normalized "_Outline")
     (swcad-title-target-frame-block-name)
   )
@@ -4205,9 +4205,25 @@
   found
 )
 
+;;; A frame made by the workflow's SHEET_FORMAT step from a SOLIDWORKS default sheet
+;;; format drawn with lines.  It already holds every format line, text and note.
+(defun swcad-title-sheet-format-frame-p (frame-ename)
+  (and
+    frame-ename
+    (wcmatch (strcase (swcad-title-effective-insert-name frame-ename)) "SWFMT_*")
+  )
+)
+
 (defun swcad-title-source-sheet-residue-records (frame-bbox source-ename source-frame-ename / regions excluded ss index total ename data etype bbox handle region block layer result)
   (setq result nil)
-  (setq regions (swcad-title-source-sheet-residue-regions frame-bbox))
+  ;; The residue regions are guesses for block-based formats (logo corner, top
+  ;; notes).  On a SHEET_FORMAT frame they would only catch drawing content.
+  (setq regions
+    (if (swcad-title-sheet-format-frame-p source-frame-ename)
+      nil
+      (swcad-title-source-sheet-residue-regions frame-bbox)
+    )
+  )
   (setq excluded nil)
   (if source-ename
     (setq excluded (append excluded (list source-ename)))
@@ -5589,9 +5605,11 @@
   total
 )
 
+;;; The a2a3a4 names are historical: A1 (DR_A1_Outline) and A0 (DR_A0_Outline,
+;;; when installed) follow the same rules.
 (defun swcad-title-a2a3a4-counts-equal-p (first second / result sheet)
   (setq result T)
-  (foreach sheet '("A2" "A3" "A4")
+  (foreach sheet '("A0" "A1" "A2" "A3" "A4")
     (if (/= (swcad-title-count-value sheet first) (swcad-title-count-value sheet second))
       (setq result nil)
     )
@@ -5601,7 +5619,7 @@
 
 (defun swcad-title-a2a3a4-sheet-p (sheet / normalized)
   (setq normalized (swcad-title-normalized-sheet-size sheet))
-  (if (member normalized '("A2" "A3" "A4")) T nil)
+  (if (member normalized '("A0" "A1" "A2" "A3" "A4")) T nil)
 )
 
 (defun swcad-title-a2a3a4-counts-only (counts / result pair sheet count)
@@ -5998,7 +6016,7 @@
   (and
     source-frame
     sheet
-    (wcmatch sheet "A1,A2,A3,A4")
+    (wcmatch sheet "A0,A1,A2,A3,A4")
     (swcad-title-frame-name-matches-p frame-block (strcat "DR_" sheet "_Outline"))
   )
 )
@@ -9050,7 +9068,7 @@
 (defun swcad-title-frame-embedded-title-records-all (/ result frame-name)
   (setq result nil)
   (foreach frame-name (swcad-title-target-frame-block-candidates)
-    (if (not (equal (swcad-title-normalized-sheet-size frame-name) "A1"))
+    (if (not (member (swcad-title-normalized-sheet-size frame-name) '("A0" "A1")))
       (setq result
         (append
           result
@@ -14620,7 +14638,23 @@
   (list title-ename frame-ename new-enames)
 )
 
-(defun swcad-title-run-native-gmtitle-prefer-commandline (frame-block placement-point / result new-count deleted-count commandline-error interactive-result interactive-error script-active commandline-disabled skip-commandline skip-interactive-batch)
+;;; GMTITLE shows only the frames whose DWG is in the Format folder (DR_A0_Outline
+;;; is not installed by default).  Without it the dialog helper cannot pick the
+;;; frame, so stop before GMTITLE opens.
+(defun swcad-title-run-native-gmtitle-prefer-commandline (frame-block placement-point / path)
+  (setq path (swcad-title-frame-dwg-path frame-block))
+  (if (findfile path)
+    (swcad-title-run-native-gmtitle-prefer-commandline-run frame-block placement-point)
+    (progn
+      (setq *swcad-title-last-native-gmtitle-abort-reason* "TARGET_FRAME_FILE_MISSING")
+      (setq *swcad-title-last-native-gmtitle-placement-used* nil)
+      (swcad-title-princ-line (strcat "GstarCAD 도면틀 파일이 없어 GMTITLE을 실행하지 않습니다: " path))
+      (list nil nil nil)
+    )
+  )
+)
+
+(defun swcad-title-run-native-gmtitle-prefer-commandline-run (frame-block placement-point / result new-count deleted-count commandline-error interactive-result interactive-error script-active commandline-disabled skip-commandline skip-interactive-batch)
   (setq script-active (swcad-title-script-active-p))
   (setq commandline-disabled (not *swcad-title-allow-commandline-gmtitle*))
   (setq skip-commandline
@@ -15965,7 +15999,7 @@
   )
   (and
     (swcad-title-normalized-sheet-size sheet)
-    (wcmatch (swcad-title-normalized-sheet-size sheet) "A1,A2,A3,A4")
+    (wcmatch (swcad-title-normalized-sheet-size sheet) "A0,A1,A2,A3,A4")
     (swcad-title-frame-name-matches-p frame-block (swcad-title-target-frame-block-name-for-sheet sheet))
     (equal (strcase (swcad-title-string role)) "NATIVE-TITLE-MISSING-OUTLINE")
     (swcad-title-internal-native-link-kinds-p native-link-kinds)
@@ -17722,9 +17756,9 @@
     ((not source-frame-bbox)
       (swcad-title-apply-result "ABORT_NO_FRAME_ONLY_SOURCE")
     )
-    ((not (and normalized-sheet (wcmatch normalized-sheet "A1,A2,A3,A4")))
+    ((not (and normalized-sheet (wcmatch normalized-sheet "A0,A1,A2,A3,A4")))
       (swcad-title-apply-result "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE")
-      (swcad-title-princ-line "이 경로는 용지 크기를 A1/A2/A3/A4로 판정할 수 있는 title-missing 시트에만 적용합니다.")
+      (swcad-title-princ-line "이 경로는 용지 크기를 A0/A1/A2/A3/A4로 판정할 수 있는 title-missing 시트에만 적용합니다.")
     )
     ((not (swcad-title-frame-name-matches-p frame-block (strcat "DR_" normalized-sheet "_Outline")))
       (swcad-title-apply-result "ABORT_TITLE_MISSING_OUTLINE_UNAVAILABLE")
@@ -20077,7 +20111,7 @@
 )
 
 (defun swcad-title-native-upgrade-candidate-records ()
-  (swcad-title-target-pair-upgrade-candidate-records '("A2" "A3" "A4"))
+  (swcad-title-target-pair-upgrade-candidate-records '("A0" "A1" "A2" "A3" "A4"))
 )
 
 (defun swcad-title-a3a4-native-upgrade-candidate-records ()
