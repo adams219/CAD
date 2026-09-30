@@ -110,10 +110,13 @@
   (swt-c-line (list "PICKER" (car picked) (length (cadr picked)) *swapp-collect-picker-encoding*))
   (swt-c-check "picker round trip" (cadr picked) (list (car paths) (cadr paths) (last paths)))
 
-  ;; 3. Rows for the 32 real names: one row per first number, name order.
+  ;; 3. Rows for the 32 real names: one row per first number, name order.  A run
+  ;;    on part of the set checks the order only.
   (setq rows (swapp-collect-rows paths))
   (swt-c-line (list "ROWS" (mapcar 'length rows)))
-  (swt-c-check "row sizes" (mapcar 'length rows) '(1 13 12 3 1 1 1))
+  (if (= (length paths) 32)
+    (swt-c-check "row sizes" (mapcar 'length rows) '(1 13 12 3 1 1 1))
+  )
   (setq stems (swt-c-stems rows))
   (swt-c-check "rows keep name order" stems (mapcar 'vl-filename-base (vl-sort paths '(lambda (a b) (< (strcase a) (strcase b))))))
   (swt-c-check "duplicate path used once" (length (swt-c-stems (swapp-collect-rows (append paths (list (car paths)))))) (length paths))
@@ -170,8 +173,14 @@
   (foreach reference refs
     (if (swt-c-under-p (swt-c-xref-path reference) convert-root) (setq converted-count (1+ converted-count)))
   )
-  (swt-c-check "paper-space sheets converted" converted-count 14)
-  (swt-c-check "collect log conversion count" (swt-c-log-has-p "바꿔 붙인 도면: 14개") T)
+  ;; 14 of the 32 real drawings keep the sheet in paper space.
+  (if (= (length paths) 32)
+    (progn
+      (swt-c-check "paper-space sheets converted" converted-count 14)
+      (swt-c-check "collect log conversion count" (swt-c-log-has-p "바꿔 붙인 도면: 14개") T)
+    )
+    (swt-c-check "collect log conversion count" (swt-c-log-has-p (strcat "바꿔 붙인 도면: " (itoa converted-count) "개")) T)
+  )
   (setq stem-set (vl-sort (mapcar '(lambda (r) (vl-filename-base (swt-c-xref-path r))) refs) '<))
   (swt-c-check "xref file names are the picked names" stem-set (vl-sort (mapcar 'vl-filename-base paths) '<))
 
@@ -232,11 +241,12 @@
       (swt-c-check "source records" (length records) (length paths))
       (swt-c-check "source record order is name order" (mapcar 'cadr records) stems)
       (swt-c-check "materialize finished" (member stage '("XREF" "COLLECT")) nil)
-      ;; The GMTITLE step finds source sheets by frame/title blocks.  Sheets drawn
-      ;; with the standard SOLIDWORKS sheet format (lines and text only, as in the
-      ;; 221216 test project) give BLOCKED_NO_SHEETS here; that is the TITLE
-      ;; step's limit, not the collection's.
-      (swt-c-line (list "NOTE_STAGE_AFTER_MATERIALIZE" stage))
+      ;; Sheets drawn with the SOLIDWORKS default sheet format (lines and text only,
+      ;; as in the 221216 test project) have no frame block; SHEET_FORMAT is next.
+      (if (> (swapp-swfmt-anchor-count) 0)
+        (swt-c-check "stage after materialize with line-drawn sheet formats" stage "SHEET_FORMAT")
+        (swt-c-line (list "NOTE_STAGE_AFTER_MATERIALIZE" stage))
+      )
       ;; Save only the work copy, never the template the probe started from.
       (if
         (equal
