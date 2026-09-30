@@ -34,11 +34,22 @@ SWCADRUN
 SWCADVERIFY
 ```
 
-`SWCADRUN`은 현재 상태에서 다음 안전 단계 하나만 실행한다. 중간에 종료해도 DWG의 `SWCAD_WORKFLOW_STATE` XRecord를 읽어 재개한다. 단계는 사용자에게 1/6부터 6/6까지 표시하며, GMTITLE 결과가 `ABORT_`, `ERROR_`, `WARN_`이면 같은 명령의 반복을 권장하지 않는다.
+`SWCADRUN`은 현재 상태에서 다음 안전 단계 하나만 실행한다. 중간에 종료해도 DWG의 `SWCAD_WORKFLOW_STATE` XRecord를 읽어 재개한다. 단계는 사용자에게 0/6(빈 도면의 도면 모으기)부터 6/6까지 표시하며, GMTITLE 결과가 `ABORT_`, `ERROR_`, `WARN_`이면 같은 명령의 반복을 권장하지 않는다.
 
 ```text
-XREF → SHEET_WRAPPERS(필요한 경우) → TITLE → DIMSTYLE → LAYOUT → CLEANUP → COMPLETE
+COLLECT(빈 도면) → XREF → SHEET_WRAPPERS(필요한 경우) → TITLE → DIMSTYLE → LAYOUT → CLEANUP → COMPLETE
 ```
+
+## COLLECT: 도면 모으기
+
+모델 공간이 빈 도면에서 `SWCADRUN`을 실행하면 0/6 `COLLECT` 단계가 된다. 수동 XATTACH와 클릭 배치만 대신하고, 그 뒤 단계는 수동 배치와 같다.
+
+- 여러 SolidWorks DWG를 모으는 방법은 XREF + BIND다. SolidWorks DWG는 파일마다 같은 블록·스타일 이름을 0부터 다시 쓴다(`SW_CENTERMARKSYMBOL_0`, `SW_TABLEANNOTATION_0`, `DR_표제란_FTAP`, `SLDDIMSTYLE0` 등). 복사·붙여넣기나 INSERT는 먼저 들어온 정의만 남겨 다른 시트의 중심 표시가 틀리게 그려졌다. BIND는 이름 앞에 파일 이름(`파일$0$이름`)을 붙인다. 그래서 Insert형 BIND, 복사·붙여넣기, 일반 INSERT를 쓰지 않고, 파일마다 XREF 이름이 달라야 한다.
+- 파일 선택은 `apps/swcad-workflow/swcad_pick_dwgs.ps1`(Windows 파일 창, 여러 개 선택)로 한다. 결과를 UTF-8과 ANSI 두 파일로 쓰고, 경로가 모두 있는 쪽을 읽는다. SCRIPT 실행 중에는 창을 열지 않는다(`BLOCKED_COLLECT_SCRIPT_ACTIVE`).
+- 순서는 Windows 탐색기 이름순(숫자는 값으로 비교)이다. 이름이 두 개 이상의 숫자 묶음을 `-`로 이은 도면번호로 시작하면 첫 번호마다 한 줄이고, 그 밖의 파일은 마지막 줄들에 10장씩 놓는다. 간격은 50 mm, 같은 줄은 도면틀 윗선(도면틀 블록이 없으면 XREF 전체 범위의 윗선)을 맞춘다. 따라서 Layout 순서 규칙(같은 행 왼쪽→오른쪽, 행은 위→아래)이 이름 순서를 그대로 읽는다.
+- 모델 공간이 빈 파일(SolidWorks `용지 공간으로 모든 도면 시트 내보내기`)은 XREF가 비어 보인다. 이런 파일은 `%LOCALAPPDATA%\SWTitle\collect\<시각>\<n>\`에 같은 파일 이름으로 복사하고, 그 사본을 열어 내용이 있는 배치 탭 하나의 객체를 `CopyObjects`로 모델 공간에 옮긴 뒤 저장해 원본 대신 붙인다. 고른 원본은 CAD로 열지 않는다. 파일 이름이 같으므로 `SOURCE_SHEET_*`의 stem과 Layout 이름은 원본 파일명이다. 내용 있는 배치 탭이 둘 이상이거나 음수 `DIMLFAC`(배치 공간에서만 적용) 치수가 있으면 `STOP_COLLECT_PAPER_SHEET`로 멈춘다.
+- GstarCAD 동작(2026-09-30 실측): ObjectDBX(`ObjectDBX.AxDbDocument.24`)는 만들 수 없다. `Documents.Open`은 가끔(28회 중 2회) 파일을 열고도 `Expecting object to be local` 오류를 돌려주므로, 다시 열지 않고 열린 문서 목록에서 찾는다. 다시 열면 "이미 열려 있음" 확인 창에서 멈춘다. `Close`는 다른 도면을 열거나 활성화할 때 끝나므로 닫은 뒤 호스트를 `Activate`한다.
+- 한 장이라도 붙이기·변환·범위 읽기·이동에 실패하면 그 실행에서 붙인 XREF를 모두 떼어 낸다. 모든 메시지는 `swcad_collect_last.txt`에도 남긴다.
 
 ## 성능 구조
 
@@ -140,8 +151,8 @@ GstarCAD Mechanical은 재열기 과정에서 native XData용 APPID, 세션의 `
 
 ## Layout 계약
 
-- 앱은 XREF나 변환된 도면 객체를 자동으로 이동하지 않는다.
-- 사용자가 XREF 상태에서 배치한 좌표를 materialize 전후로 보존한다.
+- 앱은 XREF나 변환된 도면 객체를 자동으로 이동하지 않는다. 예외는 `COLLECT`가 방금 붙인 XREF를 제자리로 옮기는 것뿐이다(`swapp-collect-place`).
+- 사용자가 XREF 상태에서 배치한(또는 `COLLECT`가 배치한) 좌표를 materialize 전후로 보존한다.
 - 최종 native GMTITLE 도면틀의 effective bbox를 Layout 모델 창으로 사용한다.
 - 같은 행은 왼쪽→오른쪽, 다른 행은 위쪽→아래쪽으로 정렬한다.
 - `SWCADSTATUS`와 실제 생성은 동일한 `swapp-layout-plan` 결과를 사용한다.
