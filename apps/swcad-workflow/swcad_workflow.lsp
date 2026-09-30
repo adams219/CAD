@@ -3,7 +3,7 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "260930-sheet-format-2")
+(setq *swapp-version* "260930-sheet-format-3")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-legacy-layout-prefix* "SWCAD-SHEET")
 (setq *swapp-layout-placement-mode* "XREF_SOURCE_FILENAME_COORDINATES")
@@ -3317,12 +3317,20 @@
   (member (cadr item) '("TEXT" "MTEXT"))
 )
 
-;;; A non-line item of the title box: a text starting in it, a note block centred
-;;; in it, or other graphics wholly inside it.
-(defun swapp-swfmt-title-item-p (item title-box)
+;;; A non-line item of the title box: a text starting in it at a height inside it
+;;; (zone numbers of the border band start 0.6 mm below it), a note block centred in
+;;; it, or other graphics wholly inside it.
+(defun swapp-swfmt-title-item-p (item title-box / center)
+  (setq center (swapp-bbox4-center (nth 6 item)))
   (cond
     ((= (cadr item) "LINE") nil)
-    ((swapp-swfmt-text-item-p item) (swapp-swfmt-point-inside-p (nth 3 item) title-box 0.5))
+    ((swapp-swfmt-text-item-p item)
+      (and
+        (swapp-swfmt-point-inside-p (nth 3 item) title-box 0.5)
+        (>= (cadr center) (cadr title-box))
+        (<= (cadr center) (cadddr title-box))
+      )
+    )
     ((= (cadr item) "INSERT") (swapp-swfmt-point-inside-p (swapp-bbox4-center (nth 6 item)) title-box 0.0))
     (T (swapp-swfmt-inside-p (nth 6 item) title-box 0.5))
   )
@@ -3396,32 +3404,154 @@
 
 ;;; The inner border as bbox4: its bottom line ends at corner, its right line
 ;;; starts there.  Picks the longest candidates.
-(defun swapp-swfmt-inner-border (lines corner / tol left top item p1 p2 other)
+;;; The inner border as bbox4: its bottom line runs under the whole title block (on
+;;; a standard sheet it ends at the title block's corner; on a custom-size sheet the
+;;; title block sits somewhere along it), and its right line rises from that line's
+;;; right end.  Picks the longest candidates.
+(defun swapp-swfmt-inner-border (lines corner / tol left right top item p1 p2 x1 x2 other)
   (setq tol 0.5)
-  (setq left nil)
-  (setq top nil)
+  (setq left nil right nil top nil)
   (foreach item lines
     (setq p1 (nth 3 item) p2 (nth 4 item))
-    (setq other
-      (cond
-        ((< (distance (list (car p1) (cadr p1)) (list (car corner) (cadr corner))) tol) p2)
-        ((< (distance (list (car p2) (cadr p2)) (list (car corner) (cadr corner))) tol) p1)
-        (T nil)
+    (if
+      (and
+        (swapp-near (cadr p1) (cadr corner) tol)
+        (swapp-near (cadr p2) (cadr corner) tol)
+        (<= (setq x1 (min (car p1) (car p2))) (+ (- (car corner) *swapp-swfmt-title-width*) tol))
+        (>= (setq x2 (max (car p1) (car p2))) (- (car corner) tol))
+        (or (not left) (> (- x2 x1) (- right left)))
+      )
+      (setq left x1 right x2)
+    )
+  )
+  (if right
+    (foreach item lines
+      (setq p1 (nth 3 item) p2 (nth 4 item))
+      (setq other
+        (cond
+          ((< (distance (list (car p1) (cadr p1)) (list right (cadr corner))) tol) p2)
+          ((< (distance (list (car p2) (cadr p2)) (list right (cadr corner))) tol) p1)
+          (T nil)
+        )
+      )
+      (if
+        (and
+          other
+          (swapp-near (car other) right tol)
+          (> (cadr other) (+ (cadr corner) *swapp-swfmt-title-height*))
+          (or (not top) (> (cadr other) top))
+        )
+        (setq top (cadr other))
       )
     )
-    ;; On A4 portrait the inner border is exactly as wide as the title block.
-    (if other
-      (cond
-        ((and (swapp-near (cadr other) (cadr corner) tol) (< (car other) (+ (- (car corner) *swapp-swfmt-title-width*) tol)))
-          (if (or (not left) (< (car other) left)) (setq left (car other)))
+  )
+  (if (and left top) (list left (cadr corner) right top) nil)
+)
+
+;;; Extents of every model object in region except the format's own (enames): the
+;;; drawing of a custom-size sheet.  Circles, arcs, splines and dimensions count too.
+(defun swapp-swfmt-content-boxes (region enames / ss index ename point bbox result)
+  (setq result nil)
+  (setq ss (ssget "_X" '((410 . "Model"))))
+  (setq index 0)
+  (while (and ss (< index (sslength ss)))
+    (setq ename (ssname ss index))
+    (if (not (member ename enames))
+      (progn
+        (setq point (cdr (assoc 10 (entget ename))))
+        (if (or (not point) (swapp-swfmt-point-inside-p point region 50.0))
+          (progn
+            (setq bbox (swapp-object-bbox4 (vlax-ename->vla-object ename)))
+            (if (and bbox (swapp-swfmt-inside-p bbox region 1.0)) (setq result (cons bbox result)))
+          )
         )
-        ((and (swapp-near (car other) (car corner) tol) (> (cadr other) (+ (cadr corner) *swapp-swfmt-title-height*)))
-          (if (or (not top) (> (cadr other) top)) (setq top (cadr other)))
+      )
+    )
+    (setq index (1+ index))
+  )
+  result
+)
+
+;;; Tests only: leave out DR frames whose file is not installed (e.g. DR_A0_Outline),
+;;; so the enlarged-frame path can run with the frames that exist.
+(setq *swapp-swfmt-test-skip-missing-frames* nil)
+
+;;; GMTITLE scale list values used for enlarged frames (1:1, 1:2, 1:2.5, 1:4, ...).
+(setq *swapp-swfmt-scales* '(1.0 2.0 2.5 4.0 5.0 10.0 15.0 20.0 25.0 40.0 50.0 75.0 100.0))
+
+;;; "4", "2P5" for block names.
+(defun swapp-swfmt-scale-token (scale)
+  (if (equal scale (fix scale) 0.0001)
+    (itoa (fix scale))
+    (vl-string-translate "." "P" (rtos scale 2 1))
+  )
+)
+
+;;; Whether a scaled DR paper with lower-left (llx lly) holds the drawing: the
+;;; content inside the scaled inner border (20k from the left paper edge, 10k from
+;;; the others) and clear of the scaled title block (190k..6.4k from the right edge,
+;;; 10k..52k from the bottom).
+(defun swapp-swfmt-paper-holds-p (llx lly pw ph scale content-bbox content-boxes / inner title clear box)
+  (setq inner (list (+ llx (* 20.0 scale)) (+ lly (* 10.0 scale)) (+ llx (- pw (* 10.0 scale))) (+ lly (- ph (* 10.0 scale)))))
+  (setq title (list (+ llx (- pw (* 190.0 scale))) (+ lly (* 10.0 scale)) (+ llx (- pw (* 6.4 scale))) (+ lly (* 52.0 scale))))
+  (setq clear T)
+  (foreach box content-boxes
+    (if (swcad-title-bbox-overlap-box box title) (setq clear nil))
+  )
+  (and clear (swapp-swfmt-inside-p content-bbox inner 0.0))
+)
+
+;;; For a custom-size sheet: the DR frame and GMTITLE scale that hold it, as
+;;; (size scale paper-options), or nil.  The smallest scale first, then the smallest
+;;; paper, whose scaled paper covers the SOLIDWORKS paper (outer border + 5 mm).
+;;; paper-options are the places for it in order of preference: the drawing centred
+;;; in the inner border (the SOLIDWORKS outer border kept on the paper), then the
+;;; scaled paper on each corner of the SOLIDWORKS paper; only places that hold the
+;;; drawing.  The run picks the first that does not overlap another sheet, because
+;;; an enlarged paper can reach into the 50 mm between collected sheets.
+(defun swapp-swfmt-scaled-choice (outer content-bbox content-boxes / sw sw-w sw-h found scale paper sizes pw ph cx cy llx lly options place)
+  (setq sw (list (- (car outer) 5.0) (- (cadr outer) 5.0) (+ (caddr outer) 5.0) (+ (cadddr outer) 5.0)))
+  (setq sw-w (- (caddr sw) (car sw)))
+  (setq sw-h (- (cadddr sw) (cadr sw)))
+  (setq sizes (reverse *swapp-swfmt-papers*))
+  (setq found nil)
+  (foreach scale *swapp-swfmt-scales*
+    (foreach paper sizes
+      (setq pw (* (cadr paper) scale) ph (* (caddr paper) scale))
+      (if
+        (and
+          (not found)
+          content-bbox
+          (>= pw (- sw-w *swapp-swfmt-tolerance*))
+          (>= ph (- sw-h *swapp-swfmt-tolerance*))
+          (or (not *swapp-swfmt-test-skip-missing-frames*) (findfile (swapp-swfmt-frame-file (strcat "DR_" (car paper) "_Outline"))))
+        )
+        (progn
+          (setq cx (/ (+ (car content-bbox) (caddr content-bbox)) 2.0))
+          (setq cy (/ (+ (cadr content-bbox) (cadddr content-bbox)) 2.0))
+          (setq llx (- cx (/ (- pw (* 30.0 scale)) 2.0) (* 20.0 scale)))
+          (setq lly (- cy (/ (- ph (* 20.0 scale)) 2.0) (* 10.0 scale)))
+          (setq llx (max (- (caddr outer) pw) (min llx (car outer))))
+          (setq lly (max (- (cadddr outer) ph) (min lly (cadr outer))))
+          (setq options nil)
+          (foreach place
+            (list
+              (list llx lly)
+              (list (car sw) (- (cadddr sw) ph))
+              (list (- (caddr sw) pw) (- (cadddr sw) ph))
+              (list (car sw) (cadr sw))
+              (list (- (caddr sw) pw) (cadr sw))
+            )
+            (if (swapp-swfmt-paper-holds-p (car place) (cadr place) pw ph scale content-bbox content-boxes)
+              (setq options (append options (list (list (car place) (cadr place) (+ (car place) pw) (+ (cadr place) ph)))))
+            )
+          )
+          (if options (setq found (list (car paper) scale options)))
         )
       )
     )
   )
-  (if (and left top) (list left (cadr corner) (car corner) top) nil)
+  found
 )
 
 ;;; Paper size of a DR frame for the paper width and height, or a failure reason.
@@ -3464,15 +3594,15 @@
   )
 )
 
-;;; Zone letter or number: one or two letters or digits in the band between borders.
-(defun swapp-swfmt-zone-text-p (item outer inner / bbox center)
-  (setq bbox (nth 6 item))
-  (setq center (swapp-bbox4-center bbox))
+;;; Zone letter or number: one or two letters or digits centred in the band between
+;;; the borders.  Two-letter zones of large sheets ("CF") are wider than the band.
+(defun swapp-swfmt-zone-text-p (item outer inner / center)
+  (setq center (swapp-bbox4-center (nth 6 item)))
   (and
     (swapp-swfmt-text-item-p item)
     (nth 5 item)
     (wcmatch (nth 5 item) "@,@@,#,##")
-    (swapp-swfmt-inside-p bbox outer 0.5)
+    (swapp-swfmt-point-inside-p center outer 0.5)
     (not (swapp-swfmt-point-inside-p center inner -0.01))
   )
 )
@@ -3566,7 +3696,7 @@
 
 ;;; Recognizes the sheet of one anchor text.  Returns an assoc list; "status" is
 ;;; "OK" or the reason it cannot be converted.
-(defun swapp-swfmt-recognize (anchor all-items source-records / record items lines anchor-label corner title-box near-items near-enames labels-found missing item label inner outer outer-lines inner-lines paper-w paper-h size-result size paper title-items tick-items zone-items enames values notes cell point text frame-file locked result tags pair tag)
+(defun swapp-swfmt-recognize (anchor all-items source-records / record items lines anchor-label corner title-box near-items near-enames labels-found missing item label inner outer outer-lines inner-lines paper-w paper-h size-result size scale paper paper-options content-boxes content-bbox choice title-items tick-items zone-items enames values notes cell point text frame-file locked result tags pair tag)
   (setq anchor-label (assoc *swapp-swfmt-anchor-text* *swapp-swfmt-labels*))
   (setq corner (list (- (car (nth 3 anchor)) (nth 2 anchor-label)) (- (cadr (nth 3 anchor)) (nth 3 anchor-label)) 0.0))
   (setq title-box
@@ -3625,21 +3755,74 @@
       (append result (list (cons "status" "BORDER") (cons "detail" "두 겹 테두리의 네 변을 모두 찾지 못함")))
     )
     ((progn
+       ;; Every format entity: both borders, zone ticks and letters, and everything
+       ;; in the title box.
+       (setq enames (mapcar 'car (append inner-lines outer-lines)))
+       (setq title-items nil)
+       (setq tick-items nil)
+       (setq zone-items nil)
+       (foreach item lines
+         (cond
+           ((member (car item) enames))
+           ((swapp-swfmt-inside-p (nth 6 item) title-box 0.2) (setq title-items (cons item title-items)))
+           ((swapp-swfmt-zone-tick-p item outer) (setq tick-items (cons item tick-items)))
+         )
+       )
+       (foreach item items
+         (cond
+           ((= (cadr item) "LINE"))
+           ((member (car item) near-enames) (setq title-items (cons item title-items)))
+           ((swapp-swfmt-zone-text-p item outer inner) (setq zone-items (cons item zone-items)))
+         )
+       )
+       (setq enames (append enames (mapcar 'car title-items) (mapcar 'car tick-items) (mapcar 'car zone-items)))
+       ;; A standard sheet: title block at the inner corner and an A0..A4 paper.  It
+       ;; gets the DR frame at 1:1 with both inner borders on top of each other.
        (setq paper-w (+ (- (caddr outer) (car outer)) *swapp-swfmt-paper-margin-left* *swapp-swfmt-paper-margin-right*))
        (setq paper-h (+ (- (cadddr outer) (cadr outer)) (* 2.0 *swapp-swfmt-paper-margin-y*)))
        (setq size-result (swapp-swfmt-paper-size paper-w paper-h))
-       (listp size-result)
+       (setq scale 1.0)
+       (cond
+         ((and (swapp-near (caddr inner) (car corner) 0.5) (not (listp size-result)))
+           (setq size size-result)
+           (setq paper
+             (list
+               (- (car outer) *swapp-swfmt-paper-margin-left*) (- (cadr outer) *swapp-swfmt-paper-margin-y*)
+               (+ (caddr outer) *swapp-swfmt-paper-margin-right*) (+ (cadddr outer) *swapp-swfmt-paper-margin-y*)
+             )
+           )
+         )
+         ((and (swapp-near (caddr inner) (car corner) 0.5) (equal (car size-result) "ORIENTATION"))
+           (setq size nil)
+         )
+         ;; A custom-size sheet: the DR frame enlarged by a GMTITLE scale.  The
+         ;; drawing stays 1:1.
+         (T
+           (setq size-result nil)
+           (setq content-boxes (swapp-swfmt-content-boxes (if record (nth 4 record) outer) enames))
+           (setq content-bbox nil)
+           (foreach item content-boxes
+             (setq content-bbox (if content-bbox (swapp-bbox4-union content-bbox item) item))
+           )
+           (setq choice (swapp-swfmt-scaled-choice outer content-bbox content-boxes))
+           (if choice
+             (setq size (car choice) scale (cadr choice) paper-options (caddr choice) paper (car paper-options))
+             (setq size nil)
+           )
+         )
+       )
+       (not size)
      )
       (append
         result
         (list
-          (cons "status" (car size-result))
+          (cons "status" (if size-result (car size-result) "SIZE"))
           (cons "detail"
             (strcat
               "용지 " (rtos paper-w 2 1) " x " (rtos paper-h 2 1) " mm"
-              (if (cadr size-result)
+              (if size-result
                 (strcat ": " (cadr size-result) " 도면틀과 방향이 다름")
-                ": A0~A4 표준 크기가 아님"
+                ": 도면을 담을 DR 도면틀×GMTITLE 축척을 찾지 못함"
               )
             )
           )
@@ -3647,7 +3830,6 @@
       )
     )
     ((progn
-       (setq size size-result)
        (setq frame-file (swapp-swfmt-frame-file (strcat "DR_" size "_Outline")))
        (not (findfile frame-file))
      )
@@ -3656,38 +3838,17 @@
         (list
           (cons "status" "FRAME_FILE")
           (cons "size" size)
-          (cons "detail" (strcat "GstarCAD 도면틀 파일이 없음: " frame-file))
+          (cons "scale" scale)
+          (cons "detail"
+            (strcat
+              (if (> scale 1.0) (strcat "DR_" size " " (swcad-title-scale-text scale) "로 키울 도면인데 ") "")
+              "GstarCAD 도면틀 파일이 없음: " frame-file
+            )
+          )
         )
       )
     )
     (T
-      (setq paper
-        (list
-          (- (car outer) *swapp-swfmt-paper-margin-left*) (- (cadr outer) *swapp-swfmt-paper-margin-y*)
-          (+ (caddr outer) *swapp-swfmt-paper-margin-right*) (+ (cadddr outer) *swapp-swfmt-paper-margin-y*)
-        )
-      )
-      ;; Every format entity: both borders, zone ticks and letters, and everything
-      ;; in the title box.
-      (setq enames (mapcar 'car (append inner-lines outer-lines)))
-      (setq title-items nil)
-      (setq tick-items nil)
-      (setq zone-items nil)
-      (foreach item lines
-        (cond
-          ((member (car item) enames))
-          ((swapp-swfmt-inside-p (nth 6 item) title-box 0.2) (setq title-items (cons item title-items)))
-          ((swapp-swfmt-zone-tick-p item outer) (setq tick-items (cons item tick-items)))
-        )
-      )
-      (foreach item items
-        (cond
-          ((= (cadr item) "LINE"))
-          ((member (car item) near-enames) (setq title-items (cons item title-items)))
-          ((swapp-swfmt-zone-text-p item outer inner) (setq zone-items (cons item zone-items)))
-        )
-      )
-      (setq enames (append enames (mapcar 'car title-items) (mapcar 'car tick-items) (mapcar 'car zone-items)))
       ;; Values by cell.  A label's own text is not a value, except what follows a
       ;; PREFIX label such as "배율:1:10".
       (setq values nil)
@@ -3726,6 +3887,16 @@
         )
       )
       (setq tags (append tags (list (cons "GEN-TITLE-SIZ{6.7}" size))))
+      ;; An enlarged frame keeps the scale GMTITLE writes for it (1:4 for a 1:4 frame),
+      ;; not the SOLIDWORKS 배율 of the custom sheet (user decision 2026-09-30).
+      (if (> scale 1.0)
+        (setq tags
+          (append
+            (vl-remove-if '(lambda (p) (equal (car p) "GEN-TITLE-SCA{6.7}")) tags)
+            (list (cons "GEN-TITLE-SCA{6.7}" (swcad-title-scale-text scale)))
+          )
+        )
+      )
       (setq locked nil)
       (foreach item (append inner-lines outer-lines title-items tick-items zone-items)
         (if (swapp-swfmt-layer-locked-p (nth 2 item)) (setq locked (cons (nth 2 item) locked)))
@@ -3736,7 +3907,9 @@
           (cons "status" (if locked "LOCKED" "OK"))
           (cons "detail" (if locked (strcat "잠긴 레이어: " (car locked)) ""))
           (cons "size" size)
+          (cons "scale" scale)
           (cons "paper" paper)
+          (cons "paper-options" paper-options)
           (cons "title" title-box)
           (cons "enames" enames)
           (cons "values" tags)
@@ -3774,6 +3947,70 @@
       )
     )
     (if (not covered) (setq result (append result (list record))))
+  )
+  result
+)
+
+(defun swapp-swfmt-with-value (sheet key value / pair)
+  (setq pair (assoc key sheet))
+  (if pair (subst (cons key value) pair sheet) (append sheet (list (cons key value))))
+)
+
+;;; Standard sheets keep their paper.  Each enlarged sheet takes its first paper
+;;; option that overlaps no paper placed so far; with none it keeps its first
+;;; option, and the overlap check below stops the run.
+(defun swapp-swfmt-place-papers (sheets / placed result sheet options chosen option clash other)
+  (setq placed nil)
+  (foreach sheet sheets
+    (if (and (equal (swapp-swfmt-value sheet "status") "OK") (not (swapp-swfmt-value sheet "paper-options")))
+      (setq placed (cons (swapp-swfmt-value sheet "paper") placed))
+    )
+  )
+  (setq result nil)
+  (foreach sheet sheets
+    (setq options (swapp-swfmt-value sheet "paper-options"))
+    (if (and (equal (swapp-swfmt-value sheet "status") "OK") options)
+      (progn
+        (setq chosen nil)
+        (foreach option options
+          (if (not chosen)
+            (progn
+              (setq clash nil)
+              (foreach other placed
+                (if (swcad-title-bbox-overlap-box option other) (setq clash T))
+              )
+              (if (not clash) (setq chosen option))
+            )
+          )
+        )
+        (if chosen
+          (progn
+            (setq placed (cons chosen placed))
+            (setq sheet (swapp-swfmt-with-value sheet "paper" chosen))
+          )
+        )
+      )
+    )
+    (setq result (append result (list sheet)))
+  )
+  result
+)
+
+;;; Recognized sheets whose new paper overlaps another recognized sheet's paper.
+(defun swapp-swfmt-overlapping-sheets (sheets / ok result sheet other)
+  (setq ok (vl-remove-if-not '(lambda (s) (equal (swapp-swfmt-value s "status") "OK")) sheets))
+  (setq result nil)
+  (foreach sheet ok
+    (foreach other ok
+      (if
+        (and
+          (not (eq sheet other))
+          (not (member sheet result))
+          (swcad-title-bbox-overlap-box (swapp-swfmt-value sheet "paper") (swapp-swfmt-value other "paper"))
+        )
+        (setq result (append result (list sheet)))
+      )
+    )
   )
   result
 )
@@ -3816,7 +4053,16 @@
   (setq paper (swapp-swfmt-value sheet "paper"))
   (setq title-box (swapp-swfmt-value sheet "title"))
   (setq origin (vlax-3d-point (list (car paper) (cadr paper) 0.0)))
-  (setq frame-name (swapp-swfmt-free-block-name (strcat *swapp-swfmt-block-prefix* (swapp-swfmt-value sheet "size") "_OUTLINE_") index))
+  ;; SWFMT_A0_OUTLINE_S4_05: an enlarged frame names its GMTITLE scale for the TITLE step.
+  (setq frame-name
+    (swapp-swfmt-free-block-name
+      (strcat
+        *swapp-swfmt-block-prefix* (swapp-swfmt-value sheet "size") "_OUTLINE_"
+        (if (> (swapp-swfmt-value sheet "scale") 1.0) (strcat "S" (swapp-swfmt-scale-token (swapp-swfmt-value sheet "scale")) "_") "")
+      )
+      index
+    )
+  )
   (setq title-name (swapp-swfmt-free-block-name (strcat *swapp-swfmt-block-prefix* "TITLE_") index))
   (setq frame-block (swapp-safe 'vla-Add (list blocks origin frame-name)))
   (setq title-block (if frame-block (swapp-safe 'vla-Add (list blocks origin title-name)) nil))
@@ -3887,6 +4133,7 @@
     ((equal status "FRAME_FILE") "도면틀 파일 없음")
     ((equal status "LOCKED") "잠긴 레이어")
     ((equal status "NO_FORMAT") "도면틀 없음")
+    ((equal status "OVERLAP") "도면틀 겹침")
     (T status)
   )
 )
@@ -3929,6 +4176,7 @@
   (foreach record anchors
     (setq sheets (append sheets (list (swapp-swfmt-recognize record items source-records))))
   )
+  (setq sheets (swapp-swfmt-place-papers sheets))
   (setq problems nil)
   (foreach sheet sheets
     (if (not (equal (swapp-swfmt-value sheet "status") "OK"))
@@ -3939,6 +4187,11 @@
   (foreach record uncovered
     (setq problems (append problems (list (list (nth 1 record) "NO_FORMAT" "도면틀 블록도 SolidWorks 기본 양식도 없음"))))
   )
+  ;; An enlarged frame is larger than its SOLIDWORKS sheet and the collected sheets
+  ;; are only 50 mm apart.  The drawings are never moved, so stop instead.
+  (foreach sheet (swapp-swfmt-overlapping-sheets sheets)
+    (setq problems (append problems (list (list (swapp-swfmt-value sheet "stem") "OVERLAP" "새 도면틀이 다른 도면의 도면틀과 겹침"))))
+  )
   (swapp-swfmt-say (strcat "\nSolidWorks 기본 양식 시트: " (itoa (length anchors)) "장, 원본 파일 기록: " (itoa (length source-records)) "개"))
   (cond
     (problems
@@ -3947,8 +4200,9 @@
       (foreach record (vl-sort problems '(lambda (a b) (< (car a) (car b))))
         (swapp-swfmt-print-problem (car record) (cadr record) (caddr record))
       )
-      (swapp-swfmt-say "\n표준 크기(A0~A4)로 SolidWorks에서 다시 내보내거나, 이 파일을 빼고 새 도면에서 다시 모으세요.")
-      (swapp-swfmt-say "\nA0는 GstarCAD 도면틀 폴더에 DR_A0_Outline.dwg가 있어야 합니다.")
+      (swapp-swfmt-say "\n도면틀이 없는 도면은 SolidWorks에서 양식을 넣어 다시 저장하거나, 이 파일을 빼고 새 도면에서 다시 모으세요.")
+      (swapp-swfmt-say "\nA0 도면과 A0 도면틀을 키워 넣을 도면은 GstarCAD 도면틀 폴더에 DR_A0_Outline.dwg가 있어야 합니다.")
+      (swapp-swfmt-say "\n도면틀이 겹치면 도면 사이를 더 띄워 새 도면에서 다시 모으세요.")
       nil
     )
     ((not (swcad-title-ensure-work-copy-for-mutation))
@@ -4008,7 +4262,8 @@
             (setq sheet (car pair))
             (swapp-swfmt-log
               (strcat
-                (swapp-swfmt-value sheet "stem") " | " (swapp-swfmt-value sheet "size") " | " (nth 3 pair)
+                (swapp-swfmt-value sheet "stem") " | " (swapp-swfmt-value sheet "size")
+                " " (swcad-title-scale-text (swapp-swfmt-value sheet "scale")) " | " (nth 3 pair)
                 " | objects " (itoa (length (swapp-swfmt-value sheet "enames")))
               )
             )
@@ -6248,6 +6503,40 @@
   count
 )
 
+;;; Layouts that are not the app's and hold nothing but viewports, such as the
+;;; template's empty 배치1 and 배치2.  A layout with anything drawn on it stays.
+(defun swapp-empty-user-layouts (/ owned result layout name empty item)
+  (setq owned (swapp-layout-owned-names))
+  (setq result nil)
+  (vlax-for layout (vla-get-Layouts (swapp-doc))
+    (setq name (vla-get-Name layout))
+    (if (and (not (equal (strcase name) "MODEL")) (not (swapp-name-member-ci-p name owned)))
+      (progn
+        (setq empty T)
+        (vlax-for item (vla-get-Block layout)
+          (if (/= (vla-get-ObjectName item) "AcDbViewport") (setq empty nil))
+        )
+        (if empty (setq result (append result (list layout))))
+      )
+    )
+  )
+  result
+)
+
+(defun swapp-delete-empty-user-layouts (/ count layout name)
+  (setq count 0)
+  (foreach layout (swapp-empty-user-layouts)
+    (setq name (vla-get-Name layout))
+    (if (swapp-call-ok-p 'vla-Delete (list layout))
+      (progn
+        (setq count (1+ count))
+        (princ (strcat "\n빈 배치 삭제: " name))
+      )
+    )
+  )
+  count
+)
+
 (defun swapp-run-layout (/ plan names expected created ownership-ok mapping-ok result)
   (swapp-activate-model)
   (if (not (swcad-title-ensure-work-copy-for-mutation))
@@ -6279,6 +6568,13 @@
           (setq ownership-ok (if created (swapp-layout-owned-names-write names) nil))
           (setq mapping-ok (if ownership-ok (swapp-final-sheet-records-write plan) nil))
           (setq result (and created (= created expected) ownership-ok mapping-ok (swapp-layouts-valid-p plan)))
+          (if result
+            (progn
+              (swapp-delete-empty-user-layouts)
+              (swapp-activate-model)
+              (setq result (swapp-layouts-valid-p plan))
+            )
+          )
           (if result
             (progn
               (swapp-state-set "LAYOUT" "OK")

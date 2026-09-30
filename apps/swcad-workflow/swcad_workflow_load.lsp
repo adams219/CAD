@@ -2,7 +2,7 @@
 
 (vl-load-com)
 
-(setq *swapp-loader-version* "260930-sheet-format-2")
+(setq *swapp-loader-version* "260930-sheet-format-3")
 
 (defun swapp-loader-source (/ source)
   (setq source nil)
