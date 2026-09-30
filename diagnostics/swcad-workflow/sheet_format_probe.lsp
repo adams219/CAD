@@ -206,6 +206,12 @@
     (setq *swapp-swfmt-frame-file-override* (getenv "SWT_SF_FRAME_DIR"))
   )
   (swt-sf-line (list "VERSION" *swapp-version* *swcad-title-scale-version* "DWG" (strcat (getvar "DWGPREFIX") (getvar "DWGNAME"))))
+  ;; Layout names come from these stems; a dot inside a name is not an extension.
+  (swt-sf-check "stem keeps an inner dot" (swapp-file-stem-value "01-06-11-00_B.P Housing Cover") "01-06-11-00_B.P Housing Cover")
+  (swt-sf-check "stem drops folder and .DWG" (swapp-file-stem-value "C:\\x\\02-09-05-00_D.P Bearing Unit Shaft.DWG") "02-09-05-00_D.P Bearing Unit Shaft")
+  (swt-sf-check "source stem from a path" (swapp-source-stem-from-path-or-name "C:/x/01-06-13-00_B.P Sensor Bracket.dwg" "") "01-06-13-00_B.P Sensor Bracket")
+  (swt-sf-check "source stem from an XREF name" (swapp-source-stem-from-path-or-name "" "01-06-13-00_B.P Sensor Bracket") "01-06-13-00_B.P Sensor Bracket")
+  (swt-sf-check "layout name keeps an inner dot" (swapp-clean-layout-base-name "02-09-05-00_D.P Bearing Unit Shaft") "02-09-05-00_D.P Bearing Unit Shaft")
   (setq sheets (swt-sf-recognize-all))
   (setq ok-count 0)
   (foreach result sheets (if (equal (swapp-swfmt-value result "status") "OK") (setq ok-count (1+ ok-count))))

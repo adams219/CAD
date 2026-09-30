@@ -3,7 +3,7 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "260930-sheet-format-1")
+(setq *swapp-version* "260930-sheet-format-2")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-legacy-layout-prefix* "SWCAD-SHEET")
 (setq *swapp-layout-placement-mode* "XREF_SOURCE_FILENAME_COORDINATES")
@@ -575,8 +575,8 @@
 
 (defun swapp-source-stem-from-path-or-name (path reference-name / raw base)
   (setq raw (vl-string-trim " \t\r\n" (if (> (strlen path) 0) path reference-name)))
-  (setq base (if (> (strlen raw) 0) (swapp-safe 'vl-filename-base (list raw)) nil))
-  (if (and base (> (strlen (vl-string-trim " \t\r\n" base)) 0))
+  (setq base (swapp-file-stem-value raw))
+  (if (> (strlen (vl-string-trim " \t\r\n" base)) 0)
     (vl-string-trim " \t\r\n" base)
     raw
   )
@@ -1600,10 +1600,19 @@
   )
 )
 
-(defun swapp-file-stem-value (value / text base)
+;;; File name without its folder and without a drawing extension.  Other dots are
+;;; part of the name: "01-06-11-00_B.P Housing Cover" must not become "01-06-11-00_B"
+;;; (vl-filename-base treats everything after the last dot as the extension).
+(defun swapp-file-stem-value (value / text base extension)
   (setq text (vl-string-trim " \t\r\n" (if value value "")))
   (setq base (if (> (strlen text) 0) (swapp-safe 'vl-filename-base (list text)) nil))
-  (if (and base (> (strlen base) 0)) base text)
+  (setq extension (if (> (strlen text) 0) (swapp-safe 'vl-filename-extension (list text)) nil))
+  (cond
+    ((not (and base (> (strlen base) 0))) text)
+    ((and extension (member (strcase extension) '(".DWG" ".DXF" ".DWT" ".SLDDRW"))) base)
+    (extension (strcat base extension))
+    (T base)
+  )
 )
 
 (defun swapp-clean-layout-base-name (value / name)
