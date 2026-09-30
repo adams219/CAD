@@ -33,6 +33,7 @@ if (-not $checksumFull.StartsWith($distPrefix, [StringComparison]::OrdinalIgnore
 $files = @(
   "apps\swcad-workflow\swcad_workflow_load.lsp",
   "apps\swcad-workflow\swcad_workflow.lsp",
+  "apps\swcad-workflow\swcad_pick_dwgs.ps1",
   "apps\swcad-workflow\README.md",
   "docs\swcad-workflow\architecture.md",
   "docs\swcad-workflow\user-guide-ko.md",

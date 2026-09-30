@@ -2,7 +2,7 @@
 
 (vl-load-com)
 
-(setq *swapp-loader-version* "260929-title-stop-1")
+(setq *swapp-loader-version* "260930-xref-collect-2")
 
 (defun swapp-loader-source (/ source)
   (setq source nil)

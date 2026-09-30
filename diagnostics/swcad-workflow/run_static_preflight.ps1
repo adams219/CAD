@@ -314,7 +314,17 @@ foreach ($needle in @(
 )) {
   Assert-Contains $appText $needle "Workflow safety contract"
 }
-Assert-NotContains $appText "vla-Move" "Manual placement policy"
+# The app never moves XREFs the user placed or converted objects. The only move is
+# the COLLECT step placing the XREFs it has just attached (swapp-collect-place).
+$moveOwners = @(
+  [regex]::Matches($appText, 'vla-Move') | ForEach-Object {
+    $owner = [regex]::Matches($appText.Substring(0, $_.Index), '(?m)^\(defun ([^\s(]+)') | Select-Object -Last 1
+    if ($owner) { $owner.Groups[1].Value } else { "<top level>" }
+  } | Sort-Object -Unique
+)
+if (@($moveOwners | Where-Object { $_ -ne "swapp-collect-place" }).Count -gt 0) {
+  Add-Failure "Manual placement policy: vla-Move outside swapp-collect-place: $($moveOwners -join ', ')"
+}
 Assert-NotContains $appText "_.MOVE" "Manual placement policy"
 Assert-NotContains $appText "*swapp-layout-prefix*" "Prefix-free Layout ownership policy"
 Assert-NotContains $appText '"_All"' "Named-definition-only purge policy"

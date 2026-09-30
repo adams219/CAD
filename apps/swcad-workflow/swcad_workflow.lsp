@@ -3,7 +3,7 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "260929-title-stop-1")
+(setq *swapp-version* "260930-xref-collect-2")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-legacy-layout-prefix* "SWCAD-SHEET")
 (setq *swapp-layout-placement-mode* "XREF_SOURCE_FILENAME_COORDINATES")
@@ -2041,7 +2041,1058 @@
           )
         )
         ((or (> (swapp-evidence-value evidence "source-count") 0) (> frames 0)) "TITLE")
+        ((swapp-model-space-empty-p) "COLLECT")
         (T "BLOCKED_NO_SHEETS")
+      )
+    )
+  )
+)
+
+;;; ---------------------------
+;;; COLLECT: pick DWGs and attach them as XREFs in drawing-number order
+;;; ---------------------------
+;;; XREF + BIND is how several SOLIDWORKS DWGs are gathered into one drawing.
+;;; Every SOLIDWORKS DWG reuses the same block and style names, numbered from 0 in
+;;; each file (SW_CENTERMARKSYMBOL_0, SW_TABLEANNOTATION_0, DR_표제란_FTAP,
+;;; SLDDIMSTYLE0, ...).  Copy/paste or INSERT keeps only the first file's
+;;; definition, so other sheets showed the wrong center marks.  BIND prefixes every
+;;; name with its file.  This step only replaces the manual XATTACH and click: the
+;;; user picks the files, they are sorted by name like Windows Explorer, and each
+;;; drawing-number group (the first number of 01-06-05-00_...) gets its own row.
+;;; Rows are aligned on the sheet frame tops, so the Layout order rule (same top =
+;;; same row, left to right, rows top to bottom) reads the name order.
+
+(setq *swapp-collect-gap* 50.0)
+(setq *swapp-collect-other-row-size* 10)
+;;; Tests: a list of DWG paths used instead of the file dialog and the prompts.
+(setq *swapp-collect-file-list-override* nil)
+;;; Which picker result file LISP could read (".utf8.txt" or ".ansi.txt").
+(setq *swapp-collect-picker-encoding* nil)
+;;; The messages of the last collection are also written to swcad_collect_last.txt.
+(setq *swapp-collect-log-handle* nil)
+
+(defun swapp-model-space-empty-p ()
+  (not (ssget "_X" '((410 . "Model"))))
+)
+
+(defun swapp-collect-log-path ()
+  (swcad-title-work-log-path "swcad_collect_last.txt")
+)
+
+(defun swapp-collect-log-close ()
+  (if *swapp-collect-log-handle*
+    (progn
+      (close *swapp-collect-log-handle*)
+      (setq *swapp-collect-log-handle* nil)
+    )
+  )
+)
+
+(defun swapp-collect-log-open ()
+  (swapp-collect-log-close)
+  (setq *swapp-collect-log-handle* (open (swapp-collect-log-path) "w"))
+)
+
+;;; Prints a message and writes it to the collect log.
+(defun swapp-collect-say (text)
+  (princ text)
+  (if *swapp-collect-log-handle*
+    (write-line (vl-string-left-trim "\n" text) *swapp-collect-log-handle*)
+  )
+)
+
+(defun swapp-collect-helper-path (/ candidates path found)
+  (setq candidates
+    (list
+      (if (and (boundp '*swapp-root*) *swapp-root*)
+        (strcat *swapp-root* "/apps/swcad-workflow/swcad_pick_dwgs.ps1")
+        nil
+      )
+      (strcat (swcad-title-repo-root-path) "apps/swcad-workflow/swcad_pick_dwgs.ps1")
+    )
+  )
+  (setq found nil)
+  (foreach path candidates
+    (if (and path (not found) (findfile path)) (setq found path))
+  )
+  found
+)
+
+;;; Date and time as 20260930_101530.
+(defun swapp-collect-stamp ()
+  (vl-string-translate "." "_" (rtos (getvar "CDATE") 2 6))
+)
+
+(defun swapp-collect-temp-base (/ dir)
+  (setq dir (getenv "TEMP"))
+  (if (or (not dir) (= dir "")) (setq dir (getvar "TEMPPREFIX")))
+  (strcat (vl-string-right-trim "\\/" dir) "\\swcad_pick_" (swapp-collect-stamp))
+)
+
+(defun swapp-read-text-lines (path / handle line result)
+  (setq result nil)
+  (if (and path (findfile path) (setq handle (open path "r")))
+    (progn
+      (while (setq line (read-line handle))
+        (setq result (cons line result))
+      )
+      (close handle)
+    )
+  )
+  (reverse result)
+)
+
+(defun swapp-join-strings (items separator / result item)
+  (setq result "")
+  (foreach item items
+    (setq result (if (= result "") item (strcat result separator item)))
+  )
+  result
+)
+
+;;; Reads the picker result written by swcad_pick_dwgs.ps1 as (status paths), status
+;;; "OK", "CANCEL" or "ERROR ...".  The result exists in UTF-8 and in the ANSI code
+;;; page; the first file whose paths all exist is used.
+(defun swapp-collect-read-picker-result (base / result suffix lines status paths all-found path)
+  (setq result nil)
+  (foreach suffix '(".utf8.txt" ".ansi.txt")
+    (if (not result)
+      (progn
+        (setq lines (swapp-read-text-lines (strcat base suffix)))
+        (if lines
+          (progn
+            (setq status (car lines))
+            (setq paths
+              (vl-remove-if
+                '(lambda (item) (= (vl-string-trim " \t\r\n" item) ""))
+                (cdr lines)
+              )
+            )
+            (cond
+              ((vl-string-search "CANCEL" status) (setq result (list "CANCEL" nil)))
+              ((vl-string-search "ERROR" status)
+                (setq result (list (vl-string-trim " \t\r\n" status) nil))
+              )
+              ((vl-string-search "OK" status)
+                (setq all-found T)
+                (foreach path paths
+                  (if (not (findfile path)) (setq all-found nil))
+                )
+                (if (and paths all-found)
+                  (progn
+                    (setq result (list "OK" paths))
+                    (setq *swapp-collect-picker-encoding* suffix)
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  (foreach suffix '(".utf8.txt" ".ansi.txt")
+    (if (findfile (strcat base suffix)) (vl-file-delete (strcat base suffix)))
+  )
+  (if result result (list "ERROR 고른 파일의 경로를 읽지 못했습니다" nil))
+)
+
+;;; Shows the Windows file dialog through swcad_pick_dwgs.ps1 and waits for it.
+;;; test-paths (tests only) skips the dialog.  Returns (status paths).
+(defun swapp-collect-run-picker (initial-dir test-paths / helper base command shell result)
+  (setq helper (swapp-collect-helper-path))
+  (if (not helper)
+    (list "ERROR 파일 선택 도우미 swcad_pick_dwgs.ps1을 찾지 못했습니다" nil)
+    (progn
+      (setq base (swapp-collect-temp-base))
+      (setq command
+        (strcat
+          "powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File "
+          (swcad-title-command-line-quote helper)
+          " -OutputPath "
+          (swcad-title-command-line-quote base)
+          (if (and initial-dir (> (strlen initial-dir) 0))
+            (strcat
+              " -InitialDirectory "
+              (swcad-title-command-line-quote (vl-string-right-trim "\\/" initial-dir))
+            )
+            ""
+          )
+          (if test-paths
+            (strcat " -TestPaths " (swcad-title-command-line-quote (swapp-join-strings test-paths "|")))
+            ""
+          )
+        )
+      )
+      (setq shell (vl-catch-all-apply 'vlax-create-object (list "WScript.Shell")))
+      (if (vl-catch-all-error-p shell)
+        (list (strcat "ERROR " (vl-catch-all-error-message shell)) nil)
+        (progn
+          (setq result (vl-catch-all-apply 'vlax-invoke-method (list shell 'Run command 0 :vlax-true)))
+          (vl-catch-all-apply 'vlax-release-object (list shell))
+          (if (vl-catch-all-error-p result)
+            (list (strcat "ERROR " (vl-catch-all-error-message result)) nil)
+            (swapp-collect-read-picker-result base)
+          )
+        )
+      )
+    )
+  )
+)
+
+(defun swapp-digit-char-p (ch)
+  (and ch (= (strlen ch) 1) (wcmatch ch "#"))
+)
+
+;;; Runs of digits and of other characters: "PART 10.DWG" -> ("PART " "10" ".DWG").
+(defun swapp-natural-runs (text / index ch run digit result)
+  (setq result nil)
+  (setq run "")
+  (setq digit nil)
+  (setq index 1)
+  (while (<= index (strlen text))
+    (setq ch (substr text index 1))
+    (if (and (> (strlen run) 0) (not (eq (swapp-digit-char-p ch) digit)))
+      (progn
+        (setq result (cons run result))
+        (setq run "")
+      )
+    )
+    (setq digit (swapp-digit-char-p ch))
+    (setq run (strcat run ch))
+    (setq index (1+ index))
+  )
+  (if (> (strlen run) 0) (setq result (cons run result)))
+  (reverse result)
+)
+
+(defun swapp-strip-leading-zeros (text / index)
+  (setq index 1)
+  (while (and (< index (strlen text)) (= (substr text index 1) "0"))
+    (setq index (1+ index))
+  )
+  (substr text index)
+)
+
+;;; Name order of Windows Explorer: ignores case and compares numbers by value
+;;; ("Part 2" before "Part 10").
+(defun swapp-natural-less-p (a b / runs-a runs-b x y nx ny result)
+  (setq runs-a (swapp-natural-runs (strcase a)))
+  (setq runs-b (swapp-natural-runs (strcase b)))
+  (setq result nil)
+  (while (and runs-a runs-b (not result))
+    (setq x (car runs-a))
+    (setq y (car runs-b))
+    (cond
+      ((and (swapp-digit-char-p (substr x 1 1)) (swapp-digit-char-p (substr y 1 1)))
+        (setq nx (swapp-strip-leading-zeros x))
+        (setq ny (swapp-strip-leading-zeros y))
+        (cond
+          ((/= (strlen nx) (strlen ny)) (setq result (if (< (strlen nx) (strlen ny)) 'LESS 'MORE)))
+          ((/= nx ny) (setq result (if (< nx ny) 'LESS 'MORE)))
+        )
+      )
+      ((/= x y) (setq result (if (< x y) 'LESS 'MORE)))
+    )
+    (setq runs-a (cdr runs-a))
+    (setq runs-b (cdr runs-b))
+  )
+  (cond
+    (result (eq result 'LESS))
+    (runs-a nil)
+    (runs-b T)
+    (T (< a b))
+  )
+)
+
+;;; First number of a drawing number at the start of a file name:
+;;; "01-06-05-00_Bush Inner" -> "01".  The name must start with at least two
+;;; number groups joined by "-", followed by "_", a space or the end.  Other
+;;; names give nil.
+(defun swapp-drawing-number-group (stem / index ch first groups current broken)
+  (setq index 1)
+  (setq first nil)
+  (setq groups 0)
+  (setq current "")
+  (setq broken nil)
+  (while
+    (and
+      (<= index (strlen stem))
+      (progn (setq ch (substr stem index 1)) (or (swapp-digit-char-p ch) (= ch "-")))
+    )
+    (cond
+      ((swapp-digit-char-p ch) (setq current (strcat current ch)))
+      ((= current "") (setq broken T))
+      (T
+        (if (not first) (setq first current))
+        (setq groups (1+ groups))
+        (setq current "")
+      )
+    )
+    (setq index (1+ index))
+  )
+  (if (= current "")
+    (setq broken T)
+    (progn
+      (if (not first) (setq first current))
+      (setq groups (1+ groups))
+    )
+  )
+  (setq ch (if (<= index (strlen stem)) (substr stem index 1) ""))
+  (if (and (not broken) (>= groups 2) (member ch '("_" " " "")))
+    first
+    nil
+  )
+)
+
+;;; Rows of (stem path group) items: one row per drawing-number group, then the
+;;; other files in rows of *swapp-collect-other-row-size*, all in name order.
+;;; The same path picked twice is used once.
+(defun swapp-collect-rows (paths / seen unique path records order sorted rows row key last-key others item)
+  (setq seen nil)
+  (setq unique nil)
+  (foreach path paths
+    (if (not (member (strcase path) seen))
+      (progn
+        (setq seen (cons (strcase path) seen))
+        (setq unique (append unique (list path)))
+      )
+    )
+  )
+  (setq records
+    (mapcar
+      '(lambda (item / stem) (setq stem (swapp-source-stem-from-path-or-name item "")) (list stem item (swapp-drawing-number-group stem)))
+      unique
+    )
+  )
+  (setq order (vl-sort-i records '(lambda (a b) (swapp-natural-less-p (car a) (car b)))))
+  (setq sorted (mapcar '(lambda (index) (nth index records)) order))
+  (setq rows nil)
+  (setq row nil)
+  (setq last-key nil)
+  (setq others nil)
+  (foreach item sorted
+    (setq key (caddr item))
+    (cond
+      ((not key) (setq others (append others (list item))))
+      ((and row (equal key last-key)) (setq row (append row (list item))))
+      (T
+        (if row (setq rows (append rows (list row))))
+        (setq row (list item))
+        (setq last-key key)
+      )
+    )
+  )
+  (if row (setq rows (append rows (list row))))
+  (setq row nil)
+  (foreach item others
+    (setq row (append row (list item)))
+    (if (>= (length row) *swapp-collect-other-row-size*)
+      (progn
+        (setq rows (append rows (list row)))
+        (setq row nil)
+      )
+    )
+  )
+  (if row (setq rows (append rows (list row))))
+  rows
+)
+
+;;; XREF name for a file: its name without the extension, with characters a block
+;;; name cannot hold replaced.  Different files never share a name: a shared XREF
+;;; name would make both inserts show one file, the same-name problem again.
+(defun swapp-collect-xref-name (stem used / base name index)
+  (setq base (vl-string-translate "<>/\\\":;?*|,=`" "_____________" stem))
+  (if (> (strlen base) 200) (setq base (substr base 1 200)))
+  (if (= base "") (setq base "SWCAD_XREF"))
+  (setq name base)
+  (setq index 2)
+  (while (or (tblsearch "BLOCK" name) (member (strcase name) used))
+    (setq name (strcat base "_" (itoa index)))
+    (setq index (1+ index))
+  )
+  name
+)
+
+(defun swapp-bbox4-area (bbox)
+  (* (- (caddr bbox) (car bbox)) (- (cadddr bbox) (cadr bbox)))
+)
+
+;;; A block directly inside an XREF that can be the sheet frame: its own name names
+;;; a paper size or looks like a frame (DR_A3_Outline, DR-A3 FROM_HYUN, ...).
+(defun swapp-collect-frame-name-p (name)
+  (and
+    name
+    (or
+      (swcad-title-sheet-size-from-block-name name)
+      (swcad-title-source-frame-strong-name-p name)
+    )
+  )
+)
+
+;;; Sheet window of an attached XREF as (bbox4 kind): the largest sheet-like frame
+;;; block directly inside it ("frame"), else the whole XREF ("no-frame", or
+;;; "several-frames" for a multi-sheet file).  Rows are aligned on this window, so
+;;; objects outside a frame do not move the frame out of its row.
+(defun swapp-collect-sheet-window (reference / whole block origin ins dx dy candidates child bbox best best-area big-count)
+  (setq whole (swapp-object-bbox4 reference))
+  (setq block (swapp-block-definition (swapp-reference-name reference)))
+  (setq origin (if block (swapp-safe 'vlax-get (list block 'Origin)) nil))
+  (setq ins (swapp-safe 'vlax-get (list reference 'InsertionPoint)))
+  (setq candidates nil)
+  (if (and block origin ins)
+    (progn
+      (setq dx (- (car ins) (car origin)))
+      (setq dy (- (cadr ins) (cadr origin)))
+      (foreach child (swapp-collection-items block)
+        (if
+          (and
+            (swapp-block-reference-p child)
+            (swapp-collect-frame-name-p (swapp-reference-name child))
+            (setq bbox (swapp-object-bbox4 child))
+          )
+          (progn
+            (setq bbox (list (+ (car bbox) dx) (+ (cadr bbox) dy) (+ (caddr bbox) dx) (+ (cadddr bbox) dy)))
+            (if (gsla-window-sheetlike-p (swapp-bbox4-window bbox))
+              (setq candidates (cons bbox candidates))
+            )
+          )
+        )
+      )
+    )
+  )
+  (setq best nil)
+  (setq best-area 0.0)
+  (foreach bbox candidates
+    (if (> (swapp-bbox4-area bbox) best-area)
+      (progn
+        (setq best bbox)
+        (setq best-area (swapp-bbox4-area bbox))
+      )
+    )
+  )
+  (setq big-count 0)
+  (foreach bbox candidates
+    (if (>= (swapp-bbox4-area bbox) (* 0.5 best-area)) (setq big-count (1+ big-count)))
+  )
+  (cond
+    ((and best (= big-count 1)) (list best "frame"))
+    (whole (list whole (if best "several-frames" "no-frame")))
+    (T nil)
+  )
+)
+
+;;; Moves the XREFs so that per row the sheet tops line up, full extents never
+;;; overlap, rows run left to right and top to bottom.  Items are
+;;; (stem path group reference whole-bbox sheet-bbox).
+(defun swapp-collect-place (rows / gap limit row rise top x bottom item whole sheet dx dy moved)
+  (setq gap *swapp-collect-gap*)
+  (setq limit nil)
+  (setq moved T)
+  (foreach row rows
+    (setq rise 0.0)
+    (foreach item row
+      (setq rise (max rise (- (cadddr (nth 4 item)) (cadddr (nth 5 item)))))
+    )
+    (setq top (if limit (- limit rise) 0.0))
+    (setq x 0.0)
+    (setq bottom nil)
+    (foreach item row
+      (setq whole (nth 4 item))
+      (setq sheet (nth 5 item))
+      (setq dx (- x (car whole)))
+      (setq dy (- top (cadddr sheet)))
+      (if
+        (not
+          (swapp-call-ok-p
+            'vla-Move
+            (list (nth 3 item) (vlax-3d-point '(0.0 0.0 0.0)) (vlax-3d-point (list dx dy 0.0)))
+          )
+        )
+        (setq moved nil)
+      )
+      (setq x (+ (caddr whole) dx gap))
+      (setq bottom (if bottom (min bottom (+ (cadr whole) dy)) (+ (cadr whole) dy)))
+    )
+    (setq limit (- bottom gap))
+  )
+  moved
+)
+
+(defun swapp-collect-remove (references names / reference name block)
+  (foreach reference references
+    (swapp-safe 'vla-Delete (list reference))
+  )
+  (foreach name names
+    (setq block (swapp-block-definition name))
+    (if block (swapp-safe 'vla-Detach (list block)))
+  )
+)
+
+;;; Attaches path as XREF name at 0,0 in the model space of host.  Returns the
+;;; reference, or the error message as a string.
+(defun swapp-collect-attach (host path name / reference)
+  (setq reference
+    (vl-catch-all-apply
+      'vla-AttachExternalReference
+      (list
+        (vla-get-ModelSpace host)
+        path
+        name
+        (vlax-3d-point '(0.0 0.0 0.0))
+        1.0 1.0 1.0 0.0
+        :vlax-false
+      )
+    )
+  )
+  (if (vl-catch-all-error-p reference) (vl-catch-all-error-message reference) reference)
+)
+
+;;; An XREF shows only the model space of its file.
+(defun swapp-collect-xref-empty-p (reference / count)
+  (setq count
+    (swapp-safe 'vla-get-Count (list (swapp-block-definition (swapp-reference-name reference))))
+  )
+  (or (not (numberp count)) (= count 0))
+)
+
+;;; ---- Sheets saved in paper space ----
+;;; A SOLIDWORKS export with "용지 공간으로 모든 도면 시트 내보내기" keeps the sheet
+;;; in a layout and leaves model space empty, so its XREF shows nothing.  Such a
+;;; file is copied under %LOCALAPPDATA%\SWTitle\collect\<time>\<n>\ with the same
+;;; file name (the Layout names still come from it); the copy is opened, the
+;;; objects of its one filled layout are copied into model space and removed from
+;;; the layout, the copy is saved and attached instead.  The picked file is never
+;;; opened.  Anything unclear stops the collection.
+
+;;; Tests: folder used instead of %LOCALAPPDATA%\SWTitle\collect.
+(setq *swapp-collect-convert-root-override* nil)
+
+(defun swapp-collect-convert-root (/ base)
+  (if *swapp-collect-convert-root-override*
+    (strcat
+      (vl-string-right-trim "\\" (vl-string-translate "/" "\\" *swapp-collect-convert-root-override*))
+      "\\"
+      (swapp-collect-stamp)
+    )
+    (progn
+      (setq base (getenv "LOCALAPPDATA"))
+      (if (or (not base) (= base "")) (setq base (getenv "TEMP")))
+      (strcat (vl-string-right-trim "\\/" base) "\\SWTitle\\collect\\" (swapp-collect-stamp))
+    )
+  )
+)
+
+;;; A new, empty folder for the converted copies of one collection, or nil.
+(defun swapp-collect-new-convert-folder (/ root folder index)
+  (setq root (swapp-collect-convert-root))
+  (setq folder root)
+  (setq index 2)
+  (while (vl-file-directory-p folder)
+    (setq folder (strcat root "_" (itoa index)))
+    (setq index (1+ index))
+  )
+  (if (swcad-title-ensure-directory-path folder) folder nil)
+)
+
+;;; <folder>\<index>\<file name of source>, so two picked files with the same name
+;;; never meet.
+(defun swapp-collect-convert-target (folder index source / dir extension)
+  (setq dir (strcat folder "\\" (itoa index)))
+  (setq extension (vl-filename-extension source))
+  (if (swcad-title-ensure-directory-path dir)
+    (strcat dir "\\" (vl-filename-base source) (if extension extension ".dwg"))
+    nil
+  )
+)
+
+;;; Why a file with an empty model space cannot be converted, or nil.
+;;; filled: ((layout-name object-count) ...) of the layouts holding objects other
+;;; than viewports.  negative: dimensions with a negative DIMLFAC, which applies
+;;; only in paper space, so their value would change in model space.
+(defun swapp-collect-paper-sheet-problem (model-count filled negative)
+  (cond
+    ((> model-count 0) "모델 공간이 비어 있지 않습니다")
+    ((not filled) "모델 공간과 배치 공간이 모두 비어 있습니다")
+    ((> (length filled) 1)
+      (strcat "내용이 있는 배치 탭이 " (itoa (length filled)) "개라 어느 탭을 쓸지 정할 수 없습니다")
+    )
+    ((> negative 0)
+      (strcat
+        "배치 공간에서만 적용되는 음수 치수 배율(DIMLFAC)을 쓴 치수가 "
+        (itoa negative)
+        "개 있어 모델 공간으로 옮기면 치수 값이 바뀝니다"
+      )
+    )
+    (T nil)
+  )
+)
+
+;;; The open document of path, or nil.
+(defun swapp-collect-find-document (path / key found name doc)
+  (setq key (strcase (vl-string-translate "/" "\\" path)))
+  (setq found nil)
+  (vlax-for doc (vla-get-Documents (vlax-get-acad-object))
+    (setq name (swapp-safe 'vla-get-FullName (list doc)))
+    (if (and (not found) (= (type name) 'STR) (= (strcase (vl-string-translate "/" "\\" name)) key))
+      (setq found doc)
+    )
+  )
+  found
+)
+
+;;; Opens the copy target for editing.  Returns the document or the error message.
+;;; GstarCAD sometimes (2 of 28 opens) reports "Expecting object to be local"
+;;; although it did open the file; opening it again then shows the "already open"
+;;; prompt and waits, so the open document is looked up instead.
+(defun swapp-collect-open-copy (target / doc)
+  (if (swapp-collect-find-document target)
+    "같은 파일이 이미 열려 있습니다"
+    (progn
+      (setq doc (vl-catch-all-apply 'vla-Open (list (vla-get-Documents (vlax-get-acad-object)) target :vlax-false)))
+      (cond
+        ((not (vl-catch-all-error-p doc)) doc)
+        ((swapp-collect-find-document target))
+        (T (vl-catch-all-error-message doc))
+      )
+    )
+  )
+)
+
+(defun swapp-same-document-p (a b)
+  (or
+    (equal a b)
+    (and
+      a b
+      (equal (swapp-safe 'vla-get-Name (list a)) (swapp-safe 'vla-get-Name (list b)))
+      (equal (swapp-safe 'vla-get-FullName (list a)) (swapp-safe 'vla-get-FullName (list b)))
+    )
+  )
+)
+
+;;; Moves the one filled layout of the opened copy into its model space and saves
+;;; it.  Returns (T object-count layout-name) or (nil reason).
+(defun swapp-collect-convert-open-copy (doc / model filled negative layout objects obj factor problem arr copy-result copied save-result)
+  (setq model (vla-get-ModelSpace doc))
+  (setq filled nil)
+  (setq negative 0)
+  (vlax-for layout (vla-get-Layouts doc)
+    (if (/= (strcase (vla-get-Name layout)) "MODEL")
+      (progn
+        (setq objects nil)
+        (vlax-for obj (vla-get-Block layout)
+          (if (/= (vla-get-ObjectName obj) "AcDbViewport")
+            (progn
+              (setq objects (cons obj objects))
+              (if (wcmatch (vla-get-ObjectName obj) "AcDb*Dimension")
+                (progn
+                  (setq factor (swapp-safe 'vla-get-LinearScaleFactor (list obj)))
+                  (if (and (numberp factor) (< factor 0.0)) (setq negative (1+ negative)))
+                )
+              )
+            )
+          )
+        )
+        (if objects
+          (setq filled (append filled (list (list (vla-get-Name layout) (reverse objects)))))
+        )
+      )
+    )
+  )
+  (setq problem
+    (swapp-collect-paper-sheet-problem
+      (vla-get-Count model)
+      (mapcar '(lambda (item) (list (car item) (length (cadr item)))) filled)
+      negative
+    )
+  )
+  (if problem
+    (list nil problem)
+    (progn
+      (setq objects (cadr (car filled)))
+      (setq arr (vlax-make-safearray vlax-vbObject (cons 0 (1- (length objects)))))
+      (vlax-safearray-fill arr objects)
+      (setq copy-result (vl-catch-all-apply 'vla-CopyObjects (list doc arr model)))
+      (setq copied (vla-get-Count model))
+      (cond
+        ((vl-catch-all-error-p copy-result)
+          (list nil (strcat "모델 공간으로 복사하지 못했습니다: " (vl-catch-all-error-message copy-result)))
+        )
+        ((/= copied (length objects))
+          (list nil (strcat "모델 공간으로 " (itoa copied) "/" (itoa (length objects)) "개만 복사됐습니다"))
+        )
+        (T
+          (foreach obj objects (swapp-safe 'vla-Delete (list obj)))
+          (setq save-result (vl-catch-all-apply 'vla-Save (list doc)))
+          (if (vl-catch-all-error-p save-result)
+            (list nil (strcat "변환 사본을 저장하지 못했습니다: " (vl-catch-all-error-message save-result)))
+            (list T (length objects) (car (car filled)))
+          )
+        )
+      )
+    )
+  )
+)
+
+;;; Converts one picked file whose model space is empty.  Returns
+;;; (T target object-count layout-name) or (nil reason).  Only the copy target is
+;;; opened, and host must be the active drawing again afterwards.
+(defun swapp-collect-convert-paper-sheet (host source target / sdi doc result backup)
+  (setq sdi (getvar "SDI"))
+  (cond
+    ((and (numberp sdi) (/= sdi 0))
+      (list nil "SDI가 0이 아니라 다른 도면을 함께 열 수 없습니다")
+    )
+    ((not target) (list nil "사본 폴더를 만들지 못했습니다"))
+    ((findfile target) (list nil (strcat "사본 파일이 이미 있습니다: " target)))
+    ((not (vl-file-copy source target)) (list nil (strcat "사본을 만들지 못했습니다: " target)))
+    (T
+      (setq doc (swapp-collect-open-copy target))
+      (cond
+        ((= (type doc) 'STR)
+          (list nil (strcat "사본을 열지 못했습니다: " doc))
+        )
+        ((swapp-same-document-p doc host)
+          (list nil "사본 대신 현재 도면이 열렸습니다")
+        )
+        (T
+          (setq result (vl-catch-all-apply 'swapp-collect-convert-open-copy (list doc)))
+          (if (vl-catch-all-error-p result)
+            (setq result (list nil (strcat "변환 중 오류: " (vl-catch-all-error-message result))))
+          )
+          ;; GstarCAD finishes a Close only when a drawing is activated or opened
+          ;; afterwards, so the host drawing is activated even when it is active.
+          (vl-catch-all-apply 'vla-Close (list doc :vlax-false))
+          (swapp-safe 'vla-Activate (list host))
+          ;; The backup the save made of this copy.
+          (setq backup (strcat (vl-filename-directory target) "\\" (vl-filename-base target) ".bak"))
+          (if (findfile backup) (vl-file-delete backup))
+          (cond
+            ((not (swapp-same-document-p (swapp-doc) host))
+              (list nil "변환 뒤 원래 도면으로 돌아오지 못했습니다")
+            )
+            ((car result) (cons T (cons target (cdr result))))
+            (T result)
+          )
+        )
+      )
+    )
+  )
+)
+
+(defun swapp-collect-print-rows (rows / row-index index row item)
+  (setq row-index 1)
+  (setq index 1)
+  (foreach row rows
+    (swapp-collect-say
+      (strcat
+        "\n  " (itoa row-index) "줄"
+        (if (caddr (car row)) (strcat " [" (caddr (car row)) "]") " [번호 규칙 밖]")
+        ", " (itoa (length row)) "장"
+      )
+    )
+    (foreach item row
+      (swapp-collect-say (strcat "\n    " (itoa index) ". " (car item)))
+      (setq index (1+ index))
+    )
+    (setq row-index (1+ row-index))
+  )
+)
+
+;;; SWCADRUN step 0.  Returns T when the drawings were attached and placed.  The
+;;; messages also go to swcad_collect_last.txt.
+(defun swapp-collect-xrefs (/ result)
+  (swapp-collect-log-open)
+  (setq result (swapp-collect-xrefs-run))
+  (if *swapp-collect-log-handle*
+    (princ (strcat "\n모으기 기록 파일: " (swapp-collect-log-path)))
+  )
+  (swapp-collect-log-close)
+  result
+)
+
+;;; Attaches every file; a file whose model space is empty (the sheet was saved in
+;;; paper space) is replaced by a converted copy.  If anything fails, every XREF
+;;; of this run is removed again.
+(defun swapp-collect-xrefs-run (/ paths more dir picked status answer rows count host used attached names refs empty problem folder index pair converted targets still-open placed-rows ok row placed-row item name reference whole window unreadable frame-count kinds)
+  (swapp-collect-say "\n----- SWCAD 0/6 도면 모으기 -----")
+  (swapp-collect-say "\nSOLIDWORKS DWG를 XREF로 붙입니다. 파일 이름 순서로 놓고, 도면번호 첫 번호마다 새 줄로 시작합니다.")
+  (swapp-collect-say "\n복사·붙여넣기 대신 XREF를 쓰면 파일마다 같은 이름의 블록(중심 표시, 표, 표제란)이 섞이지 않습니다.")
+  (swapp-collect-say (strcat "\n호스트 도면: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (setq paths nil)
+  (cond
+    (*swapp-collect-file-list-override*
+      (setq paths *swapp-collect-file-list-override*)
+    )
+    ((swcad-title-script-active-p)
+      (swapp-collect-say "\n결과: BLOCKED_COLLECT_SCRIPT_ACTIVE")
+      (swapp-collect-say "\nSCRIPT 실행 중에는 파일 선택 창을 열지 않습니다. 명령창에 SWCADRUN을 직접 입력하세요.")
+      (setq paths 'STOP)
+    )
+    (T
+      (setq more T)
+      (setq dir (getvar "DWGPREFIX"))
+      (while more
+        (swapp-collect-say "\n파일 선택 창에서 모을 DWG를 고르세요(여러 개: Ctrl, Shift, Ctrl+A).")
+        (setq picked (swapp-collect-run-picker dir nil))
+        (setq status (car picked))
+        (cond
+          ((= status "OK")
+            (setq paths (append paths (cadr picked)))
+            (setq dir (vl-filename-directory (last (cadr picked))))
+            (swapp-collect-say (strcat "\n고른 도면: " (itoa (length (cadr picked))) "개, 지금까지 " (itoa (length paths)) "개"))
+            (setq answer (getstring T "\n다른 폴더의 도면도 추가하려면 A, 다 골랐으면 Enter를 누르세요: "))
+            (if (/= (strcase (vl-string-trim " " answer)) "A") (setq more nil))
+          )
+          ((= status "CANCEL") (setq more nil))
+          (T
+            (swapp-collect-say (strcat "\n파일 선택 창 오류: " status))
+            (setq more nil)
+            (setq paths 'STOP)
+          )
+        )
+      )
+    )
+  )
+  (cond
+    ((eq paths 'STOP) nil)
+    ((not paths)
+      (swapp-collect-say "\n결과: ABORT_COLLECT_NO_FILES")
+      (swapp-collect-say "\n고른 도면이 없어 아무것도 바꾸지 않았습니다.")
+      nil
+    )
+    (T
+      (setq rows (swapp-collect-rows paths))
+      (setq count (apply '+ (mapcar 'length rows)))
+      (swapp-collect-say (strcat "\n모을 도면: " (itoa count) "개, " (itoa (length rows)) "줄 (파일 이름 순서)"))
+      (swapp-collect-print-rows rows)
+      (setq answer
+        (if *swapp-collect-file-list-override*
+          "YES"
+          (getstring T "\n위 순서로 XREF를 붙이려면 YES를 입력하세요: ")
+        )
+      )
+      (if (/= (strcase (vl-string-trim " " answer)) "YES")
+        (progn
+          (swapp-collect-say "\n결과: ABORT_COLLECT_USER")
+          (swapp-collect-say "\n도면을 바꾸지 않았습니다.")
+          nil
+        )
+        (progn
+          (setq host (swapp-doc))
+          (setq used nil)
+          (setq attached nil)
+          (setq names nil)
+          (setq refs nil)
+          (setq empty nil)
+          (setq problem nil)
+          (setq targets nil)
+          (setq unreadable nil)
+          (setq ok T)
+          ;; 1. Every file as an XREF at 0,0.  A file with an empty model space is
+          ;;    detached again and converted in step 2.
+          (foreach row rows
+            (foreach item row
+              (if ok
+                (progn
+                  (setq name (swapp-collect-xref-name (car item) used))
+                  (setq used (cons (strcase name) used))
+                  (setq reference (swapp-collect-attach host (cadr item) name))
+                  (cond
+                    ((= (type reference) 'STR)
+                      (swapp-collect-say (strcat "\nXREF를 붙이지 못한 도면: " (cadr item)))
+                      (swapp-collect-say (strcat "\n  이유: " reference))
+                      (setq ok nil)
+                    )
+                    ((swapp-collect-xref-empty-p reference)
+                      (swapp-collect-remove (list reference) (list name))
+                      (setq empty (append empty (list (list item name))))
+                    )
+                    (T
+                      (setq attached (cons reference attached))
+                      (setq names (cons name names))
+                      (setq refs (cons (cons (cadr item) reference) refs))
+                    )
+                  )
+                )
+              )
+            )
+          )
+          ;; 2. Sheets saved in paper space: attach a model-space copy instead.
+          (if (and ok empty)
+            (progn
+              (swapp-collect-say
+                (strcat
+                  "\n모델 공간이 비어 있는 도면 " (itoa (length empty))
+                  "개: 도면이 배치(용지) 공간에만 있습니다. 모델 공간으로 옮긴 사본을 만들어 붙입니다. 고른 원본 파일은 열지 않습니다."
+                )
+              )
+              (setq folder (swapp-collect-new-convert-folder))
+              (if (not folder)
+                (setq problem (list "" (strcat "사본 폴더를 만들지 못했습니다: " (swapp-collect-convert-root))))
+              )
+              (setq index 1)
+              (foreach pair empty
+                (if (not problem)
+                  (progn
+                    (setq item (car pair))
+                    (setq name (cadr pair))
+                    (swapp-collect-say (strcat "\n  " (itoa index) "/" (itoa (length empty)) " " (car item)))
+                    (setq converted
+                      (swapp-collect-convert-paper-sheet
+                        host
+                        (cadr item)
+                        (swapp-collect-convert-target folder index (cadr item))
+                      )
+                    )
+                    (if (not (car converted))
+                      (setq problem (list (cadr item) (cadr converted)))
+                      (progn
+                        (setq targets (append targets (list (cadr converted))))
+                        (if (tblsearch "BLOCK" name) (setq name (swapp-collect-xref-name (car item) used)))
+                        (setq used (cons (strcase name) used))
+                        (setq reference (swapp-collect-attach host (cadr converted) name))
+                        (cond
+                          ((= (type reference) 'STR)
+                            (setq problem (list (cadr item) (strcat "변환 사본을 XREF로 붙이지 못했습니다: " reference)))
+                          )
+                          (T
+                            (setq attached (cons reference attached))
+                            (setq names (cons name names))
+                            (if (swapp-collect-xref-empty-p reference)
+                              (setq problem (list (cadr item) "변환 사본도 모델 공간이 비어 있습니다"))
+                              (progn
+                                (setq refs (cons (cons (cadr item) reference) refs))
+                                (swapp-collect-say
+                                  (strcat
+                                    " - '" (cadddr converted) "' 탭의 객체 "
+                                    (itoa (caddr converted)) "개를 모델 공간으로 옮김"
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                    (setq index (1+ index))
+                  )
+                )
+              )
+              (if (not problem)
+                (progn
+                  (swapp-collect-say (strcat "\n변환 사본 폴더: " folder))
+                  (setq still-open (vl-remove-if-not 'swapp-collect-find-document targets))
+                  (if still-open
+                    (progn
+                      (swapp-collect-say "\n아직 열려 있는 변환 사본입니다. 저장하지 말고 닫으세요:")
+                      (foreach item still-open (swapp-collect-say (strcat "\n  " item)))
+                    )
+                  )
+                )
+              )
+            )
+          )
+          ;; 3. Extents and sheet window of every XREF, row by row.
+          (setq placed-rows nil)
+          (if (and ok (not problem))
+            (foreach row rows
+              (setq placed-row nil)
+              (foreach item row
+                (setq reference (cdr (assoc (cadr item) refs)))
+                (setq whole (swapp-object-bbox4 reference))
+                (if (not whole)
+                  (setq unreadable (append unreadable (list (cadr item))))
+                  (progn
+                    (setq window (swapp-collect-sheet-window reference))
+                    (setq placed-row
+                      (append
+                        placed-row
+                        (list
+                          (list
+                            (car item) (cadr item) (caddr item) reference whole
+                            (if window (car window) whole)
+                            (if window (cadr window) "no-frame")
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+              (setq placed-rows (append placed-rows (list placed-row)))
+            )
+          )
+          (cond
+            ((not ok)
+              (swapp-collect-remove attached names)
+              (swapp-collect-say "\n결과: ERROR_COLLECT_ATTACH")
+              (swapp-collect-say "\n이번에 붙인 XREF를 모두 떼어 냈습니다. 도면을 바꾸지 않았습니다.")
+              nil
+            )
+            (problem
+              (swapp-collect-remove attached names)
+              (swapp-collect-say "\n결과: STOP_COLLECT_PAPER_SHEET")
+              (swapp-collect-say "\n배치(용지) 공간에만 도면이 있는 파일을 모델 공간 사본으로 바꾸지 못했습니다.")
+              (if (/= (car problem) "") (swapp-collect-say (strcat "\n  파일: " (car problem))))
+              (swapp-collect-say (strcat "\n  이유: " (cadr problem)))
+              (swapp-collect-say "\n이 파일은 SOLIDWORKS에서 '용지 공간으로 모든 도면 시트 내보내기'를 끄고 다시 DWG로 저장한 뒤 SWCADRUN을 다시 실행하세요.")
+              (swapp-collect-say "\n이번에 붙인 XREF를 모두 떼어 냈습니다. 도면을 바꾸지 않았습니다.")
+              nil
+            )
+            (unreadable
+              (swapp-collect-remove attached names)
+              (swapp-collect-say "\n결과: ERROR_COLLECT_EXTENTS")
+              (swapp-collect-say "\n범위를 읽지 못한 도면:")
+              (foreach item unreadable (swapp-collect-say (strcat "\n  " item)))
+              (swapp-collect-say "\n이번에 붙인 XREF를 모두 떼어 냈습니다. 도면을 바꾸지 않았습니다.")
+              nil
+            )
+            ((not (swapp-collect-place placed-rows))
+              (swapp-collect-remove attached names)
+              (swapp-collect-say "\n결과: ERROR_COLLECT_MOVE")
+              (swapp-collect-say "\nXREF를 제자리로 옮기지 못했습니다. 이번에 붙인 XREF를 모두 떼어 냈습니다. 도면을 바꾸지 않았습니다.")
+              nil
+            )
+            (T
+              (swapp-safe 'vla-ZoomExtents (list (vlax-get-acad-object)))
+              (setq frame-count 0)
+              (setq kinds nil)
+              (foreach row placed-rows
+                (foreach item row
+                  (if (equal (nth 6 item) "frame")
+                    (setq frame-count (1+ frame-count))
+                    (setq kinds (append kinds (list (strcat (car item) " (" (nth 6 item) ")"))))
+                  )
+                )
+              )
+              (swapp-collect-say "\n결과: OK_COLLECT_XREFS_PLACED")
+              (swapp-collect-say (strcat "\n붙인 XREF: " (itoa (length attached)) "개, " (itoa (length placed-rows)) "줄"))
+              (if empty
+                (swapp-collect-say
+                  (strcat "\n그중 배치 공간 도면을 모델 공간 사본으로 바꿔 붙인 도면: " (itoa (length empty)) "개")
+                )
+              )
+              (cond
+                ((= frame-count 0)
+                  (swapp-collect-say "\n도면틀 블록이 없어 모든 도면을 도면 전체 범위의 윗선으로 맞췄습니다.")
+                )
+                (T
+                  (swapp-collect-say (strcat "\n도면틀 윗선으로 줄을 맞춘 도면: " (itoa frame-count) "개"))
+                  (if kinds
+                    (progn
+                      (swapp-collect-say "\n도면틀을 찾지 못해 도면 전체 범위로 맞춘 도면:")
+                      (foreach item kinds (swapp-collect-say (strcat "\n  " item)))
+                    )
+                  )
+                )
+              )
+              (swapp-collect-say "\n다음: 배치를 눈으로 확인한 뒤 SWCADRUN을 다시 실행하세요. 다음 단계에서 XREF를 확인하고 결합합니다.")
+              (swapp-collect-say "\n배치를 다시 하려면 이 도면을 저장하지 말고 닫은 뒤 새 도면에서 다시 시작하세요.")
+              T
+            )
+          )
+        )
       )
     )
   )
@@ -4302,6 +5353,7 @@
 
 (defun swapp-stage-label (stage)
   (cond
+    ((equal stage "COLLECT") "0/6 도면 모으기 - DWG를 골라 XREF로 자동 배치")
     ((equal stage "XREF") "1/6 입력 도면 준비 - XREF 분해")
     ((equal stage "SHEET_WRAPPERS") "1/6 입력 도면 준비 - 시트 묶음 분해")
     ((equal stage "TITLE") "2/6 GMTITLE 변환")
@@ -4400,6 +5452,9 @@
   (princ (strcat "\nSWCAD Workflow 버전: " *swapp-version*))
   (princ (strcat "\nDWG: " (getvar "DWGPREFIX") (getvar "DWGNAME")))
   (princ (strcat "\n현재 단계: " stage-label " [" stage "]"))
+  (if (equal stage "COLLECT")
+    (princ "\n빈 도면입니다. SWCADRUN을 실행하면 DWG를 골라 파일 이름 순서로 XREF를 자동 배치합니다.")
+  )
   (if (> (strlen last-status) 0)
     (princ (strcat "\n마지막 GMTITLE 결과: " last-status))
   )
@@ -4507,6 +5562,9 @@
     (if *swcad-title-debug-log-handle*
       (vl-catch-all-apply 'swcad-title-close-log nil)
     )
+    (if *swapp-collect-log-handle*
+      (vl-catch-all-apply 'swapp-collect-log-close nil)
+    )
     (if *swapp-read-cache-enabled*
       (vl-catch-all-apply 'swapp-read-cache-end nil)
     )
@@ -4533,7 +5591,7 @@
   )
   (setq mutating-stage
     (and
-      (if (member stage '("XREF" "SHEET_WRAPPERS" "TITLE" "DIMSTYLE" "CLEANUP" "LAYOUT")) T nil)
+      (if (member stage '("COLLECT" "XREF" "SHEET_WRAPPERS" "TITLE" "DIMSTYLE" "CLEANUP" "LAYOUT")) T nil)
       (not cleanup-retry-blocked)
     )
   )
@@ -4546,6 +5604,7 @@
       (princ "\n현재 LSP 버전에서 실패한 리소스 정리는 자동 재실행하지 않습니다.")
       (princ "\nRESOURCE_CLEANUP_DETAIL과 무결성 로그를 확인하거나 수정된 새 버전을 로드하세요.")
     )
+    ((equal stage "COLLECT") (setq run-result (swapp-collect-xrefs)))
     ((equal stage "XREF") (setq run-result (swapp-materialize-xrefs)))
     ((equal stage "SHEET_WRAPPERS") (setq run-result (swapp-materialize-sheet-wrappers)))
     ((equal stage "TITLE") (setq run-result (swapp-run-title-next)))
@@ -4553,7 +5612,10 @@
     ((equal stage "CLEANUP") (setq run-result (swapp-run-resource-cleanup)))
     ((equal stage "LAYOUT") (setq run-result (swapp-run-layout)))
     ((equal stage "COMPLETE") (princ "\n모든 단계가 준비됐습니다. SWCADVERIFY를 실행하세요."))
-    (T (princ "\n처리할 도면틀/XREF를 찾지 못했습니다. 새 호스트 도면의 XREF 상태를 확인하세요."))
+    (T
+      (princ "\n처리할 도면틀/XREF를 찾지 못했습니다. 새 호스트 도면의 XREF 상태를 확인하세요.")
+      (princ "\n빈 새 도면에서 SWCADRUN을 실행하면 DWG를 골라 XREF로 자동 배치합니다.")
+    )
   )
   (if mutating-stage (swapp-read-cache-begin))
   ;; A successful cleanup just completed a persisted full audit.  Hand that
