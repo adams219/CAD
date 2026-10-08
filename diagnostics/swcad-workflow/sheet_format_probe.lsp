@@ -41,6 +41,12 @@
   (cdr (assoc tag (swapp-swfmt-value sheet "values")))
 )
 
+;;; A value as read from the title cells, before FILE NO / File Name come from the
+;;; file name.
+(defun swt-sf-cell-value (sheet tag)
+  (cdr (assoc tag (swapp-swfmt-value sheet "cell-values")))
+)
+
 (defun swt-sf-dump (sheets / sheet value)
   (foreach sheet (vl-sort sheets '(lambda (a b) (< (swapp-swfmt-value a "stem") (swapp-swfmt-value b "stem"))))
     (swt-sf-line
@@ -68,15 +74,19 @@
 (defun swt-sf-known-values (sheets / sheet)
   (if (setq sheet (swt-sf-sheet-by-stem sheets "01-06-07-00_Bush Inner"))
     (progn
-      (swt-sf-check "Bush Inner NR" (swt-sf-value sheet "GEN-TITLE-NR{23}") "Bush Inner")
-      (swt-sf-check "Bush Inner DWG empty" (swt-sf-value sheet "GEN-TITLE-DWG{23}") nil)
+      (swt-sf-check "Bush Inner 도면 번호 cell" (swt-sf-cell-value sheet "GEN-TITLE-NR{23}") "Bush Inner")
+      (swt-sf-check "Bush Inner 제목 cell empty" (swt-sf-cell-value sheet "GEN-TITLE-DWG{23}") nil)
+      ;; FILE NO and File Name come from the file name (user decision 2026-10-08).
+      (swt-sf-check "Bush Inner FILE NO" (swt-sf-value sheet "GEN-TITLE-NR{23}") "01-06-07-00")
+      (swt-sf-check "Bush Inner File Name" (swt-sf-value sheet "GEN-TITLE-DWG{23}") "Bush Inner")
       (swt-sf-check "Bush Inner SCA" (swt-sf-value sheet "GEN-TITLE-SCA{6.7}") "1:1")
       (swt-sf-check "Bush Inner SIZ" (swt-sf-value sheet "GEN-TITLE-SIZ{6.7}") "A4")
     )
   )
   (if (setq sheet (swt-sf-sheet-by-stem sheets "01-00-00-00_Brake Part"))
     (progn
-      (swt-sf-check "Brake Part NR" (swt-sf-value sheet "GEN-TITLE-NR{23}") "Brake Part")
+      (swt-sf-check "Brake Part FILE NO" (swt-sf-value sheet "GEN-TITLE-NR{23}") "01-00-00-00")
+      (swt-sf-check "Brake Part File Name" (swt-sf-value sheet "GEN-TITLE-DWG{23}") "Brake Part")
       (swt-sf-check "Brake Part SCA" (swt-sf-value sheet "GEN-TITLE-SCA{6.7}") "1:10")
       (swt-sf-check "Brake Part SIZ" (swt-sf-value sheet "GEN-TITLE-SIZ{6.7}") "A3")
     )
@@ -84,13 +94,15 @@
   (if (setq sheet (swt-sf-sheet-by-stem sheets "00-00-00-00_221216_디알드라이브_감속기 성능 시험기_A3"))
     (progn
       ;; This 도면 번호 value is a two-line SOLIDWORKS note block.
-      (swt-sf-check "assembly NR from a note block" (swt-sf-value sheet "GEN-TITLE-NR{23}") "221216_디알드라이브_감속기 성능 시험기_A3")
+      (swt-sf-check "assembly 도면 번호 cell from a note block" (swt-sf-cell-value sheet "GEN-TITLE-NR{23}") "221216_디알드라이브_감속기 성능 시험기_A3")
+      (swt-sf-check "assembly FILE NO" (swt-sf-value sheet "GEN-TITLE-NR{23}") "00-00-00-00")
+      (swt-sf-check "assembly File Name keeps inner _" (swt-sf-value sheet "GEN-TITLE-DWG{23}") "221216_디알드라이브_감속기 성능 시험기_A3")
       (swt-sf-check "assembly SCA" (swt-sf-value sheet "GEN-TITLE-SCA{6.7}") "1:20")
     )
   )
   (if (setq sheet (swt-sf-sheet-by-stem sheets "02-09-15-00_Input Locking Unit Flange"))
     ;; The name runs past the title block's right line and the outer border.
-    (swt-sf-check "long NR past the title box" (swt-sf-value sheet "GEN-TITLE-NR{23}") "Input Locking Unit Flange")
+    (swt-sf-check "long 도면 번호 past the title box" (swt-sf-cell-value sheet "GEN-TITLE-NR{23}") "Input Locking Unit Flange")
   )
   ;; Custom-size sheets get an enlarged DR frame; the drawing stays 1:1.  These need
   ;; DR_A0_Outline (installed, or -TestA0Frame).
@@ -113,7 +125,8 @@
       (swt-sf-check "Drive Base Plate frameless" (swapp-swfmt-value sheet "frameless") T)
       (swt-sf-check "Drive Base Plate frame" (list (swapp-swfmt-value sheet "status") (swapp-swfmt-value sheet "size") (swapp-swfmt-value sheet "scale")) '("OK" "A0" 2.0))
       (swt-sf-check "Drive Base Plate SCA" (swt-sf-value sheet "GEN-TITLE-SCA{6.7}") "1:2")
-      (swt-sf-check "Drive Base Plate NR empty" (swt-sf-value sheet "GEN-TITLE-NR{23}") nil)
+      (swt-sf-check "Drive Base Plate FILE NO" (swt-sf-value sheet "GEN-TITLE-NR{23}") "08-00-00-00")
+      (swt-sf-check "Drive Base Plate File Name" (swt-sf-value sheet "GEN-TITLE-DWG{23}") "Drive Base Plate")
       (swt-sf-check "Drive Base Plate no format entities" (swapp-swfmt-value sheet "enames") nil)
     )
   )
@@ -255,6 +268,9 @@
   (swt-sf-check "stem drops folder and .DWG" (swapp-file-stem-value "C:\\x\\02-09-05-00_D.P Bearing Unit Shaft.DWG") "02-09-05-00_D.P Bearing Unit Shaft")
   (swt-sf-check "source stem from a path" (swapp-source-stem-from-path-or-name "C:/x/01-06-13-00_B.P Sensor Bracket.dwg" "") "01-06-13-00_B.P Sensor Bracket")
   (swt-sf-check "source stem from an XREF name" (swapp-source-stem-from-path-or-name "" "01-06-13-00_B.P Sensor Bracket") "01-06-13-00_B.P Sensor Bracket")
+  (swt-sf-check "number split" (swapp-drawing-number-split "01-06-11-00_B.P Housing Cover") '("01-06-11-00" "B.P Housing Cover"))
+  (swt-sf-check "number split, no number" (swapp-drawing-number-split "Drive Base Plate") nil)
+  (swt-sf-check "file name tags keep a name without number" (swapp-swfmt-file-name-tags '(("GEN-TITLE-NR{23}" . "X")) "Drive Base Plate") '(("GEN-TITLE-NR{23}" . "X")))
   (swt-sf-check "layout name keeps an inner dot" (swapp-clean-layout-base-name "02-09-05-00_D.P Bearing Unit Shaft") "02-09-05-00_D.P Bearing Unit Shaft")
   (setq sheets (swt-sf-recognize-all))
   (setq ok-count 0)
