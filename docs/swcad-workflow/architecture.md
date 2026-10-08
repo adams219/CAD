@@ -37,7 +37,7 @@ SWCADVERIFY
 `SWCADRUN`은 현재 상태에서 다음 안전 단계 하나만 실행한다. 중간에 종료해도 DWG의 `SWCAD_WORKFLOW_STATE` XRecord를 읽어 재개한다. 단계는 사용자에게 0/6(빈 도면의 도면 모으기)부터 6/6까지 표시하며, GMTITLE 결과가 `ABORT_`, `ERROR_`, `WARN_`이면 같은 명령의 반복을 권장하지 않는다.
 
 ```text
-COLLECT(빈 도면) → XREF → SHEET_WRAPPERS(필요한 경우) → SHEET_FORMAT(필요한 경우) → TITLE → DIMSTYLE → LAYOUT → CLEANUP → COMPLETE
+COLLECT(빈 도면) → XREF → SHEET_WRAPPERS(필요한 경우) → SHEET_FORMAT(필요한 경우) → TITLE → DIMSTYLE → TEXT_SIZE → LAYOUT → CLEANUP → COMPLETE
 ```
 
 ## COLLECT: 도면 모으기
@@ -146,6 +146,18 @@ DIMENSION_SEMANTICS=PRESERVED
 복원 후에도 기존 스타일 감사와 Mechanical fit 감사가 모두 통과해야 한다.
 
 2026-09-29부터는 SWAUTO 모듈이 같은 값을 직접 지킨다. `37C1` 사례의 원인은 맞춤공차 적용이 아니라 1단계 스타일 변경이었다. 공차가 없는 치수는 DSTYLE override가 통째로 지워져 `DIMLFAC`와 숨은 공차값이 대상 스타일 값으로 돌아갔다. 지금은 이런 치수도 대상 스타일과 다른 `DIMLFAC`, `DIMTOL`, `DIMLIM`, `DIMTP`, `DIMTM`, 소수 자리(`DIMDEC`, `DIMRND`, `DIMADEC`)를 유지한다. `swdt-run-autofix-core`가 실행 전후 값을 같은 방식으로 비교해 달라진 치수를 되돌린다. 맞춤공차로 변환된 치수의 `DIMTOL`/`DIMLIM` 변화만 되돌리지 않는다. 통합 앱의 전후 비교와 복원은 검증 단계로 그대로 둔다. 통합 앱은 맞춤공차 치수의 `DIMTOL`도 기존처럼 되돌리므로, 두 경로의 결과에서 이 값 하나가 다를 수 있다. SolidWorks가 DWG 설정보다 적은 소수 자리로 그린 숫자(`17`, 실제 값 17.3)는 다시 그리면 실제 값이 보이며, 사용자 결정에 따라 정상으로 보고 목록만 남긴다(`260929-value-guard-4`). 상세 기록은 `docs/history/swauto-value-guard-2026-09-29.md`에 있다.
+
+## TEXT_SIZE: A4 출력 글자 크기
+
+사용자는 모든 도면을 A4로 출력한다(2026-10-08). Layout은 A4 용지에 도면틀을 맞추므로 3.5 mm 글자는 `3.5 × 297 ÷ 도면틀 긴 변`으로 찍힌다. DIMSTYLE 다음 `TEXT_SIZE` 단계(`swapp-run-text-size`)가 A3보다 긴 DR 도면틀(A4 도면틀은 297보다 긴 것, `swcad-title-frame-records`의 effective bbox와 삽입 축척) 안에서:
+
+- 배율 `f = 긴 변 × 축척 ÷ 420`(A4 도면틀은 ÷ 297, 최소 1).
+- 치수: 글자 위치(DXF 11)가 도면틀 안인 것. 직선(DXF 70 하위 3비트 0·1)은 치수선 점(10)과 글자(11)를 같은 벡터 `(f−1)·d·n`만큼 옮긴다. `n`은 치수 방향의 법선, `d`는 두 치수보조선 원점 가운데 치수선에 가까운 쪽까지의 부호 있는 거리다. 지름·반지름(3·4)은 원 밖 글자만 중심에서 `r + f·(거리−r)`로 옮긴다. 옮긴 글자가 도면틀 밖이면 옮기지 않는다. 그다음 `ScaleFactor`(DIMSCALE 덮어쓰기)를 f배.
+- 주석: 삽입점이 도면틀 안이고 표제란 밖인 MTEXT/TEXT의 높이(MTEXT는 폭도)를 f배. 블록(표, 모따기 치수, 중심 표시, 기호)은 그대로.
+- 전후 `swapp-dimension-semantics`(측정값, DIMLFAC, 공차)가 같아야 한다. 다르면 `TEXT_SIZE=FAILED`, 저장하지 않는다.
+- 겹침 표시: 치수 블록 안 글자와 주석의 bbox(높이의 10%씩 줄임)가 다른 글자, 모델 선·원·호·폴리선, 다른 치수의 선·화살표, 표 bbox와 겹치면 `SWCAD_CHECK` 레이어(빨강, Plottable 끔)에 원을 그린다. 단계 시작 때 이 레이어의 기존 원은 지운다.
+- 상태 `TEXT_SIZE=OK`(바꿀 도면틀이 없으면 `NOT_NEEDED`), `TEXT_SIZE_CHECK_COUNT`. `SWCADVERIFY` 최종 판정에 포함한다. 기록은 `work\swcad_text_size_last.txt`.
+- 221216 32장(2026-10-08): 20장, 치수 493개(간격 벌림 283), 주석 187개. 겹침은 글자만 키운 시험본 147곳에서 75곳으로 줄었다(06 23곳, 02-10 11곳, 07 9곳, 03-03 8곳).
 
 ## 전체 미사용 이름 정의 정리 계약
 
