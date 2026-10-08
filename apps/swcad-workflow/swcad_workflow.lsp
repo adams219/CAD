@@ -3,7 +3,7 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "261008-file-name-1")
+(setq *swapp-version* "261008-text-size-1")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-legacy-layout-prefix* "SWCAD-SHEET")
 (setq *swapp-layout-placement-mode* "XREF_SOURCE_FILENAME_COORDINATES")
@@ -2049,6 +2049,7 @@
         ((swapp-title-complete-p evidence)
           (cond
             ((not (swapp-dimstyle-marked-p)) "DIMSTYLE")
+            ((not (swapp-text-size-marked-p)) "TEXT_SIZE")
             ((not (swapp-layout-state-valid-p frames)) "LAYOUT")
             ((not (swapp-cached-resource-cleanup-verify)) "CLEANUP")
             (T "COMPLETE")
@@ -6847,6 +6848,409 @@
 )
 
 ;;; ---------------------------
+;;; TEXT_SIZE: dimension and note text sized for A4 printing
+;;; ---------------------------
+;;; The user prints every sheet on A4 (2026-10-08).  A Layout is an A4 page with the
+;;; frame fitted, so 3.5 mm text prints at 3.5 x 297 / frame long side: 2.5 mm on an
+;;; A3 sheet ("fine"), 1.2 on A1, 0.9 on A0, 0.2 on the A0x4 frame of 06.  Inside
+;;; every DR frame longer than A3 (A4 frames: longer than A4) this step makes the
+;;; dimensions and notes larger by long side / 420 (A2 1.41, A1 2, A0 2.83, A0x2
+;;; 5.66), so they print as on an A3 sheet.  Dimension values never change: the size
+;;; is the DIMSCALE override, and measurement, DIMLFAC and tolerances are compared
+;;; before and after.  Linear dimension lines move away from the part, and radius and
+;;; diameter texts outside their arc away from it, by the same factor, so stacked
+;;; dimensions keep their spacing.  Texts that still clash get a red circle on layer
+;;; SWCAD_CHECK, which does not plot, for a manual fix.  Tables and chamfer, center
+;;; mark and symbol blocks keep their size.
+
+(setq *swapp-text-size-check-layer* "SWCAD_CHECK")
+(setq *swapp-text-size-log-handle* nil)
+
+(defun swapp-text-size-marked-p ()
+  (if (member (swapp-state-value "TEXT_SIZE") '("OK" "NOT_NEEDED")) T nil)
+)
+
+(defun swapp-text-size-say (text)
+  (princ text)
+  (if *swapp-text-size-log-handle*
+    (write-line (vl-string-left-trim "\n" text) *swapp-text-size-log-handle*)
+  )
+)
+
+;;; Factor of a DR frame: long side x scale / 420 (an A4 frame prints upright on A4:
+;;; / 297), at least 1.
+(defun swapp-text-size-factor (frame-name scale / size paper)
+  (setq size (strcase (substr frame-name 4 2)))
+  (setq paper (assoc size *swapp-swfmt-papers*))
+  (if paper
+    (max 1.0 (/ (* (max (cadr paper) (caddr paper)) scale) (if (equal size "A4") 297.0 420.0)))
+    1.0
+  )
+)
+
+(defun swapp-text-size-overlap-area (a b / w h)
+  (setq w (- (min (caddr a) (caddr b)) (max (car a) (car b))))
+  (setq h (- (min (cadddr a) (cadddr b)) (max (cadr a) (cadr b))))
+  (if (and (> w 0.0) (> h 0.0)) (* w h) 0.0)
+)
+
+;;; Source file stem of the sheet of a frame: the SOURCE_SHEET record whose extents
+;;; overlap the frame most.
+(defun swapp-text-size-stem (bbox records / best area record a)
+  (setq best nil area 0.0)
+  (foreach record records
+    (setq a (swapp-text-size-overlap-area bbox (nth 4 record)))
+    (if (> a area) (setq area a best record))
+  )
+  (if best (nth 1 best) "<파일명 모름>")
+)
+
+(defun swapp-text-size-in-p (point bbox)
+  (and point bbox
+       (>= (car point) (car bbox)) (<= (car point) (caddr bbox))
+       (>= (cadr point) (cadr bbox)) (<= (cadr point) (cadddr bbox)))
+)
+
+(defun swapp-text-size-moved (point vector)
+  (list (+ (car point) (car vector)) (+ (cadr point) (cadr vector)) (if (caddr point) (caddr point) 0.0))
+)
+
+;;; Moves a linear dimension line, or a radius/diameter text outside its arc, away
+;;; from the part by factor.  T when moved; nothing moves when the text would leave
+;;; the frame.
+(defun swapp-text-size-spread (ename factor frame / data kind q txt p1 p2 ang n d1 d2 d v center arc r dt u new-txt)
+  (setq data (entget ename))
+  (setq kind (logand 7 (cdr (assoc 70 data))))
+  (setq txt (cdr (assoc 11 data)))
+  (setq new-txt nil v nil)
+  (cond
+    ((member kind '(0 1))
+      (setq q (cdr (assoc 10 data)) p1 (cdr (assoc 13 data)) p2 (cdr (assoc 14 data)))
+      (setq ang
+        (if (= kind 0)
+          (cdr (assoc 50 data))
+          (if (> (distance (list (car p1) (cadr p1)) (list (car p2) (cadr p2))) 1e-9) (angle p1 p2) nil)
+        )
+      )
+      (if (and q p1 p2 txt ang)
+        (progn
+          (setq n (list (- (sin ang)) (cos ang)))
+          (setq d1 (+ (* (- (car q) (car p1)) (car n)) (* (- (cadr q) (cadr p1)) (cadr n))))
+          (setq d2 (+ (* (- (car q) (car p2)) (car n)) (* (- (cadr q) (cadr p2)) (cadr n))))
+          (setq d (if (< (abs d1) (abs d2)) d1 d2))
+          (setq v (list (* (car n) (- factor 1.0) d) (* (cadr n) (- factor 1.0) d)))
+          (setq new-txt (swapp-text-size-moved txt v))
+        )
+      )
+    )
+    ((member kind '(3 4))
+      (setq arc (cdr (assoc 15 data)) q (cdr (assoc 10 data)))
+      (setq center
+        (if (= kind 4)
+          q
+          (list (/ (+ (car q) (car arc)) 2.0) (/ (+ (cadr q) (cadr arc)) 2.0) 0.0)
+        )
+      )
+      (if (and arc center txt)
+        (progn
+          (setq r (distance (list (car center) (cadr center)) (list (car arc) (cadr arc))))
+          (setq dt (distance (list (car center) (cadr center)) (list (car txt) (cadr txt))))
+          (if (> dt (* r 1.01))
+            (progn
+              (setq u (list (/ (- (car txt) (car center)) dt) (/ (- (cadr txt) (cadr center)) dt)))
+              (setq new-txt
+                (list
+                  (+ (car center) (* (car u) (+ r (* factor (- dt r)))))
+                  (+ (cadr center) (* (cadr u) (+ r (* factor (- dt r)))))
+                  (if (caddr txt) (caddr txt) 0.0)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+  (if (and new-txt (swapp-text-size-in-p new-txt frame))
+    (progn
+      (if v (setq data (subst (cons 10 (swapp-text-size-moved q v)) (assoc 10 data) data)))
+      (setq data (subst (cons 11 new-txt) (assoc 11 data) data))
+      (if (entmod data) (progn (entupd ename) T) nil)
+    )
+    nil
+  )
+)
+
+;;; Liang-Barsky: segment p-q crosses rectangle r.
+(defun swapp-text-size-seg-rect-p (p q r / x0 y0 dx dy t0 t1 ok k pp qq i)
+  (setq x0 (car p) y0 (cadr p) dx (- (car q) x0) dy (- (cadr q) y0) t0 0.0 t1 1.0 ok T)
+  (foreach k (list (list (- dx) (- x0 (car r))) (list dx (- (caddr r) x0)) (list (- dy) (- y0 (cadr r))) (list dy (- (cadddr r) y0)))
+    (setq pp (car k) qq (cadr k))
+    (cond
+      ((not ok))
+      ((equal pp 0.0 1e-12) (if (< qq 0.0) (setq ok nil)))
+      (T
+        (setq i (/ qq pp))
+        (if (< pp 0.0)
+          (if (> i t1) (setq ok nil) (if (> i t0) (setq t0 i)))
+          (if (< i t0) (setq ok nil) (if (< i t1) (setq t1 i)))
+        )
+      )
+    )
+  )
+  ok
+)
+
+;;; The boundary of circle (center, radius) crosses rectangle r.
+(defun swapp-text-size-circle-rect-p (center radius r / nx ny dx dy)
+  (setq nx (max (car r) (min (car center) (caddr r))) ny (max (cadr r) (min (cadr center) (cadddr r))))
+  (setq dx (max (abs (- (car center) (car r))) (abs (- (car center) (caddr r)))))
+  (setq dy (max (abs (- (cadr center) (cadr r))) (abs (- (cadr center) (cadddr r)))))
+  (and
+    (< (distance (list nx ny) (list (car center) (cadr center))) radius)
+    (> (sqrt (+ (* dx dx) (* dy dy))) radius)
+  )
+)
+
+;;; Model-space texts, lines and obstacles for the clash check, as
+;;; (texts segments circles boxes): texts (bbox owner) are dimension texts (from the
+;;; dimension's block) and notes; segments (p q owner) are drawing lines, arcs and
+;;; polylines (owner "G") and dimension lines and arrows (owner = the dimension);
+;;; boxes are tables.  Titles and texts inside them are left out.
+(defun swapp-text-size-clash-items (/ doc blocks texts segs circles boxes titles obj name owner block e bbox v pts i a0 a1 c rad)
+  (setq doc (swapp-doc) blocks (vla-get-Blocks doc))
+  (setq texts nil segs nil circles nil boxes nil titles nil)
+  (vlax-for obj (swapp-model)
+    (setq name (vla-get-ObjectName obj))
+    (cond
+      ((= name "AcDbBlockReference")
+        (setq name (strcase (swapp-reference-name obj)))
+        (cond
+          ((wcmatch name "*TITLEA_3RD*") (setq titles (cons (swapp-object-bbox4 obj) titles)))
+          ((wcmatch name "*TABLEANNOTATION*") (if (setq bbox (swapp-object-bbox4 obj)) (setq boxes (cons bbox boxes))))
+        )
+      )
+      ((wcmatch name "AcDb*Dimension")
+        (setq owner (vla-get-Handle obj))
+        (setq block (vl-catch-all-apply 'vla-Item (list blocks (cdr (assoc 2 (entget (vlax-vla-object->ename obj)))))))
+        (if (not (vl-catch-all-error-p block))
+          (vlax-for e block
+            (cond
+              ((member (vla-get-ObjectName e) '("AcDbMText" "AcDbText"))
+                (if (setq bbox (swapp-object-bbox4 e)) (setq texts (cons (list bbox owner) texts))))
+              ((= (vla-get-ObjectName e) "AcDbLine")
+                (setq segs (cons (list (vlax-get e 'StartPoint) (vlax-get e 'EndPoint) owner) segs)))
+              ((member (vla-get-ObjectName e) '("AcDbSolid" "AcDbTrace"))
+                (if (setq bbox (swapp-object-bbox4 e))
+                  (setq segs (cons (list (list (car bbox) (cadr bbox)) (list (caddr bbox) (cadddr bbox)) owner) segs))))
+            )
+          )
+        )
+      )
+      ((member name '("AcDbMText" "AcDbText"))
+        (if (setq bbox (swapp-object-bbox4 obj)) (setq texts (cons (list bbox (vla-get-Handle obj)) texts))))
+      ((= name "AcDbLine") (setq segs (cons (list (vlax-get obj 'StartPoint) (vlax-get obj 'EndPoint) "G") segs)))
+      ((= name "AcDbCircle") (setq circles (cons (list (vlax-get obj 'Center) (vla-get-Radius obj)) circles)))
+      ((= name "AcDbArc")
+        (setq c (vlax-get obj 'Center) rad (vla-get-Radius obj) a0 (vla-get-StartAngle obj) a1 (vla-get-EndAngle obj))
+        (if (< a1 a0) (setq a1 (+ a1 (* 2.0 pi))))
+        (setq i 0)
+        (while (< i 12)
+          (setq segs (cons (list (polar c (+ a0 (* (- a1 a0) (/ i 12.0))) rad) (polar c (+ a0 (* (- a1 a0) (/ (1+ i) 12.0))) rad) "G") segs))
+          (setq i (1+ i))
+        )
+      )
+      ((= name "AcDbPolyline")
+        (setq v (vlax-get obj 'Coordinates) pts nil i 0)
+        (while (< i (length v)) (setq pts (cons (list (nth i v) (nth (1+ i) v)) pts)) (setq i (+ i 2)))
+        (setq pts (reverse pts))
+        (if (= (vla-get-Closed obj) :vlax-true) (setq pts (append pts (list (car pts)))))
+        (setq i 0)
+        (while (< i (1- (length pts))) (setq segs (cons (list (nth i pts) (nth (1+ i) pts) "G") segs)) (setq i (1+ i)))
+      )
+    )
+  )
+  (setq texts (vl-remove-if '(lambda (x) (vl-some '(lambda (tb) (swcad-title-bbox-overlap-box (car x) tb)) titles)) texts))
+  (list texts segs circles boxes)
+)
+
+;;; Text boxes inside frame that overlap another text, a line, a circle or a table.
+;;; Each box is shrunk by a tenth of its height, so texts that only touch pass.
+(defun swapp-text-size-clashes (items frame / texts segs circles boxes result t1 bb hit s c)
+  (setq texts (vl-remove-if-not '(lambda (x) (swapp-text-size-in-p (swapp-bbox4-center (car x)) frame)) (car items)))
+  (setq segs
+    (vl-remove-if-not
+      '(lambda (s)
+         (swcad-title-bbox-overlap-box
+           (list (min (car (car s)) (car (cadr s))) (min (cadr (car s)) (cadr (cadr s)))
+                 (+ 0.001 (max (car (car s)) (car (cadr s)))) (+ 0.001 (max (cadr (car s)) (cadr (cadr s)))))
+           frame))
+      (cadr items)
+    )
+  )
+  (setq circles (vl-remove-if-not '(lambda (c) (swapp-text-size-in-p (car c) frame)) (caddr items)))
+  (setq boxes (vl-remove-if-not '(lambda (b) (swcad-title-bbox-overlap-box b frame)) (cadddr items)))
+  (setq result nil)
+  (foreach t1 texts
+    (setq bb (car t1))
+    (setq bb (list (+ (car bb) (* 0.1 (- (cadddr bb) (cadr bb)))) (+ (cadr bb) (* 0.1 (- (cadddr bb) (cadr bb))))
+                   (- (caddr bb) (* 0.1 (- (cadddr bb) (cadr bb)))) (- (cadddr bb) (* 0.1 (- (cadddr bb) (cadr bb))))))
+    (setq hit nil)
+    (foreach t2 texts
+      (if (and (not hit) (not (equal (cadr t1) (cadr t2))) (swcad-title-bbox-overlap-box bb (car t2))) (setq hit T)))
+    (foreach s segs
+      (if (and (not hit) (not (equal (caddr s) (cadr t1))) (swapp-text-size-seg-rect-p (car s) (cadr s) bb)) (setq hit T)))
+    (foreach c circles
+      (if (and (not hit) (swapp-text-size-circle-rect-p (car c) (cadr c) bb)) (setq hit T)))
+    (foreach b boxes
+      (if (and (not hit) (swcad-title-bbox-overlap-box bb b)) (setq hit T)))
+    (if hit (setq result (cons (car t1) result)))
+  )
+  result
+)
+
+;;; Layer for the clash marks: red, not plotted.  Marks of an earlier run go first.
+(defun swapp-text-size-check-layer (/ layers layer ss index)
+  (setq layers (vla-get-Layers (swapp-doc)))
+  (setq layer (vl-catch-all-apply 'vla-Item (list layers *swapp-text-size-check-layer*)))
+  (if (vl-catch-all-error-p layer) (setq layer (vla-Add layers *swapp-text-size-check-layer*)))
+  (vl-catch-all-apply 'vla-put-Color (list layer 1))
+  (vl-catch-all-apply 'vla-put-Plottable (list layer :vlax-false))
+  (setq ss (ssget "_X" (list (cons 8 *swapp-text-size-check-layer*) '(410 . "Model"))))
+  (setq index 0)
+  (while (and ss (< index (sslength ss)))
+    (entdel (ssname ss index))
+    (setq index (1+ index))
+  )
+  layer
+)
+
+(defun swapp-run-text-size (/ result)
+  (if *swapp-text-size-log-handle* (close *swapp-text-size-log-handle*))
+  (setq *swapp-text-size-log-handle* (open (swcad-title-work-log-path "swcad_text_size_last.txt") "w"))
+  (setq result (vl-catch-all-apply 'swapp-run-text-size-steps nil))
+  (if *swapp-text-size-log-handle* (progn (close *swapp-text-size-log-handle*) (setq *swapp-text-size-log-handle* nil)))
+  (if (vl-catch-all-error-p result)
+    (progn
+      (swapp-state-set "TEXT_SIZE" "FAILED")
+      (princ (strcat "\n치수 글자 크기 오류: " (vl-catch-all-error-message result)))
+      (princ "\n진행 중지: 현재 도면을 저장하지 말고 원인을 확인하세요.")
+      nil
+    )
+    result
+  )
+)
+
+(defun swapp-run-text-size-steps (/ records frames record scale factor bbox before after dims notes titles obj name frame in-dims in-notes spread total-dims total-notes total-spread total-marks items clashes box size radius)
+  (swapp-activate-model)
+  (swapp-text-size-say "\n----- 치수·주석 글자 A4 출력 크기 -----")
+  (setq records (swapp-source-sheet-records-read))
+  (setq frames nil)
+  (foreach record (swcad-title-frame-records)
+    (setq scale (cdr (assoc 41 (entget (car record)))))
+    (setq factor (swapp-text-size-factor (cadr record) (if scale (abs scale) 1.0)))
+    (if (and (cadddr record) (> factor 1.001))
+      (setq frames (append frames (list (list (cadddr record) factor (swapp-text-size-stem (cadddr record) records)))))
+    )
+  )
+  (cond
+    ((not (swcad-title-ensure-work-copy-for-mutation))
+      (swapp-text-size-say "\n결과: ABORT_WORKCOPY_NOT_CREATED")
+      nil
+    )
+    ((not frames)
+      (swapp-state-set "TEXT_SIZE" "NOT_NEEDED")
+      (swapp-save-current)
+      (swapp-text-size-say "\nA3보다 큰 도면틀이 없어 바꿀 것이 없습니다.")
+      (swapp-text-size-say "\n결과: SWCAD_TEXT_SIZE_NOT_NEEDED")
+      T
+    )
+    (T
+      (setq before (swapp-dimension-semantics))
+      (setq dims nil notes nil titles nil)
+      (vlax-for obj (swapp-model)
+        (setq name (vla-get-ObjectName obj))
+        (cond
+          ((wcmatch name "AcDb*Dimension") (setq dims (cons obj dims)))
+          ((member name '("AcDbMText" "AcDbText")) (setq notes (cons obj notes)))
+          ((and (= name "AcDbBlockReference") (wcmatch (strcase (swapp-reference-name obj)) "*TITLEA_3RD*"))
+            (setq titles (cons (swapp-object-bbox4 obj) titles)))
+        )
+      )
+      (setq total-dims 0 total-notes 0 total-spread 0)
+      (foreach frame frames
+        (setq bbox (car frame) factor (cadr frame))
+        (setq in-dims (vl-remove-if-not '(lambda (o) (swapp-text-size-in-p (cdr (assoc 11 (entget (vlax-vla-object->ename o)))) bbox)) dims))
+        (setq in-notes
+          (vl-remove-if-not
+            '(lambda (o / p) (setq p (vlax-get o 'InsertionPoint))
+               (and (swapp-text-size-in-p p bbox) (not (vl-some '(lambda (tb) (swapp-text-size-in-p p tb)) titles))))
+            notes
+          )
+        )
+        (setq spread 0)
+        (foreach obj in-dims
+          (if (swapp-text-size-spread (vlax-vla-object->ename obj) factor bbox) (setq spread (1+ spread)))
+          (vla-put-ScaleFactor obj (* (vla-get-ScaleFactor obj) factor))
+          (vla-Update obj)
+        )
+        (foreach obj in-notes
+          (vla-put-Height obj (* (vla-get-Height obj) factor))
+          (if (and (= (vla-get-ObjectName obj) "AcDbMText") (> (vla-get-Width obj) 0.0))
+            (vla-put-Width obj (* (vla-get-Width obj) factor))
+          )
+        )
+        (setq frame (append frame (list (length in-dims) (length in-notes) spread)))
+        (setq frames (subst frame (assoc (car frame) frames) frames))
+        (setq total-dims (+ total-dims (length in-dims)) total-notes (+ total-notes (length in-notes)) total-spread (+ total-spread spread))
+      )
+      (vla-Regen (swapp-doc) 1)
+      (setq after (swapp-dimension-semantics))
+      (if (not (swapp-semantic-multiset-equal-p before after))
+        (progn
+          (swapp-state-set "TEXT_SIZE" "FAILED")
+          (swapp-text-size-say "\n결과: SWCAD_TEXT_SIZE_SEMANTICS_CHANGED")
+          (swapp-text-size-say (strcat "\n바뀐 치수 예: " (if (swapp-first-unmatched-semantic before after) (swapp-first-unmatched-semantic before after) "<없음>")))
+          (swapp-text-size-say "\n진행 중지: 현재 도면을 저장하지 말고 원인을 확인하세요.")
+          nil
+        )
+        (progn
+          ;; Clash marks: a red circle around every text that still clashes.
+          (swapp-text-size-check-layer)
+          (setq items (swapp-text-size-clash-items))
+          (setq total-marks 0)
+          (foreach frame (vl-sort frames '(lambda (a b) (< (caddr a) (caddr b))))
+            (setq clashes (swapp-text-size-clashes items (car frame)))
+            (foreach box clashes
+              (setq size (max (- (caddr box) (car box)) (- (cadddr box) (cadr box))))
+              (setq radius (* 0.65 size))
+              (setq obj (vla-AddCircle (swapp-model) (vlax-3d-point (swapp-bbox4-center box)) radius))
+              (vla-put-Layer obj *swapp-text-size-check-layer*)
+            )
+            (setq total-marks (+ total-marks (length clashes)))
+            (swapp-text-size-say
+              (strcat
+                "\n  " (caddr frame) " | x" (rtos (cadr frame) 2 2)
+                " | 치수 " (itoa (nth 3 frame)) " (간격 " (itoa (nth 5 frame)) ")"
+                " | 주석 " (itoa (nth 4 frame))
+                (if clashes (strcat " | 겹침 표시 " (itoa (length clashes))) "")
+              )
+            )
+          )
+          (swapp-state-set "TEXT_SIZE" "OK")
+          (swapp-state-set "TEXT_SIZE_CHECK_COUNT" (itoa total-marks))
+          (swapp-save-current)
+          (swapp-text-size-say (strcat "\n키운 도면: " (itoa (length frames)) "장, 치수 " (itoa total-dims) "개(간격 벌림 " (itoa total-spread) "), 주석 " (itoa total-notes) "개"))
+          (swapp-text-size-say (strcat "\n남은 겹침 표시(" *swapp-text-size-check-layer* " 레이어, 출력 안 됨): " (itoa total-marks) "곳"))
+          (swapp-text-size-say "\n결과: SWCAD_TEXT_SIZE_OK")
+          T
+        )
+      )
+    )
+  )
+)
+
+;;; ---------------------------
 ;;; Public workflow commands
 ;;; ---------------------------
 
@@ -6858,6 +7262,7 @@
     ((equal stage "SHEET_FORMAT") "1/6 입력 도면 준비 - SolidWorks 기본 양식 정리")
     ((equal stage "TITLE") "2/6 GMTITLE 변환")
     ((equal stage "DIMSTYLE") "3/6 치수 스타일 통일")
+    ((equal stage "TEXT_SIZE") "3/6 치수 - A4 출력 글자 크기")
     ((equal stage "LAYOUT") "4/6 원본 파일명 Layout 생성")
     ((equal stage "CLEANUP") "5/6 전체 미사용 이름 정의 정리")
     ((equal stage "COMPLETE") "6/6 최종 검증 준비 완료")
@@ -6911,6 +7316,9 @@
     )
     ((and (equal stage "DIMSTYLE") (equal (swapp-state-value "DIMSTYLE") "FAILED"))
       "SWCADRUN 반복 금지 - DIMSTYLE 실패 원인을 확인하세요"
+    )
+    ((and (equal stage "TEXT_SIZE") (equal (swapp-state-value "TEXT_SIZE") "FAILED"))
+      "SWCADRUN 반복 금지 - 치수 글자 크기 실패 원인(swcad_text_size_last.txt)을 확인하세요"
     )
     ((and (equal stage "CLEANUP") (swapp-string-starts-ci-p (if (swapp-state-value "RESOURCE_CLEANUP") (swapp-state-value "RESOURCE_CLEANUP") "") "FAILED"))
       (if (swapp-resource-cleanup-retry-allowed-p)
@@ -6979,12 +7387,18 @@
     )
   )
   (princ (strcat "\nDIMSTYLE 상태: " (if (swapp-state-value "DIMSTYLE") (swapp-state-value "DIMSTYLE") "미실행")))
+  (princ
+    (strcat
+      "\nA4 출력 글자 크기: " (if (swapp-state-value "TEXT_SIZE") (swapp-state-value "TEXT_SIZE") "미실행")
+      (if (swapp-state-value "TEXT_SIZE_CHECK_COUNT") (strcat ", 겹침 표시 " (swapp-state-value "TEXT_SIZE_CHECK_COUNT") "곳") "")
+    )
+  )
   (princ (strcat "\n전체 미사용 이름 정의 정리: " (if (swapp-state-value "RESOURCE_CLEANUP") (swapp-state-value "RESOURCE_CLEANUP") "미실행")))
   (princ (strcat "\n원본 파일명 메타데이터: " (if (swapp-state-value "SOURCE_SHEET_COUNT") (swapp-state-value "SOURCE_SHEET_COUNT") "0") "개"))
   (princ (strcat "\nSWCAD Layout: " (itoa (length layouts)) " / 기대 " (itoa frames)))
   (princ (strcat "\nLayout 좌표 모드: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "미생성")))
   (princ (strcat "\nLayout 이름 정책: " (if (swapp-state-value "LAYOUT_NAME_POLICY") (swapp-state-value "LAYOUT_NAME_POLICY") "원본 파일명 stem 예정")))
-  (if (member stage '("DIMSTYLE" "LAYOUT" "CLEANUP" "COMPLETE"))
+  (if (member stage '("DIMSTYLE" "TEXT_SIZE" "LAYOUT" "CLEANUP" "COMPLETE"))
     (progn
       (setq plan (swapp-layout-plan))
       (swapp-print-layout-plan-items plan *swapp-layout-preview-limit*)
@@ -7097,7 +7511,7 @@
   )
   (setq mutating-stage
     (and
-      (if (member stage '("COLLECT" "XREF" "SHEET_WRAPPERS" "SHEET_FORMAT" "TITLE" "DIMSTYLE" "CLEANUP" "LAYOUT")) T nil)
+      (if (member stage '("COLLECT" "XREF" "SHEET_WRAPPERS" "SHEET_FORMAT" "TITLE" "DIMSTYLE" "TEXT_SIZE" "CLEANUP" "LAYOUT")) T nil)
       (not cleanup-retry-blocked)
     )
   )
@@ -7116,6 +7530,7 @@
     ((equal stage "SHEET_FORMAT") (setq run-result (swapp-convert-sheet-formats)))
     ((equal stage "TITLE") (setq run-result (swapp-run-title-next)))
     ((equal stage "DIMSTYLE") (setq run-result (swapp-run-dimstyle)))
+    ((equal stage "TEXT_SIZE") (setq run-result (swapp-run-text-size)))
     ((equal stage "CLEANUP") (setq run-result (swapp-run-resource-cleanup)))
     ((equal stage "LAYOUT") (setq run-result (swapp-run-layout)))
     ((equal stage "COMPLETE") (princ "\n모든 단계가 준비됐습니다. SWCADVERIFY를 실행하세요."))
@@ -7197,7 +7612,7 @@
       title-result
     )
   )
-  (setq final-ok (and (= xrefs 0) (= wrappers 0) (equal title-status "OK") dim-ok cleanup-ok (> frames 0) layout-ok))
+  (setq final-ok (and (= xrefs 0) (= wrappers 0) (equal title-status "OK") dim-ok (swapp-text-size-marked-p) cleanup-ok (> frames 0) layout-ok))
   (princ (strcat "\n남은 XREF: " (itoa xrefs)))
   (princ (strcat "\n남은 중첩 시트 묶음: " (itoa wrappers)))
   (princ (strcat "\nGMTITLE 최종 상태: " title-status))
@@ -7255,6 +7670,12 @@
   (princ (strcat "\nLayout 좌표 계획 수: " (if (swapp-state-value "LAYOUT_PLAN_COUNT") (swapp-state-value "LAYOUT_PLAN_COUNT") "<없음>")))
   (princ (strcat "\nLayout 좌표 지문: " (if (swapp-state-value "LAYOUT_PLAN_SIGNATURE") (swapp-state-value "LAYOUT_PLAN_SIGNATURE") "<없음>")))
   (princ (strcat "\nA4 Layout 검증: " (if layout-ok "OK" "CHECK_NEEDED") " (" (itoa frames) "장)"))
+  (princ
+    (strcat
+      "\nA4 출력 글자 크기: " (if (swapp-text-size-marked-p) (swapp-state-value "TEXT_SIZE") "CHECK_NEEDED")
+      (if (swapp-state-value "TEXT_SIZE_CHECK_COUNT") (strcat ", 겹침 표시 " (swapp-state-value "TEXT_SIZE_CHECK_COUNT") "곳") "")
+    )
+  )
   (princ (strcat "\nlegacy 수량 읽기 전용 호환 게이트: " (if legacy-compat-enabled "사용 가능" "사용 안 함")))
   (princ (strcat "\n최종 결과: " (if final-ok "SWCADVERIFY_FINAL_OK" "SWCADVERIFY_FINAL_FAIL")))
   (swapp-read-cache-end)
