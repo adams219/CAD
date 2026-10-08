@@ -3,7 +3,7 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "261008-frameless-1")
+(setq *swapp-version* "261008-file-name-1")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-legacy-layout-prefix* "SWCAD-SHEET")
 (setq *swapp-layout-placement-mode* "XREF_SOURCE_FILENAME_COORDINATES")
@@ -2359,6 +2359,21 @@
   )
 )
 
+;;; Drawing number and name of a file name by the same rule:
+;;; "01-06-07-00_Bush Inner" -> ("01-06-07-00" "Bush Inner").  Other names give nil.
+(defun swapp-drawing-number-split (stem / index)
+  (if (swapp-drawing-number-group stem)
+    (progn
+      (setq index 1)
+      (while (and (<= index (strlen stem)) (or (swapp-digit-char-p (substr stem index 1)) (= (substr stem index 1) "-")))
+        (setq index (1+ index))
+      )
+      (list (substr stem 1 (1- index)) (vl-string-trim " " (substr stem (1+ index))))
+    )
+    nil
+  )
+)
+
 ;;; Rows of (stem path group) items: one row per drawing-number group, then the
 ;;; other files in rows of *swapp-collect-other-row-size*, all in name order.
 ;;; The same path picked twice is used once.
@@ -3678,8 +3693,8 @@
 )
 
 ;;; A sheet of a SOURCE_SHEET record with no frame: a DR frame placed around its
-;;; drawing.  There are no format entities to move, and no title values but the
-;;; paper size and the GMTITLE scale (no labels to read them by).
+;;; drawing.  There are no format entities to move and no cells to read: the title
+;;; gets the paper size, the GMTITLE scale and FILE NO / File Name from the file name.
 (defun swapp-swfmt-frameless-sheet (record / content-boxes content-bbox item choice size scale paper result)
   (setq content-boxes (swapp-swfmt-content-boxes (nth 4 record) nil))
   (setq content-bbox nil)
@@ -3741,11 +3756,27 @@
           (cons "paper-options" (caddr choice))
           (cons "title" (swapp-swfmt-frameless-title-box paper scale))
           (cons "enames" nil)
-          (cons "values" (list (cons "GEN-TITLE-SIZ{6.7}" size) (cons "GEN-TITLE-SCA{6.7}" (swcad-title-scale-text scale))))
+          (cons "values" (swapp-swfmt-file-name-tags (list (cons "GEN-TITLE-SIZ{6.7}" size) (cons "GEN-TITLE-SCA{6.7}" (swcad-title-scale-text scale))) (nth 1 record)))
           (cons "notes" (list "도면틀 없는 도면: 읽을 표제란 값 없음"))
         )
       )
     )
+  )
+)
+
+;;; Title values with FILE NO (NR) and File Name (DWG) from the source file name when
+;;; it starts with a drawing number (user decision 2026-10-08; the 도면 번호 cell held
+;;; the SOLIDWORKS file name, so FILE NO showed the part name and File Name stayed
+;;; empty): "01-06-07-00_Bush Inner" gives NR "01-06-07-00" and DWG "Bush Inner".
+;;; Other names keep the values read from the cells.
+(defun swapp-swfmt-file-name-tags (tags stem / split)
+  (setq split (if stem (swapp-drawing-number-split stem) nil))
+  (if (and split (> (strlen (cadr split)) 0))
+    (append
+      (vl-remove-if '(lambda (p) (member (car p) '("GEN-TITLE-NR{23}" "GEN-TITLE-DWG{23}"))) tags)
+      (list (cons "GEN-TITLE-NR{23}" (car split)) (cons "GEN-TITLE-DWG{23}" (cadr split)))
+    )
+    tags
   )
 )
 
@@ -3891,7 +3922,7 @@
 
 ;;; Recognizes the sheet of one anchor text.  Returns an assoc list; "status" is
 ;;; "OK" or the reason it cannot be converted.
-(defun swapp-swfmt-recognize (anchor all-items source-records / record items lines anchor-label corner title-box near-items near-enames labels-found missing item label inner outer outer-lines inner-lines paper-w paper-h size-result size scale paper paper-options content-boxes content-bbox choice title-items tick-items zone-items enames values notes cell point text frame-file locked result tags pair tag)
+(defun swapp-swfmt-recognize (anchor all-items source-records / record items lines anchor-label corner title-box near-items near-enames labels-found missing item label inner outer outer-lines inner-lines paper-w paper-h size-result size scale paper paper-options content-boxes content-bbox choice title-items tick-items zone-items enames values notes cell point text frame-file locked result tags pair tag cell-values)
   (setq anchor-label (assoc *swapp-swfmt-anchor-text* *swapp-swfmt-labels*))
   (setq corner (list (- (car (nth 3 anchor)) (nth 2 anchor-label)) (- (cadr (nth 3 anchor)) (nth 3 anchor-label)) 0.0))
   (setq title-box
@@ -4092,6 +4123,16 @@
           )
         )
       )
+      ;; FILE NO and File Name from the file name; a cell value it replaces that
+      ;; says something else is kept in the log.
+      (setq cell-values tags)
+      (setq tags (swapp-swfmt-file-name-tags tags (cdr (assoc "stem" result))))
+      (foreach tag '("GEN-TITLE-NR{23}" "GEN-TITLE-DWG{23}")
+        (setq text (cdr (assoc tag cell-values)))
+        (if (and text (not (member text (list (cdr (assoc "GEN-TITLE-NR{23}" tags)) (cdr (assoc "GEN-TITLE-DWG{23}" tags))))))
+          (setq notes (append notes (list (strcat (if (equal tag "GEN-TITLE-NR{23}") "도면 번호" "제목") " 칸(파일 이름과 다름): " text))))
+        )
+      )
       (setq locked nil)
       (foreach item (append inner-lines outer-lines title-items tick-items zone-items)
         (if (swapp-swfmt-layer-locked-p (nth 2 item)) (setq locked (cons (nth 2 item) locked)))
@@ -4108,6 +4149,7 @@
           (cons "title" title-box)
           (cons "enames" enames)
           (cons "values" tags)
+          (cons "cell-values" cell-values)
           (cons "notes" notes)
         )
       )
