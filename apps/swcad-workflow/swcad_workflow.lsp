@@ -3,7 +3,7 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "260930-sheet-format-3")
+(setq *swapp-version* "261008-frameless-1")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-legacy-layout-prefix* "SWCAD-SHEET")
 (setq *swapp-layout-placement-mode* "XREF_SOURCE_FILENAME_COORDINATES")
@@ -2496,24 +2496,39 @@
   )
 )
 
+;;; Room next to a sheet: 50 mm, or a tenth of its larger side.  The SHEET_FORMAT
+;;; step gives custom-size and frameless sheets an enlarged DR frame that reaches
+;;; past the SOLIDWORKS sheet (07: 46 mm above and below), and 50 mm was too little
+;;; between 06 and 07 of the 221216 set.
+(defun swapp-collect-item-gap (item / whole)
+  (setq whole (nth 4 item))
+  (max *swapp-collect-gap* (* 0.1 (max (- (caddr whole) (car whole)) (- (cadddr whole) (cadr whole)))))
+)
+
 ;;; Moves the XREFs so that per row the sheet tops line up, full extents never
 ;;; overlap, rows run left to right and top to bottom.  Items are
-;;; (stem path group reference whole-bbox sheet-bbox).
-(defun swapp-collect-place (rows / gap limit row rise top x bottom item whole sheet dx dy moved)
-  (setq gap *swapp-collect-gap*)
+;;; (stem path group reference whole-bbox sheet-bbox).  Between two sheets or
+;;; rows the larger room of both sides.
+(defun swapp-collect-place (rows / gap row-gap last-row-gap limit row rise top x last-right last-gap bottom item whole sheet dx dy moved)
   (setq limit nil)
+  (setq last-row-gap 0.0)
   (setq moved T)
   (foreach row rows
     (setq rise 0.0)
+    (setq row-gap 0.0)
     (foreach item row
       (setq rise (max rise (- (cadddr (nth 4 item)) (cadddr (nth 5 item)))))
+      (setq row-gap (max row-gap (swapp-collect-item-gap item)))
     )
-    (setq top (if limit (- limit rise) 0.0))
+    (setq top (if limit (- limit (max last-row-gap row-gap) rise) 0.0))
     (setq x 0.0)
+    (setq last-right nil)
     (setq bottom nil)
     (foreach item row
       (setq whole (nth 4 item))
       (setq sheet (nth 5 item))
+      (setq gap (swapp-collect-item-gap item))
+      (if last-right (setq x (+ last-right (max last-gap gap))))
       (setq dx (- x (car whole)))
       (setq dy (- top (cadddr sheet)))
       (if
@@ -2525,10 +2540,12 @@
         )
         (setq moved nil)
       )
-      (setq x (+ (caddr whole) dx gap))
+      (setq last-right (+ (caddr whole) dx))
+      (setq last-gap gap)
       (setq bottom (if bottom (min bottom (+ (cadr whole) dy)) (+ (cadr whole) dy)))
     )
-    (setq limit (- bottom gap))
+    (setq limit bottom)
+    (setq last-row-gap row-gap)
   )
   moved
 )
@@ -3126,6 +3143,8 @@
 ;;; extents are the paper) and SWFMT_TITLE_nn (the title box, with the values as
 ;;; GEN-TITLE-* attributes).  The TITLE step then converts them like a bound title
 ;;; and frame and deletes both.  Nothing changes unless every sheet is recognized.
+;;; A sheet with no frame at all gets the same pair around its drawing: only the
+;;; paper outline and an empty title box, with the paper size and scale as values.
 
 (setq *swapp-swfmt-block-prefix* "SWFMT_")
 (setq *swapp-swfmt-anchor-text* "도면의 배율을 변경하지 마시오.")
@@ -3552,6 +3571,182 @@
     )
   )
   found
+)
+
+;;; Title box of a sheet with no frame: the SOLIDWORKS title box size on the bottom
+;;; right of the scaled DR inner border, where the new DR title goes.
+(defun swapp-swfmt-frameless-title-box (paper scale / x2 y1)
+  (setq x2 (- (caddr paper) (* 10.0 scale)))
+  (setq y1 (+ (cadr paper) (* 10.0 scale)))
+  (list (- x2 *swapp-swfmt-title-width*) y1 x2 (+ y1 *swapp-swfmt-title-height*))
+)
+
+;;; For a sheet with no frame at all (user decision 2026-10-08): the DR frame and
+;;; GMTITLE scale whose inner border holds the drawing, as (size scale paper-options),
+;;; or nil.  The smallest scale first, then the smallest paper, as for custom-size
+;;; sheets.  Places in order of preference: the drawing centred in the inner border,
+;;; then a drawing corner 5k inside the matching inner border corner (top left, top
+;;; right, bottom left, bottom right), so the paper can grow away from neighbours.
+;;; Only places with the drawing clear of the scaled DR title and the title box.
+(defun swapp-swfmt-frameless-choice (content-bbox content-boxes / found scale paper pw ph gap x1 y1 x2 y2 cx cy options place sheet-paper box clear item)
+  (setq x1 (car content-bbox) y1 (cadr content-bbox) x2 (caddr content-bbox) y2 (cadddr content-bbox))
+  (setq cx (/ (+ x1 x2) 2.0) cy (/ (+ y1 y2) 2.0))
+  (setq found nil)
+  (foreach scale *swapp-swfmt-scales*
+    (foreach paper (reverse *swapp-swfmt-papers*)
+      (setq pw (* (cadr paper) scale) ph (* (caddr paper) scale) gap (* 5.0 scale))
+      (if
+        (and
+          (not found)
+          (or (not *swapp-swfmt-test-skip-missing-frames*) (findfile (swapp-swfmt-frame-file (strcat "DR_" (car paper) "_Outline"))))
+        )
+        (progn
+          (setq options nil)
+          (foreach place
+            (list
+              (list (- cx (/ (- pw (* 30.0 scale)) 2.0) (* 20.0 scale)) (- cy (/ (- ph (* 20.0 scale)) 2.0) (* 10.0 scale)))
+              (list (- x1 (* 20.0 scale) gap) (- (+ y2 (* 10.0 scale) gap) ph))
+              (list (- (+ x2 (* 10.0 scale) gap) pw) (- (+ y2 (* 10.0 scale) gap) ph))
+              (list (- x1 (* 20.0 scale) gap) (- y1 (* 10.0 scale) gap))
+              (list (- (+ x2 (* 10.0 scale) gap) pw) (- y1 (* 10.0 scale) gap))
+            )
+            (setq sheet-paper (list (car place) (cadr place) (+ (car place) pw) (+ (cadr place) ph)))
+            (setq box (swapp-swfmt-frameless-title-box sheet-paper scale))
+            (setq clear T)
+            (foreach item content-boxes
+              (if (swcad-title-bbox-overlap-box item box) (setq clear nil))
+            )
+            (if (and clear (swapp-swfmt-paper-holds-p (car place) (cadr place) pw ph scale content-bbox content-boxes))
+              (setq options (append options (list sheet-paper)))
+            )
+          )
+          (if options (setq found (list (car paper) scale options)))
+        )
+      )
+    )
+  )
+  found
+)
+
+;;; Whether lines in region frame the drawing: a closed polyline around all of it,
+;;; or lines along all four sides (each at least 90 % of the side).  Such a sheet has
+;;; a frame this step does not know, so it is not treated as frameless.
+(defun swapp-swfmt-border-around-p (region content-bbox / ss index data etype p1 p2 bbox w h tol sides found)
+  (setq w (- (caddr content-bbox) (car content-bbox)))
+  (setq h (- (cadddr content-bbox) (cadr content-bbox)))
+  (setq tol 1.0)
+  (setq sides nil)
+  (setq found nil)
+  (setq ss (ssget "_X" '((0 . "LINE,LWPOLYLINE") (410 . "Model"))))
+  (setq index 0)
+  (while (and ss (not found) (< index (sslength ss)))
+    (setq data (entget (ssname ss index)))
+    (setq etype (cdr (assoc 0 data)))
+    (setq p1 (cdr (assoc 10 data)))
+    (if (swapp-swfmt-point-inside-p p1 region 1.0)
+      (cond
+        ((= etype "LWPOLYLINE")
+          (setq bbox (swapp-object-bbox4 (vlax-ename->vla-object (ssname ss index))))
+          (if
+            (and
+              bbox
+              (= 1 (logand 1 (cdr (assoc 70 data))))
+              (swapp-near (car bbox) (car content-bbox) tol) (swapp-near (cadr bbox) (cadr content-bbox) tol)
+              (swapp-near (caddr bbox) (caddr content-bbox) tol) (swapp-near (cadddr bbox) (cadddr content-bbox) tol)
+            )
+            (setq found T)
+          )
+        )
+        (T
+          (setq p2 (cdr (assoc 11 data)))
+          (cond
+            ((and (swapp-near (cadr p1) (cadr p2) tol) (>= (abs (- (car p2) (car p1))) (* 0.9 w)))
+              (if (swapp-near (cadr p1) (cadr content-bbox) tol) (setq sides (cons "B" sides)))
+              (if (swapp-near (cadr p1) (cadddr content-bbox) tol) (setq sides (cons "T" sides)))
+            )
+            ((and (swapp-near (car p1) (car p2) tol) (>= (abs (- (cadr p2) (cadr p1))) (* 0.9 h)))
+              (if (swapp-near (car p1) (car content-bbox) tol) (setq sides (cons "L" sides)))
+              (if (swapp-near (car p1) (caddr content-bbox) tol) (setq sides (cons "R" sides)))
+            )
+          )
+        )
+      )
+    )
+    (setq index (1+ index))
+  )
+  (or found (and (member "B" sides) (member "T" sides) (member "L" sides) (member "R" sides)))
+)
+
+;;; A sheet of a SOURCE_SHEET record with no frame: a DR frame placed around its
+;;; drawing.  There are no format entities to move, and no title values but the
+;;; paper size and the GMTITLE scale (no labels to read them by).
+(defun swapp-swfmt-frameless-sheet (record / content-boxes content-bbox item choice size scale paper result)
+  (setq content-boxes (swapp-swfmt-content-boxes (nth 4 record) nil))
+  (setq content-bbox nil)
+  (foreach item content-boxes
+    (setq content-bbox (if content-bbox (swapp-bbox4-union content-bbox item) item))
+  )
+  (setq result
+    (list
+      (cons "anchor" nil)
+      (cons "corner" (if content-bbox (swapp-bbox4-center content-bbox) (swapp-bbox4-center (nth 4 record))))
+      (cons "stem" (nth 1 record))
+    )
+  )
+  (cond
+    ((not content-bbox)
+      (append result (list (cons "status" "NO_FORMAT") (cons "detail" "도면틀도 도면 내용도 없음")))
+    )
+    ((swapp-swfmt-border-around-p (nth 4 record) content-bbox)
+      (append result (list (cons "status" "NO_FORMAT") (cons "detail" "도면을 둘러싼 테두리 선이 있음(모르는 양식일 수 있음)")))
+    )
+    ((not (setq choice (swapp-swfmt-frameless-choice content-bbox content-boxes)))
+      (append
+        result
+        (list
+          (cons "status" "SIZE")
+          (cons "detail"
+            (strcat
+              "도면틀 없음, 도면 " (rtos (- (caddr content-bbox) (car content-bbox)) 2 1) " x "
+              (rtos (- (cadddr content-bbox) (cadr content-bbox)) 2 1) " mm: 도면을 담을 DR 도면틀×GMTITLE 축척을 찾지 못함"
+            )
+          )
+        )
+      )
+    )
+    ((progn
+       (setq size (car choice) scale (cadr choice) paper (car (caddr choice)))
+       (not (findfile (swapp-swfmt-frame-file (strcat "DR_" size "_Outline"))))
+     )
+      (append
+        result
+        (list
+          (cons "status" "FRAME_FILE")
+          (cons "size" size)
+          (cons "scale" scale)
+          (cons "detail" (strcat "도면틀 없는 도면에 DR_" size " " (swcad-title-scale-text scale) "를 넣을 차례인데 GstarCAD 도면틀 파일이 없음: " (swapp-swfmt-frame-file (strcat "DR_" size "_Outline"))))
+        )
+      )
+    )
+    (T
+      (append
+        result
+        (list
+          (cons "status" "OK")
+          (cons "detail" "")
+          (cons "frameless" T)
+          (cons "size" size)
+          (cons "scale" scale)
+          (cons "paper" paper)
+          (cons "paper-options" (caddr choice))
+          (cons "title" (swapp-swfmt-frameless-title-box paper scale))
+          (cons "enames" nil)
+          (cons "values" (list (cons "GEN-TITLE-SIZ{6.7}" size) (cons "GEN-TITLE-SCA{6.7}" (swcad-title-scale-text scale))))
+          (cons "notes" (list "도면틀 없는 도면: 읽을 표제란 값 없음"))
+        )
+      )
+    )
+  )
 )
 
 ;;; Paper size of a DR frame for the paper width and height, or a failure reason.
@@ -3987,6 +4182,9 @@
           (progn
             (setq placed (cons chosen placed))
             (setq sheet (swapp-swfmt-with-value sheet "paper" chosen))
+            (if (swapp-swfmt-value sheet "frameless")
+              (setq sheet (swapp-swfmt-with-value sheet "title" (swapp-swfmt-frameless-title-box chosen (swapp-swfmt-value sheet "scale"))))
+            )
           )
         )
       )
@@ -4067,10 +4265,12 @@
   (setq frame-block (swapp-safe 'vla-Add (list blocks origin frame-name)))
   (setq title-block (if frame-block (swapp-safe 'vla-Add (list blocks origin title-name)) nil))
   (setq objects (mapcar '(lambda (e) (vlax-ename->vla-object e)) (swapp-swfmt-value sheet "enames")))
+  ;; A frameless sheet has no format entities to copy.
   (setq copy-result
-    (if title-block
-      (vl-catch-all-apply 'vla-CopyObjects (list doc (swapp-swfmt-object-array objects) frame-block))
-      nil
+    (cond
+      ((not title-block) nil)
+      ((not objects) T)
+      (T (vl-catch-all-apply 'vla-CopyObjects (list doc (swapp-swfmt-object-array objects) frame-block)))
     )
   )
   (setq ok (and title-block copy-result (not (vl-catch-all-error-p copy-result))))
@@ -4161,38 +4361,43 @@
   )
 )
 
-(defun swapp-convert-sheet-formats-run (/ items anchors source-records sheets problems sheet uncovered record made made-list index before-dimensions after-dimensions deleted failed-delete ename summary source-titles source-frames remaining leftover ok pair value)
-  (swapp-activate-model)
-  (swapp-swfmt-say "\n----- SolidWorks 기본 양식(선·글자) 정리 -----")
-  (setq items (swapp-swfmt-scan))
+;;; Every sheet of the step with its paper placed: one per default format title
+;;; block, then one per source sheet with neither a frame block nor a default format,
+;;; which gets a DR frame around its drawing (user decision 2026-10-08).
+(defun swapp-swfmt-sheets (items source-records / anchors item sheets record)
   (setq anchors nil)
-  (foreach record items
-    (if (and (swapp-swfmt-text-item-p record) (equal (nth 5 record) *swapp-swfmt-anchor-text*))
-      (setq anchors (cons record anchors))
+  (foreach item items
+    (if (and (swapp-swfmt-text-item-p item) (equal (nth 5 item) *swapp-swfmt-anchor-text*))
+      (setq anchors (cons item anchors))
     )
   )
-  (setq source-records (swapp-source-sheet-records-read))
   (setq sheets nil)
-  (foreach record anchors
-    (setq sheets (append sheets (list (swapp-swfmt-recognize record items source-records))))
+  (foreach item anchors
+    (setq sheets (append sheets (list (swapp-swfmt-recognize item items source-records))))
   )
-  (setq sheets (swapp-swfmt-place-papers sheets))
+  (foreach record (swapp-swfmt-uncovered-records source-records sheets)
+    (setq sheets (append sheets (list (swapp-swfmt-frameless-sheet record))))
+  )
+  (swapp-swfmt-place-papers sheets)
+)
+
+(defun swapp-convert-sheet-formats-run (/ source-records sheets problems sheet record made made-list index before-dimensions after-dimensions deleted failed-delete ename summary source-titles source-frames remaining leftover ok pair value)
+  (swapp-activate-model)
+  (swapp-swfmt-say "\n----- SolidWorks 기본 양식(선·글자) 정리 -----")
+  (setq source-records (swapp-source-sheet-records-read))
+  (setq sheets (swapp-swfmt-sheets (swapp-swfmt-scan) source-records))
   (setq problems nil)
   (foreach sheet sheets
     (if (not (equal (swapp-swfmt-value sheet "status") "OK"))
       (setq problems (append problems (list (list (swapp-swfmt-value sheet "stem") (swapp-swfmt-value sheet "status") (swapp-swfmt-value sheet "detail")))))
     )
   )
-  (setq uncovered (swapp-swfmt-uncovered-records source-records sheets))
-  (foreach record uncovered
-    (setq problems (append problems (list (list (nth 1 record) "NO_FORMAT" "도면틀 블록도 SolidWorks 기본 양식도 없음"))))
-  )
   ;; An enlarged frame is larger than its SOLIDWORKS sheet and the collected sheets
   ;; are only 50 mm apart.  The drawings are never moved, so stop instead.
   (foreach sheet (swapp-swfmt-overlapping-sheets sheets)
     (setq problems (append problems (list (list (swapp-swfmt-value sheet "stem") "OVERLAP" "새 도면틀이 다른 도면의 도면틀과 겹침"))))
   )
-  (swapp-swfmt-say (strcat "\nSolidWorks 기본 양식 시트: " (itoa (length anchors)) "장, 원본 파일 기록: " (itoa (length source-records)) "개"))
+  (swapp-swfmt-say (strcat "\nSolidWorks 기본 양식 시트: " (itoa (length (vl-remove-if-not '(lambda (x) (swapp-swfmt-value x "anchor")) sheets))) "장, 도면틀 없는 시트: " (itoa (length (vl-remove-if '(lambda (x) (swapp-swfmt-value x "anchor")) sheets))) "장, 원본 파일 기록: " (itoa (length source-records)) "개"))
   (cond
     (problems
       (swapp-swfmt-say (strcat "\n결과: STOP_SHEET_FORMAT_UNSUPPORTED (" (itoa (length problems)) "장)"))
