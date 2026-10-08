@@ -25,16 +25,8 @@
   (swt-sf-line (list (if (equal actual expected) "UNIT_OK" "UNIT_FAIL") label actual expected))
 )
 
-(defun swt-sf-recognize-all (/ items anchors records item)
-  (setq items (swapp-swfmt-scan))
-  (setq anchors nil)
-  (foreach item items
-    (if (and (swapp-swfmt-text-item-p item) (equal (nth 5 item) *swapp-swfmt-anchor-text*))
-      (setq anchors (cons item anchors))
-    )
-  )
-  (setq records (swapp-source-sheet-records-read))
-  (swapp-swfmt-place-papers (mapcar '(lambda (a) (swapp-swfmt-recognize a items records)) anchors))
+(defun swt-sf-recognize-all ()
+  (swapp-swfmt-sheets (swapp-swfmt-scan) (swapp-source-sheet-records-read))
 )
 
 (defun swt-sf-sheet-by-stem (sheets stem / found sheet)
@@ -114,6 +106,17 @@
       (swt-sf-check "Brake Base Plate SCA is the frame scale" (swt-sf-value sheet "GEN-TITLE-SCA{6.7}") "1:2")
     )
   )
+  ;; 08 has no frame at all: a DR frame around its 2064 x 850 mm drawing, wider
+  ;; than A0, so DR_A0 at 1:2, and no values but size and scale.
+  (if (setq sheet (swt-sf-sheet-by-stem sheets "08-00-00-00_Drive Base Plate"))
+    (progn
+      (swt-sf-check "Drive Base Plate frameless" (swapp-swfmt-value sheet "frameless") T)
+      (swt-sf-check "Drive Base Plate frame" (list (swapp-swfmt-value sheet "status") (swapp-swfmt-value sheet "size") (swapp-swfmt-value sheet "scale")) '("OK" "A0" 2.0))
+      (swt-sf-check "Drive Base Plate SCA" (swt-sf-value sheet "GEN-TITLE-SCA{6.7}") "1:2")
+      (swt-sf-check "Drive Base Plate NR empty" (swt-sf-value sheet "GEN-TITLE-NR{23}") nil)
+      (swt-sf-check "Drive Base Plate no format entities" (swapp-swfmt-value sheet "enames") nil)
+    )
+  )
   (if (setq sheet (swt-sf-sheet-by-stem sheets "01-03-00-00_L-Jig"))
     (swt-sf-check "L-Jig SIZ" (swt-sf-value sheet "GEN-TITLE-SIZ{6.7}") "A1")
   )
@@ -159,6 +162,27 @@
   found
 )
 
+;;; The frame insert of a paper: inserted at the paper's lower-left corner and covering
+;;; the paper.  Its extents may reach a little past the paper: the two-letter zone
+;;; letters of 06 (AA, AC, ...) are wider than the border band (up to 1.45 mm).
+(defun swt-sf-find-frame-at-paper (objects paper / found object point bbox)
+  (setq found nil)
+  (foreach object objects
+    (setq point (vlax-get object 'InsertionPoint))
+    (setq bbox (swapp-object-bbox4 object))
+    (if
+      (and
+        (not found) bbox
+        (swapp-near (car point) (car paper) 0.5) (swapp-near (cadr point) (cadr paper) 0.5)
+        (swapp-swfmt-inside-p paper bbox 0.5)
+        (swapp-swfmt-inside-p bbox paper 5.0)
+      )
+      (setq found object)
+    )
+  )
+  found
+)
+
 (defun swt-sf-attribute-alist (object / result att)
   (setq result nil)
   (foreach att (vlax-invoke object 'GetAttributes)
@@ -176,7 +200,7 @@
   (swt-sf-check "SWFMT title inserts" (length titles) (length ok-sheets))
   (setq bad-frames 0 bad-titles 0 bad-values 0 residue 0)
   (foreach sheet ok-sheets
-    (setq frame (swt-sf-find-insert-by-bbox frames (swapp-swfmt-value sheet "paper")))
+    (setq frame (swt-sf-find-frame-at-paper frames (swapp-swfmt-value sheet "paper")))
     (setq title (swt-sf-find-insert-by-bbox titles (swapp-swfmt-value sheet "title")))
     (if (not frame) (progn (setq bad-frames (1+ bad-frames)) (swt-sf-line (list "NO_FRAME_AT_PAPER" (swapp-swfmt-value sheet "stem")))))
     (if (not title) (progn (setq bad-titles (1+ bad-titles)) (swt-sf-line (list "NO_TITLE_AT_BOX" (swapp-swfmt-value sheet "stem")))))
