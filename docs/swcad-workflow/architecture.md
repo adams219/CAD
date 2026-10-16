@@ -37,7 +37,7 @@ SWCADVERIFY
 `SWCADRUN`은 현재 상태에서 다음 안전 단계 하나만 실행한다. 중간에 종료해도 DWG의 `SWCAD_WORKFLOW_STATE` XRecord를 읽어 재개한다. 단계는 사용자에게 0/6(빈 도면의 도면 모으기)부터 6/6까지 표시하며, GMTITLE 결과가 `ABORT_`, `ERROR_`, `WARN_`이면 같은 명령의 반복을 권장하지 않는다.
 
 ```text
-COLLECT(빈 도면) → XREF → SHEET_WRAPPERS(필요한 경우) → SHEET_FORMAT(필요한 경우) → TITLE → DIMSTYLE → TEXT_SIZE → LAYOUT → CLEANUP → COMPLETE
+COLLECT(빈 도면) → XREF → SHEET_WRAPPERS(필요한 경우) → SHEET_FORMAT(필요한 경우) → TITLE → DIMSTYLE → FIT_TOLERANCE → TEXT_STYLE → TEXT_SIZE → LAYOUT → CLEANUP → COMPLETE
 ```
 
 ## COLLECT: 도면 모으기
@@ -145,7 +145,21 @@ DIMENSION_SEMANTICS=PRESERVED
 
 복원 후에도 기존 스타일 감사와 Mechanical fit 감사가 모두 통과해야 한다.
 
-2026-09-29부터는 SWAUTO 모듈이 같은 값을 직접 지킨다. `37C1` 사례의 원인은 맞춤공차 적용이 아니라 1단계 스타일 변경이었다. 공차가 없는 치수는 DSTYLE override가 통째로 지워져 `DIMLFAC`와 숨은 공차값이 대상 스타일 값으로 돌아갔다. 지금은 이런 치수도 대상 스타일과 다른 `DIMLFAC`, `DIMTOL`, `DIMLIM`, `DIMTP`, `DIMTM`, 소수 자리(`DIMDEC`, `DIMRND`, `DIMADEC`)를 유지한다. `swdt-run-autofix-core`가 실행 전후 값을 같은 방식으로 비교해 달라진 치수를 되돌린다. 맞춤공차로 변환된 치수의 `DIMTOL`/`DIMLIM` 변화만 되돌리지 않는다. 통합 앱의 전후 비교와 복원은 검증 단계로 그대로 둔다. 통합 앱은 맞춤공차 치수의 `DIMTOL`도 기존처럼 되돌리므로, 두 경로의 결과에서 이 값 하나가 다를 수 있다. SolidWorks가 DWG 설정보다 적은 소수 자리로 그린 숫자(`17`, 실제 값 17.3)는 다시 그리면 실제 값이 보이며, 사용자 결정에 따라 정상으로 보고 목록만 남긴다(`260929-value-guard-4`). 상세 기록은 `docs/history/swauto-value-guard-2026-09-29.md`에 있다.
+2026-09-29부터는 SWAUTO 모듈이 같은 값을 직접 지킨다. `37C1` 사례의 원인은 맞춤공차 적용이 아니라 1단계 스타일 변경이었다. 공차가 없는 치수는 DSTYLE override가 통째로 지워져 `DIMLFAC`와 숨은 공차값이 대상 스타일 값으로 돌아갔다. 지금은 이런 치수도 대상 스타일과 다른 `DIMLFAC`, `DIMTOL`, `DIMLIM`, `DIMTP`, `DIMTM`, 소수 자리(`DIMDEC`, `DIMRND`, `DIMADEC`)를 유지한다. `swdt-run-autofix-core`가 실행 전후 값을 같은 방식으로 비교해 달라진 치수를 되돌린다. 맞춤공차로 변환된 치수의 `DIMTOL`/`DIMLIM` 변화만 되돌리지 않는다. 통합 앱의 전후 비교와 복원은 검증 단계로 그대로 둔다. 2026-10-16 전에는 통합 앱이 맞춤공차 치수의 `DIMTOL`도 되돌렸다. 맞춤공차 글자에 이미 공차가 있어(`Ø32 h7(0/-0.025)`) 공차가 두 번 그려졌다(221216 32장: 맞춤공차 39개 중 11개). 지금은 맞춤공차 치수(`GENIUS_GENDTOL_13` XData)의 `DIMTOL`/`DIMLIM`을 전후 양쪽 비교 기록에서 빼고(`swapp-semantic-mask-fit`), 되돌릴 때도 이 두 값을 건드리지 않는다(`swapp-snapshots-without-fit-flags`). 이미 변환된 도면은 다음 단계 `FIT_TOLERANCE`가 고친다. SolidWorks가 DWG 설정보다 적은 소수 자리로 그린 숫자(`17`, 실제 값 17.3)는 다시 그리면 실제 값이 보이며, 사용자 결정에 따라 정상으로 보고 목록만 남긴다(`260929-value-guard-4`). 상세 기록은 `docs/history/swauto-value-guard-2026-09-29.md`에 있다.
+
+## FIT_TOLERANCE: 맞춤공차 치수의 중복 공차
+
+DIMSTYLE 다음 단계(`swapp-run-fit-tolerance`). 맞춤공차 치수 가운데 유효 `DIMTOL` 또는 `DIMLIM`이 1인 것(`swapp-fit-tolerance-duplicates`)의 DSTYLE 덮어쓰기를 0으로 바꾼다. SWAUTO가 맞춤공차를 넣은 직후의 상태다. 전후 비교 기록(맞춤공차 치수는 두 플래그 제외)이 같고 남은 중복이 0이어야 `FIT_TOLERANCE=OK`(`FIT_TOLERANCE_COUNT`), 대상이 없으면 `NOT_NEEDED`. `SWCADVERIFY` 판정에 포함한다. 221216 사용자 도면(`261012`): 11개를 고쳐 맞춤공차 39개 모두 맞춤공차 글자만 남았다.
+
+## TEXT_STYLE: SolidWorks 문자 스타일을 Standard로
+
+XREF BIND는 SolidWorks 문자 스타일에도 파일 이름을 붙인다(`01-03-00-00_L-Jig$0$SLDTEXTSTYLE0`, TXT 폭 0.75, Century Gothic 0.91, Arial Rounded). 치수 스타일은 DIMSTYLE이 `AM_ISO`로 정리하지만 문자·여러 줄 문자에는 이 이름이 남았다(221216 32장: 스타일 57개, 문자 1,722개). 사용자 결정(2026-10-15): 모두 `Standard`(Arial, 치수가 이미 쓰는 스타일).
+
+- DIMSTYLE 다음, TEXT_SIZE 전(`swapp-run-text-style`). TEXT_SIZE의 겹침 검사가 바뀐 글자 폭을 보게 하려는 순서다.
+- 대상: XREF와 치수 익명 블록(`*D`)을 뺀 모든 블록 정의(모델·배치 공간 포함) 안의 TEXT, MTEXT, 속성 정의, 블록 참조의 속성 가운데 스타일 이름에 `$0$`가 있는 것(`swapp-text-style-targets`). DR 도면틀·표제란의 기본 스타일(ISOCP, ACISOTS, monotxt-03)은 이름에 `$0$`가 없어 그대로다.
+- 바꾼 뒤 남은 대상이 0이고 실패가 0이어야 `TEXT_STYLE=OK`(대상이 없으면 `NOT_NEEDED`), `TEXT_STYLE_COUNT`. 잠긴 레이어 등으로 하나라도 못 바꾸면 `FAILED`, 저장하지 않는다. `SWCADVERIFY` 판정에 포함한다.
+- 쓰지 않게 된 바인딩 스타일은 CLEANUP의 미사용 이름 정리가 지운다(32장: 57개 → 0개).
+- 남는 `$0$` 이름(32장): 블록 323개(SW 표·주석·중심 표시 — 파일마다 같은 이름을 다른 내용으로 쓰므로 BIND가 붙인 이름이 서로를 구분한다), 레이어 6개(`…$0$AM_5`), 선 종류 47개(`…$0$HIDDEN`, `CENTERX2`, `PHANTOM` 등).
 
 ## TEXT_SIZE: A4 출력 글자 크기
 
