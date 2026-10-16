@@ -3,7 +3,7 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "261016-fit-tolerance-1")
+(setq *swapp-version* "261016-file-name-1")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-legacy-layout-prefix* "SWCAD-SHEET")
 (setq *swapp-layout-placement-mode* "XREF_SOURCE_FILENAME_COORDINATES")
@@ -3782,6 +3782,28 @@
     tags
   )
 )
+
+;;; The same FILE NO / File Name rule for every source title the GMTITLE module reads,
+;;; also block titles of company sheet formats (DR-A3 FROM_HYUN with DR_표제란_FTAP),
+;;; whose File No cell held a placeholder ("1234") and File Name the whole file name
+;;; (user decision 2026-10-16).  The module calls this through
+;;; *swcad-title-source-values-hook* with the values of one source title and its box;
+;;; the file is the source sheet whose paper holds the centre of the box.  A title
+;;; outside every source paper (the new title of an enlarged frame, whose values the
+;;; SHEET_FORMAT step already set), no source sheet records, or a name without a
+;;; drawing number keep the values as read.
+(defun swapp-title-file-name-values (values source-bbox / centre stem record)
+  (setq centre (list (/ (+ (car source-bbox) (caddr source-bbox)) 2.0) (/ (+ (cadr source-bbox) (cadddr source-bbox)) 2.0)))
+  (setq stem nil)
+  (foreach record (swapp-source-sheet-records-read)
+    (if (and (not stem) (swapp-text-size-in-p centre (nth 4 record)))
+      (setq stem (nth 1 record))
+    )
+  )
+  (if stem (swapp-swfmt-file-name-tags values stem) values)
+)
+
+(setq *swcad-title-source-values-hook* 'swapp-title-file-name-values)
 
 ;;; Paper size of a DR frame for the paper width and height, or a failure reason.
 (defun swapp-swfmt-paper-size (width height / found paper)
