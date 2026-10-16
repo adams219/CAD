@@ -3,7 +3,7 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "261008-text-size-1")
+(setq *swapp-version* "261016-fit-tolerance-1")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-legacy-layout-prefix* "SWCAD-SHEET")
 (setq *swapp-layout-placement-mode* "XREF_SOURCE_FILENAME_COORDINATES")
@@ -2049,6 +2049,8 @@
         ((swapp-title-complete-p evidence)
           (cond
             ((not (swapp-dimstyle-marked-p)) "DIMSTYLE")
+            ((not (swapp-fit-tolerance-marked-p)) "FIT_TOLERANCE")
+            ((not (swapp-text-style-marked-p)) "TEXT_STYLE")
             ((not (swapp-text-size-marked-p)) "TEXT_SIZE")
             ((not (swapp-layout-state-valid-p frames)) "LAYOUT")
             ((not (swapp-cached-resource-cleanup-verify)) "CLEANUP")
@@ -4713,6 +4715,51 @@
   (if pos (substr record 1 pos) nil)
 )
 
+;;; Fit dimensions (Mechanical fit xdata GENIUS_GENDTOL_13): SWAUTO writes the
+;;; deviations into the fit text ("%%c32 h7(0/-0.025)") and leaves DIMTOL/DIMLIM to
+;;; the AM_ISO style (off).  Its own value guard accepts that change; this one did
+;;; not and switched DIMTOL back on, so the deviations were drawn twice (11 of 39
+;;; fit dimensions in the 221216 set, 2026-10-16).  The comparison leaves those two
+;;; flags out for fit dimensions, on both sides.
+(defun swapp-fit-dimension-handles (/ result object data)
+  (setq result nil)
+  (foreach object (swapp-model-dimension-objects)
+    (setq data (swdt-mechfit-entget (vlax-vla-object->ename object)))
+    (if (swdt-xdata-app-present-p data "GENIUS_GENDTOL_13") (setq result (cons (cdr (assoc 5 data)) result)))
+  )
+  result
+)
+
+;;; A semantic record (handle|type|raw|dimlfac|upper|lower|dimtol|dimlim) without
+;;; its last two fields.
+(defun swapp-semantic-record-without-flags (record / pos count)
+  (setq pos 0 count 0)
+  (while (and pos (< count 6))
+    (setq pos (vl-string-search "|" record (if (= count 0) 0 (1+ pos))))
+    (setq count (1+ count))
+  )
+  (if pos (strcat (substr record 1 pos) "|fit|fit") record)
+)
+
+(defun swapp-semantic-mask-fit (records fit-handles)
+  (mapcar
+    '(lambda (record)
+       (if (member (swapp-semantic-record-handle record) fit-handles) (swapp-semantic-record-without-flags record) record))
+    records
+  )
+)
+
+;;; Snapshots to restore, without DIMTOL/DIMLIM (71, 72) for fit dimensions.
+(defun swapp-snapshots-without-fit-flags (snapshots fit-handles)
+  (mapcar
+    '(lambda (snapshot)
+       (if (member (car snapshot) fit-handles)
+         (cons (car snapshot) (vl-remove-if '(lambda (pair) (member (car pair) '(71 72))) (cdr snapshot)))
+         snapshot))
+    snapshots
+  )
+)
+
 (defun swapp-semantic-by-handle (handle records / found record)
   (setq found nil)
   (while (and records (not found))
@@ -4753,7 +4800,7 @@
   (reverse result)
 )
 
-(defun swapp-run-dimstyle (/ ss result semantics-preserved restore-result changed-handles restore-snapshots restore-style-ok restore-fit-ok)
+(defun swapp-run-dimstyle (/ ss result semantics-preserved restore-result changed-handles restore-snapshots restore-style-ok restore-fit-ok fit-handles)
   (swapp-activate-model)
   (if (not (swcad-title-ensure-work-copy-for-mutation))
     (progn
@@ -4781,6 +4828,9 @@
             (setq *swapp-last-dimension-semantic-snapshots* (swapp-dimension-semantic-snapshots))
             (setq result (swdt-run-autofix-core ss))
             (setq *swapp-last-dimension-semantics-after* (swapp-dimension-semantics))
+            (setq fit-handles (swapp-fit-dimension-handles))
+            (setq *swapp-last-dimension-semantics-before* (swapp-semantic-mask-fit *swapp-last-dimension-semantics-before* fit-handles))
+            (setq *swapp-last-dimension-semantics-after* (swapp-semantic-mask-fit *swapp-last-dimension-semantics-after* fit-handles))
             (setq semantics-preserved
               (swapp-semantic-multiset-equal-p
                 *swapp-last-dimension-semantics-before*
@@ -4796,9 +4846,12 @@
                   )
                 )
                 (setq restore-snapshots
-                  (swapp-snapshots-for-handles
-                    *swapp-last-dimension-semantic-snapshots*
-                    changed-handles
+                  (swapp-snapshots-without-fit-flags
+                    (swapp-snapshots-for-handles
+                      *swapp-last-dimension-semantic-snapshots*
+                      changed-handles
+                    )
+                    fit-handles
                   )
                 )
                 (setq restore-result
@@ -4807,7 +4860,7 @@
                   )
                 )
                 (vla-Regen (swapp-doc) 1)
-                (setq *swapp-last-dimension-semantics-after* (swapp-dimension-semantics))
+                (setq *swapp-last-dimension-semantics-after* (swapp-semantic-mask-fit (swapp-dimension-semantics) fit-handles))
                 (setq semantics-preserved
                   (and
                     (= (cadr restore-result) 0)
@@ -6848,6 +6901,193 @@
 )
 
 ;;; ---------------------------
+;;; FIT_TOLERANCE: no second tolerance on Mechanical fit dimensions
+;;; ---------------------------
+;;; Drawings converted before 261016 kept DIMTOL/DIMLIM on for some fit dimensions
+;;; (see swapp-fit-dimension-handles), so "h7(0/-0.025)" was followed by the same
+;;; deviations again.  This step switches those two flags off, the state SWAUTO
+;;; leaves, and checks that measurement, DIMLFAC and the deviations stay the same.
+;;; A new conversion has nothing to fix here.
+
+(defun swapp-fit-tolerance-marked-p ()
+  (if (member (swapp-state-value "FIT_TOLERANCE") '("OK" "NOT_NEEDED")) T nil)
+)
+
+;;; Fit dimensions whose plain tolerance or limits are still on.
+(defun swapp-fit-tolerance-duplicates (/ result object ename data values)
+  (setq result nil)
+  (foreach object (swapp-model-dimension-objects)
+    (setq ename (vlax-vla-object->ename object))
+    (setq data (swdt-mechfit-entget ename))
+    (if (swdt-xdata-app-present-p data "GENIUS_GENDTOL_13")
+      (progn
+        (setq values (swdt-effective-tolerance-values data))
+        (if (or (equal (cdr (assoc 71 values)) 1) (equal (cdr (assoc 72 values)) 1))
+          (setq result (cons ename result))
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swapp-fit-tolerance-off (ename / data overrides newdata ok)
+  (setq data (entget ename '("*")))
+  (setq overrides (swdt-get-dstyle-overrides data))
+  (setq overrides (swdt-dxf-put overrides 71 0))
+  (setq overrides (swdt-dxf-put overrides 72 0))
+  (setq newdata (swdt-set-dstyle-xdata data overrides))
+  (regapp "ACAD")
+  (setq ok (entmod newdata))
+  (if ok (entupd ename))
+  ok
+)
+
+(defun swapp-run-fit-tolerance (/ targets handles before after fixed failed left)
+  (swapp-activate-model)
+  (princ "\n----- 맞춤공차 치수의 중복 공차 정리 -----")
+  (cond
+    ((not (swcad-title-ensure-work-copy-for-mutation))
+      (princ "\n결과: ABORT_WORKCOPY_NOT_CREATED")
+      nil
+    )
+    ((not (setq targets (swapp-fit-tolerance-duplicates)))
+      (swapp-state-set "FIT_TOLERANCE" "NOT_NEEDED")
+      (swapp-save-current)
+      (princ "\n공차가 두 번 그려지는 맞춤공차 치수가 없습니다.")
+      (princ "\n결과: SWCAD_FIT_TOLERANCE_NOT_NEEDED")
+      T
+    )
+    (T
+      (setq handles (swapp-fit-dimension-handles))
+      (setq before (swapp-semantic-mask-fit (swapp-dimension-semantics) handles))
+      (setq fixed 0 failed 0)
+      (foreach ename targets
+        (if (swapp-fit-tolerance-off ename) (setq fixed (1+ fixed)) (setq failed (1+ failed)))
+      )
+      (vla-Regen (swapp-doc) 1)
+      (setq after (swapp-semantic-mask-fit (swapp-dimension-semantics) handles))
+      (setq left (length (swapp-fit-tolerance-duplicates)))
+      (princ (strcat "\n일반 공차를 끈 맞춤공차 치수: " (itoa fixed) "개" (if (> failed 0) (strcat ", 실패 " (itoa failed) "개") "")))
+      (if (and (= failed 0) (= left 0) (swapp-semantic-multiset-equal-p before after))
+        (progn
+          (swapp-state-set "FIT_TOLERANCE" "OK")
+          (swapp-state-set "FIT_TOLERANCE_COUNT" (itoa fixed))
+          (swapp-save-current)
+          (princ "\n결과: SWCAD_FIT_TOLERANCE_OK")
+          T
+        )
+        (progn
+          (swapp-state-set "FIT_TOLERANCE" "FAILED")
+          (princ (strcat "\n결과: SWCAD_FIT_TOLERANCE_FAILED (남은 중복 " (itoa left) "개)"))
+          (princ "\n진행 중지: 현재 도면을 저장하지 말고 원인을 확인하세요.")
+          nil
+        )
+      )
+    )
+  )
+)
+
+;;; ---------------------------
+;;; TEXT_STYLE: SOLIDWORKS text styles to Standard
+;;; ---------------------------
+;;; After BIND every SOLIDWORKS text style carries its file name
+;;; ("01-03-00-00_L-Jig$0$SLDTEXTSTYLE0": TXT at width 0.75, Century Gothic 0.91,
+;;; Arial Rounded), 57 of them in the 221216 set.  The user wants Standard for all
+;;; of them (2026-10-15).  Every TEXT, MTEXT, attribute and attribute definition in
+;;; any space or block definition whose style came from a bound file ("$0$" in the
+;;; name) gets Standard, which the dimensions already use (Arial).  The native styles
+;;; of the DR frames and title (ISOCP, ACISOTS, monotxt-03) stay.  CLEANUP purges the
+;;; bound styles once nothing uses them.  Runs before TEXT_SIZE, so the clash check
+;;; sees the new widths.
+
+(setq *swapp-text-style-target* "Standard")
+
+(defun swapp-text-style-marked-p ()
+  (if (member (swapp-state-value "TEXT_STYLE") '("OK" "NOT_NEEDED")) T nil)
+)
+
+(defun swapp-text-style-bound-p (name)
+  (and name (vl-string-search "$0$" name))
+)
+
+;;; Texts with a bound style in every block definition (spaces included), except
+;;; XREFs and the anonymous blocks of dimensions, which follow the dimension style.
+(defun swapp-text-style-targets (/ result block e name a)
+  (setq result nil)
+  (vlax-for block (vla-get-Blocks (swapp-doc))
+    (if (and (= (vla-get-IsXRef block) :vlax-false) (not (wcmatch (vla-get-Name block) "`*D*")))
+      (vlax-for e block
+        (setq name (vla-get-ObjectName e))
+        (cond
+          ((member name '("AcDbText" "AcDbMText" "AcDbAttributeDefinition"))
+            (if (swapp-text-style-bound-p (vla-get-StyleName e)) (setq result (cons e result)))
+          )
+          ((and (= name "AcDbBlockReference") (= (vla-get-HasAttributes e) :vlax-true))
+            (foreach a (vlax-invoke e 'GetAttributes)
+              (if (swapp-text-style-bound-p (vla-get-StyleName a)) (setq result (cons a result)))
+            )
+          )
+        )
+      )
+    )
+  )
+  result
+)
+
+(defun swapp-run-text-style (/ targets changed failed remaining)
+  (swapp-activate-model)
+  (princ "\n----- 문자 스타일 Standard 통일 -----")
+  (cond
+    ((not (swcad-title-ensure-work-copy-for-mutation))
+      (princ "\n결과: ABORT_WORKCOPY_NOT_CREATED")
+      nil
+    )
+    ((not (tblsearch "STYLE" *swapp-text-style-target*))
+      (swapp-state-set "TEXT_STYLE" "FAILED")
+      (princ (strcat "\n결과: SWCAD_TEXT_STYLE_FAILED - " *swapp-text-style-target* " 문자 스타일이 없습니다."))
+      nil
+    )
+    ((not (setq targets (swapp-text-style-targets)))
+      (swapp-state-set "TEXT_STYLE" "NOT_NEEDED")
+      (swapp-save-current)
+      (princ "\n원본 파일에서 온 문자 스타일을 쓰는 문자가 없습니다.")
+      (princ "\n결과: SWCAD_TEXT_STYLE_NOT_NEEDED")
+      T
+    )
+    (T
+      (setq changed 0 failed 0)
+      (foreach e targets
+        (if (swapp-call-ok-p 'vla-put-StyleName (list e *swapp-text-style-target*))
+          (setq changed (1+ changed))
+          (setq failed (1+ failed))
+        )
+      )
+      (vla-Regen (swapp-doc) 1)
+      (setq remaining (length (swapp-text-style-targets)))
+      (princ (strcat "\n" *swapp-text-style-target* "로 바꾼 문자: " (itoa changed) "개" (if (> failed 0) (strcat ", 바꾸지 못함 " (itoa failed) "개(잠긴 레이어일 수 있음)") "")))
+      (princ (strcat "\n원본 파일 문자 스타일을 아직 쓰는 문자: " (itoa remaining) "개"))
+      (if (and (= failed 0) (= remaining 0))
+        (progn
+          (swapp-state-set "TEXT_STYLE" "OK")
+          (swapp-state-set "TEXT_STYLE_COUNT" (itoa changed))
+          (swapp-save-current)
+          (princ "\n쓰지 않게 된 원본 문자 스타일은 5/6 전체 정리에서 지웁니다.")
+          (princ "\n결과: SWCAD_TEXT_STYLE_OK")
+          T
+        )
+        (progn
+          (swapp-state-set "TEXT_STYLE" "FAILED")
+          (princ "\n결과: SWCAD_TEXT_STYLE_FAILED")
+          (princ "\n진행 중지: 현재 도면을 저장하지 말고 잠긴 레이어 등 원인을 확인하세요.")
+          nil
+        )
+      )
+    )
+  )
+)
+
+;;; ---------------------------
 ;;; TEXT_SIZE: dimension and note text sized for A4 printing
 ;;; ---------------------------
 ;;; The user prints every sheet on A4 (2026-10-08).  A Layout is an A4 page with the
@@ -7262,6 +7502,8 @@
     ((equal stage "SHEET_FORMAT") "1/6 입력 도면 준비 - SolidWorks 기본 양식 정리")
     ((equal stage "TITLE") "2/6 GMTITLE 변환")
     ((equal stage "DIMSTYLE") "3/6 치수 스타일 통일")
+    ((equal stage "FIT_TOLERANCE") "3/6 맞춤공차 중복 공차 정리")
+    ((equal stage "TEXT_STYLE") "3/6 문자 스타일 Standard 통일")
     ((equal stage "TEXT_SIZE") "3/6 치수 - A4 출력 글자 크기")
     ((equal stage "LAYOUT") "4/6 원본 파일명 Layout 생성")
     ((equal stage "CLEANUP") "5/6 전체 미사용 이름 정의 정리")
@@ -7316,6 +7558,12 @@
     )
     ((and (equal stage "DIMSTYLE") (equal (swapp-state-value "DIMSTYLE") "FAILED"))
       "SWCADRUN 반복 금지 - DIMSTYLE 실패 원인을 확인하세요"
+    )
+    ((and (equal stage "FIT_TOLERANCE") (equal (swapp-state-value "FIT_TOLERANCE") "FAILED"))
+      "SWCADRUN 반복 금지 - 맞춤공차 중복 공차 정리 실패 원인을 확인하세요"
+    )
+    ((and (equal stage "TEXT_STYLE") (equal (swapp-state-value "TEXT_STYLE") "FAILED"))
+      "SWCADRUN 반복 금지 - 문자 스타일 통일 실패 원인(잠긴 레이어 등)을 확인하세요"
     )
     ((and (equal stage "TEXT_SIZE") (equal (swapp-state-value "TEXT_SIZE") "FAILED"))
       "SWCADRUN 반복 금지 - 치수 글자 크기 실패 원인(swcad_text_size_last.txt)을 확인하세요"
@@ -7387,6 +7635,8 @@
     )
   )
   (princ (strcat "\nDIMSTYLE 상태: " (if (swapp-state-value "DIMSTYLE") (swapp-state-value "DIMSTYLE") "미실행")))
+  (princ (strcat "\n맞춤공차 중복 공차 정리: " (if (swapp-state-value "FIT_TOLERANCE") (swapp-state-value "FIT_TOLERANCE") "미실행")))
+  (princ (strcat "\n문자 스타일 Standard 통일: " (if (swapp-state-value "TEXT_STYLE") (swapp-state-value "TEXT_STYLE") "미실행")))
   (princ
     (strcat
       "\nA4 출력 글자 크기: " (if (swapp-state-value "TEXT_SIZE") (swapp-state-value "TEXT_SIZE") "미실행")
@@ -7398,7 +7648,7 @@
   (princ (strcat "\nSWCAD Layout: " (itoa (length layouts)) " / 기대 " (itoa frames)))
   (princ (strcat "\nLayout 좌표 모드: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "미생성")))
   (princ (strcat "\nLayout 이름 정책: " (if (swapp-state-value "LAYOUT_NAME_POLICY") (swapp-state-value "LAYOUT_NAME_POLICY") "원본 파일명 stem 예정")))
-  (if (member stage '("DIMSTYLE" "TEXT_SIZE" "LAYOUT" "CLEANUP" "COMPLETE"))
+  (if (member stage '("DIMSTYLE" "FIT_TOLERANCE" "TEXT_STYLE" "TEXT_SIZE" "LAYOUT" "CLEANUP" "COMPLETE"))
     (progn
       (setq plan (swapp-layout-plan))
       (swapp-print-layout-plan-items plan *swapp-layout-preview-limit*)
@@ -7511,7 +7761,7 @@
   )
   (setq mutating-stage
     (and
-      (if (member stage '("COLLECT" "XREF" "SHEET_WRAPPERS" "SHEET_FORMAT" "TITLE" "DIMSTYLE" "TEXT_SIZE" "CLEANUP" "LAYOUT")) T nil)
+      (if (member stage '("COLLECT" "XREF" "SHEET_WRAPPERS" "SHEET_FORMAT" "TITLE" "DIMSTYLE" "FIT_TOLERANCE" "TEXT_STYLE" "TEXT_SIZE" "CLEANUP" "LAYOUT")) T nil)
       (not cleanup-retry-blocked)
     )
   )
@@ -7530,6 +7780,8 @@
     ((equal stage "SHEET_FORMAT") (setq run-result (swapp-convert-sheet-formats)))
     ((equal stage "TITLE") (setq run-result (swapp-run-title-next)))
     ((equal stage "DIMSTYLE") (setq run-result (swapp-run-dimstyle)))
+    ((equal stage "FIT_TOLERANCE") (setq run-result (swapp-run-fit-tolerance)))
+    ((equal stage "TEXT_STYLE") (setq run-result (swapp-run-text-style)))
     ((equal stage "TEXT_SIZE") (setq run-result (swapp-run-text-size)))
     ((equal stage "CLEANUP") (setq run-result (swapp-run-resource-cleanup)))
     ((equal stage "LAYOUT") (setq run-result (swapp-run-layout)))
@@ -7612,7 +7864,7 @@
       title-result
     )
   )
-  (setq final-ok (and (= xrefs 0) (= wrappers 0) (equal title-status "OK") dim-ok (swapp-text-size-marked-p) cleanup-ok (> frames 0) layout-ok))
+  (setq final-ok (and (= xrefs 0) (= wrappers 0) (equal title-status "OK") dim-ok (swapp-fit-tolerance-marked-p) (swapp-text-style-marked-p) (swapp-text-size-marked-p) cleanup-ok (> frames 0) layout-ok))
   (princ (strcat "\n남은 XREF: " (itoa xrefs)))
   (princ (strcat "\n남은 중첩 시트 묶음: " (itoa wrappers)))
   (princ (strcat "\nGMTITLE 최종 상태: " title-status))
@@ -7670,6 +7922,8 @@
   (princ (strcat "\nLayout 좌표 계획 수: " (if (swapp-state-value "LAYOUT_PLAN_COUNT") (swapp-state-value "LAYOUT_PLAN_COUNT") "<없음>")))
   (princ (strcat "\nLayout 좌표 지문: " (if (swapp-state-value "LAYOUT_PLAN_SIGNATURE") (swapp-state-value "LAYOUT_PLAN_SIGNATURE") "<없음>")))
   (princ (strcat "\nA4 Layout 검증: " (if layout-ok "OK" "CHECK_NEEDED") " (" (itoa frames) "장)"))
+  (princ (strcat "\n맞춤공차 중복 공차 정리: " (if (swapp-fit-tolerance-marked-p) (swapp-state-value "FIT_TOLERANCE") "CHECK_NEEDED")))
+  (princ (strcat "\n문자 스타일 Standard 통일: " (if (swapp-text-style-marked-p) (swapp-state-value "TEXT_STYLE") "CHECK_NEEDED")))
   (princ
     (strcat
       "\nA4 출력 글자 크기: " (if (swapp-text-size-marked-p) (swapp-state-value "TEXT_SIZE") "CHECK_NEEDED")
