@@ -120,6 +120,7 @@ GMTITLE 단계는 새 `DR_titlea_3rd`의 11칸을 모두 쓴다(2026-09-29, `260
 - 원본 표제란 INSERT에 `GEN-TITLE-*` 속성이 있으면(예: 결합된 `...$0$DR_titlea_3rd`) 태그로 읽는다. 같은 칸 위치의 글자보다 우선한다.
 - 일반 TEXT/MTEXT 원본은 기존처럼 칸 위치로 읽는다. MTEXT 서식 코드는 지운다.
 - 원본에 값이 없는 칸은 `DR_titlea_3rd` 속성 기본값으로 채운다. 날짜는 변환한 날, 도면번호·도면명·용지 칸은 빈칸이다. GMTITLE이 넣는 `XXX`, 파일 경로, 로그인 이름, 다른 시트에서 복사된 값은 남기지 않는다.
+- 원본 표제란마다 읽은 값은 모듈의 `*swcad-title-source-values-hook*`(워크플로가 `swapp-title-file-name-values`로 설정)을 한 번 거친다. 표제란 상자의 중심이 들어 있는 원본 시트(`SOURCE_SHEET_*`)의 파일 이름이 도면번호로 시작하면 NR·DWG를 그 번호와 이름으로 바꾼다(2026-10-16, `261016-file-name-1`). 회사 양식(`DR-A3 FROM_HYUN` + `DR_표제란_FTAP`)의 File No 칸에는 `1234` 같은 자리 표시 값이, File Name 칸에는 파일 이름 전체가 있었다. 기본 양식 시트는 SHEET_FORMAT이 이미 같은 값을 넣었으므로 바뀌지 않는다. 원본 용지 밖에 있는 표제란(키운 도면틀), 출처 기록이 없는 도면, 번호로 시작하지 않는 이름은 읽은 값 그대로다.
 - 값을 쓴 뒤 11칸을 다시 읽어 비교하고, 다르면 원본 표제란을 지우기 전에 멈춘다.
 - `SWTITLEVERIFY`(따라서 `SWCADVERIFY`)는 제목블록에 `XXX`, 파일 경로, 서식 코드가 남아 있으면 `SWTITLEVERIFY_WARN_TITLE_VALUES`로 막는다.
 
