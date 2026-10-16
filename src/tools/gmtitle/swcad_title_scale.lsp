@@ -40,7 +40,7 @@
 
 (vl-load-com)
 
-(setq *swcad-title-scale-version* "260930-sheet-format-2")
+(setq *swcad-title-scale-version* "261016-file-name-1")
 (setq *swcad-title-scale-loaded* T)
 (setq *swcad-title-korean-output* T)
 (setq *swcad-title-log-file-suffix* nil)
@@ -4761,6 +4761,21 @@
   (swcad-title-normalize-combined-approval-date-values result)
 )
 
+;;; Values of one source title after the caller's adjustment.  A caller such as the
+;;; SWCADRUN workflow sets *swcad-title-source-values-hook* to a function symbol that
+;;; gets (values source-bbox) and returns the values (there: FILE NO and File Name from
+;;; the source file name).  Unset, or when the hook fails, the values stay as read.
+(defun swcad-title-transfer-values-at (mappings source-bbox / values adjusted)
+  (setq values (swcad-title-transfer-values mappings))
+  (if (and *swcad-title-source-values-hook* source-bbox)
+    (progn
+      (setq adjusted (vl-catch-all-apply *swcad-title-source-values-hook* (list values source-bbox)))
+      (if (and adjusted (not (vl-catch-all-error-p adjusted))) adjusted values)
+    )
+    values
+  )
+)
+
 (defun swcad-title-values-fill-missing-template-empty (values / result slot tag)
   (setq result values)
   (foreach slot *swcad-title-transfer-template*
@@ -5134,7 +5149,7 @@
     (setq records (cadr build))
     (setq unmapped (caddr build))
     (setq duplicates (cadddr build))
-    (setq values (swcad-title-transfer-values mappings))
+    (setq values (swcad-title-transfer-values-at mappings bbox))
     (if (not ename)
       (setq values (swcad-title-values-fill-missing-template-empty values))
     )
@@ -6339,7 +6354,7 @@
       (setq source-frame-block (if source-frame (swcad-title-effective-insert-name (car source-frame)) nil))
       (setq build (swcad-title-transfer-build-mappings source-bbox source-ename 7.0))
       (setq mappings (car build))
-      (setq values (swcad-title-transfer-values mappings))
+      (setq values (swcad-title-transfer-values-at mappings source-bbox))
       (if (not source-ename)
         (setq values (swcad-title-values-fill-missing-template-empty values))
       )
@@ -8377,7 +8392,7 @@
     (progn
       (setq build (swcad-title-transfer-build-mappings source-bbox source-ename 7.0))
       (setq mappings (car build))
-      (setq values (swcad-title-transfer-values mappings))
+      (setq values (swcad-title-transfer-values-at mappings source-bbox))
       (if (not source-ename)
         (setq values (swcad-title-values-fill-missing-template-empty values))
       )
@@ -16114,7 +16129,7 @@
           (setq result
             (append
               result
-              (list (list record title-bbox (swcad-title-transfer-values (car build))))
+              (list (list record title-bbox (swcad-title-transfer-values-at (car build) title-bbox)))
             )
           )
         )
@@ -16468,7 +16483,7 @@
         )
         (swcad-title-princ-line "  <none>")
       )
-      (setq values (swcad-title-transfer-values mappings))
+      (setq values (swcad-title-transfer-values-at mappings source-bbox))
       (if (not source-ename)
         (setq values (swcad-title-values-fill-missing-template-empty values))
       )
@@ -16650,7 +16665,7 @@
       (setq records (cadr build))
       (setq unmapped (caddr build))
       (setq duplicates (cadddr build))
-      (setq values (swcad-title-transfer-values mappings))
+      (setq values (swcad-title-transfer-values-at mappings source-bbox))
       (if (not source-ename)
         (setq values (swcad-title-values-fill-missing-template-empty values))
       )
@@ -17108,7 +17123,7 @@
       (setq records (cadr build))
       (setq unmapped (caddr build))
       (setq duplicates (cadddr build))
-      (setq values (swcad-title-transfer-values mappings))
+      (setq values (swcad-title-transfer-values-at mappings source-bbox))
       (if (not source-ename)
         (setq values (swcad-title-values-fill-missing-template-empty values))
       )
