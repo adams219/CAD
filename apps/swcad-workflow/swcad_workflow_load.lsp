@@ -2,7 +2,7 @@
 
 (vl-load-com)
 
-(setq *swapp-loader-version* "261016-file-name-1")
+(setq *swapp-loader-version* "261019-dim-layer-1")
 
 (defun swapp-loader-source (/ source)
   (setq source nil)

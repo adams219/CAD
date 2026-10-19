@@ -3,7 +3,7 @@
 
 (vl-load-com)
 
-(setq *swapp-version* "261016-file-name-1")
+(setq *swapp-version* "261019-dim-layer-1")
 (setq *swapp-state-dictionary-key* "SWCAD_WORKFLOW_STATE")
 (setq *swapp-legacy-layout-prefix* "SWCAD-SHEET")
 (setq *swapp-layout-placement-mode* "XREF_SOURCE_FILENAME_COORDINATES")
@@ -2051,6 +2051,7 @@
             ((not (swapp-dimstyle-marked-p)) "DIMSTYLE")
             ((not (swapp-fit-tolerance-marked-p)) "FIT_TOLERANCE")
             ((not (swapp-text-style-marked-p)) "TEXT_STYLE")
+            ((not (swapp-dim-layer-marked-p)) "DIM_LAYER")
             ((not (swapp-text-size-marked-p)) "TEXT_SIZE")
             ((not (swapp-layout-state-valid-p frames)) "LAYOUT")
             ((not (swapp-cached-resource-cleanup-verify)) "CLEANUP")
@@ -7110,6 +7111,152 @@
 )
 
 ;;; ---------------------------
+;;; DIM_LAYER: dimensions on the Mechanical dimension layer AM_5
+;;; ---------------------------
+;;; SOLIDWORKS puts its dimensions on layer 0 (433 of 575 in the 221216 set, most with
+;;; color 7), and sheets drawn with the company format bring their own AM_5, which BIND
+;;; renames "<file>$0$AM_5".  Dimensions placed with Mechanical go to AM_5 with color
+;;; ByLayer, and the user wants all of them that way (2026-10-19; leaders, notes and
+;;; symbols keep their layer).  This step moves every model-space dimension to AM_5
+;;; with color ByLayer and checks that the dimension values stay the same.  A missing
+;;; AM_5 is made like the Mechanical one (green, 0.25 mm).  Bound "$0$AM_5" layers that
+;;; nothing uses any more are deleted here, so a drawing converted before this step is
+;;; clean after it.
+
+(setq *swapp-dim-layer-target* "AM_5")
+
+(defun swapp-dim-layer-marked-p ()
+  (if (member (swapp-state-value "DIM_LAYER") '("OK" "NOT_NEEDED")) T nil)
+)
+
+(defun swapp-dim-layer-bylayer-p (object / data)
+  (setq data (entget (vlax-vla-object->ename object)))
+  (and (or (null (assoc 62 data)) (= (cdr (assoc 62 data)) 256)) (null (assoc 420 data)))
+)
+
+;;; Model-space dimensions not on AM_5 or not ByLayer.
+(defun swapp-dim-layer-targets (/ result object)
+  (setq result nil)
+  (foreach object (swapp-model-dimension-objects)
+    (if (or (not (equal (strcase (vla-get-Layer object)) (strcase *swapp-dim-layer-target*)))
+            (not (swapp-dim-layer-bylayer-p object)))
+      (setq result (cons object result))
+    )
+  )
+  result
+)
+
+;;; AM_5 as Mechanical makes it, when the drawing has none.
+(defun swapp-dim-layer-ensure (/ layer)
+  (if (tblsearch "LAYER" *swapp-dim-layer-target*)
+    T
+    (progn
+      (setq layer (vl-catch-all-apply 'vla-Add (list (vla-get-Layers (swapp-doc)) *swapp-dim-layer-target*)))
+      (if (vl-catch-all-error-p layer)
+        nil
+        (progn
+          (swapp-call-ok-p 'vla-put-Color (list layer 3))
+          (swapp-call-ok-p 'vla-put-Lineweight (list layer 25))
+          T
+        )
+      )
+    )
+  )
+)
+
+(defun swapp-dim-layer-bound-p (name)
+  (wcmatch (strcase name) "*$0$AM_5")
+)
+
+;;; Bound "$0$AM_5" layers that no object or attribute in any space or block uses.
+(defun swapp-dim-layer-unused-bound (/ names used layer block e a name)
+  (setq names nil)
+  (vlax-for layer (vla-get-Layers (swapp-doc))
+    (if (swapp-dim-layer-bound-p (vla-get-Name layer)) (setq names (cons (vla-get-Name layer) names)))
+  )
+  (if names
+    (progn
+      (setq used nil)
+      (vlax-for block (vla-get-Blocks (swapp-doc))
+        (if (= (vla-get-IsXRef block) :vlax-false)
+          (vlax-for e block
+            (setq name (strcase (vla-get-Layer e)))
+            (if (and (swapp-dim-layer-bound-p name) (not (member name used))) (setq used (cons name used)))
+            (if (and (= (vla-get-ObjectName e) "AcDbBlockReference") (= (vla-get-HasAttributes e) :vlax-true))
+              (foreach a (vlax-invoke e 'GetAttributes)
+                (setq name (strcase (vla-get-Layer a)))
+                (if (and (swapp-dim-layer-bound-p name) (not (member name used))) (setq used (cons name used)))
+              )
+            )
+          )
+        )
+      )
+      (vl-remove-if '(lambda (n) (member (strcase n) used)) names)
+    )
+    nil
+  )
+)
+
+(defun swapp-run-dim-layer (/ targets unused before after moved failed left removed name object)
+  (swapp-activate-model)
+  (princ "\n----- 치수 레이어 AM_5 통일 -----")
+  (cond
+    ((not (swcad-title-ensure-work-copy-for-mutation))
+      (princ "\n결과: ABORT_WORKCOPY_NOT_CREATED")
+      nil
+    )
+    ((not (swapp-dim-layer-ensure))
+      (swapp-state-set "DIM_LAYER" "FAILED")
+      (princ (strcat "\n결과: SWCAD_DIM_LAYER_FAILED - " *swapp-dim-layer-target* " 레이어를 만들지 못했습니다."))
+      nil
+    )
+    ((and (not (setq targets (swapp-dim-layer-targets))) (not (setq unused (swapp-dim-layer-unused-bound))))
+      (swapp-state-set "DIM_LAYER" "NOT_NEEDED")
+      (swapp-save-current)
+      (princ (strcat "\n모든 치수가 이미 " *swapp-dim-layer-target* " 레이어, ByLayer 색입니다."))
+      (princ "\n결과: SWCAD_DIM_LAYER_NOT_NEEDED")
+      T
+    )
+    (T
+      (setq before (swapp-dimension-semantics))
+      (setq moved 0 failed 0)
+      (foreach object targets
+        (if (and (swapp-call-ok-p 'vla-put-Layer (list object *swapp-dim-layer-target*))
+                 (swapp-call-ok-p 'vla-put-Color (list object 256)))
+          (setq moved (1+ moved))
+          (setq failed (1+ failed))
+        )
+      )
+      (setq after (swapp-dimension-semantics))
+      (setq left (length (swapp-dim-layer-targets)))
+      (setq removed 0)
+      (foreach name (swapp-dim-layer-unused-bound)
+        (if (swapp-call-ok-p 'vla-Delete (list (vla-Item (vla-get-Layers (swapp-doc)) name)))
+          (setq removed (1+ removed))
+        )
+      )
+      (princ (strcat "\n" *swapp-dim-layer-target* "로 옮긴 치수: " (itoa moved) "개" (if (> failed 0) (strcat ", 옮기지 못함 " (itoa failed) "개(잠긴 레이어일 수 있음)") "")))
+      (princ (strcat "\n지운 빈 원본 AM_5 레이어(파일이름$0$AM_5): " (itoa removed) "개"))
+      (if (and (= failed 0) (= left 0) (swapp-semantic-multiset-equal-p before after))
+        (progn
+          (swapp-state-set "DIM_LAYER" "OK")
+          (swapp-state-set "DIM_LAYER_COUNT" (itoa moved))
+          (swapp-save-current)
+          (princ "\n결과: SWCAD_DIM_LAYER_OK")
+          T
+        )
+        (progn
+          (swapp-state-set "DIM_LAYER" "FAILED")
+          (princ (strcat "\n결과: SWCAD_DIM_LAYER_FAILED (남은 치수 " (itoa left) "개" (if (swapp-semantic-multiset-equal-p before after) "" ", 치수 값 달라짐") ")"))
+          (princ "\n진행 중지: 현재 도면을 저장하지 말고 잠긴 레이어 등 원인을 확인하세요.")
+          nil
+        )
+      )
+    )
+  )
+)
+
+;;; ---------------------------
 ;;; TEXT_SIZE: dimension and note text sized for A4 printing
 ;;; ---------------------------
 ;;; The user prints every sheet on A4 (2026-10-08).  A Layout is an A4 page with the
@@ -7526,6 +7673,7 @@
     ((equal stage "DIMSTYLE") "3/6 치수 스타일 통일")
     ((equal stage "FIT_TOLERANCE") "3/6 맞춤공차 중복 공차 정리")
     ((equal stage "TEXT_STYLE") "3/6 문자 스타일 Standard 통일")
+    ((equal stage "DIM_LAYER") "3/6 치수 레이어 AM_5 통일")
     ((equal stage "TEXT_SIZE") "3/6 치수 - A4 출력 글자 크기")
     ((equal stage "LAYOUT") "4/6 원본 파일명 Layout 생성")
     ((equal stage "CLEANUP") "5/6 전체 미사용 이름 정의 정리")
@@ -7586,6 +7734,9 @@
     )
     ((and (equal stage "TEXT_STYLE") (equal (swapp-state-value "TEXT_STYLE") "FAILED"))
       "SWCADRUN 반복 금지 - 문자 스타일 통일 실패 원인(잠긴 레이어 등)을 확인하세요"
+    )
+    ((and (equal stage "DIM_LAYER") (equal (swapp-state-value "DIM_LAYER") "FAILED"))
+      "SWCADRUN 반복 금지 - 치수 레이어 통일 실패 원인(잠긴 레이어 등)을 확인하세요"
     )
     ((and (equal stage "TEXT_SIZE") (equal (swapp-state-value "TEXT_SIZE") "FAILED"))
       "SWCADRUN 반복 금지 - 치수 글자 크기 실패 원인(swcad_text_size_last.txt)을 확인하세요"
@@ -7659,6 +7810,7 @@
   (princ (strcat "\nDIMSTYLE 상태: " (if (swapp-state-value "DIMSTYLE") (swapp-state-value "DIMSTYLE") "미실행")))
   (princ (strcat "\n맞춤공차 중복 공차 정리: " (if (swapp-state-value "FIT_TOLERANCE") (swapp-state-value "FIT_TOLERANCE") "미실행")))
   (princ (strcat "\n문자 스타일 Standard 통일: " (if (swapp-state-value "TEXT_STYLE") (swapp-state-value "TEXT_STYLE") "미실행")))
+  (princ (strcat "\n치수 레이어 AM_5 통일: " (if (swapp-state-value "DIM_LAYER") (swapp-state-value "DIM_LAYER") "미실행")))
   (princ
     (strcat
       "\nA4 출력 글자 크기: " (if (swapp-state-value "TEXT_SIZE") (swapp-state-value "TEXT_SIZE") "미실행")
@@ -7670,7 +7822,7 @@
   (princ (strcat "\nSWCAD Layout: " (itoa (length layouts)) " / 기대 " (itoa frames)))
   (princ (strcat "\nLayout 좌표 모드: " (if (swapp-state-value "LAYOUT_PLACEMENT_MODE") (swapp-state-value "LAYOUT_PLACEMENT_MODE") "미생성")))
   (princ (strcat "\nLayout 이름 정책: " (if (swapp-state-value "LAYOUT_NAME_POLICY") (swapp-state-value "LAYOUT_NAME_POLICY") "원본 파일명 stem 예정")))
-  (if (member stage '("DIMSTYLE" "FIT_TOLERANCE" "TEXT_STYLE" "TEXT_SIZE" "LAYOUT" "CLEANUP" "COMPLETE"))
+  (if (member stage '("DIMSTYLE" "FIT_TOLERANCE" "TEXT_STYLE" "DIM_LAYER" "TEXT_SIZE" "LAYOUT" "CLEANUP" "COMPLETE"))
     (progn
       (setq plan (swapp-layout-plan))
       (swapp-print-layout-plan-items plan *swapp-layout-preview-limit*)
@@ -7783,7 +7935,7 @@
   )
   (setq mutating-stage
     (and
-      (if (member stage '("COLLECT" "XREF" "SHEET_WRAPPERS" "SHEET_FORMAT" "TITLE" "DIMSTYLE" "FIT_TOLERANCE" "TEXT_STYLE" "TEXT_SIZE" "CLEANUP" "LAYOUT")) T nil)
+      (if (member stage '("COLLECT" "XREF" "SHEET_WRAPPERS" "SHEET_FORMAT" "TITLE" "DIMSTYLE" "FIT_TOLERANCE" "TEXT_STYLE" "DIM_LAYER" "TEXT_SIZE" "CLEANUP" "LAYOUT")) T nil)
       (not cleanup-retry-blocked)
     )
   )
@@ -7804,6 +7956,7 @@
     ((equal stage "DIMSTYLE") (setq run-result (swapp-run-dimstyle)))
     ((equal stage "FIT_TOLERANCE") (setq run-result (swapp-run-fit-tolerance)))
     ((equal stage "TEXT_STYLE") (setq run-result (swapp-run-text-style)))
+    ((equal stage "DIM_LAYER") (setq run-result (swapp-run-dim-layer)))
     ((equal stage "TEXT_SIZE") (setq run-result (swapp-run-text-size)))
     ((equal stage "CLEANUP") (setq run-result (swapp-run-resource-cleanup)))
     ((equal stage "LAYOUT") (setq run-result (swapp-run-layout)))
@@ -7886,7 +8039,7 @@
       title-result
     )
   )
-  (setq final-ok (and (= xrefs 0) (= wrappers 0) (equal title-status "OK") dim-ok (swapp-fit-tolerance-marked-p) (swapp-text-style-marked-p) (swapp-text-size-marked-p) cleanup-ok (> frames 0) layout-ok))
+  (setq final-ok (and (= xrefs 0) (= wrappers 0) (equal title-status "OK") dim-ok (swapp-fit-tolerance-marked-p) (swapp-text-style-marked-p) (swapp-dim-layer-marked-p) (swapp-text-size-marked-p) cleanup-ok (> frames 0) layout-ok))
   (princ (strcat "\n남은 XREF: " (itoa xrefs)))
   (princ (strcat "\n남은 중첩 시트 묶음: " (itoa wrappers)))
   (princ (strcat "\nGMTITLE 최종 상태: " title-status))
@@ -7946,6 +8099,7 @@
   (princ (strcat "\nA4 Layout 검증: " (if layout-ok "OK" "CHECK_NEEDED") " (" (itoa frames) "장)"))
   (princ (strcat "\n맞춤공차 중복 공차 정리: " (if (swapp-fit-tolerance-marked-p) (swapp-state-value "FIT_TOLERANCE") "CHECK_NEEDED")))
   (princ (strcat "\n문자 스타일 Standard 통일: " (if (swapp-text-style-marked-p) (swapp-state-value "TEXT_STYLE") "CHECK_NEEDED")))
+  (princ (strcat "\n치수 레이어 AM_5 통일: " (if (swapp-dim-layer-marked-p) (swapp-state-value "DIM_LAYER") "CHECK_NEEDED")))
   (princ
     (strcat
       "\nA4 출력 글자 크기: " (if (swapp-text-size-marked-p) (swapp-state-value "TEXT_SIZE") "CHECK_NEEDED")
