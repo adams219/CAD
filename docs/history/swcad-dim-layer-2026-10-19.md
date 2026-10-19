@@ -32,4 +32,25 @@ AM_5 레이어는 도면에 있다(색 3, 0.25 mm). 치수 스타일 `AM_ISO*`�
 - 정적 검사 `run_static_preflight.ps1`: PASS.
 - 36장 결과 사본(`work\dim-layer-test\e2e36_261019_104041.dwg`, `/b`, 사용자 CAD는 열린 채 별도 창): 단계 `DIM_LAYER` → `SWCADRUN` → 치수 574개 이동(레이어 0 471개, `$0$AM_5` 103개), `$0$AM_5` 레이어 6개 삭제, 치수 의미값 같음 → 다음 단계 `CLEANUP` → `SWCADRUN` → `COMPLETE`. `SWCADVERIFY_FINAL_OK`, `DIM_LAYER=OK count=574`.
 - 사용자 도면 사본(`work\dim-layer-test\lks_261019_105217.dwg`, 원본 10-19 10:23 저장본): 치수 536개 이동(레이어 0 433개, `$0$AM_5` 103개), 575개 모두 AM_5·ByLayer, 의미값 같음, `$0$AM_5` 레이어 6개 삭제. 다음 단계는 `LAYOUT`이라 시험 스크립트가 멈췄다(손본 도면이라 Layout 계획 지문이 다름. `SWCADRUN`을 계속하면 Layout 36개를 다시 만든다). 바꾸기 전 사본도 `DIMSTYLE` 감사·`CLEANUP`·`LAYOUT`이 이미 `no`, `SWCADVERIFY_FINAL_FAIL`이었다(손으로 넣은 치수와 Layout 변경). 바뀐 것은 `DIM_LAYER`뿐이다. 사용자에게 `Downloads\감속기시험기_통합도면_LKS_261019_치수AM5.dwg`로 줬다.
-- 새 변환 전체 실행(보이는 CAD, COM)은 사용자 CAD가 열려 있어 하지 않았다.
+- 새 변환 전체 실행(보이는 CAD, COM)은 처음에 사용자 CAD가 열려 있어 미뤘다가, 사용자가 CAD를 닫은 뒤 했다.
+
+## 36장 새 변환 전체 실행 (11:20, 결과 `work\sheet-format-test\e2e36_261019_112043.dwg`)
+
+| SWCADRUN | 시간 | 단계 뒤 |
+| --- | --- | --- |
+| 1 SHEET_FORMAT | 38초 | TITLE |
+| 2 TITLE | 242초 | DIMSTYLE (`OK_NATIVE_AUTOSELECT_BATCH_COMPLETE`) |
+| 3 DIMSTYLE | 22초 | FIT_TOLERANCE |
+| 4 FIT_TOLERANCE | 14초 | TEXT_STYLE |
+| 5 TEXT_STYLE | 16초 | DIM_LAYER |
+| 6 DIM_LAYER | 19초 | TEXT_SIZE |
+| 7 TEXT_SIZE | 170초 | LAYOUT |
+| 8 LAYOUT | 97초 | CLEANUP |
+| 9 CLEANUP | 337초 | COMPLETE |
+
+- `SWCADVERIFY_FINAL_OK`, `DIM_LAYER=OK count=574`, 도면틀 36, Layout 36, 겹침 표시 64.
+- 10-16 결과와 표제란 36개를 칸마다 비교: 다른 칸은 날짜(변환한 날)뿐.
+
+30장 회귀 시험(`run_title_value_test.ps1 -EndToEnd -FullWorkflow`, `tmp\gmtitle-value-test\261019_114137`): `RESULT: OK`, 표제란 330칸 계획과 같음, 지운 모델 공간 객체 1693개 그대로, DIM_LAYER 13초, `SWCADVERIFY_FINAL_OK`.
+
+첫 시도(11:10)는 SHEET_FORMAT 뒤 `SWCADRUN`이 매번 6~7초 만에 끝나고 단계가 `TITLE`에 머물렀다(GMTITLE 로그도 안 쓰임). 시험 실행기는 TITLE에서 진행이 없어도 반복하게 되어 있어 16번 돌다가 멈췄다. 같은 도면 사본으로 `/b` 진단은 `SWTITLECONVERTNEXT`를 골랐고, 보이는 CAD에서 명령창 기록(LOGFILEON)을 켜고 `SWCADRUN` 한 번을 돌리니 36장 변환이 정상으로 끝났다. 명령창 기록을 켠 두 번째 전체 실행도 정상이었다. 첫 시도의 원인은 기록이 없어 확인하지 못했다. 그때 화면 캡처가 검게만 나와, 화면이 꺼지거나 잠금 직전이던 상태였을 수 있다. 다시 생기면 명령창 기록(`run_e2e36.ps1 -SetupLisp`로 LOGFILEPATH·LOGFILEMODE 설정, 끝나면 원래 값으로 되돌림)으로 원인을 본다.
