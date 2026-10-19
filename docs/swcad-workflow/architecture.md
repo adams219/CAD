@@ -160,7 +160,17 @@ XREF BIND는 SolidWorks 문자 스타일에도 파일 이름을 붙인다(`01-03
 - 대상: XREF와 치수 익명 블록(`*D`)을 뺀 모든 블록 정의(모델·배치 공간 포함) 안의 TEXT, MTEXT, 속성 정의, 블록 참조의 속성 가운데 스타일 이름에 `$0$`가 있는 것(`swapp-text-style-targets`). DR 도면틀·표제란의 기본 스타일(ISOCP, ACISOTS, monotxt-03)은 이름에 `$0$`가 없어 그대로다.
 - 바꾼 뒤 남은 대상이 0이고 실패가 0이어야 `TEXT_STYLE=OK`(대상이 없으면 `NOT_NEEDED`), `TEXT_STYLE_COUNT`. 잠긴 레이어 등으로 하나라도 못 바꾸면 `FAILED`, 저장하지 않는다. `SWCADVERIFY` 판정에 포함한다.
 - 쓰지 않게 된 바인딩 스타일은 CLEANUP의 미사용 이름 정리가 지운다(32장: 57개 → 0개).
-- 남는 `$0$` 이름(32장): 블록 323개(SW 표·주석·중심 표시 — 파일마다 같은 이름을 다른 내용으로 쓰므로 BIND가 붙인 이름이 서로를 구분한다), 레이어 6개(`…$0$AM_5`), 선 종류 47개(`…$0$HIDDEN`, `CENTERX2`, `PHANTOM` 등).
+- 남는 `$0$` 이름(32장): 블록 323개(SW 표·주석·중심 표시 — 파일마다 같은 이름을 다른 내용으로 쓰므로 BIND가 붙인 이름이 서로를 구분한다), 레이어 6개(`…$0$AM_5`, 2026-10-19부터 DIM_LAYER가 비우고 지운다), 선 종류 47개(`…$0$HIDDEN`, `CENTERX2`, `PHANTOM` 등).
+
+## DIM_LAYER: 치수 레이어 AM_5
+
+SolidWorks는 치수를 레이어 0에 내보내고(221216 36장 결과: 575개 중 433개, 대부분 색 7), 회사 양식 시트는 자체 AM_5를 BIND가 `<파일>$0$AM_5`로 바꾼다(레이어 6개, 치수 103개). Mechanical로 넣는 치수는 AM_5, 색 ByLayer다. 사용자 결정(2026-10-19): 모든 치수를 AM_5, ByLayer로. 지시선·주석 글자·SW 주석 블록은 그대로 둔다.
+
+- TEXT_STYLE 다음, TEXT_SIZE 전(`swapp-run-dim-layer`). 이미 변환이 끝난 도면에서는 `SWCADRUN` 한 번이 이 단계만 실행하고, 그다음 단계는 CLEANUP(정리 감사 지문이 바뀌므로)다.
+- 대상: 모델 공간 치수 중 레이어가 AM_5가 아니거나 색이 ByLayer가 아닌 것(`swapp-dim-layer-targets`). 레이어와 색만 바꾼다.
+- AM_5가 없으면 Mechanical과 같게 만든다(색 3, 선 두께 0.25 mm).
+- 바꾼 뒤 아무 객체·속성도 쓰지 않는 `…$0$AM_5` 레이어를 지운다(`swapp-dim-layer-unused-bound`).
+- 실패 0, 남은 대상 0, 치수 의미값(`swapp-dimension-semantics`) 전후 다중집합이 같아야 `DIM_LAYER=OK`(대상이 없으면 `NOT_NEEDED`), `DIM_LAYER_COUNT`. 아니면 `FAILED`, 저장하지 않는다. `SWCADVERIFY` 판정에 포함한다.
 
 ## TEXT_SIZE: A4 출력 글자 크기
 
